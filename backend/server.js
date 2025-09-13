@@ -1113,12 +1113,17 @@ const authenticateToken = authenticateSession;
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
 
-// Email configuration
+// Email configuration using SMTP settings from .env
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // You can change this to your preferred email service
+  host: process.env.EMAIL_HOST,
+  port: parseInt(process.env.EMAIL_PORT),
+  secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
   auth: {
-    user: process.env.EMAIL_USER || 'your-email@gmail.com',
-    pass: process.env.EMAIL_PASS || 'your-app-password'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false // Allow self-signed certificates
   }
 });
 
@@ -1152,7 +1157,7 @@ const calculateDaysUntilExpiry = (expiryDate) => {
 const sendEmailNotification = async (userEmail, subject, body) => {
   try {
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'your-email@gmail.com',
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: userEmail,
       subject: subject,
       text: body
