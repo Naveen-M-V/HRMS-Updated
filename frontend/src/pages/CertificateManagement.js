@@ -1,0 +1,436 @@
+// src/pages/CertificateManagement.js
+import React, { useState, useMemo } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useCertificates } from "../context/CertificateContext";
+import { useProfiles } from "../context/ProfileContext";
+import { getImageUrl } from '../utils/config';
+import { 
+  AcademicCapIcon, 
+  PlusIcon, 
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  DocumentArrowDownIcon,
+  CalendarIcon,
+  BuildingOfficeIcon,
+  UserGroupIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
+
+export default function CertificateManagement() {
+  const { certificates, deleteCertificate } = useCertificates();
+  const { profiles } = useProfiles();
+  const navigate = useNavigate();
+  
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("");
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Get filter options
+  const filterOptions = useMemo(() => {
+    const categories = [...new Set(certificates.map(c => c.category).filter(Boolean))].sort();
+    const statuses = [...new Set(certificates.map(c => c.status).filter(Boolean))].sort();
+    const providers = [...new Set(certificates.map(c => c.provider).filter(Boolean))].sort();
+    
+    return { categories, statuses, providers };
+  }, [certificates]);
+
+  // Filter certificates
+  const filteredCertificates = useMemo(() => {
+    return certificates.filter((cert) => {
+      const matchesSearch = cert.certificate.toLowerCase().includes(search.toLowerCase()) ||
+                           cert.profileName.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = !selectedCategory || cert.category === selectedCategory;
+      const matchesStatus = !selectedStatus || cert.status === selectedStatus;
+      const matchesProvider = !selectedProvider || cert.provider === selectedProvider;
+      
+      return matchesSearch && matchesCategory && matchesStatus && matchesProvider;
+    });
+  }, [certificates, search, selectedCategory, selectedStatus, selectedProvider]);
+
+  // Get certificate status color
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'expired':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // Get certificate status icon
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return <CheckCircleIcon className="h-4 w-4" />;
+      case 'pending':
+        return <ClockIcon className="h-4 w-4" />;
+      case 'expired':
+        return <ExclamationTriangleIcon className="h-4 w-4" />;
+      default:
+        return <ClockIcon className="h-4 w-4" />;
+    }
+  };
+
+  // Check if certificate is expiring soon (within 30 days)
+  const isExpiringSoon = (expiryDate) => {
+    if (!expiryDate) return false;
+    const expiry = new Date(expiryDate.split('/').reverse().join('-'));
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+    return expiry <= thirtyDaysFromNow && expiry >= today;
+  };
+
+  const handleDeleteCertificate = async (certificateId, certificateName) => {
+    if (window.confirm(`Are you sure you want to delete "${certificateName}"? This action cannot be undone.`)) {
+      try {
+        await deleteCertificate(certificateId);
+      } catch (error) {
+        console.error('Failed to delete certificate:', error);
+        alert('Failed to delete certificate. Please try again.');
+      }
+    }
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setSelectedCategory("");
+    setSelectedStatus("");
+    setSelectedProvider("");
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm border mb-6">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  <AcademicCapIcon className="h-8 w-8 text-emerald-600" />
+                  Certificate Management
+                </h1>
+                <p className="text-gray-600 mt-1">Manage and track all certificates across your organization</p>
+              </div>
+              <button
+                onClick={() => navigate("/dashboard/createcretificate")}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <PlusIcon className="h-5 w-5" />
+                Add Certificate
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4 mt-6">
+              <div className="bg-emerald-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-emerald-600">{certificates.length}</div>
+                <div className="text-sm text-emerald-700">Total Certificates</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-green-600">
+                  {certificates.filter(c => c.status === 'Approved').length}
+                </div>
+                <div className="text-sm text-green-700">Approved</div>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {certificates.filter(c => c.status === 'Pending').length}
+                </div>
+                <div className="text-sm text-yellow-700">Pending</div>
+              </div>
+              <div className="bg-red-50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-red-600">
+                  {certificates.filter(c => isExpiringSoon(c.expiryDate)).length}
+                </div>
+                <div className="text-sm text-red-700">Expiring Soon</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="bg-white rounded-lg shadow-sm border mb-6">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4 flex-1">
+                {/* Search */}
+                <div className="relative flex-1 max-w-md">
+                  <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search certificates or profiles..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Filter Toggle */}
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg transition-colors ${
+                    showFilters ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <FunnelIcon className="h-4 w-4" />
+                  Filters
+                </button>
+              </div>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-2 border rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-1 rounded text-sm ${
+                    viewMode === 'grid' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-1 rounded text-sm ${
+                    viewMode === 'table' ? 'bg-emerald-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Table
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Options */}
+            {showFilters && (
+              <div className="border-t pt-4">
+                <div className="grid grid-cols-4 gap-4">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="">All Categories</option>
+                    {filterOptions.categories.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="">All Statuses</option>
+                    {filterOptions.statuses.map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedProvider}
+                    onChange={(e) => setSelectedProvider(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  >
+                    <option value="">All Providers</option>
+                    {filterOptions.providers.map(provider => (
+                      <option key={provider} value={provider}>{provider}</option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg border border-gray-300"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="bg-white rounded-lg shadow-sm border">
+          {filteredCertificates.length === 0 ? (
+            <div className="text-center py-12">
+              <AcademicCapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No certificates found</h3>
+              <p className="text-gray-600 mb-4">
+                {search || selectedCategory || selectedStatus || selectedProvider
+                  ? 'Try adjusting your search or filters'
+                  : 'Get started by adding your first certificate'
+                }
+              </p>
+              <button
+                onClick={() => navigate("/dashboard/createcretificate")}
+                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Certificate
+              </button>
+            </div>
+          ) : viewMode === 'grid' ? (
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredCertificates.map((cert) => (
+                  <div key={cert.id || cert._id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <AcademicCapIcon className="h-8 w-8 text-emerald-600 flex-shrink-0" />
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(cert.status)}`}>
+                          {getStatusIcon(cert.status)}
+                          {cert.status}
+                        </span>
+                        {isExpiringSoon(cert.expiryDate) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                            <ExclamationTriangleIcon className="h-3 w-3" />
+                            Expiring Soon
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{cert.certificate}</h3>
+                    <p className="text-sm text-gray-600 mb-3">{cert.profileName}</p>
+                    
+                    <div className="space-y-2 text-sm text-gray-500 mb-4">
+                      <div className="flex items-center gap-2">
+                        <BuildingOfficeIcon className="h-4 w-4" />
+                        {cert.provider}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" />
+                        Expires: {cert.expiryDate}
+                      </div>
+                      {cert.cost && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">💰</span>
+                          £{cert.cost}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-4 border-t">
+                      <Link
+                        to={`/viewcertificate/${cert.id || cert._id}`}
+                        className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                        View
+                      </Link>
+                      <Link
+                        to={`/editcertificate/${cert.id || cert._id}`}
+                        className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.certificate)}
+                        className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded ml-auto"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredCertificates.map((cert) => (
+                    <tr key={cert.id || cert._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <AcademicCapIcon className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                          <div>
+                            <div className="font-medium text-gray-900">{cert.certificate}</div>
+                            <div className="text-sm text-gray-500">{cert.category}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{cert.profileName}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{cert.category}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{cert.provider}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{cert.expiryDate}</div>
+                        {isExpiringSoon(cert.expiryDate) && (
+                          <div className="text-xs text-red-600 font-medium">Expiring Soon</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(cert.status)}`}>
+                          {getStatusIcon(cert.status)}
+                          {cert.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {cert.cost ? `£${cert.cost}` : '-'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            to={`/viewcertificate/${cert.id || cert._id}`}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="View Certificate"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </Link>
+                          <Link
+                            to={`/editcertificate/${cert.id || cert._id}`}
+                            className="text-gray-600 hover:text-gray-800"
+                            title="Edit Certificate"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.certificate)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete Certificate"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

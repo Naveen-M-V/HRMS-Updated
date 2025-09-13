@@ -1,0 +1,252 @@
+// src/components/Sidebar.js
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { ClipboardDocumentIcon as ClipboardIcon } from '@heroicons/react/24/outline';
+import { AcademicCapIcon } from '@heroicons/react/24/outline';
+import { LinkIcon } from '@heroicons/react/24/outline';
+import { Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
+import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon } from '@heroicons/react/24/outline';
+import { HomeIcon } from '@heroicons/react/24/outline';
+import { UserIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
+import { BellIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+
+export default function Sidebar({ isOpen }) {
+  const navigate = useNavigate();
+  const { logout, loading } = useAuth();
+
+  const [openReporting, setOpenReporting] = useState(false);
+  const [openTraining, setOpenTraining] = useState(false);
+  const [openSupply, setOpenSupply] = useState(false);
+  const [openSettings, setOpenSettings] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  // Fetch notification count on component mount
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await fetch('http://localhost:5003/api/notifications/unread-count', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadNotifications(data.count || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch notification count:', error);
+      }
+    };
+
+    fetchNotificationCount();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotificationCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      navigate("/login");
+    }
+  };
+
+  const itemBase =
+    "relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md";
+
+  const Divider = () => <div className="border-b border-green-300 mx-2 my-2"></div>;
+
+  // ✅ Fixed ChildItem with onClick support
+  const ChildItem = ({ name, icon: Icon, onClick }) => (
+    <div
+      onClick={onClick}
+      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3"
+    >
+      {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300" />}
+      {isOpen && <span className="text-sm">{name}</span>}
+
+      {/* Tooltip when collapsed */}
+      {!isOpen && (
+        <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+          {name}
+        </span>
+      )}
+    </div>
+  );
+
+  return (
+    <div
+className={`bg-green-900 text-white min-h-screen h-auto transition-all duration-300 ${
+  isOpen ? "w-64" : "w-16"
+} overflow-y-auto`}
+    >
+      <div className="py-4 space-y-2">
+        {isOpen && (
+          <div className="px-4 pb-2 text-xs uppercase font-bold tracking-wider text-green-300">
+            My Compliance
+          </div>
+        )}
+
+        {/* Reporting */}
+        <div>
+          <div
+            onClick={() => setOpenReporting(!openReporting)}
+            className={`${itemBase} select-none`}
+          >
+            <ClipboardIcon className="h-6 w-6 shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm flex-1">Reporting</span>
+                {openReporting ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+            {!isOpen && (
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+                Reporting
+              </span>
+            )}
+          </div>
+          {openReporting && (
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+              <ChildItem
+                name="Compliance Dashboard"
+                icon={HomeIcon}
+                onClick={() => navigate("/")}
+              />
+              
+            </div>
+          )}
+          <Divider />
+        </div>
+
+        {/* Training Compliance */}
+        <div>
+          <div
+            onClick={() => setOpenTraining(!openTraining)}
+            className={`${itemBase} select-none`}
+          >
+            <AcademicCapIcon className="h-6 w-6 shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm flex-1">Training Compliance</span>
+                {openTraining ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+            {!isOpen && (
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+                Training Compliance
+              </span>
+            )}
+          </div>
+          {openTraining && (
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+              <ChildItem
+                name="Profiles"
+                icon={UserIcon}
+                onClick={() => navigate("/reporting/profiles")}
+              />
+              <ChildItem
+                name="Certificates"
+                icon={DocumentTextIcon}
+                onClick={() => navigate("/certificates")}
+              />
+            </div>
+          )}
+          <Divider />
+        </div>
+
+
+        {/* My Settings */}
+        <div>
+          <div
+            onClick={() => setOpenSettings(!openSettings)}
+            className={`${itemBase} select-none`}
+          >
+            <UserCircleIcon className="h-6 w-6 shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm flex-1">My Settings</span>
+                {openSettings ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+            {!isOpen && (
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+                My Settings
+              </span>
+            )}
+          </div>
+          {openSettings && (
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+              <ChildItem
+                name="Profile"
+                icon={UserIcon}
+                onClick={() => navigate("/myaccount/profiles")}
+              />
+              <div className="relative">
+                <ChildItem
+                  name="Notifications"
+                  icon={BellIcon}
+                  onClick={() => {
+                    navigate("/myaccount/notifications");
+                    setUnreadNotifications(0);
+                  }}
+                />
+                {/* Notification Badge */}
+                {unreadNotifications > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] z-10">
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <Divider />
+        </div>
+
+        {/* Logout Button */}
+        <div className="mt-auto pt-4">
+          <div
+            onClick={handleLogout}
+            className={`${itemBase} select-none ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <ArrowRightOnRectangleIcon className="h-6 w-6 shrink-0" />
+            {isOpen && (
+              <span className="text-sm flex-1">
+                {loading ? 'Logging out...' : 'Logout'}
+              </span>
+            )}
+            {!isOpen && (
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+                Logout
+              </span>
+            )}
+          </div>
+        </div>
+
+        
+      </div>
+    </div>
+  );
+}
