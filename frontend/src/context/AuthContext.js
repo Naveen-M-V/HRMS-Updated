@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
 const AuthContext = createContext();
@@ -31,99 +31,119 @@ const API_BASE_URL = `${getApiUrl()}`;
 axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Initialize state from localStorage immediately
+  const getInitialState = () => {
+    try {
+      const storedUser = localStorage.getItem('userData');
+      if (storedUser) {
+        return {
+          user: JSON.parse(storedUser),
+          isAuthenticated: true
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing stored user data:', error);
+    }
+    return {
+      user: null,
+      isAuthenticated: false
+    };
+  };
+
+  const initialState = getInitialState();
+  const [user, setUser] = useState(initialState.user);
+  const [isAuthenticated, setIsAuthenticated] = useState(initialState.isAuthenticated);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Store session cookie for session maintenance
+  const storeSessionCookie = () => {
+    const cookies = document.cookie.split(';');
+    const sessionCookie = cookies.find(cookie => cookie.trim().startsWith('talentshield.sid='));
+
+    if (sessionCookie) {
+      console.log('Session cookie captured:', sessionCookie);
+      localStorage.setItem('sessionCookie', sessionCookie);
+    } else {
+      localStorage.removeItem('sessionCookie');
+    }
+  };
 
   // Check for existing session on app start
   useEffect(() => {
-    validateSession();
-  }, []);
+    // Only run background validation if user is not already set
+    if (!user) {
+      checkExistingSession();
+    }
 
-  const validateSession = async () => {
-    setLoading(true);
-    try {
-      // First check if we have stored user data
-      const storedUserData = localStorage.getItem("userData");
-      const storedToken = localStorage.getItem("authToken");
-      
-      if (storedUserData && storedToken) {
-        // Temporarily set user data while validating session
-        const userData = JSON.parse(storedUserData);
-        setUser(userData);
-        setIsAuthenticated(true);
-      }
-
-      // Validate with server
-      const response = await axios.get(`${API_BASE_URL}/auth/validate-session`);
-      
-      if (response.data.isAuthenticated) {
-        setUser(response.data.user);
-        setIsAuthenticated(true);
-        // Update stored data with fresh user info
-        localStorage.setItem("userData", JSON.stringify(response.data.user));
-        // Keep token in localStorage for API compatibility
-        if (response.data.token) {
-          localStorage.setItem("authToken", response.data.token);
-        }
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("userData");
-      }
-    } catch (err) {
-      console.log("Session validation failed:", err.message);
-      // If we have stored data but server validation fails, keep user logged in temporarily
-      const storedUserData = localStorage.getItem("userData");
-      if (storedUserData) {
-        try {
-          const userData = JSON.parse(storedUserData);
-          setUser(userData);
-          setIsAuthenticated(true);
-          console.log("Using cached user data due to network/server issue");
-        } catch (parseErr) {
-          // If stored data is corrupted, clear everything
+    // Listen for localStorage changes to sync across tabs
+    const handleStorageChange = (e) => {
+      if (e.key === 'userData') {
+        if (e.newValue) {
+          try {
+            const userData = JSON.parse(e.newValue);
+            setUser(userData);
+            setIsAuthenticated(true);
+          } catch (error) {
+            console.error('Error parsing storage change:', error);
+          }
+        } else {
+          // userData was removed
           setUser(null);
           setIsAuthenticated(false);
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("userData");
         }
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("userData");
       }
-    } finally {
-      setLoading(false);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [user, checkExistingSession]);
+
+  const checkExistingSession = useCallback(async () => {
+    // This function now only validates with backend, state is already set from localStorage
+    const storedUser = localStorage.getItem('userData');
+    if (storedUser) {
+      try {
+        await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
+          withCredentials: true,
+          timeout: 3000
+        });
+        // Session is valid, no action needed
+      } catch (error) {
+        // Only clear on explicit forbidden response
+        if (error.response?.status === 403) {
+          handleInvalidSession();
+        }
+        // For other errors (401, network), keep using stored data
+      }
     }
-  };
+  }, []);
 
   const login = async (email, password, rememberMe = false) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
         password,
         rememberMe
       });
-      
+
       const { token, user: userData } = response.data;
-      
+
       // Store token in localStorage for API compatibility
       if (token) {
         localStorage.setItem("authToken", token);
       }
       localStorage.setItem("userData", JSON.stringify(userData));
-      
+
       // Update state - session is automatically handled by cookies
       setUser(userData);
       setIsAuthenticated(true);
-      
+
       return { success: true };
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Login failed";
@@ -137,10 +157,10 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData);
-      
+      await axios.post(`${API_BASE_URL}/api/auth/signup`, userData);
+
       return { success: true, message: "Account created successfully" };
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Signup failed";
@@ -155,18 +175,28 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       // Call backend logout endpoint to destroy session
-      await axios.post(`${API_BASE_URL}/auth/logout`);
+      await axios.post(`${API_BASE_URL}/api/auth/logout`);
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
       // Clear local state and storage regardless of API call result
       localStorage.removeItem("authToken");
       localStorage.removeItem("userData");
+      localStorage.removeItem("sessionCookie");
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
       setLoading(false);
     }
+  };
+
+  const handleInvalidSession = () => {
+    console.log("Invalid session. Clearing user data.");
+    localStorage.removeItem("userData");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("sessionCookie");
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
   const value = {
@@ -177,7 +207,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
-    validateSession
+    storeSessionCookie
   };
 
   return (

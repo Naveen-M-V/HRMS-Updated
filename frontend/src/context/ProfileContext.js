@@ -45,6 +45,10 @@ export const ProfileProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await axios.post(`${API_BASE_URL}/profiles`, newProfile);
+      if (!response.data || typeof response.data !== 'object') {
+        console.error("Unexpected response format:", response.data);
+        throw new Error("Invalid response format from server");
+      }
       setProfiles(prev => [response.data, ...prev]);
       setError(null);
       return response.data;

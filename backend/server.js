@@ -23,27 +23,37 @@ const MONGODB_URI = config.database.uri;
 // Middleware
 app.use(cookieParser());
 
-// Session configuration with MongoDB store
+// Updated session middleware configuration
 app.use(session({
-  secret: config.session.secret,
+  secret: process.env.SESSION_SECRET, // Removed insecure fallback
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: MONGODB_URI,
-    collectionName: 'sessions',
-    ttl: 24 * 60 * 60 // 24 hours in seconds
+    mongoUrl: process.env.MONGODB_URI,
+    touchAfter: 24 * 3600, // Lazy session update
+    ttl: 14 * 24 * 60 * 60 // 14 days
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-    httpOnly: true, // Prevent XSS attacks
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    httpOnly: true,
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+    // Remove domain restriction to allow same-origin cookies
+    domain: undefined
+  },
+  name: 'talentshield.sid' // Custom session name
 }));
 
+// Adjusted CORS configuration to use FRONTEND_URL from .env
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
+  origin: [
+    process.env.FRONTEND_URL || 'https://talentshield.co.uk',
+    'https://talentshield.co.uk',
+    'http://localhost:5003'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -249,7 +259,67 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fieldSize: 10 * 1024 * 1024  // 10MB field limit
+  }
+});
+
+// Routes
+
+// Helper function to parse date strings in various formats
+const parseExpiryDate = (dateString) => {
+  if (!dateString) return null;
+  
+  try {
+    // Handle different date formats
+    let date;
+    
+    // Check if it's already a valid Date object
+    if (dateString instanceof Date) {
+      return dateString;
+    }
+    
+    // Convert to string and clean up
+    const cleanDate = dateString.toString().trim();
+    
+    // Try ISO format first (YYYY-MM-DD)
+    if (cleanDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+      date = new Date(cleanDate);
+    }
+    // Try DD/MM/YYYY format
+    else if (cleanDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+      const [day, month, year] = cleanDate.split('/');
+      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    // Try MM/DD/YYYY format
+    else if (cleanDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/) && new Date(cleanDate).getTime()) {
+      date = new Date(cleanDate);
+    }
+    // Try YYYY/MM/DD format
+    else if (cleanDate.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)) {
+      const [year, month, day] = cleanDate.split('/');
+      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    // Default: try direct parsing
+    else {
+      date = new Date(cleanDate);
+    }
+    
+    // Validate the date
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date format: ${dateString}`);
+      return null;
+    }
+    
+    return date;
+  } catch (error) {
+    console.warn(`Error parsing date: ${dateString}`, error);
+    return null;
+  }
+};
 
 // Routes
 
@@ -714,13 +784,14 @@ app.get('/api/certificates/analytics/stats', async (req, res) => {
     
     expiringCertificates.forEach(cert => {
       if (cert.expiryDate) {
-        const [day, month, year] = cert.expiryDate.split('/');
-        const expiryDate = new Date(year, month - 1, day);
+        const expiryDate = parseExpiryDate(cert.expiryDate);
         
-        if (expiryDate < today) {
-          expiredCount++;
-        } else if (expiryDate <= thirtyDaysFromNow) {
-          expiringCount++;
+        if (expiryDate) {
+          if (expiryDate < today) {
+            expiredCount++;
+          } else if (expiryDate <= thirtyDaysFromNow) {
+            expiringCount++;
+          }
         }
       }
     });
@@ -793,10 +864,9 @@ app.get('/api/certificates/expiring/:days?', async (req, res) => {
     const expiringCertificates = certificates.filter(cert => {
       if (!cert.expiryDate) return false;
       
-      const [day, month, year] = cert.expiryDate.split('/');
-      const expiryDate = new Date(year, month - 1, day);
+      const expiryDate = parseExpiryDate(cert.expiryDate);
       
-      return expiryDate >= today && expiryDate <= futureDate;
+      return expiryDate && expiryDate >= today && expiryDate <= futureDate;
     });
     
     res.json(expiringCertificates);
@@ -818,13 +888,42 @@ app.get('/api/certificates/expired', async (req, res) => {
     const expiredCertificates = certificates.filter(cert => {
       if (!cert.expiryDate) return false;
       
-      const [day, month, year] = cert.expiryDate.split('/');
-      const expiryDate = new Date(year, month - 1, day);
+      const expiryDate = parseExpiryDate(cert.expiryDate);
       
-      return expiryDate < today;
+      return expiryDate && expiryDate < today;
     });
     
     res.json(expiredCertificates);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Debug endpoint to check certificate dates
+app.get('/api/certificates/debug-dates', async (req, res) => {
+  try {
+    const certificates = await Certificate.find({
+      expiryDate: { $exists: true, $ne: null }
+    }).limit(10);
+    
+    const today = new Date();
+    const debugInfo = certificates.map(cert => {
+      const parsedDate = parseExpiryDate(cert.expiryDate);
+      return {
+        id: cert._id,
+        certificate: cert.certificate,
+        originalDate: cert.expiryDate,
+        parsedDate: parsedDate,
+        isValid: parsedDate && !isNaN(parsedDate.getTime()),
+        isExpired: parsedDate && parsedDate < today,
+        daysFromNow: parsedDate ? Math.ceil((parsedDate - today) / (1000 * 60 * 60 * 24)) : null
+      };
+    });
+    
+    res.json({
+      today: today,
+      certificates: debugInfo
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -956,6 +1055,15 @@ app.post('/api/auth/login', async (req, res) => {
     // Store user in session
     req.session.user = sessionUser;
 
+    // Force session save
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+      } else {
+        console.log('Session saved successfully for user:', sessionUser.email);
+      }
+    });
+
     // If remember me is checked, extend session duration
     if (rememberMe) {
       req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -1009,6 +1117,13 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Session validation endpoint
 app.get('/api/auth/validate-session', (req, res) => {
+  console.log('Session validation request:', {
+    sessionExists: !!req.session,
+    sessionUser: req.session?.user ? 'exists' : 'missing',
+    sessionId: req.sessionID,
+    cookies: req.headers.cookie
+  });
+  
   if (req.session && req.session.user) {
     return res.json({
       isAuthenticated: true,
@@ -1381,4 +1496,12 @@ app.listen(PORT, () => {
     console.log('Running initial certificate expiry check...');
     triggerCertificateCheck();
   }, 5000); // Wait 5 seconds for database connection
+});
+
+// Ensure API routes are defined before serving the React app
+// Serve React app for all other routes
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
 });

@@ -23,6 +23,17 @@ export const CertificateProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_BASE_URL}/certificates`);
+
+      // Validate response data
+      if (!Array.isArray(response.data)) {
+        console.error("Expected an array of certificates, but got:", response.data);
+        console.error("Response headers:", response.headers);
+        console.error("Response status:", response.status);
+        setCertificates([]);
+        setError("Invalid data format received from API");
+        return;
+      }
+
       setCertificates(response.data);
       setError(null);
     } catch (err) {
@@ -174,14 +185,19 @@ export const CertificateProvider = ({ children }) => {
 
   // Get expired certificates
   const getExpiredCertificates = () => {
+    if (!Array.isArray(certificates)) {
+      console.error("Expected an array of certificates, but got:", certificates);
+      return [];
+    }
+
     const today = new Date();
-    
+
     return certificates.filter(cert => {
       if (!cert.expiryDate) return false;
-      
+
       const [day, month, year] = cert.expiryDate.split('/');
       const expiryDate = new Date(year, month - 1, day);
-      
+
       return expiryDate < today;
     });
   };

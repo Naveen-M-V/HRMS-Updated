@@ -17,6 +17,11 @@ export default function ProfilesPage() {
 
   // Get unique values for filter dropdowns
   const filterOptions = useMemo(() => {
+    if (!Array.isArray(profiles)) {
+      console.error("Profiles data is not an array:", profiles);
+      return { roles: [], staffTypes: [], companies: [], managers: [] };
+    }
+
     const roles = [...new Set(profiles.map(p => p.role).filter(Boolean))].sort();
     const staffTypes = [...new Set(profiles.map(p => p.staffType).filter(Boolean))].sort();
     const companies = [...new Set(profiles.map(p => p.company).filter(Boolean))].sort();

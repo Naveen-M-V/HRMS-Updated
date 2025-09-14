@@ -35,7 +35,13 @@ export default function Sidebar({ isOpen }) {
         });
         if (response.ok) {
           const data = await response.json();
-          setUnreadNotifications(data.count || 0);
+          if (typeof data.count === 'number') {
+            setUnreadNotifications(data.count);
+          } else {
+            console.error('Unexpected response format:', data);
+          }
+        } else {
+          console.error('Failed to fetch notification count. Status:', response.status);
         }
       } catch (error) {
         console.error('Failed to fetch notification count:', error);

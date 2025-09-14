@@ -37,12 +37,14 @@ router.get('/unread-count', (req, res) => {
   try {
     // Validate session and user ID
     if (!req.session?.user?.userId) {
+      console.error("Invalid session data. Session:", req.session);
+      console.error("Cookies:", req.cookies);
       return res.status(400).json({ error: 'User ID is required' });
     }
 
     // Ensure notifications is an array
     if (!Array.isArray(notifications)) {
-      console.error('Notifications data is invalid');
+      console.error("Notifications data is invalid. Expected an array but got:", notifications);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
@@ -53,9 +55,9 @@ router.get('/unread-count', (req, res) => {
 
     res.json({ count: unreadCount });
   } catch (error) {
-    console.error('Error fetching notification count:', error);
-    console.error('Session data:', req.session);
-    console.error('Notifications data:', notifications);
+    console.error("Error fetching notification count:", error);
+    console.error("Session data:", req.session);
+    console.error("Notifications data:", notifications);
     res.status(500).json({ error: 'Failed to fetch notification count' });
   }
 });
