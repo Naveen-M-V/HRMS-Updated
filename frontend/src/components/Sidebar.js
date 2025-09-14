@@ -30,7 +30,7 @@ export default function Sidebar({ isOpen }) {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch('http://localhost:5003/api/notifications/unread-count', {
+        const response = await fetch('https://talentshield.co.uk/api/notifications/unread-count', {
           credentials: 'include'
         });
         if (response.ok) {

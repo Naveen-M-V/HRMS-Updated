@@ -11,19 +11,24 @@ export const calculateDaysUntilExpiry = (expiryDate) => {
 };
 
 export const getCertificateExpiryNotifications = (certificates, userEmail) => {
+  if (!Array.isArray(certificates)) {
+    console.error("Expected an array of certificates, but got:", certificates);
+    return [];
+  }
+
   const notifications = [];
   const today = new Date();
-  
+
   certificates.forEach(cert => {
     if (!cert.expiryDate) return;
-    
+
     const daysUntilExpiry = calculateDaysUntilExpiry(cert.expiryDate);
-    
+
     // Create notifications for certificates expiring in 30, 14, 7, and 1 days
     if (daysUntilExpiry <= 30 && daysUntilExpiry > 0) {
       let priority = 'low';
       let message = '';
-      
+
       if (daysUntilExpiry <= 1) {
         priority = 'critical';
         message = `Certificate "${cert.certificate}" expires today!`;
@@ -37,7 +42,7 @@ export const getCertificateExpiryNotifications = (certificates, userEmail) => {
         priority = 'low';
         message = `Certificate "${cert.certificate}" expires in ${daysUntilExpiry} days`;
       }
-      
+
       notifications.push({
         id: `cert-expiry-${cert.id || cert._id}`,
         type: 'certificate_expiry',
@@ -64,7 +69,7 @@ export const getCertificateExpiryNotifications = (certificates, userEmail) => {
       });
     }
   });
-  
+
   return notifications.sort((a, b) => {
     // Sort by priority: critical > high > medium > low
     const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };

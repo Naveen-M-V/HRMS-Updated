@@ -25,7 +25,7 @@ const getApiUrl = () => {
   return process.env.REACT_APP_API_URL || 'http://localhost:5003';
 };
 
-const API_BASE_URL = `${getApiUrl()}/api`;
+const API_BASE_URL = `${getApiUrl()}`;
 
 // Configure axios to include credentials (cookies) with requests
 axios.defaults.withCredentials = true;
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
         password,
         rememberMe
@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/signup`, userData);
+      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData);
       
       return { success: true, message: "Account created successfully" };
     } catch (err) {

@@ -42,7 +42,7 @@ app.use(session({
 }));
 
 app.use(cors({
-  origin: config.server.corsOrigin,
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));

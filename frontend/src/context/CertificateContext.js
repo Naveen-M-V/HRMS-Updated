@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const CertificateContext = createContext();
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003/api';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 export const useCertificates = () => {
   const context = useContext(CertificateContext);
@@ -143,11 +143,21 @@ export const CertificateProvider = ({ children }) => {
 
   // Get active certificates count
   const getActiveCertificatesCount = () => {
+    if (!Array.isArray(certificates)) {
+      console.error("Expected an array of certificates, but got:", certificates);
+      return 0;
+    }
+
     return certificates.filter(cert => cert.active === 'Yes' || cert.status === 'Active').length;
   };
 
   // Get expiring certificates within specified days
   const getExpiringCertificates = (days = 30) => {
+    if (!Array.isArray(certificates)) {
+      console.error("Expected an array of certificates, but got:", certificates);
+      return [];
+    }
+
     const today = new Date();
     const futureDate = new Date();
     futureDate.setDate(today.getDate() + days);
