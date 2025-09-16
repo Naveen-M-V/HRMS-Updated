@@ -101,11 +101,14 @@ export default function ProfileDetailView() {
          
 
           {/* Center: Company Logo */}
-          <div className="text-2xl font-bold text-green-600">
-            VitruX
-          </div>
+          <div className="flex justify-center items-center">
+          <img 
+            src="/vlogo.png" 
+            alt="VitruX Logo" 
+            className="h-12 w-auto"
+          />
+        </div>
 
-          
         </div>
 
         {/* User Name Row */}
@@ -115,9 +118,6 @@ export default function ProfileDetailView() {
               {profile.firstName} {profile.lastName}
             </h1>
             <div className="flex items-center gap-2">
-              <select className="border rounded px-2 py-1 text-sm">
-                <option>Actions</option>
-              </select>
             </div>
           </div>
           
@@ -160,12 +160,27 @@ export default function ProfileDetailView() {
                     {profile.profilePicture ? (
                       <img 
                         src={getImageUrl(profile.profilePicture)} 
-                        alt="Profile" 
+                        alt="Profile Picture" 
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.log('Image failed to load:', getImageUrl(profile.profilePicture));
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                        onLoad={(e) => {
+                          console.log('Image loaded successfully:', getImageUrl(profile.profilePicture));
+                          if (e.target.nextSibling) {
+                            e.target.nextSibling.style.display = 'none';
+                          }
+                        }}
                       />
-                    ) : (
+                    ) : null}
+                    <div 
+                      className={`w-full h-full flex items-center justify-center ${profile.profilePicture ? 'hidden' : 'flex'}`}
+                      style={{ display: profile.profilePicture ? 'none' : 'flex' }}
+                    >
                       <UserCircleIcon className="h-16 w-16 text-gray-400" />
-                    )}
+                    </div>
                   </div>
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -277,9 +292,7 @@ export default function ProfileDetailView() {
                   <span className="text-gray-600">Active Job Roles:</span>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{profile.jobLevel || "N/A"}</span>
-                    <button className="text-blue-600 text-xs hover:underline">
-                      Edit job roles
-                    </button>
+                    
                   </div>
                 </div>
                 <div className="flex justify-between">
@@ -302,25 +315,6 @@ export default function ProfileDetailView() {
               <div className="text-sm text-gray-500 italic">
                 No applicable compliance matrix found to perform an assessment.
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Below Main Card */}
-        <div className="mt-6 grid grid-cols-2 gap-6">
-          {/* User Bio Section */}
-          <div className="bg-white rounded-lg shadow border p-4">
-            <h3 className="font-semibold text-lg mb-3">User Bio</h3>
-            <div className="text-sm text-gray-600">
-              {profile.bio || "No data"}
-            </div>
-          </div>
-
-          {/* Other Information Section */}
-          <div className="bg-white rounded-lg shadow border p-4">
-            <h3 className="font-semibold text-lg mb-3">Other Information</h3>
-            <div className="text-sm text-gray-600">
-              {profile.otherInformation || profile.address?.country || "No data"}
             </div>
           </div>
         </div>
@@ -352,7 +346,7 @@ export default function ProfileDetailView() {
                           <th className="text-left p-2 border">Expiry Date</th>
                           <th className="text-left p-2 border">Provider</th>
                           <th className="text-left p-2 border">Status</th>
-                          <th className="text-left p-2 border">Cost</th>
+                          <th className="text-left p-2 border">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -371,7 +365,21 @@ export default function ProfileDetailView() {
                                 {cert.status}
                               </span>
                             </td>
-                            <td className="p-2 border">£{cert.cost}</td>
+                            <td className="p-2 border">
+                              {cert.certificateFile ? (
+                                <a 
+                                  href={getImageUrl(cert.certificateFile)} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+                                >
+                                  <EyeIcon className="h-4 w-4" />
+                                  View Certificate
+                                </a>
+                              ) : (
+                                <span className="text-gray-500 text-sm">No file</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
