@@ -135,11 +135,11 @@ const profileSchema = new mongoose.Schema({
   externalSystemId: String,
   extThirdPartySystemId: String,
   nopsId: String,
-  nopsID: String, // Added for consistency with frontend
+  nopsID: String, 
   insuranceNumber: String,
   
   // Additional Employee Details
-  poc: String, // Point of Contact
+  poc: String, 
   nationality: String,
   circetUIN: String,
   circetSCID: String,
@@ -175,13 +175,24 @@ const profileSchema = new mongoose.Schema({
   otherInformation: String,
 });
 
-// Auto-generate skillkoId
+// Auto-generate skillkoId as random 4-digit number
 profileSchema.pre('save', async function(next) {
   if (!this.skillkoId) {
-    const lastProfile = await this.constructor.findOne({}, {}, { sort: { 'skillkoId': -1 } });
-    this.skillkoId = lastProfile ? lastProfile.skillkoId + 1 : 1150;
-  }
-  next();
+    let newId;
+    let isUnique = false;
+    
+    // Generate random 4-digit number until we find a unique one
+    while (!isUnique) {
+      newId = Math.floor(Math.random() * 9000) + 1000; // Generates 1000-9999
+      const existingProfile = await this.constructor.findOne({ skillkoId: newId });
+      if (!existingProfile) {
+        isUnique = true;
+      }
+    }
+    
+    this.skillkoId = newId;
+  }
+  next();
 });
 
 const Profile = mongoose.model('Profile', profileSchema);
@@ -217,10 +228,10 @@ const certificateSchema = new mongoose.Schema({
   active: { type: String, default: 'Yes' },
   status: { type: String, default: 'Approved' },
   cost: { type: String, default: '0.00' },
-  category: { type: String, required: true }, // Safety, Craft, NRSWA, Security, Optional, etc.
-  jobRole: String, // The job role this certificate is associated with
+  category: { type: String, required: true }, 
+  jobRole: String, 
   approvalStatus: String,
-  isInterim: { type: String, default: 'False' }, // Changed to String to match frontend
+  isInterim: { type: String, default: 'False' }, 
   timeLogged: {
     days: { type: String, default: '0' },
     hours: { type: String, default: '0' },
@@ -251,6 +262,36 @@ const supplierSchema = new mongoose.Schema({
 });
 
 const Supplier = mongoose.model('Supplier', supplierSchema);
+
+// Job Role Schema
+const jobRoleSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdOn: { type: Date, default: Date.now },
+  usageCount: { type: Number, default: 1 }
+});
+
+const JobRole = mongoose.model('JobRole', jobRoleSchema);
+
+// Job Level Schema
+const jobLevelSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdOn: { type: Date, default: Date.now },
+  usageCount: { type: Number, default: 1 }
+});
+
+const JobLevel = mongoose.model('JobLevel', jobLevelSchema);
+
+// Certificate Name Schema
+const certificateNameSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdOn: { type: Date, default: Date.now },
+  usageCount: { type: Number, default: 1 }
+});
+
+const CertificateName = mongoose.model('CertificateName', certificateNameSchema);
 
 // Multer configuration for file uploads with 10MB limit
 const storage = multer.memoryStorage(); // Store in memory for database storage
@@ -779,6 +820,251 @@ app.get('/api/suppliers/search', async (req, res) => {
     }).sort({ usageCount: -1, name: 1 }).limit(10);
     
     res.json(suppliers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Job Role Routes
+
+// Get all job roles
+app.get('/api/job-roles', async (req, res) => {
+  try {
+    const jobRoles = await JobRole.find().sort({ usageCount: -1, name: 1 });
+    res.json(jobRoles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create or get job role
+app.post('/api/job-roles', async (req, res) => {
+  try {
+    const { name } = req.body;
+    
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ message: 'Job role name is required' });
+    }
+    
+    const trimmedName = name.trim();
+    
+    // Check if job role already exists
+    let jobRole = await JobRole.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+    
+    if (jobRole) {
+      // Increment usage count
+      jobRole.usageCount += 1;
+      await jobRole.save();
+    } else {
+      // Create new job role
+      jobRole = new JobRole({
+        name: trimmedName,
+        createdBy: req.user?.userId,
+        usageCount: 1
+      });
+      await jobRole.save();
+    }
+    
+    res.json(jobRole);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Job role already exists' });
+    }
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Search job roles
+app.get('/api/job-roles/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      const jobRoles = await JobRole.find().sort({ usageCount: -1, name: 1 }).limit(10);
+      return res.json(jobRoles);
+    }
+    
+    const jobRoles = await JobRole.find({
+      name: { $regex: q, $options: 'i' }
+    }).sort({ usageCount: -1, name: 1 }).limit(10);
+    
+    res.json(jobRoles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Job Level Routes
+
+// Get all job levels
+app.get('/api/job-levels', async (req, res) => {
+  try {
+    const jobLevels = await JobLevel.find().sort({ usageCount: -1, name: 1 });
+    res.json(jobLevels);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create or get job level
+app.post('/api/job-levels', async (req, res) => {
+  try {
+    const { name } = req.body;
+    
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ message: 'Job level name is required' });
+    }
+    
+    const trimmedName = name.trim();
+    
+    // Check if job level already exists
+    let jobLevel = await JobLevel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+    
+    if (jobLevel) {
+      // Increment usage count
+      jobLevel.usageCount += 1;
+      await jobLevel.save();
+    } else {
+      // Create new job level
+      jobLevel = new JobLevel({
+        name: trimmedName,
+        createdBy: req.user?.userId,
+        usageCount: 1
+      });
+      await jobLevel.save();
+    }
+    
+    res.json(jobLevel);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Job level already exists' });
+    }
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Search job levels
+app.get('/api/job-levels/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      const jobLevels = await JobLevel.find().sort({ usageCount: -1, name: 1 }).limit(10);
+      return res.json(jobLevels);
+    }
+    
+    const jobLevels = await JobLevel.find({
+      name: { $regex: q, $options: 'i' }
+    }).sort({ usageCount: -1, name: 1 }).limit(10);
+    
+    res.json(jobLevels);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Certificate Name Routes
+
+// Get all certificate names
+app.get('/api/certificate-names', async (req, res) => {
+  try {
+    const certificateNames = await CertificateName.find().sort({ usageCount: -1, name: 1 });
+    res.json(certificateNames);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create or get certificate name
+app.post('/api/certificate-names', async (req, res) => {
+  try {
+    const { name } = req.body;
+    
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ message: 'Certificate name is required' });
+    }
+    
+    const trimmedName = name.trim();
+    
+    // Check if certificate name already exists
+    let certificateName = await CertificateName.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+    
+    if (certificateName) {
+      // Increment usage count
+      certificateName.usageCount += 1;
+      await certificateName.save();
+    } else {
+      // Create new certificate name
+      certificateName = new CertificateName({
+        name: trimmedName,
+        createdBy: req.user?.userId,
+        usageCount: 1
+      });
+      await certificateName.save();
+    }
+    
+    res.json(certificateName);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Certificate name already exists' });
+    }
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Search certificate names
+app.get('/api/certificate-names/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      const certificateNames = await CertificateName.find().sort({ usageCount: -1, name: 1 }).limit(20);
+      return res.json(certificateNames);
+    }
+    
+    const certificateNames = await CertificateName.find({
+      name: { $regex: q, $options: 'i' }
+    }).sort({ usageCount: -1, name: 1 }).limit(20);
+    
+    res.json(certificateNames);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Initialize predefined certificate names
+app.post('/api/certificate-names/initialize', async (req, res) => {
+  try {
+    const predefinedCertificates = [
+      'SA006', 'SA001', 'SA001A', 'SA009', 'SA051C', 'IPAF 1B', 'SA020', 'A16', 'SA020A', 'SA007',
+      'SA021', 'A14', 'GO1', 'EUSR Category 3', 'EUSR Category 4', 'EUSR Category 5',
+      'Level 2 Award Excavation support systems', 'MOCOPA', 'Emergency first Aid', 'SA018',
+      'NRSWA Card Certificate S1', 'NRSWA Certificate LA', 'NRSWA Certificate O2', 'NRSWA Certificate O3',
+      'NRSWA Certificate O4', 'NRSWA Certificate O5', 'NRSWA Certificate O6', 'NRSWA Certificate O7',
+      'NRSWA Certificate O8', 'SA051C or Equivalent', 'K008', 'SA005', 'SA003', 'K009', 'N020', 'J005',
+      'SA008', 'SA024', 'S017', 'M022', 'M006', 'N10', 'N039', 'SA023 or Equivalent', 'K003', 'K004',
+      'O008', '1a', '3a', '3b or Equivalent', 'Q035(SEC1)', 'Q036(SLEW1)', 'Q037(SLEW2)', 'Q038(SLEW3)',
+      'Certificate O6', 'Certificate O7', 'Certificate O5', 'N025', 'F016', 'F022', 'SA004', 'N024',
+      'H004', 'J008', 'F017', 'G005', 'N030', 'N006', 'G39', 'UKATA', 'SA026 or Equivalent', 'S013',
+      'S018', 'K006', 'N033', 'N023', 'N026', 'N034', 'N028', 'N027', 'S011', 'M023', 'S012', 'M029',
+      'N029', 'N038', 'N022', 'N043', 'N011', 'N037', 'N036', 'N041', 'N035', 'O002', 'O003', 'O004',
+      'O005', 'O006', 'E001', 'F020', 'O009', 'Q020(DB1)', 'Q013(BB1M)', 'Q012(BB1C)', 'Q014(BB2C)',
+      'Q015(BB3C)', 'Q011(BB1B)', 'Q029(MH1)', 'Q031', 'Q021(DL1)', 'Q019(CD1)', 'Q022(DL2)', 'Q023(DL3)',
+      'Q030(MP1)', 'Q028(ME1)', 'Q025(FCFW1)', 'Q024(FCCW1)', 'Q016(CB2)', 'Q017(CB3)', 'Q018(CCC1)',
+      'Q039', 'N005', 'H001', 'N031(ODF)', 'N004(OCR)', 'J010(OFF)', 'J010(OFR)', 'C004', 'F005',
+      'F023', 'K010', 'C&G Part 1,2 & 3', '18th edition', 'C&G 2391 - 51', 'Ace Telecoms Battery installation course', 'A350'
+    ];
+
+    let addedCount = 0;
+    for (const certName of predefinedCertificates) {
+      const existing = await CertificateName.findOne({ name: { $regex: new RegExp(`^${certName}$`, 'i') } });
+      if (!existing) {
+        await new CertificateName({ name: certName, usageCount: 1 }).save();
+        addedCount++;
+      }
+    }
+
+    res.json({ message: `Initialized ${addedCount} new certificate names`, total: predefinedCertificates.length });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
