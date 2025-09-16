@@ -16,6 +16,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loading, error } = useAuth();
@@ -300,9 +301,13 @@ export default function Login() {
               <div className="mt-4 text-center">
                 <p className="text-xs text-gray-500">
                   By signing in, you agree to our{' '}
-                  <Link to="/terms" className="text-emerald-600 hover:text-emerald-500 font-medium">
+                  <button 
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    className="text-emerald-600 hover:text-emerald-500 font-medium underline bg-transparent border-none cursor-pointer"
+                  >
                     Terms of Service
-                  </Link>{' '}
+                  </button>{' '}
                   and{' '}
                   <Link to="/privacy" className="text-emerald-600 hover:text-emerald-500 font-medium">
                     Privacy Policy
@@ -313,6 +318,157 @@ export default function Login() {
           </div>
         </div>
         </div>
+
+        {/* Terms and Conditions Modal */}
+        {showTermsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Terms and Conditions</h3>
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                  <h4 className="mb-4 font-semibold text-gray-900">Terms & Conditions</h4>
+                  <p className="mb-4">
+                    Welcome to Vitrux Shield. By accessing and using this Application, you agree to comply with and be bound by these Terms & Conditions. If you do not agree, you should not use the Application.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">1. Definitions</h5>
+                  <p className="mb-4">
+                    • "We", "Us", "Our" refers to Vitrux Shield, the owner and operator of this HRMS application.<br/>
+                    • "You", "User" refers to the individual or organisation using the Application.<br/>
+                    • "Application" refers to the HRMS system, features, and services provided.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">2. Use of the Application</h5>
+                  <p className="mb-4">
+                    • You agree to use the Application only for lawful HR and business purposes.<br/>
+                    • You must not use the Application in any way that violates applicable UK law, including employment and data protection regulations.<br/>
+                    • Access credentials (usernames, passwords) must be kept confidential. You are responsible for all activity under your account.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">3. Data Accuracy</h5>
+                  <p className="mb-4">
+                    • Users are responsible for ensuring that all information entered into the Application is accurate and up to date.<br/>
+                    • We are not liable for errors or consequences resulting from incorrect or incomplete data entered by Users.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">4. Intellectual Property</h5>
+                  <p className="mb-4">
+                    • All content, design, logos, and software associated with the Application remain the intellectual property of Vitrux Shield or its licensors.<br/>
+                    • Users are granted a limited, non-exclusive licence to use the Application for business purposes.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">5. Availability & Maintenance</h5>
+                  <p className="mb-4">
+                    • We aim to provide 24/7 availability but do not guarantee uninterrupted access.<br/>
+                    • We may carry out scheduled maintenance or updates.<br/>
+                    • We are not liable for downtime, data loss, or interruptions beyond our reasonable control.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">6. Liability</h5>
+                  <p className="mb-4">
+                    • The Application is provided on an "as is" basis without warranties of any kind.<br/>
+                    • We are not liable for indirect, incidental, or consequential damages arising from your use of the Application.<br/>
+                    • Nothing in these Terms excludes liability for death, personal injury, fraud, or any other liability which cannot be excluded under UK law.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">7. Termination</h5>
+                  <p className="mb-4">
+                    • We reserve the right to suspend or terminate access to the Application if you breach these Terms.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">8. Governing Law</h5>
+                  <p className="mb-6">
+                    • These Terms are governed by and construed in accordance with the laws of England and Wales.<br/>
+                    • Disputes will be subject to the exclusive jurisdiction of the courts of England and Wales.
+                  </p>
+
+                  <h4 className="mb-4 font-semibold text-gray-900">Privacy Policy</h4>
+                  <p className="mb-4">
+                    This Privacy Policy explains how Vitrux Shield collects, uses, and protects personal data within the HRMS application. We comply with the UK GDPR and the Data Protection Act 2018.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">1. Data We Collect</h5>
+                  <p className="mb-4">
+                    We may collect and process the following categories of data:<br/>
+                    • Employee information: name, contact details, job title, payroll data, performance records.<br/>
+                    • User account information: usernames, passwords, access logs.<br/>
+                    • System usage data: device information, IP addresses, login times.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">2. How We Use Your Data</h5>
+                  <p className="mb-4">
+                    • Provide HR management services through the Application.<br/>
+                    • Maintain payroll, leave, and performance records.<br/>
+                    • Ensure system security and prevent unauthorised access.<br/>
+                    • Comply with UK employment, taxation, and legal obligations.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">3. Legal Basis for Processing</h5>
+                  <p className="mb-4">
+                    We process personal data under the following legal bases:<br/>
+                    • Contractual necessity – to deliver HRMS services.<br/>
+                    • Legal obligations – to comply with UK law.<br/>
+                    • Legitimate interests – for system improvement and security.<br/>
+                    • Consent – where explicitly required.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">4. Data Sharing & Transfers</h5>
+                  <p className="mb-4">
+                    • Data is stored on servers located in the United Kingdom.<br/>
+                    • We do not transfer personal data outside the UK unless adequate safeguards are in place.<br/>
+                    • We may share data with authorised third parties (e.g., payroll providers, IT support) under strict confidentiality agreements.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">5. Data Retention</h5>
+                  <p className="mb-4">
+                    • Personal data is retained only for as long as necessary to fulfil contractual and legal obligations.<br/>
+                    • After this period, data will be securely deleted or anonymised.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">6. Your Rights</h5>
+                  <p className="mb-4">
+                    Under the UK GDPR, you have the right to:<br/>
+                    • Access your personal data.<br/>
+                    • Correct inaccurate data.<br/>
+                    • Request erasure (right to be forgotten).<br/>
+                    • Restrict or object to processing.<br/>
+                    • Request data portability.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">7. Security</h5>
+                  <p className="mb-4">
+                    We implement technical and organisational measures (e.g., encryption, access controls) to protect personal data from unauthorised access, loss, or misuse.
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">8. Updates to this Policy</h5>
+                  <p className="mb-4">
+                    We may update this Privacy Policy to reflect changes in law or application functionality. Updates will be communicated to users.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end p-6 border-t bg-gray-50">
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

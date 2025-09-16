@@ -176,18 +176,7 @@ const ComplianceDashboard = () => {
           >
             Add Certificates
           </Link>
-          <Link
-            to="/sharestaff"
-            className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center"
-          >
-            Share Staff
-          </Link>
-          <Link 
-            to="/noaccess" 
-            className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center"
-          >
-            Clients
-          </Link>
+          
         </div>
       </div>
 

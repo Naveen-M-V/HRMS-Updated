@@ -69,6 +69,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+const checkExistingSession = useCallback(async () => {
+  const storedUser = localStorage.getItem('userData');
+  if (storedUser) {
+    try {
+      await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
+        withCredentials: true,
+        timeout: 3000
+      });
+      // Session is valid, no action needed
+    } catch (error) {
+      // handle error
+    }
+  }
+}, []);
+
+
   // Check for existing session on app start
   useEffect(() => {
     // Only run background validation if user is not already set
@@ -101,25 +117,25 @@ export const AuthProvider = ({ children }) => {
     };
   }, [user, checkExistingSession]);
 
-  const checkExistingSession = useCallback(async () => {
+//  const checkExistingSession = useCallback(async () => {
     // This function now only validates with backend, state is already set from localStorage
-    const storedUser = localStorage.getItem('userData');
-    if (storedUser) {
-      try {
-        await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
-          withCredentials: true,
-          timeout: 3000
-        });
+//    const storedUser = localStorage.getItem('userData');
+//    if (storedUser) {
+//      try {
+//        await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
+//          withCredentials: true,
+//          timeout: 3000
+//        });
         // Session is valid, no action needed
-      } catch (error) {
+//      } catch (error) {
         // Only clear on explicit forbidden response
-        if (error.response?.status === 403) {
-          handleInvalidSession();
-        }
+//        if (error.response?.status === 403) {
+//          handleInvalidSession();
+//        }
         // For other errors (401, network), keep using stored data
-      }
-    }
-  }, []);
+//      }
+//    }
+//  }, []);
 
   const login = async (email, password, rememberMe = false) => {
     setLoading(true);
