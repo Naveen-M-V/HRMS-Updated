@@ -57,7 +57,6 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use('/uploads', express.static('uploads'));
 
 // Input validation middleware
 const validateProfileInput = (req, res, next) => {
@@ -118,6 +117,9 @@ const profileSchema = new mongoose.Schema({
   dateOfBirth: Date,
   gender: String,
   profilePicture: String,
+  profilePictureData: Buffer, // Store profile picture data in database
+  profilePictureSize: Number, // Store file size in bytes
+  profilePictureMimeType: String, // Store file MIME type
   
   // Job Details
   role: { type: String, default: 'User' },
@@ -259,14 +261,14 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Allow PDF files for certificates
+    // Allow PDF files for certificates and images for profile pictures
     if (file.mimetype === 'application/pdf' || 
         file.mimetype === 'image/jpeg' || 
         file.mimetype === 'image/png' || 
         file.mimetype === 'image/jpg') {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF, JPEG, PNG files are allowed for certificates'), false);
+      cb(new Error('Only PDF, JPEG, PNG files are allowed'), false);
     }
   }
 });
@@ -430,9 +432,19 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
       return res.status(400).json({ message: 'No file uploaded' });
     }
     
+    // Check file size (10MB limit)
+    if (req.file.size > 10 * 1024 * 1024) {
+      return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+    }
+    
     const profile = await Profile.findByIdAndUpdate(
       req.params.id,
-      { profilePicture: `/uploads/${req.file.filename}` },
+      { 
+        profilePicture: `/api/profiles/${req.params.id}/picture`,
+        profilePictureData: req.file.buffer,
+        profilePictureSize: req.file.size,
+        profilePictureMimeType: req.file.mimetype
+      },
       { new: true }
     );
     
@@ -441,6 +453,32 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
     }
     
     res.json({ profilePicture: profile.profilePicture });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Serve profile picture from database
+app.get('/api/profiles/:id/picture', async (req, res) => {
+  try {
+    const profile = await Profile.findById(req.params.id);
+    
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
+    if (!profile.profilePictureData) {
+      return res.status(404).json({ message: 'No profile picture found for this profile' });
+    }
+    
+    res.set({
+      'Content-Type': profile.profilePictureMimeType || 'image/jpeg',
+      'Content-Length': profile.profilePictureSize,
+      'Content-Disposition': `inline; filename="profile-${profile._id}.jpg"`,
+      'Cache-Control': 'public, max-age=31536000' // Cache for 1 year
+    });
+    
+    res.send(profile.profilePictureData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
