@@ -227,10 +227,11 @@ const certificateSchema = new mongoose.Schema({
   supplier: String,
   totalCost: String,
   
-  // File upload fields
-  certificateFile: String, // Store filename
-  filePath: String, // Store full file path
-  fileData: Buffer, // Store file data if needed
+  // File storage fields - store in database
+  certificateFile: String, // Store original filename
+  fileData: Buffer, // Store actual file data in database
+  fileSize: Number, // Store file size in bytes
+  mimeType: String, // Store file MIME type
   
   archived: { type: String, default: 'Unarchived' },
   createdOn: { type: Date, default: Date.now },
@@ -249,21 +250,24 @@ const supplierSchema = new mongoose.Schema({
 
 const Supplier = mongoose.model('Supplier', supplierSchema);
 
-// Multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
-  }
-});
+// Multer configuration for file uploads with 10MB limit
+const storage = multer.memoryStorage(); // Store in memory for database storage
 
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-    fieldSize: 10 * 1024 * 1024  // 10MB field limit
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow PDF files for certificates
+    if (file.mimetype === 'application/pdf' || 
+        file.mimetype === 'image/jpeg' || 
+        file.mimetype === 'image/png' || 
+        file.mimetype === 'image/jpg') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, JPEG, PNG files are allowed for certificates'), false);
+    }
   }
 });
 
@@ -505,10 +509,17 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
   try {
     const certificateData = { ...req.body };
     
-    // Handle file upload if present
+    // Handle file upload if present - store in database
     if (req.file) {
-      certificateData.certificateFile = req.file.filename;
-      certificateData.filePath = req.file.path;
+      // Check file size (10MB limit already enforced by multer)
+      if (req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+      }
+      
+      certificateData.certificateFile = req.file.originalname;
+      certificateData.fileData = req.file.buffer; // Store file data in database
+      certificateData.fileSize = req.file.size;
+      certificateData.mimeType = req.file.mimetype;
     }
 
     const certificate = new Certificate(certificateData);
@@ -568,10 +579,18 @@ app.put('/api/certificates/:id/upload', upload.single('certificateFile'), async 
 
     const updateData = { updatedOn: new Date() };
     
-    // If file is uploaded, add file path to update data
+    // If file is uploaded, store in database
     if (req.file) {
-      updateData.certificateFile = `/uploads/${req.file.filename}`;
-      console.log('File uploaded successfully:', req.file.filename);
+      // Check file size (10MB limit already enforced by multer)
+      if (req.file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+      }
+      
+      updateData.certificateFile = req.file.originalname;
+      updateData.fileData = req.file.buffer; // Store file data in database
+      updateData.fileSize = req.file.size;
+      updateData.mimeType = req.file.mimetype;
+      console.log('File uploaded successfully:', req.file.originalname);
     } else {
       console.log('No file received in request');
     }
@@ -595,6 +614,33 @@ app.put('/api/certificates/:id/upload', upload.single('certificateFile'), async 
   } catch (error) {
     console.error('Error in certificate file upload:', error);
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Serve certificate file from database
+app.get('/api/certificates/:id/file', async (req, res) => {
+  try {
+    const certificate = await Certificate.findById(req.params.id);
+    if (!certificate) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+    
+    if (!certificate.fileData) {
+      return res.status(404).json({ message: 'No file found for this certificate' });
+    }
+    
+    // Set appropriate headers
+    res.set({
+      'Content-Type': certificate.mimeType || 'application/octet-stream',
+      'Content-Length': certificate.fileSize,
+      'Content-Disposition': `inline; filename="${certificate.certificateFile}"`,
+      'Cache-Control': 'public, max-age=31536000' // Cache for 1 year
+    });
+    
+    res.send(certificate.fileData);
+  } catch (error) {
+    console.error('Error serving certificate file:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 
