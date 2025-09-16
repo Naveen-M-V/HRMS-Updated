@@ -110,7 +110,7 @@ export const ProfileProvider = ({ children }) => {
         },
       });
       
-      // Update profile in state
+      // Update profile in state immediately
       setProfiles(prev => 
         prev.map(profile => 
           profile._id === id 
@@ -119,10 +119,16 @@ export const ProfileProvider = ({ children }) => {
         )
       );
       
+      // Also refresh the entire profiles list to ensure persistence
+      setTimeout(() => {
+        fetchProfiles();
+      }, 500);
+      
       setError(null);
       return response.data.profilePicture;
     } catch (err) {
       setError('Failed to upload profile picture');
+      console.error('Upload error:', err);
       throw err;
     } finally {
       setLoading(false);

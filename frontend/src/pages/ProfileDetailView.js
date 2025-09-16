@@ -37,6 +37,8 @@ export default function ProfileDetailView() {
     const profileData = getProfileById(id);
     if (profileData) {
       setProfile(profileData);
+      // Update image key to force refresh when profile data changes
+      setImageKey(Date.now());
     }
   }, [profiles, id, getProfileById]);
 
@@ -375,7 +377,7 @@ export default function ProfileDetailView() {
                             <td className="p-2 border">
                               {cert.certificateFile ? (
                                 <a 
-                                  href={getImageUrl(cert.certificateFile)} 
+                                  href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${cert.id || cert._id}/file`}
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"

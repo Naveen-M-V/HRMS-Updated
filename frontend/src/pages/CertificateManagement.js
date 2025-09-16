@@ -3,7 +3,6 @@ import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
-import { getImageUrl } from '../utils/config';
 import { 
   AcademicCapIcon, 
   PlusIcon, 

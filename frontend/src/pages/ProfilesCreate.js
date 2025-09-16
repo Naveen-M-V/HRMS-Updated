@@ -58,36 +58,46 @@ export default function ProfilesCreate() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate required fields
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      alert('Please fill in all required fields: First Name, Last Name, and Email');
+      return;
+    }
+
     // Transform form data to match profile structure
     const newProfile = {
       role: formData.jobLevel || "User",
-      firstName: formData.firstName,
-      lastName: formData.lastName,
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
       staffType: formData.staffType || "Direct",
       company: formData.company || "VitruX Ltd",
-      jobTitle: formData.jobTitle,
+      jobTitle: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
       jobLevel: formData.jobLevel,
-      email: formData.email,
-      mobile: formData.mobile,
-      dob: formData.dob,
-      dateOfBirth: formData.dob, // Add both formats for compatibility
+      email: formData.email.trim().toLowerCase(),
+      mobile: formData.mobile || "",
+      dob: formData.dob || null,
+      dateOfBirth: formData.dob || null, // Add both formats for compatibility
       language: formData.language || "English",
-      startDate: formData.startDate,
-      poc: formData.poc,
-      nationality: formData.nationality,
-      circetUIN: formData.circetUIN,
-      circetSCID: formData.circetSCID,
-      morrisonsIDNumber: formData.morrisonsIDNumber,
-      morrisonsUIN: formData.morrisonsUIN,
-      nopsID: formData.nopsID,
+      startDate: formData.startDate || null,
+      poc: formData.poc || "",
+      nationality: formData.nationality || "",
+      circetUIN: formData.circetUIN || "",
+      circetSCID: formData.circetSCID || "",
+      morrisonsIDNumber: formData.morrisonsIDNumber || "",
+      morrisonsUIN: formData.morrisonsUIN || "",
+      nopsID: formData.nopsID || "",
       status: formData.status || "Onboarding",
       createdOn: new Date().toISOString(),
       lastSeen: new Date().toISOString()
     };
 
     try {
+      console.log('Creating profile with data:', newProfile);
       // Add profile to context
       const createdProfile = await addProfile(newProfile);
+      console.log('Profile created successfully:', createdProfile);
+      
+      alert('Profile created successfully!');
       
       // Navigate to the newly created profile's detail page
       if (createdProfile && (createdProfile._id || createdProfile.id)) {
@@ -98,7 +108,11 @@ export default function ProfilesCreate() {
       }
     } catch (error) {
       console.error('Failed to create profile:', error);
-      alert('Failed to create profile. Please try again.');
+      console.error('Error details:', error.response?.data || error.message);
+      
+      // Show more specific error message
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
+      alert(`Failed to create profile: ${errorMessage}`);
     }
   };
 

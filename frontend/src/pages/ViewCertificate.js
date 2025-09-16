@@ -42,11 +42,24 @@ export default function ViewCertificate() {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setSelectedFile(file);
-    } else {
-      alert('Please select a PDF file only.');
-      e.target.value = '';
+    if (file) {
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size exceeds 10MB limit. Please select a smaller file.');
+        e.target.value = '';
+        return;
+      }
+      
+      // Check file type
+      if (file.type === 'application/pdf' || 
+          file.type === 'image/jpeg' || 
+          file.type === 'image/png' || 
+          file.type === 'image/jpg') {
+        setSelectedFile(file);
+      } else {
+        alert('Please select a PDF, JPEG, or PNG file only.');
+        e.target.value = '';
+      }
     }
   };
 
@@ -308,12 +321,12 @@ export default function ViewCertificate() {
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
                     <a 
-                      href={getImageUrl(certificate.certificateFile)} 
+                      href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${certificate.id || certificate._id}/file`}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     >
-                      Open PDF in New Tab
+                      View Certificate
                     </a>
                     <button 
                       onClick={handleDeleteFile}
@@ -332,7 +345,7 @@ export default function ViewCertificate() {
                       </div>
                       <div className="p-4">
                         <iframe
-                          src={`${getImageUrl(certificate.certificateFile)}#toolbar=1&navpanes=1&scrollbar=1`}
+                          src={`${process.env.REACT_APP_API_BASE_URL}/certificates/${certificate.id || certificate._id}/file#toolbar=1&navpanes=1&scrollbar=1`}
                           width="100%"
                           height="600"
                           style={{ border: 'none', borderRadius: '4px' }}
@@ -351,7 +364,7 @@ export default function ViewCertificate() {
                             <p>Unable to display PDF preview</p>
                           </div>
                           <a 
-                            href={getImageUrl(certificate.certificateFile)} 
+                            href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${certificate.id || certificate._id}/file`}
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -377,7 +390,7 @@ export default function ViewCertificate() {
                 <input
                   id="certificateFileInput"
                   type="file"
-                  accept=".pdf"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -385,7 +398,7 @@ export default function ViewCertificate() {
                   htmlFor="certificateFileInput"
                   className="inline-block px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200 cursor-pointer"
                 >
-                  Choose PDF File
+                  Choose File (PDF, JPG, PNG)
                 </label>
                 {selectedFile && (
                   <p className="text-sm text-green-600 mt-2">

@@ -130,11 +130,24 @@ export default function CreateCertificate() {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      setForm({ ...form, certificateFile: file });
-    } else {
-      alert('Please select a PDF file only.');
-      e.target.value = '';
+    if (file) {
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size exceeds 10MB limit. Please select a smaller file.');
+        e.target.value = '';
+        return;
+      }
+      
+      // Check file type
+      if (file.type === 'application/pdf' || 
+          file.type === 'image/jpeg' || 
+          file.type === 'image/png' || 
+          file.type === 'image/jpg') {
+        setForm({ ...form, certificateFile: file });
+      } else {
+        alert('Please select a PDF, JPEG, or PNG file only.');
+        e.target.value = '';
+      }
     }
   };
 
@@ -429,10 +442,10 @@ export default function CreateCertificate() {
 
             {/* Certificate PDF Upload */}
             <div>
-              <label className="block font-medium mb-1">Upload Certificate PDF</label>
+              <label className="block font-medium mb-1">Upload Certificate File</label>
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleFileChange}
                 className="w-full border rounded-lg p-2"
               />
@@ -442,7 +455,7 @@ export default function CreateCertificate() {
                 </p>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                Please upload the certificate in PDF format only
+                Please upload the certificate in PDF, JPEG, or PNG format (max 10MB)
               </p>
             </div>
 

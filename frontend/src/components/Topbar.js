@@ -15,7 +15,7 @@ export default function Topbar({ toggleSidebar }) {
         <img 
           src="/TSL.png" 
           alt="TSL Logo" 
-          className="h-14 w-10 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
+          className="h-14 w-14 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/dashboard")}
           onError={(e) => {
             e.target.style.display = 'none';
