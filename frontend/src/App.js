@@ -3,27 +3,30 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
-import Dashboard from "./pages/Dashboard";
-import Clients from "./pages/Clients";
-import ProfilesPage from "./pages/ProfilesPage";
-import CertificatesPage from "./pages/CertificatePage";
-import MyAccount from "./pages/MyAccount";
-import Notifications from "./pages/Notifications";
-import ProfilesCreate from "./pages/ProfilesCreate";
-import CreateCertificate from "./pages/CreateCertificate";
-import Sharestaff from "./pages/ShareStaff";
-import NoAccess from "./pages/NoAccess";
-import EditUserProfile from "./pages/EditUserProfile";
-import EditProfile from "./pages/EditProfile";
-import EditCertificate from "./pages/EditCertificate";
-import ViewCertificate from "./pages/ViewCertificate";
-import ProfileDetailView from "./pages/ProfileDetailView";
-import Profile from "./pages/Profile";
-import CertificateManagement from "./pages/CertificateManagement";
-import Login from "./pages/Login";
-import StaffDetail from "./pages/StaffDetail";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
+import { lazy, Suspense } from "react";
+
+// Lazy load components for better performance
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Clients = lazy(() => import("./pages/Clients"));
+const ProfilesPage = lazy(() => import("./pages/ProfilesPage"));
+const CertificatesPage = lazy(() => import("./pages/CertificatePage"));
+const MyAccount = lazy(() => import("./pages/MyAccount"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const ProfilesCreate = lazy(() => import("./pages/ProfilesCreate"));
+const CreateCertificate = lazy(() => import("./pages/CreateCertificate"));
+const Sharestaff = lazy(() => import("./pages/ShareStaff"));
+const NoAccess = lazy(() => import("./pages/NoAccess"));
+const EditUserProfile = lazy(() => import("./pages/EditUserProfile"));
+const EditProfile = lazy(() => import("./pages/EditProfile"));
+const EditCertificate = lazy(() => import("./pages/EditCertificate"));
+const ViewCertificate = lazy(() => import("./pages/ViewCertificate"));
+const ProfileDetailView = lazy(() => import("./pages/ProfileDetailView"));
+const Profile = lazy(() => import("./pages/Profile"));
+const CertificateManagement = lazy(() => import("./pages/CertificateManagement"));
+const Login = lazy(() => import("./pages/Login"));
+const StaffDetail = lazy(() => import("./pages/StaffDetail"));
+const Signup = lazy(() => import("./pages/Signup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 import { CertificateProvider } from "./context/CertificateContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -72,29 +75,34 @@ function App() {
                       }`}>
                         <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
                         <div className="p-6">
-                          <Routes>
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/myaccount/profiles" element={<MyAccount />} />
-                            <Route path="/myaccount/notifications" element={<Notifications />} />
-                            <Route path="/clients" element={<Clients />} />
-                            <Route path="/profiles" element={<ProfilesPage />} />
-                            <Route path="dashboard/profilescreate" element={<ProfilesCreate />} />
-                            <Route path="/profiles/:id" element={<ProfileDetailView />} />
-                            <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
-                            <Route path="/profile" element={<Profile />} />
-                            <Route path="/noaccess" element={<NoAccess />} />
-                            <Route path="/editprofile" element={<EditProfile />} />
-                            <Route path="/sharestaff" element={<Sharestaff/>} />
-                            <Route path="/staffdetail" element={<StaffDetail/>} />
-                            <Route path="/dashboard/createcretificate" element={<CreateCertificate />} />
-                            <Route path="/reporting/certificates" element={<CertificatesPage />} />
-                            <Route path="/certificates" element={<CertificateManagement />} />
-                            <Route path="/editcertificate/:id" element={<EditCertificate />} />
-                            <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
-                            <Route path="/reporting/profiles" element={<ProfilesPage />} />
-
-                          </Routes>
+                          <Suspense fallback={
+                            <div className="flex items-center justify-center min-h-[400px]">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            </div>
+                          }>
+                            <Routes>
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/dashboard" element={<Dashboard />} />
+                              <Route path="/myaccount/profiles" element={<MyAccount />} />
+                              <Route path="/myaccount/notifications" element={<Notifications />} />
+                              <Route path="/clients" element={<Clients />} />
+                              <Route path="/profiles" element={<ProfilesPage />} />
+                              <Route path="dashboard/profilescreate" element={<ProfilesCreate />} />
+                              <Route path="/profiles/:id" element={<ProfileDetailView />} />
+                              <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
+                              <Route path="/profile" element={<Profile />} />
+                              <Route path="/noaccess" element={<NoAccess />} />
+                              <Route path="/editprofile" element={<EditProfile />} />
+                              <Route path="/sharestaff" element={<Sharestaff/>} />
+                              <Route path="/staffdetail" element={<StaffDetail/>} />
+                              <Route path="/dashboard/createcretificate" element={<CreateCertificate />} />
+                              <Route path="/reporting/certificates" element={<CertificatesPage />} />
+                              <Route path="/certificates" element={<CertificateManagement />} />
+                              <Route path="/editcertificate/:id" element={<EditCertificate />} />
+                              <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
+                              <Route path="/reporting/profiles" element={<ProfilesPage />} />
+                            </Routes>
+                          </Suspense>
                         </div>
                       </div>
                     </div>

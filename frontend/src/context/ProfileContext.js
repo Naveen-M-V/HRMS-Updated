@@ -21,21 +21,83 @@ export const ProfileProvider = ({ children }) => {
   const { user } = useAuth();
 
   // Fetch profiles from API
-  const fetchProfiles = async () => {
+  const fetchProfiles = async (useCache = true) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/profiles`);
-      setProfiles(response.data);
-      setError(null);
-    } catch (err) {
+      const cacheKey = 'profiles_cache';
+      const cacheTimeKey = 'profiles_cache_time';
+      const cacheExpiry = 5 * 60 * 1000; // 5 minutes
+      
+      // Check cache first if useCache is true
+      if (useCache) {
+        const cachedData = localStorage.getItem(cacheKey);
+        const cacheTime = localStorage.getItem(cacheTimeKey);
+        
+        if (cachedData && cacheTime && (Date.now() - parseInt(cacheTime)) < cacheExpiry) {
+          console.log('Loading profiles from cache');
+          setProfiles(JSON.parse(cachedData));
+          return;
+        }
+      }
+      
+      console.log('Fetching profiles from API');
+      const response = await fetch(`${getApiUrl()}/api/profiles`, {
+        headers: {
+          'Cache-Control': useCache ? 'max-age=300' : 'no-cache',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setProfiles(data);
+        
+        // Cache the data
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+        localStorage.setItem(cacheTimeKey, Date.now().toString());
+      } else {
+        console.error('Failed to fetch profiles:', response.status, response.statusText);
+      }
+    } catch (error) {
       setError('Failed to fetch profiles');
-      console.error('Error fetching profiles:', err);
+      console.error('Error fetching profiles:', error);
       setProfiles([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Add delete profile function
+  const deleteProfile = async (profileId) => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/profiles/${profileId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        // Remove from local state
+        setProfiles(prevProfiles => prevProfiles.filter(p => p._id !== profileId));
+        
+        // Clear cache to force refresh
+        localStorage.removeItem('profiles_cache');
+        localStorage.removeItem('profiles_cache_time');
+        
+        console.log('Profile deleted successfully');
+      } else {
+        throw new Error('Failed to delete profile');
+      }
+    } catch (error) {
+      console.error('Error deleting profile:', error);
+      throw error;
+    }
+  };
+
+  // Add refresh profiles function
+  const refreshProfiles = async () => {
+    // Clear cache and fetch fresh data
+    localStorage.removeItem('profiles_cache');
+    localStorage.removeItem('profiles_cache_time');
+    await fetchProfiles(false);
+  };
   // Load profiles on mount
   useEffect(() => {
     fetchProfiles();
@@ -79,20 +141,6 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
-  const deleteProfile = async (id) => {
-    setLoading(true);
-    try {
-      await axios.delete(`${API_BASE_URL}/profiles/${id}`);
-      setProfiles(prev => prev.filter(profile => profile._id !== id));
-      setError(null);
-    } catch (err) {
-      setError('Failed to delete profile');
-      console.error('Error deleting profile:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getProfileById = (id) => {
     return profiles.find(profile => profile._id === id);
@@ -100,15 +148,20 @@ export const ProfileProvider = ({ children }) => {
 
   const uploadProfilePicture = async (id, file) => {
     setLoading(true);
+    console.log('📡 ProfileContext: Starting upload request...', { profileId: id, fileName: file.name });
+    
     try {
       const formData = new FormData();
       formData.append('profilePicture', file);
       
+      console.log('🌐 ProfileContext: Sending request to server...');
       const response = await axios.post(`${API_BASE_URL}/profiles/${id}/upload-picture`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+      
+      console.log('📥 ProfileContext: Server response received:', response.data);
       
       // Update profile in state immediately
       setProfiles(prev => 
@@ -119,19 +172,25 @@ export const ProfileProvider = ({ children }) => {
         )
       );
       
+      console.log('🔄 ProfileContext: Local state updated, scheduling refresh...');
+      
       // Also refresh the entire profiles list to ensure persistence
       setTimeout(() => {
+        console.log('🔄 ProfileContext: Refreshing profiles list for persistence...');
         fetchProfiles();
       }, 500);
       
       setError(null);
+      console.log('✅ ProfileContext: Upload completed successfully');
       return response.data.profilePicture;
     } catch (err) {
       setError('Failed to upload profile picture');
-      console.error('Upload error:', err);
+      console.error('❌ ProfileContext: Upload error:', err);
+      console.error('❌ ProfileContext: Error response:', err.response?.data);
       throw err;
     } finally {
       setLoading(false);
+      console.log('🏁 ProfileContext: Upload process finished');
     }
   };
 
@@ -190,27 +249,21 @@ export const ProfileProvider = ({ children }) => {
     } catch (err) {
       setError('Failed to update profile');
       return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
     }
   };
 
-  const value = {
-    profiles,
-    userProfile,
-    loading,
-    error,
-    addProfile,
-    updateProfile,
-    deleteProfile,
-    getProfileById,
-    uploadProfilePicture,
-    fetchProfiles,
-    updateUserProfile
-  };
-
   return (
-    <ProfileContext.Provider value={value}>
+    <ProfileContext.Provider value={{
+      profiles,
+      loading,
+      error,
+      addProfile,
+      updateProfile,
+      deleteProfile,
+      getProfileById,
+      uploadProfilePicture,
+      refreshProfiles
+    }}>
       {children}
     </ProfileContext.Provider>
   );

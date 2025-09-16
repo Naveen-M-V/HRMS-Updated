@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
-import { getImageUrl } from '../utils/config';
 
 export default function ViewCertificate() {
   const { id } = useParams();
@@ -337,47 +336,6 @@ export default function ViewCertificate() {
                     </button>
                   </div>
                   
-                  {/* Embedded PDF Viewer */}
-                  <div className="mt-4">
-                    <div className="border rounded-lg overflow-hidden bg-gray-50">
-                      <div className="bg-gray-100 px-4 py-2 border-b">
-                        <h4 className="text-sm font-medium text-gray-700">Certificate Preview</h4>
-                      </div>
-                      <div className="p-4">
-                        <iframe
-                          src={`${process.env.REACT_APP_API_BASE_URL}/certificates/${certificate.id || certificate._id}/file#toolbar=1&navpanes=1&scrollbar=1`}
-                          width="100%"
-                          height="600"
-                          style={{ border: 'none', borderRadius: '4px' }}
-                          title="Certificate PDF Viewer"
-                          onError={(e) => {
-                            console.error('PDF loading error:', e);
-                            e.target.style.display = 'none';
-                            e.target.nextElementSibling.style.display = 'block';
-                          }}
-                        />
-                        <div style={{ display: 'none' }} className="text-center py-8">
-                          <div className="text-gray-500 mb-4">
-                            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p>Unable to display PDF preview</p>
-                          </div>
-                          <a 
-                            href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${certificate.id || certificate._id}/file`}
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                          >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                            Download PDF
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </>
               ) : (
                 <p className="text-sm text-gray-600 mb-4">

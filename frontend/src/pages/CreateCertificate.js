@@ -28,13 +28,15 @@ export default function CreateCertificate() {
     certificateFile: null
   });
 
-  const [availableCertificates, setAvailableCertificates] = useState({ mandatory: [], optional: [] });
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [suppliers, setSuppliers] = useState([]);
+  const [certificateNames, setCertificateNames] = useState([]);
 
-  // Load suppliers on component mount
+  // Load suppliers and certificate names on component mount
   useEffect(() => {
     fetchSuppliers();
+    fetchCertificateNames();
+    initializeCertificateNames();
   }, []);
 
   const getApiUrl = () => {
@@ -52,17 +54,40 @@ export default function CreateCertificate() {
 
   const fetchSuppliers = async () => {
     try {
-      const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}/api/suppliers`);
+      const response = await fetch(`${getApiUrl()}/api/suppliers`);
       if (response.ok) {
         const data = await response.json();
         setSuppliers(data);
-        console.log('Suppliers loaded:', data);
       } else {
         console.error('Failed to fetch suppliers:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching suppliers:', error);
+    }
+  };
+
+  const fetchCertificateNames = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/certificate-names`);
+      if (response.ok) {
+        const data = await response.json();
+        setCertificateNames(data);
+      }
+    } catch (error) {
+      console.error('Error fetching certificate names:', error);
+    }
+  };
+
+  const initializeCertificateNames = async () => {
+    try {
+      await fetch(`${getApiUrl()}/api/certificate-names/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error('Error initializing certificate names:', error);
     }
   };
 
@@ -107,6 +132,47 @@ export default function CreateCertificate() {
     }
   };
 
+  const handleCertificateNameSearch = async (searchTerm) => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/certificate-names/search?q=${encodeURIComponent(searchTerm)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCertificateNames(data);
+      } else {
+        console.error('Failed to search certificate names:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error searching certificate names:', error);
+    }
+  };
+
+  const handleAddCertificateName = async (certificateName) => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/certificate-names`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: certificateName }),
+      });
+      
+      if (response.ok) {
+        const newCertificateName = await response.json();
+        console.log('New certificate name added:', newCertificateName);
+        // Update certificate names list
+        fetchCertificateNames();
+        // Update form
+        setForm(prev => ({ ...prev, certificateName: certificateName }));
+      } else {
+        console.error('Failed to add certificate name:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error adding certificate name:', error);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
@@ -115,13 +181,6 @@ export default function CreateCertificate() {
     if (name === 'profile') {
       const profile = profiles.find(p => `${p.firstName} ${p.lastName}` === value);
       setSelectedProfile(profile);
-      
-      if (profile && profile.jobTitle) {
-        const certificates = getCertificatesForJobRole(profile.jobTitle);
-        setAvailableCertificates(certificates);
-      } else {
-        setAvailableCertificates({ mandatory: [], optional: [] });
-      }
       
       // Reset certificate selection when profile changes
       setForm(prev => ({ ...prev, certificateName: "" }));
@@ -166,13 +225,10 @@ export default function CreateCertificate() {
     }
     
     // Transform form data to match certificate structure
-    const selectedCert = [...availableCertificates.mandatory, ...availableCertificates.optional]
-      .find(cert => cert.code === form.certificateName);
-    
     const newCertificate = {
       // Required fields for backend validation
-      certificate: selectedCert ? `${selectedCert.code} - ${selectedCert.description}` : form.certificateName || "New Certificate",
-      category: selectedCert ? selectedCert.category : "Other",
+      certificate: form.certificateName || "New Certificate",
+      category: "Other",
       
       // Other fields
       description: form.description || "",
@@ -234,95 +290,42 @@ export default function CreateCertificate() {
               <option value="">Select a profile...</option>
               {profiles.map((profile) => (
                 <option key={profile._id} value={`${profile.firstName} ${profile.lastName}`}>
-                  {profile.firstName} {profile.lastName} - {profile.jobTitle}
+                  {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobTitle) 
+                    ? profile.jobTitle.join(', ') 
+                    : (profile.jobTitle || 'N/A')
+                  }
                 </option>
               ))}
             </select>
             {selectedProfile && (
               <p className="text-sm text-gray-600 mt-1">
-                Job Role: <strong>{selectedProfile.jobTitle}</strong>
+                Job Role: <strong>{Array.isArray(selectedProfile.jobTitle) 
+                  ? selectedProfile.jobTitle.join(', ') 
+                  : (selectedProfile.jobTitle || 'N/A')
+                }</strong>
               </p>
             )}
           </div>
 
-          {/* Certificate Name - Dynamic based on profile */}
+          {/* Certificate Name */}
           <div>
             <label className="block font-medium mb-1">Certificate Name <span className="text-red-500">*</span></label>
-            {availableCertificates.mandatory.length > 0 || availableCertificates.optional.length > 0 ? (
-              <>
-                <select
-                  name="certificateName"
-                  value={form.certificateName}
-                  onChange={handleChange}
-                  className="w-full border rounded-lg p-2"
-                  required
-                >
-                  <option value="">Select a certificate...</option>
-                  
-                  {availableCertificates.mandatory.length > 0 && (
-                    <optgroup label="Mandatory Certificates">
-                      {availableCertificates.mandatory.map((cert) => (
-                        <option key={cert.code} value={cert.code}>
-                          {cert.code} - {cert.description} ({cert.category})
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  
-                  {availableCertificates.optional.length > 0 && (
-                    <optgroup label="Optional Certificates">
-                      {availableCertificates.optional.map((cert) => (
-                        <option key={cert.code} value={cert.code}>
-                          {cert.code} - {cert.description}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-                
-                {/* Certificate Summary */}
-                {(availableCertificates.mandatory.length > 0 || availableCertificates.optional.length > 0) && (
-                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Available Certificates for {selectedProfile?.jobTitle}:</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <p className="font-medium text-red-600">Mandatory ({availableCertificates.mandatory.length}):</p>
-                        <ul className="list-disc list-inside text-gray-600">
-                          {availableCertificates.mandatory.slice(0, 3).map(cert => (
-                            <li key={cert.code}>{cert.code} - {cert.category}</li>
-                          ))}
-                          {availableCertificates.mandatory.length > 3 && (
-                            <li>... and {availableCertificates.mandatory.length - 3} more</li>
-                          )}
-                        </ul>
-                      </div>
-                      <div>
-                        <p className="font-medium text-blue-600">Optional ({availableCertificates.optional.length}):</p>
-                        <ul className="list-disc list-inside text-gray-600">
-                          {availableCertificates.optional.slice(0, 3).map(cert => (
-                            <li key={cert.code}>{cert.code}</li>
-                          ))}
-                          {availableCertificates.optional.length > 3 && (
-                            <li>... and {availableCertificates.optional.length - 3} more</li>
-                          )}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <input
-                type="text"
-                name="certificateName"
-                placeholder={form.profile ? "No certificates mapped for this job role. Enter manually." : "Please select a profile first"}
-                value={form.certificateName}
-                onChange={handleChange}
-                className="w-full border rounded-lg p-2"
-                disabled={!form.profile}
-              />
-            )}
+            <SearchableDropdown
+              name="certificateName"
+              value={form.certificateName}
+              onChange={handleChange}
+              options={certificateNames}
+              placeholder="Type to search certificates or add new..."
+              onSearch={handleCertificateNameSearch}
+              onAddNew={handleAddCertificateName}
+              className="w-full"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              You can type to search existing certificates or add a new one
+            </p>
           </div>
+
             {/* Account */}
             <div>
               <label className="block font-medium mb-1">Account</label>

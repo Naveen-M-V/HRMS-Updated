@@ -1,17 +1,19 @@
 // src/pages/ProfilesPage.js
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { Link } from "react-router-dom";
+import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 export default function ProfilesPage() {
-  const { profiles } = useProfiles();
+  const { profiles, deleteProfile } = useProfiles();
   const [search, setSearch] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedStaffType, setSelectedStaffType] = useState("");
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedManager, setSelectedManager] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -43,27 +45,60 @@ export default function ProfilesPage() {
   };
 
   // Clear all filters
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setSearch("");
     setRowsPerPage(10);
     setSelectedRole("");
     setSelectedStaffType("");
     setSelectedCompany("");
     setSelectedManager("");
-  };
+  }, []);
 
-  // ✅ Filtered profiles
-  const filteredProfiles = profiles.filter((p) => {
-    const matchesSearch = `${p.firstName} ${p.lastName}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
-    const matchesRole = !selectedRole || p.role === selectedRole;
-    const matchesStaffType = !selectedStaffType || p.staffType === selectedStaffType;
-    const matchesCompany = !selectedCompany || p.company === selectedCompany;
-    const matchesManager = !selectedManager || p.poc === selectedManager;
+  // Handle profile deletion
+  const handleDeleteProfile = useCallback(async (profileId, profileName) => {
+    if (window.confirm(`Are you sure you want to delete the profile for ${profileName}? This action cannot be undone.`)) {
+      setLoading(true);
+      try {
+        await deleteProfile(profileId);
+        console.log(`Profile ${profileName} deleted successfully`);
+      } catch (error) {
+        console.error('Error deleting profile:', error);
+        alert('Failed to delete profile. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [deleteProfile]);
+
+  // Generate consistent VTID/VTRX ID
+  const generateVTID = useCallback((profile) => {
+    if (profile.skillkoId) return profile.skillkoId;
+    if (profile.vtid) return profile.vtid;
+    if (profile.vtrxId) return profile.vtrxId;
     
-    return matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
-  });
+    // Generate consistent ID based on profile data
+    const firstName = profile.firstName || '';
+    const lastName = profile.lastName || '';
+    const company = profile.company || 'VTX';
+    const timestamp = profile.createdOn ? new Date(profile.createdOn).getTime() : Date.now();
+    
+    return `${company.substring(0, 3).toUpperCase()}${firstName.substring(0, 2).toUpperCase()}${lastName.substring(0, 2).toUpperCase()}${timestamp.toString().slice(-4)}`;
+  }, []);
+
+  // ✅ Filtered profiles with memoization for performance
+  const filteredProfiles = useMemo(() => {
+    return profiles.filter((p) => {
+      const matchesSearch = `${p.firstName} ${p.lastName}`
+        .toLowerCase()
+        .includes(search.toLowerCase());
+      const matchesRole = !selectedRole || p.role === selectedRole;
+      const matchesStaffType = !selectedStaffType || p.staffType === selectedStaffType;
+      const matchesCompany = !selectedCompany || p.company === selectedCompany;
+      const matchesManager = !selectedManager || p.poc === selectedManager;
+
+      return matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
+    });
+  }, [profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
 
   return (
     <div className="p-6">
@@ -176,17 +211,44 @@ export default function ProfilesPage() {
         <tbody>
           {filteredProfiles.slice(0, rowsPerPage).map((p) => (
             <tr key={p._id}>
-              <td className="border px-2 py-1">{p.skillkoId || p._id}</td>
+              <td className="border px-2 py-1">{generateVTID(p)}</td>
               <td className="border px-2 py-1">{p.role}</td>
               <td className="border px-2 py-1">{p.firstName}</td>
               <td className="border px-2 py-1">{p.lastName}</td>
               <td className="border px-2 py-1">{p.staffType}</td>
               <td className="border px-2 py-1">{p.company}</td>
-              <td className="border px-2 py-1">{p.jobTitle}</td>
+              <td className="border px-2 py-1">
+                {Array.isArray(p.jobTitle) 
+                  ? p.jobTitle.join(', ') 
+                  : (p.jobTitle || "N/A")
+                }
+              </td>
               <td className="border px-2 py-1">{formatDate(p.lastSeen)}</td>
               <td className="border px-2 py-1 text-center">
-                <Link to={`/profiles/${p._id}`} className="text-blue-600 mr-2" title="View Profile">👁</Link>
-                <Link to={`/profiles/edit/${p._id}`} className="text-gray-600" title="Edit Profile">⚙</Link>
+                <div className="flex items-center justify-center gap-2">
+                  <Link 
+                    to={`/profiles/${p._id}`} 
+                    className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50" 
+                    title="View Profile"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </Link>
+                  <Link 
+                    to={`/profiles/edit/${p._id}`} 
+                    className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50" 
+                    title="Edit Profile"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </Link>
+                  <button
+                    onClick={() => handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`)}
+                    className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                    title="Delete Profile"
+                    disabled={loading}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

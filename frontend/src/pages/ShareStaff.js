@@ -177,7 +177,10 @@ export default function Sharestaff() {
                         {profile.company || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {profile.jobTitle || 'N/A'}
+                        {Array.isArray(profile.jobTitle) 
+                          ? profile.jobTitle.join(', ') 
+                          : (profile.jobTitle || 'N/A')
+                        }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

@@ -3,11 +3,152 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
+import SearchableDropdown from "../components/SearchableDropdown";
 
 
 export default function EditProfile() {
   const navigate = useNavigate();
   const { userProfile, updateUserProfile } = useProfiles();
+  
+  // State for job roles and job levels
+  const [jobRoles, setJobRoles] = useState([]);
+  const [jobLevels, setJobLevels] = useState([]);
+
+  // Load job roles and job levels on component mount
+  useEffect(() => {
+    fetchJobRoles();
+    fetchJobLevels();
+  }, []);
+
+  const getApiUrl = () => {
+    // In development, use localhost URL
+    if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {
+      return process.env.REACT_APP_API_URL;
+    }
+    // In production or when API_BASE_URL is relative, use relative path
+    if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) {
+      return '';
+    }
+    // Fallback to localhost for development
+    return process.env.REACT_APP_API_URL || 'http://localhost:5003';
+  };
+
+  const fetchJobRoles = async () => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/job-roles`);
+      if (response.ok) {
+        const data = await response.json();
+        setJobRoles(data);
+        console.log('Job roles loaded:', data);
+      } else {
+        console.error('Failed to fetch job roles:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching job roles:', error);
+    }
+  };
+
+  const fetchJobLevels = async () => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/job-levels`);
+      if (response.ok) {
+        const data = await response.json();
+        setJobLevels(data);
+        console.log('Job levels loaded:', data);
+      } else {
+        console.error('Failed to fetch job levels:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching job levels:', error);
+    }
+  };
+
+  const handleJobRoleSearch = async (searchTerm) => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/job-roles/search?q=${encodeURIComponent(searchTerm)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setJobRoles(data);
+      } else {
+        console.error('Failed to search job roles:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error searching job roles:', error);
+    }
+  };
+
+  const handleAddJobRole = async (jobRoleName) => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/job-roles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: jobRoleName }),
+      });
+      
+      if (response.ok) {
+        const newJobRole = await response.json();
+        console.log('New job role added:', newJobRole);
+        // Update job roles list
+        fetchJobRoles();
+        // Add to selected job titles
+        setFormData(prev => ({
+          ...prev,
+          jobTitle: [...(prev.jobTitle || []), jobRoleName]
+        }));
+      } else {
+        console.error('Failed to add job role:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error adding job role:', error);
+    }
+  };
+
+  const handleJobLevelSearch = async (searchTerm) => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/job-levels/search?q=${encodeURIComponent(searchTerm)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setJobLevels(data);
+      } else {
+        console.error('Failed to search job levels:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error searching job levels:', error);
+    }
+  };
+
+  const handleAddJobLevel = async (jobLevelName) => {
+    try {
+      const baseUrl = getApiUrl();
+      const response = await fetch(`${baseUrl}/api/job-levels`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: jobLevelName }),
+      });
+      
+      if (response.ok) {
+        const newJobLevel = await response.json();
+        console.log('New job level added:', newJobLevel);
+        // Update job levels list
+        fetchJobLevels();
+        // Update form
+        setFormData(prev => ({ ...prev, jobLevel: jobLevelName }));
+      } else {
+        console.error('Failed to add job level:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error adding job level:', error);
+    }
+  };
 
   const [formData, setFormData] = useState({
     username: userProfile.email,
@@ -309,24 +450,24 @@ export default function EditProfile() {
               </div>
             </div>
 
-            {/* Job Roles + Status */}
+            {/* Job Roles + Job Level */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Job Roles</label>
-                <div className="border rounded px-3 py-2 max-h-48 overflow-y-auto bg-white">
-                  <div className="text-xs text-gray-500 mb-2">Select multiple job roles:</div>
-                  {getAllJobRoles().map((jobRole) => (
-                    <label key={jobRole} className="flex items-center mb-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                      <input
-                        type="checkbox"
-                        checked={formData.jobTitle.includes(jobRole)}
-                        onChange={() => handleJobTitleChange(jobRole)}
-                        className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-                      />
-                      <span className="text-sm text-gray-700">{jobRole}</span>
-                    </label>
-                  ))}
-                </div>
+                <SearchableDropdown
+                  name="jobRole"
+                  value=""
+                  onChange={() => {}} // Not used for multi-select
+                  options={jobRoles}
+                  placeholder="Type to search job roles or add new..."
+                  onSearch={handleJobRoleSearch}
+                  onAddNew={handleAddJobRole}
+                  className="w-full mb-2"
+                  isMultiSelect={true}
+                />
+                <p className="text-xs text-gray-500 mb-2">
+                  You can type to search existing job roles or add a new one
+                </p>
                 {formData.jobTitle.length > 0 && (
                   <div className="mt-2">
                     <div className="text-xs text-gray-500 mb-1">Selected ({formData.jobTitle.length}):</div>
@@ -351,20 +492,38 @@ export default function EditProfile() {
                 )}
               </div>
               <div>
-                <label className="block text-sm text-gray-600">Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
+                <label className="block text-sm text-gray-600">Job Level</label>
+                <SearchableDropdown
+                  name="jobLevel"
+                  value={formData.jobLevel}
                   onChange={handleChange}
-                  className="mt-1 w-full border rounded px-3 py-2"
-                >
-                  <option value="">Select Status</option>
-                  <option value="Onboarded">Onboarded</option>
-                  <option value="Onboarding">Onboarding</option>
-                  <option value="Dropped Out">Dropped Out</option>
-                  <option value="Left">Left</option>
-                </select>
+                  options={jobLevels}
+                  placeholder="Type to search job levels or add new..."
+                  onSearch={handleJobLevelSearch}
+                  onAddNew={handleAddJobLevel}
+                  className="w-full"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  You can type to search existing job levels or add a new one
+                </p>
               </div>
+            </div>
+
+            {/* Status */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-600">Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="mt-1 w-full border rounded px-3 py-2"
+              >
+                <option value="">Select Status</option>
+                <option value="Onboarded">Onboarded</option>
+                <option value="Onboarding">Onboarding</option>
+                <option value="Dropped Out">Dropped Out</option>
+                <option value="Left">Left</option>
+              </select>
             </div>
 
             {/* POC */}

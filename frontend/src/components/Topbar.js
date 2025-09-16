@@ -17,6 +17,7 @@ export default function Topbar({ toggleSidebar }) {
           alt="TSL Logo" 
           className="h-14 w-14 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/dashboard")}
+          loading="lazy"
           onError={(e) => {
             e.target.style.display = 'none';
           }}
@@ -44,7 +45,7 @@ export default function Topbar({ toggleSidebar }) {
             onClick={() => setOpen(!open)}
             className="flex items-center bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700"
           >
-            New
+            Create
             <ChevronDownIcon className="h-4 w-4 ml-1" />
           </button>
 
@@ -63,7 +64,7 @@ export default function Topbar({ toggleSidebar }) {
               <button
                 onClick={() => {
                   setOpen(false);
-                  navigate("/dashboard/createcretificate"); 
+                  navigate("/dashboard/createcertificate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >

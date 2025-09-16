@@ -17,6 +17,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loading, error } = useAuth();
@@ -114,7 +115,7 @@ export default function Login() {
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-16 w-16 object-contain"
+              className="h-18 w-18 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';
@@ -309,9 +310,13 @@ export default function Login() {
                     Terms of Service
                   </button>{' '}
                   and{' '}
-                  <Link to="/privacy" className="text-emerald-600 hover:text-emerald-500 font-medium">
+                  <button 
+                    type="button"
+                    onClick={() => setShowPrivacyModal(true)}
+                    className="text-emerald-600 hover:text-emerald-500 font-medium underline bg-transparent border-none cursor-pointer"
+                  >
                     Privacy Policy
-                  </Link>
+                  </button>
                 </p>
               </div>
             </div>
@@ -392,7 +397,39 @@ export default function Login() {
                     • These Terms are governed by and construed in accordance with the laws of England and Wales.<br/>
                     • Disputes will be subject to the exclusive jurisdiction of the courts of England and Wales.
                   </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end p-6 border-t bg-gray-50">
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
+        {/* Privacy Policy Modal */}
+        {showPrivacyModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Privacy Policy</h3>
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
                   <h4 className="mb-4 font-semibold text-gray-900">Privacy Policy</h4>
                   <p className="mb-4">
                     This Privacy Policy explains how Vitrux Shield collects, uses, and protects personal data within the HRMS application. We comply with the UK GDPR and the Data Protection Act 2018.
@@ -451,16 +488,23 @@ export default function Login() {
                     We implement technical and organisational measures (e.g., encryption, access controls) to protect personal data from unauthorised access, loss, or misuse.
                   </p>
                   
-                  <h5 className="mb-2 font-medium text-gray-800">8. Updates to this Policy</h5>
+                  <h5 className="mb-2 font-medium text-gray-800">8. Contact Information</h5>
                   <p className="mb-4">
-                    We may update this Privacy Policy to reflect changes in law or application functionality. Updates will be communicated to users.
+                    For any privacy-related questions or to exercise your rights, please contact us at:<br/>
+                    Email: privacy@vitruxshield.com<br/>
+                    Address: Vitrux Shield, Data Protection Office, London, UK
+                  </p>
+                  
+                  <h5 className="mb-2 font-medium text-gray-800">9. Updates to this Policy</h5>
+                  <p className="mb-4">
+                    We may update this Privacy Policy to reflect changes in law or application functionality. Updates will be communicated to users through the application or email notifications.
                   </p>
                 </div>
               </div>
               
               <div className="flex justify-end p-6 border-t bg-gray-50">
                 <button
-                  onClick={() => setShowTermsModal(false)}
+                  onClick={() => setShowPrivacyModal(false)}
                   className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   Close

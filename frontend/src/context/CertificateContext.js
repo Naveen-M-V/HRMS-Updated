@@ -18,17 +18,18 @@ export const CertificateProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch certificates from API
+  // Fetch certificates from API with caching
   const fetchCertificates = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/certificates`);
+      const response = await axios.get(`${API_BASE_URL}/certificates`, {
+        headers: {
+          'Cache-Control': 'max-age=300' // Cache for 5 minutes
+        }
+      });
 
       // Validate response data
       if (!Array.isArray(response.data)) {
-        console.error("Expected an array of certificates, but got:", response.data);
-        console.error("Response headers:", response.headers);
-        console.error("Response status:", response.status);
         setCertificates([]);
         setError("Invalid data format received from API");
         return;
@@ -38,7 +39,6 @@ export const CertificateProvider = ({ children }) => {
       setError(null);
     } catch (err) {
       setError('Failed to fetch certificates');
-      console.error('Error fetching certificates:', err);
       setCertificates([]);
     } finally {
       setLoading(false);

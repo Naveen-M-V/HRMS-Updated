@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProfiles } from '../context/ProfileContext';
@@ -25,13 +25,32 @@ export default function Profile() {
   const [imageKey, setImageKey] = useState(Date.now());
   const fileInputRef = useRef(null);
 
-  // Find current user's profile or use auth user data
-  const userProfile = profiles.find(p => p.email === user?.email) || user || {};
+  // Find current user's profile or use auth user data (memoized for performance)
+  const userProfile = useMemo(() => {
+    return profiles.find(p => p.email === user?.email) || user || {};
+  }, [profiles, user]);
   
-  // Get user's certificates
-  const userCertificates = certificates.filter(cert => 
-    cert.profileName === `${userProfile?.firstName || user?.firstName} ${userProfile?.lastName || user?.lastName}`
-  );
+  // Get user's certificates (memoized for performance)
+  const userCertificates = useMemo(() => {
+    return certificates.filter(cert => 
+      cert.profileName === `${userProfile?.firstName || user?.firstName} ${userProfile?.lastName || user?.lastName}`
+    );
+  }, [certificates, userProfile, user]);
+
+  // Generate consistent VTID/VTRX ID
+  const generateVTID = useCallback((profile) => {
+    if (profile.skillkoId) return profile.skillkoId;
+    if (profile.vtid) return profile.vtid;
+    if (profile.vtrxId) return profile.vtrxId;
+    
+    // Generate consistent ID based on profile data
+    const firstName = profile.firstName || '';
+    const lastName = profile.lastName || '';
+    const company = profile.company || 'VTX';
+    const timestamp = profile.createdOn ? new Date(profile.createdOn).getTime() : Date.now();
+    
+    return `${company.substring(0, 3).toUpperCase()}${firstName.substring(0, 2).toUpperCase()}${lastName.substring(0, 2).toUpperCase()}${timestamp.toString().slice(-4)}`;
+  }, []);
 
   const handleProfilePictureUpload = async (event) => {
     const file = event.target.files[0];
@@ -82,6 +101,7 @@ export default function Profile() {
                       alt="Profile" 
                       className="w-full h-full object-cover"
                       key={`profile-pic-${imageKey}`}
+                      loading="lazy"
                     />
                   ) : (
                     <UserCircleIcon className="h-20 w-20 text-gray-400" />
@@ -115,7 +135,10 @@ export default function Profile() {
                       {userProfile?.firstName || user?.firstName || 'User'} {userProfile?.lastName || user?.lastName || ''}
                     </h1>
                     <p className="text-lg text-gray-600 mt-1">
-                      {userProfile?.jobTitle || 'No job title specified'}
+                      {Array.isArray(userProfile?.jobTitle) 
+                        ? userProfile.jobTitle.join(', ') 
+                        : (userProfile?.jobTitle || 'No job title specified')
+                      }
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       {userProfile?.company || 'No company specified'} • {userProfile?.staffType || 'Staff'} Staff
@@ -217,7 +240,7 @@ export default function Profile() {
                 <div className="space-y-4">
                   <div>
                     <div className="text-sm text-gray-500">VTRX ID</div>
-                    <div className="font-medium">{userProfile?.skillkoId || 'Not assigned'}</div>
+                    <div className="font-medium">{generateVTID(userProfile)}</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Department</div>

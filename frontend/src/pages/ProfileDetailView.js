@@ -44,24 +44,47 @@ export default function ProfileDetailView() {
   const handleProfilePictureUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
+      console.log('🔄 Starting profile picture upload...', {
+        fileName: file.name,
+        fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        fileType: file.type,
+        profileId: id
+      });
+      
       setUploading(true);
       try {
+        console.log('📤 Uploading profile picture to server...');
         const profilePictureUrl = await uploadProfilePicture(id, file);
+        
+        console.log('✅ Profile picture upload successful!', {
+          newUrl: profilePictureUrl,
+          profileId: id
+        });
+        
         // Update local state immediately
         setProfile(prev => ({ 
           ...prev, 
           profilePicture: profilePictureUrl
         }));
+        
         // Force image refresh by updating key
         setImageKey(Date.now());
+        console.log('🔄 Image cache refreshed with new key:', Date.now());
+        
         // Clear the file input
         event.target.value = '';
         alert('Profile picture updated successfully!');
       } catch (error) {
-        console.error("Failed to upload profile picture:", error);
+        console.error("❌ Failed to upload profile picture:", error);
+        console.error("Error details:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
         alert('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
+        console.log('🏁 Profile picture upload process completed');
       }
     }
   };
@@ -89,6 +112,21 @@ export default function ProfileDetailView() {
   const userCertificates = certificates.filter(cert => 
     cert.profileName === `${profile?.firstName} ${profile?.lastName}`
   );
+
+  // Debug logging for certificates
+  useEffect(() => {
+    console.log('📋 Profile certificates debug:', {
+      profileName: `${profile?.firstName} ${profile?.lastName}`,
+      totalCertificates: certificates.length,
+      userCertificates: userCertificates.length,
+      certificatesList: userCertificates.map(cert => ({
+        id: cert.id || cert._id,
+        name: cert.certificate,
+        profileName: cert.profileName,
+        hasFile: !!cert.certificateFile
+      }))
+    });
+  }, [certificates, profile, userCertificates]);
 
   if (!profile) {
     return (
@@ -170,13 +208,12 @@ export default function ProfileDetailView() {
                         alt="Profile Picture" 
                         className="w-full h-full object-cover"
                         key={`profile-pic-${imageKey}`}
+                        loading="lazy"
                         onError={(e) => {
-                          console.log('Image failed to load');
                           e.target.style.display = 'none';
                           e.target.nextSibling.style.display = 'flex';
                         }}
                         onLoad={(e) => {
-                          console.log('Image loaded successfully');
                           if (e.target.nextSibling) {
                             e.target.nextSibling.style.display = 'none';
                           }
@@ -364,16 +401,18 @@ export default function ProfileDetailView() {
                       </thead>
                       <tbody>
                         {userCertificates.map((cert) => (
-                          <tr key={cert.id} className="hover:bg-gray-50">
-                            <td className="p-2 border">{cert.certificate}</td>
-                            <td className="p-2 border">{cert.issueDate}</td>
-                            <td className="p-2 border">{cert.expiryDate}</td>
+                          <tr key={cert.id || cert._id} className="hover:bg-gray-50">
+                            <td className="p-2 border font-medium">{cert.certificate}</td>
+                            <td className="p-2 border">{formatDate(cert.issueDate)}</td>
+                            <td className="p-2 border">{formatDate(cert.expiryDate)}</td>
                             <td className="p-2 border">{cert.provider}</td>
                             <td className="p-2 border">
-                              <span className={`px-2 py-1 rounded text-xs ${
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
                                 cert.status === 'Approved' 
                                   ? 'bg-green-100 text-green-800' 
-                                  : 'bg-yellow-100 text-yellow-800'
+                                  : cert.status === 'Pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
                               }`}>
                                 {cert.status}
                               </span>
@@ -385,12 +424,13 @@ export default function ProfileDetailView() {
                                   target="_blank" 
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+                                  onClick={() => console.log('🔗 Opening certificate:', cert.certificate, 'File URL:', `${process.env.REACT_APP_API_BASE_URL}/certificates/${cert.id || cert._id}/file`)}
                                 >
                                   <EyeIcon className="h-4 w-4" />
                                   View Certificate
                                 </a>
                               ) : (
-                                <span className="text-gray-500 text-sm">No file</span>
+                                <span className="text-gray-500 text-sm">No file available</span>
                               )}
                             </td>
                           </tr>
@@ -400,7 +440,10 @@ export default function ProfileDetailView() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    No active certificates found for this user.
+                    <div className="mb-2">📋 No active certificates found for this user.</div>
+                    <div className="text-sm">
+                      Certificates will appear here once they are created and assigned to this profile.
+                    </div>
                   </div>
                 )}
               </div>
