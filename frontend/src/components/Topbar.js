@@ -36,7 +36,7 @@ export default function Topbar({ toggleSidebar }) {
       />
 
       <div className="ml-auto flex items-center gap-4 relative">
-        <span className="text-sm font-semibold">Account: VitruX Ltd</span>
+        <span className="text-sm font-semibold">Account: Vitrux Ltd</span>
 
         {/* Dropdown Button */}
         <div className="relative">
