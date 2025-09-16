@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { useCertificates } from "../context/CertificateContext";
-import { getImageUrl } from '../utils/config';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
@@ -167,17 +166,17 @@ export default function ProfileDetailView() {
                   <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                     {profile.profilePicture ? (
                       <img 
-                        src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
+                        src={`${process.env.REACT_APP_API_BASE_URL}/profiles/${id}/picture?t=${imageKey}`}
                         alt="Profile Picture" 
                         className="w-full h-full object-cover"
                         key={`profile-pic-${imageKey}`}
                         onError={(e) => {
-                          console.log('Image failed to load:', getImageUrl(profile.profilePicture));
+                          console.log('Image failed to load');
                           e.target.style.display = 'none';
                           e.target.nextSibling.style.display = 'flex';
                         }}
                         onLoad={(e) => {
-                          console.log('Image loaded successfully:', getImageUrl(profile.profilePicture));
+                          console.log('Image loaded successfully');
                           if (e.target.nextSibling) {
                             e.target.nextSibling.style.display = 'none';
                           }
@@ -295,7 +294,12 @@ export default function ProfileDetailView() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Generic Job Title:</span>
-                  <span className="font-medium">{profile.jobTitle || "N/A"}</span>
+                  <span className="font-medium">
+                    {Array.isArray(profile.jobTitle) 
+                      ? profile.jobTitle.join(', ') 
+                      : (profile.jobTitle || "N/A")
+                    }
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Active Job Roles:</span>

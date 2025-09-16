@@ -195,10 +195,16 @@ export default function CreateCertificate() {
     };
 
     // Add certificate to context
-    addCertificate(newCertificate);
-    
-    // Navigate to certificates page
-    navigate("/reporting/certificates");
+    addCertificate(newCertificate)
+      .then(() => {
+        alert('Certificate created successfully!');
+        // Navigate to certificates page
+        navigate("/reporting/certificates");
+      })
+      .catch((error) => {
+        console.error('Error creating certificate:', error);
+        alert('Failed to create certificate. Please try again.');
+      });
   };
 
   const handleCancel = () => {

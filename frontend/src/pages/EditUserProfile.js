@@ -112,9 +112,12 @@ export default function EditUserProfile() {
     
     try {
       await updateProfile(id, formData);
-      navigate("/reporting/profiles");
+      alert('Profile updated successfully!');
+      // Navigate back to the profile detail page
+      navigate(`/profiles/${id}`);
     } catch (error) {
       console.error("Failed to update profile:", error);
+      alert('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -135,7 +138,8 @@ export default function EditUserProfile() {
   };
 
   const handleCancel = () => {
-    navigate("/reporting/profiles");
+    // Navigate back to the profile detail page
+    navigate(`/profiles/${id}`);
   };
 
   return (
