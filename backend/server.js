@@ -125,7 +125,7 @@ const profileSchema = new mongoose.Schema({
   role: { type: String, default: 'User' },
   staffType: { type: String, default: 'Direct' },
   company: { type: String, default: 'VitruX Ltd' },
-  jobTitle: String,
+  jobTitle: [String], // Array of job titles to support multiple selections
   jobLevel: String,
   language: { type: String, default: 'English' },
   startDate: Date,
