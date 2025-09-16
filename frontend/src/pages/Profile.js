@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useProfiles } from '../context/ProfileContext';
 import { useCertificates } from '../context/CertificateContext';
+import { getImageUrl } from '../utils/config';
 import { 
   UserCircleIcon, 
   AcademicCapIcon, 
@@ -30,13 +31,6 @@ export default function Profile() {
   const userCertificates = certificates.filter(cert => 
     cert.profileName === `${userProfile?.firstName || user?.firstName} ${userProfile?.lastName || user?.lastName}`
   );
-
-  // Helper function to get image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
-    return `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000'}/uploads/${imagePath}`;
-  };
 
   const handleProfilePictureUpload = async (event) => {
     const file = event.target.files[0];
