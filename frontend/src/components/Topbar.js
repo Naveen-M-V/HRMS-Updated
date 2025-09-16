@@ -15,7 +15,7 @@ export default function Topbar({ toggleSidebar }) {
         <img 
           src="/TSL.png" 
           alt="TSL Logo" 
-          className="h-14 w-14 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
+          className="h-14 w-10 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/dashboard")}
           onError={(e) => {
             e.target.style.display = 'none';
@@ -23,12 +23,16 @@ export default function Topbar({ toggleSidebar }) {
         />
       </div>
       
+      {/* Hamburger */}
+      <button onClick={toggleSidebar} className="p-2 rounded hover:bg-gray-200">
+        <Bars3Icon className="h-6 w-6 text-gray-700" />
+      </button>
 
       {/* Search Box */}
       <input
         type="text"
         placeholder="Search accounts..."
-        className="border rounded px-3 py-1 w-1/2"
+        className="border rounded px-3 py-1 w-1/3"
       />
 
       <div className="ml-auto flex items-center gap-4 relative">
