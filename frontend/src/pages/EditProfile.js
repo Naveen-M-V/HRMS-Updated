@@ -17,7 +17,7 @@ export default function EditProfile() {
     dob: userProfile.dateOfBirth,
     gender: userProfile.gender,
     company: userProfile.company,
-    jobTitle: userProfile.jobTitle,
+    jobTitle: Array.isArray(userProfile.jobTitle) ? userProfile.jobTitle : (userProfile.jobTitle ? [userProfile.jobTitle] : []),
     staffType: userProfile.staffType,
     mobile: userProfile.mobile,
     nationality: userProfile.nationality,
@@ -53,7 +53,7 @@ export default function EditProfile() {
       dob: userProfile.dateOfBirth,
       gender: userProfile.gender,
       company: userProfile.company,
-      jobTitle: userProfile.jobTitle,
+      jobTitle: Array.isArray(userProfile.jobTitle) ? userProfile.jobTitle : (userProfile.jobTitle ? [userProfile.jobTitle] : []),
       staffType: userProfile.staffType,
       mobile: userProfile.mobile,
       nationality: userProfile.nationality,
@@ -83,6 +83,27 @@ export default function EditProfile() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleJobTitleChange = (jobRole) => {
+    setFormData((prev) => {
+      const currentJobTitles = prev.jobTitle || [];
+      const isSelected = currentJobTitles.includes(jobRole);
+      
+      if (isSelected) {
+        // Remove job role
+        return {
+          ...prev,
+          jobTitle: currentJobTitles.filter(title => title !== jobRole)
+        };
+      } else {
+        // Add job role
+        return {
+          ...prev,
+          jobTitle: [...currentJobTitles, jobRole]
+        };
+      }
+    });
   };
 
   const handleSave = async (e) => {
@@ -288,23 +309,46 @@ export default function EditProfile() {
               </div>
             </div>
 
-            {/* Job Title + Status */}
+            {/* Job Roles + Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
               <div>
-                <label className="block text-sm text-gray-600">Job Title</label>
-                <select
-                  name="jobTitle"
-                  value={formData.jobTitle}
-                  onChange={handleChange}
-                  className="mt-1 w-full border rounded px-3 py-2"
-                >
-                  <option value="">Select Job Role</option>
+                <label className="block text-sm text-gray-600 mb-2">Job Roles</label>
+                <div className="border rounded px-3 py-2 max-h-48 overflow-y-auto bg-white">
+                  <div className="text-xs text-gray-500 mb-2">Select multiple job roles:</div>
                   {getAllJobRoles().map((jobRole) => (
-                    <option key={jobRole} value={jobRole}>
-                      {jobRole}
-                    </option>
+                    <label key={jobRole} className="flex items-center mb-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                      <input
+                        type="checkbox"
+                        checked={formData.jobTitle.includes(jobRole)}
+                        onChange={() => handleJobTitleChange(jobRole)}
+                        className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm text-gray-700">{jobRole}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
+                {formData.jobTitle.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-xs text-gray-500 mb-1">Selected ({formData.jobTitle.length}):</div>
+                    <div className="flex flex-wrap gap-1">
+                      {formData.jobTitle.map((role) => (
+                        <span
+                          key={role}
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"
+                        >
+                          {role}
+                          <button
+                            type="button"
+                            onClick={() => handleJobTitleChange(role)}
+                            className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-emerald-400 hover:bg-emerald-200 hover:text-emerald-600 focus:outline-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-600">Status</label>

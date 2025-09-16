@@ -21,6 +21,7 @@ export default function ProfileDetailView() {
   const [profile, setProfile] = useState(null);
   const [showCertificates, setShowCertificates] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [imageKey, setImageKey] = useState(Date.now());
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -46,7 +47,12 @@ export default function ProfileDetailView() {
       try {
         const profilePictureUrl = await uploadProfilePicture(id, file);
         // Update local state immediately
-        setProfile(prev => ({ ...prev, profilePicture: profilePictureUrl }));
+        setProfile(prev => ({ 
+          ...prev, 
+          profilePicture: profilePictureUrl
+        }));
+        // Force image refresh by updating key
+        setImageKey(Date.now());
         // Clear the file input
         event.target.value = '';
         alert('Profile picture updated successfully!');
@@ -159,9 +165,10 @@ export default function ProfileDetailView() {
                   <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                     {profile.profilePicture ? (
                       <img 
-                        src={getImageUrl(profile.profilePicture)} 
+                        src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
                         alt="Profile Picture" 
                         className="w-full h-full object-cover"
+                        key={`profile-pic-${imageKey}`}
                         onError={(e) => {
                           console.log('Image failed to load:', getImageUrl(profile.profilePicture));
                           e.target.style.display = 'none';

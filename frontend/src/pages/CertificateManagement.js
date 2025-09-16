@@ -323,7 +323,7 @@ export default function CertificateManagement() {
                     <div className="flex items-center gap-2 pt-4 border-t">
                       <Link
                         to={`/viewcertificate/${cert.id || cert._id}`}
-                        className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+                        className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
                       >
                         <EyeIcon className="h-4 w-4" />
                         View Certificate
@@ -392,7 +392,7 @@ export default function CertificateManagement() {
                         <div className="flex items-center gap-2">
                           <Link
                             to={`/viewcertificate/${cert.id || cert._id}`}
-                            className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
                             title="View Certificate"
                           >
                             <EyeIcon className="h-4 w-4" />

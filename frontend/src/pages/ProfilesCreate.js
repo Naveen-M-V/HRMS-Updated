@@ -11,7 +11,7 @@ export default function ProfilesCreate() {
     lastName: "",
     dob: "",
     company: "",
-    jobTitle: "",
+    jobTitle: [],
     jobLevel: "",
     mobile: "",
     language: "",
@@ -32,6 +32,27 @@ export default function ProfilesCreate() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleJobTitleChange = (jobRole) => {
+    setFormData((prev) => {
+      const currentJobTitles = prev.jobTitle || [];
+      const isSelected = currentJobTitles.includes(jobRole);
+      
+      if (isSelected) {
+        // Remove job role
+        return {
+          ...prev,
+          jobTitle: currentJobTitles.filter(title => title !== jobRole)
+        };
+      } else {
+        // Add job role
+        return {
+          ...prev,
+          jobTitle: [...currentJobTitles, jobRole]
+        };
+      }
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -162,26 +183,48 @@ export default function ProfilesCreate() {
             />
           </div>
 
-          {/* Job Title & Job Level */}
+          {/* Job Roles & Job Level */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium">
-                Job Role <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium mb-2">
+                Job Roles <span className="text-red-500">*</span>
               </label>
-              <select
-                name="jobTitle"
-                value={formData.jobTitle}
-                onChange={handleChange}
-                className="mt-1 block w-full border rounded p-2"
-                required
-              >
-                <option value="">Select Job Role</option>
+              <div className="border rounded p-2 max-h-48 overflow-y-auto bg-white">
+                <div className="text-xs text-gray-500 mb-2">Select multiple job roles:</div>
                 {getAllJobRoles().map((jobRole) => (
-                  <option key={jobRole} value={jobRole}>
-                    {jobRole}
-                  </option>
+                  <label key={jobRole} className="flex items-center mb-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={formData.jobTitle.includes(jobRole)}
+                      onChange={() => handleJobTitleChange(jobRole)}
+                      className="mr-2 h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700">{jobRole}</span>
+                  </label>
                 ))}
-              </select>
+              </div>
+              {formData.jobTitle.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-xs text-gray-500 mb-1">Selected ({formData.jobTitle.length}):</div>
+                  <div className="flex flex-wrap gap-1">
+                    {formData.jobTitle.map((role) => (
+                      <span
+                        key={role}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"
+                      >
+                        {role}
+                        <button
+                          type="button"
+                          onClick={() => handleJobTitleChange(role)}
+                          className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-emerald-400 hover:bg-emerald-200 hover:text-emerald-600 focus:outline-none"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium">Generic Job Level</label>

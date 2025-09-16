@@ -22,6 +22,7 @@ export default function Profile() {
   const { certificates } = useCertificates();
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [imageKey, setImageKey] = useState(Date.now());
   const fileInputRef = useRef(null);
 
   // Find current user's profile or use auth user data
@@ -38,8 +39,12 @@ export default function Profile() {
       setUploading(true);
       try {
         await uploadProfilePicture(userProfile._id, file);
+        // Force image refresh by updating key
+        setImageKey(Date.now());
+        alert('Profile picture updated successfully!');
       } catch (error) {
         console.error("Failed to upload profile picture:", error);
+        alert('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
       }
@@ -73,9 +78,10 @@ export default function Profile() {
                 <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                   {userProfile.profilePicture ? (
                     <img 
-                      src={getImageUrl(userProfile.profilePicture)} 
+                      src={`${getImageUrl(userProfile.profilePicture)}?t=${imageKey}`}
                       alt="Profile" 
                       className="w-full h-full object-cover"
+                      key={`profile-pic-${imageKey}`}
                     />
                   ) : (
                     <UserCircleIcon className="h-20 w-20 text-gray-400" />
