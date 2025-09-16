@@ -313,7 +313,7 @@ export default function ViewCertificate() {
                       rel="noopener noreferrer"
                       className="px-4 py-2 text-sm bg-blue-100 text-blue-600 rounded hover:bg-blue-200"
                     >
-                      View PDF
+                      View Certificate
                     </a>
                     <button 
                       onClick={handleDeleteFile}

@@ -30,15 +30,29 @@ export default function ProfileDetailView() {
     }
   }, [id, getProfileById]);
 
+  // Refresh profile data when profiles context updates
+  const { profiles } = useProfiles();
+  useEffect(() => {
+    const profileData = getProfileById(id);
+    if (profileData) {
+      setProfile(profileData);
+    }
+  }, [profiles, id, getProfileById]);
+
   const handleProfilePictureUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
       setUploading(true);
       try {
         const profilePictureUrl = await uploadProfilePicture(id, file);
+        // Update local state immediately
         setProfile(prev => ({ ...prev, profilePicture: profilePictureUrl }));
+        // Clear the file input
+        event.target.value = '';
+        alert('Profile picture updated successfully!');
       } catch (error) {
         console.error("Failed to upload profile picture:", error);
+        alert('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
       }
@@ -84,38 +98,14 @@ export default function ProfileDetailView() {
         {/* Top Navigation Bar */}
         <div className="flex items-center justify-between px-6 py-3 border-b">
           {/* Left: Account Dropdown */}
-          <div className="flex items-center gap-4">
-            <select className="border rounded px-3 py-1 bg-white">
-              <option>VitruX Ltd</option>
-            </select>
-          </div>
+         
 
           {/* Center: Company Logo */}
           <div className="text-2xl font-bold text-green-600">
             VitruX
           </div>
 
-          {/* Right: Action Buttons */}
-          <div className="flex items-center gap-3">
-            <button className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
-              New
-            </button>
-            <ChevronDownIcon className="h-4 w-4 text-gray-500" />
-            <Bars3Icon className="h-5 w-5 text-gray-500" />
-            <BellIcon className="h-5 w-5 text-gray-500" />
-            <UserCircleIcon className="h-6 w-6 text-gray-500" />
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="px-6 py-3">
-          <div className="max-w-2xl mx-auto">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full border rounded-lg px-4 py-2 pl-10"
-            />
-          </div>
+          
         </div>
 
         {/* User Name Row */}
@@ -220,23 +210,23 @@ export default function ProfileDetailView() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">VTRX ID:</span>
-                  <span className="font-medium">{profile.skillkoId || "N/A"}</span>
+                  <span className="font-medium">{profile._id || profile.id || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">User Role:</span>
-                  <span className="font-medium">{profile.role}</span>
+                  <span className="font-medium">{profile.role || profile.jobLevel || "User"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">External System ID:</span>
-                  <span className="font-medium">{profile.externalSystemId || "N/A"}</span>
+                  <span className="text-gray-600">Circet UIN:</span>
+                  <span className="font-medium">{profile.circetUIN || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Ext. Third Party System ID:</span>
-                  <span className="font-medium">{profile.extThirdPartySystemId || "N/A"}</span>
+                  <span className="text-gray-600">Circet SCID:</span>
+                  <span className="font-medium">{profile.circetSCID || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">NOPS ID:</span>
-                  <span className="font-medium">{profile.nopsId || "N/A"}</span>
+                  <span className="font-medium">{profile.nopsID || "N/A"}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Email:</span>
@@ -262,7 +252,15 @@ export default function ProfileDetailView() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Date of Birth:</span>
-                  <span className="font-medium">{formatDate(profile.dateOfBirth)}</span>
+                  <span className="font-medium">{formatDate(profile.dob || profile.dateOfBirth)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Nationality:</span>
+                  <span className="font-medium">{profile.nationality || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Status:</span>
+                  <span className="font-medium">{profile.status || "N/A"}</span>
                 </div>
               </div>
             </div>

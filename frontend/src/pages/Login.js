@@ -114,7 +114,7 @@ export default function Login() {
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-13 w-13 object-contain"
+              className="h-16 w-16 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';

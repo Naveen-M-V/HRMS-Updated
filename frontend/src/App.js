@@ -67,7 +67,9 @@ function App() {
                   <NotificationProvider>
                     <div className="flex">
                       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-                      <div className="flex-1 flex flex-col">
+                      <div className={`flex-1 flex flex-col transition-all duration-300 ${
+                        isSidebarOpen ? "ml-64" : "ml-16"
+                      }`}>
                         <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
                         <div className="p-6">
                           <Routes>

@@ -182,7 +182,7 @@ const ComplianceDashboard = () => {
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Link to="/reporting/certificates" className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500 hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">Active Certificates</p>
@@ -194,9 +194,9 @@ const ComplianceDashboard = () => {
               </svg>
             </div>
           </div>
-        </Link>
+        </div>
 
-        <Link to="/reporting/certificates" className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500 hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
@@ -209,9 +209,9 @@ const ComplianceDashboard = () => {
               </svg>
             </div>
           </div>
-        </Link>
+        </div>
 
-        <Link to="/reporting/certificates" className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500 hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">Expired</p>
@@ -223,9 +223,9 @@ const ComplianceDashboard = () => {
               </svg>
             </div>
           </div>
-        </Link>
+        </div>
 
-        <Link to="/reporting/certificates" className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500 hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">Total Certificates</p>
@@ -237,7 +237,7 @@ const ComplianceDashboard = () => {
               </svg>
             </div>
           </div>
-        </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -34,7 +34,7 @@ export default function ProfilesCreate() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Transform form data to match profile structure
@@ -45,9 +45,11 @@ export default function ProfilesCreate() {
       staffType: formData.staffType || "Direct",
       company: formData.company || "VitruX Ltd",
       jobTitle: formData.jobTitle,
+      jobLevel: formData.jobLevel,
       email: formData.email,
       mobile: formData.mobile,
       dob: formData.dob,
+      dateOfBirth: formData.dob, // Add both formats for compatibility
       language: formData.language || "English",
       startDate: formData.startDate,
       poc: formData.poc,
@@ -57,14 +59,26 @@ export default function ProfilesCreate() {
       morrisonsIDNumber: formData.morrisonsIDNumber,
       morrisonsUIN: formData.morrisonsUIN,
       nopsID: formData.nopsID,
-      status: formData.status || "Onboarding"
+      status: formData.status || "Onboarding",
+      createdOn: new Date().toISOString(),
+      lastSeen: new Date().toISOString()
     };
 
-    // Add profile to context
-    addProfile(newProfile);
-    
-    // Navigate to profiles page
-    navigate("/reporting/profiles");
+    try {
+      // Add profile to context
+      const createdProfile = await addProfile(newProfile);
+      
+      // Navigate to the newly created profile's detail page
+      if (createdProfile && (createdProfile._id || createdProfile.id)) {
+        navigate(`/profiles/${createdProfile._id || createdProfile.id}`);
+      } else {
+        // Fallback to profiles list
+        navigate("/reporting/profiles");
+      }
+    } catch (error) {
+      console.error('Failed to create profile:', error);
+      alert('Failed to create profile. Please try again.');
+    }
   };
 
   const handleCancel = () => {

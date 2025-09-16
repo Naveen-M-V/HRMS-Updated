@@ -317,22 +317,16 @@ export default function CertificateManagement() {
                         <CalendarIcon className="h-4 w-4" />
                         Expires: {cert.expiryDate}
                       </div>
-                      {cert.cost && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">💰</span>
-                          £{cert.cost}
-                        </div>
-                      )}
                     </div>
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 pt-4 border-t">
                       <Link
                         to={`/viewcertificate/${cert.id || cert._id}`}
-                        className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                        className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
                       >
                         <EyeIcon className="h-4 w-4" />
-                        View
+                        View Certificate
                       </Link>
                       <Link
                         to={`/editcertificate/${cert.id || cert._id}`}
@@ -364,7 +358,6 @@ export default function CertificateManagement() {
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -395,17 +388,15 @@ export default function CertificateManagement() {
                           {cert.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {cert.cost ? `£${cert.cost}` : '-'}
-                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <Link
                             to={`/viewcertificate/${cert.id || cert._id}`}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
                             title="View Certificate"
                           >
                             <EyeIcon className="h-4 w-4" />
+                            View Certificate
                           </Link>
                           <Link
                             to={`/editcertificate/${cert.id || cert._id}`}

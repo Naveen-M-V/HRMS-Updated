@@ -174,11 +174,7 @@ export default function CreateCertificate() {
       jobRole: selectedProfile ? selectedProfile.jobTitle : "Unknown",
       approvalStatus: form.approvalStatus || "Approved",
       isInterim: form.isInterim || "False",
-      timeLogged: {
-        days: form.timeLoggedDays || "0",
-        hours: form.timeLoggedHours || "0",
-        minutes: form.timeLoggedMinutes || "0"
-      },
+      
       supplier: form.supplier || "",
       totalCost: form.totalCost || "0.00",
       certificateFile: form.certificateFile ? form.certificateFile.name : null,
@@ -398,40 +394,6 @@ export default function CreateCertificate() {
                 <option value="True">True</option>
                 <option value="False">False</option>
               </select>
-            </div>
-
-            {/* Time Logged */}
-            <div>
-              <label className="block font-medium mb-1">Time Logged</label>
-              <div className="grid grid-cols-3 gap-3">
-                <input
-                  type="number"
-                  name="timeLoggedDays"
-                  placeholder="Days"
-                  value={form.timeLoggedDays}
-                  onChange={handleChange}
-                  className="border rounded-lg p-2"
-                />
-                <input
-                  type="number"
-                  name="timeLoggedHours"
-                  placeholder="Hours"
-                  value={form.timeLoggedHours}
-                  onChange={handleChange}
-                  className="border rounded-lg p-2"
-                />
-                <input
-                  type="number"
-                  name="timeLoggedMinutes"
-                  placeholder="Minutes"
-                  value={form.timeLoggedMinutes}
-                  onChange={handleChange}
-                  className="border rounded-lg p-2"
-                />
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                (A day is considered 8 hours)
-              </p>
             </div>
 
             {/* Supplier */}
