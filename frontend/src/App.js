@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useState, lazy, Suspense } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { CertificateProvider } from "./context/CertificateContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -57,9 +58,39 @@ function App() {
       <Router>
         <Routes>
           {/* Authentication routes without layout */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/login" element={
+            <ErrorBoundary>
+              <Suspense fallback={
+                <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+                </div>
+              }>
+                <Login />
+              </Suspense>
+            </ErrorBoundary>
+          } />
+          <Route path="/signup" element={
+            <ErrorBoundary>
+              <Suspense fallback={
+                <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+                </div>
+              }>
+                <Signup />
+              </Suspense>
+            </ErrorBoundary>
+          } />
+          <Route path="/forgot-password" element={
+            <ErrorBoundary>
+              <Suspense fallback={
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              }>
+                <ForgotPassword />
+              </Suspense>
+            </ErrorBoundary>
+          } />
           
           {/* Main app routes with layout - Protected */}
           <Route path="/*" element={

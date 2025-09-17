@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -18,11 +19,23 @@ export default function Signup() {
 
   // Fix loading issue
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
+    let isMounted = true;
     
-    return () => clearTimeout(timer);
+    const initializeComponent = () => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    };
+    
+    // Use requestAnimationFrame to ensure DOM is ready
+    const timer = requestAnimationFrame(() => {
+      initializeComponent();
+    });
+    
+    return () => {
+      isMounted = false;
+      cancelAnimationFrame(timer);
+    };
   }, []);
 
   const handleChange = (e) => {
@@ -106,15 +119,16 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto h-36 w-36 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-24 w-24 object-contain"
+              className="h-32 w-32 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';
@@ -305,5 +319,6 @@ export default function Signup() {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

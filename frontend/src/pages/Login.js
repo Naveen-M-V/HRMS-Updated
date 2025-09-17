@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { EyeSlashIcon as EyeOffIcon } from '@heroicons/react/24/outline';
 import { LockClosedIcon } from '@heroicons/react/24/outline';
@@ -25,20 +26,37 @@ export default function Login() {
   
   // Load saved email if "remember me" was checked and fix loading issue
   useEffect(() => {
-    const savedEmail = localStorage.getItem('rememberedEmail');
-    if (savedEmail) {
-      setFormData(prev => ({
-        ...prev,
-        email: savedEmail,
-        rememberMe: true
-      }));
-    }
-    // Fix loading issue by setting loading to false after component mounts
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
+    let isMounted = true;
     
-    return () => clearTimeout(timer);
+    const initializeComponent = () => {
+      try {
+        const savedEmail = localStorage.getItem('rememberedEmail');
+        if (savedEmail && isMounted) {
+          setFormData(prev => ({
+            ...prev,
+            email: savedEmail,
+            rememberMe: true
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading saved email:', error);
+      }
+      
+      // Fix loading issue by setting loading to false after component mounts
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    };
+    
+    // Use requestAnimationFrame to ensure DOM is ready
+    const timer = requestAnimationFrame(() => {
+      initializeComponent();
+    });
+    
+    return () => {
+      isMounted = false;
+      cancelAnimationFrame(timer);
+    };
   }, []);
 
   const handleChange = (e) => {
@@ -122,7 +140,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -130,7 +149,7 @@ export default function Login() {
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-24 w-24 object-contain"
+              className="h-36 w-36 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';
@@ -414,5 +433,6 @@ export default function Login() {
         )}
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

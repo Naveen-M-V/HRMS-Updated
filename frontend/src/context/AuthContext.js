@@ -1,6 +1,7 @@
 // src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { getErrorMessage } from '../utils/errorHandler';
 
 const AuthContext = createContext();
 
@@ -135,37 +136,46 @@ export const AuthProvider = ({ children }) => {
   };
 
   const checkExistingSession = useCallback(async () => {
-    const sessionData = sessionStorage.getUserSession();
-    if (sessionData && sessionData.user) {
-      try {
-        await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
-          withCredentials: true,
-          timeout: 3000
-        });
-        // Session is valid, no action needed
-      } catch (error) {
-        // Session invalid, clear it
-        if (error.response?.status === 403 || error.response?.status === 401) {
-          handleInvalidSession();
+    try {
+      const sessionData = sessionStorage.getUserSession();
+      if (sessionData && sessionData.user) {
+        try {
+          await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
+            withCredentials: true,
+            timeout: 5000
+          });
+          // Session is valid, no action needed
+        } catch (error) {
+          // Session invalid, clear it
+          if (error.response?.status === 403 || error.response?.status === 401) {
+            handleInvalidSession();
+          }
         }
       }
+    } catch (error) {
+      console.error('Error checking session:', error);
+      // Don't clear session on network errors, only on auth errors
     }
   }, []);
 
   // Check for existing session on app start
   useEffect(() => {
+    let isMounted = true;
+    
     // Only run background validation if user is not already set
-    if (!user) {
+    if (!user && isMounted) {
       checkExistingSession();
     }
 
     // Listen for localStorage changes to sync across tabs (session management only)
     const handleStorageChange = (e) => {
+      if (!isMounted) return;
+      
       if (e.key === 'user_session') {
         if (e.newValue) {
           try {
             const sessionData = JSON.parse(e.newValue);
-            if (sessionData.user) {
+            if (sessionData.user && isMounted) {
               setUser(sessionData.user);
               setIsAuthenticated(true);
             }
@@ -174,14 +184,17 @@ export const AuthProvider = ({ children }) => {
           }
         } else {
           // Session was removed
-          setUser(null);
-          setIsAuthenticated(false);
+          if (isMounted) {
+            setUser(null);
+            setIsAuthenticated(false);
+          }
         }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => {
+      isMounted = false;
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [user, checkExistingSession]);
@@ -196,9 +209,16 @@ export const AuthProvider = ({ children }) => {
         email,
         password,
         rememberMe
+      }, {
+        timeout: 10000,
+        withCredentials: true
       });
 
       const { token, user: userData } = response.data;
+
+      if (!userData) {
+        throw new Error('Invalid response from server');
+      }
 
       // Store session data using our session storage utility
       sessionStorage.setUserSession(userData, token);
@@ -209,7 +229,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Login failed";
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -222,11 +242,14 @@ export const AuthProvider = ({ children }) => {
     setError(null);
 
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/signup`, userData);
+      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData, {
+        timeout: 10000,
+        withCredentials: true
+      });
 
       return { success: true, message: "Account created successfully" };
     } catch (err) {
-      const errorMessage = err.response?.data?.message || "Signup failed";
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
