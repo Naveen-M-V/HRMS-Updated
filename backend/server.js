@@ -415,14 +415,16 @@ const parseExpiryDate = (dateString) => {
 
 // Routes
 
-// Get all profiles with complete data
+// Get all profiles (optimized - excludes large binary data)
 app.get('/api/profiles', async (req, res) => {
   try {
-    // Return all profile fields for complete data display
+    // Exclude large binary fields to optimize performance
     const profiles = await Profile.find()
+      .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
       .sort({ createdOn: -1 })
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
+    console.log(`Fetched ${profiles.length} profiles (optimized)`);
     res.json(profiles);
   } catch (error) {
     console.error('Error fetching profiles:', error);
@@ -430,8 +432,72 @@ app.get('/api/profiles', async (req, res) => {
   }
 });
 
-// Get profile by ID
+// Get all profiles with complete data (for admin/bulk operations)
+app.get('/api/profiles/complete', async (req, res) => {
+  try {
+    // Return all profile fields including binary data (use sparingly)
+    const profiles = await Profile.find()
+      .sort({ createdOn: -1 })
+      .lean();
+    
+    console.log(`Fetched ${profiles.length} profiles (complete data)`);
+    res.json(profiles);
+  } catch (error) {
+    console.error('Error fetching complete profiles:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get profiles with pagination (for large datasets)
+app.get('/api/profiles/paginated', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    
+    const profiles = await Profile.find()
+      .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
+      .sort({ createdOn: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+    
+    const total = await Profile.countDocuments();
+    const totalPages = Math.ceil(total / limit);
+    
+    res.json({
+      profiles,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalProfiles: total,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching paginated profiles:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get profile by ID (optimized - excludes binary data)
 app.get('/api/profiles/:id', async (req, res) => {
+  try {
+    const profile = await Profile.findById(req.params.id)
+      .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
+      .lean();
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get profile by ID with complete data (including binary data)
+app.get('/api/profiles/:id/complete', async (req, res) => {
   try {
     const profile = await Profile.findById(req.params.id);
     if (!profile) {
@@ -861,13 +927,15 @@ app.get('/api/suppliers/search', async (req, res) => {
     const { q } = req.query;
     
     if (!q) {
-      const suppliers = await Supplier.find().sort({ usageCount: -1, name: 1 }).limit(10);
+      // Return more suppliers when no search query (increased from 10 to 50)
+      const suppliers = await Supplier.find().sort({ usageCount: -1, name: 1 }).limit(50);
       return res.json(suppliers);
     }
     
+    // Return all matching suppliers (no limit for search results)
     const suppliers = await Supplier.find({
       name: { $regex: q, $options: 'i' }
-    }).sort({ usageCount: -1, name: 1 }).limit(10);
+    }).sort({ usageCount: -1, name: 1 });
     
     res.json(suppliers);
   } catch (error) {
@@ -991,13 +1059,15 @@ app.get('/api/job-levels/search', async (req, res) => {
     const { q } = req.query;
     
     if (!q) {
-      const jobLevels = await JobLevel.find().sort({ usageCount: -1, name: 1 }).limit(10);
+      // Return more job levels when no search query (increased from 10 to 50)
+      const jobLevels = await JobLevel.find().sort({ usageCount: -1, name: 1 }).limit(50);
       return res.json(jobLevels);
     }
     
+    // Return all matching job levels (no limit for search results)
     const jobLevels = await JobLevel.find({
       name: { $regex: q, $options: 'i' }
-    }).sort({ usageCount: -1, name: 1 }).limit(10);
+    }).sort({ usageCount: -1, name: 1 });
     
     res.json(jobLevels);
   } catch (error) {
@@ -1060,13 +1130,15 @@ app.get('/api/certificate-names/search', async (req, res) => {
     const { q } = req.query;
     
     if (!q) {
-      const certificateNames = await CertificateName.find().sort({ usageCount: -1, name: 1 }).limit(20);
+      // Return all certificate names when no search query
+      const certificateNames = await CertificateName.find().sort({ usageCount: -1, name: 1 });
       return res.json(certificateNames);
     }
     
+    // Return all matching certificate names (no limit)
     const certificateNames = await CertificateName.find({
       name: { $regex: q, $options: 'i' }
-    }).sort({ usageCount: -1, name: 1 }).limit(20);
+    }).sort({ usageCount: -1, name: 1 });
     
     res.json(certificateNames);
   } catch (error) {
