@@ -95,14 +95,30 @@ export const ProfileProvider = ({ children }) => {
   const addProfile = async (newProfile) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/profiles`, newProfile);
-      if (!response.data || typeof response.data !== 'object') {
-        console.error("Unexpected response format:", response.data);
-        throw new Error("Invalid response format from server");
+      const response = await fetch(`${getApiUrl()}/api/profiles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newProfile),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create profile: ${response.status}`);
       }
-      setProfiles(prev => [response.data, ...prev]);
+      
+      const data = await response.json();
+      console.log('Profile created successfully:', data);
+      
+      // Add to local state
+      setProfiles(prev => [data, ...prev]);
       setError(null);
-      return response.data;
+      
+      // Clear cache to force refresh
+      localStorage.removeItem('profiles_cache');
+      localStorage.removeItem('profiles_cache_time');
+      
+      return data;
     } catch (err) {
       setError('Failed to create profile');
       console.error('Error creating profile:', err);

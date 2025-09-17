@@ -1,5 +1,5 @@
 // src/pages/Signup.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -12,8 +12,18 @@ export default function Signup() {
     confirmPassword: ""
   });
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { signup, loading, error } = useAuth();
+
+  // Fix loading issue
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -86,6 +96,15 @@ export default function Signup() {
   };
 
 
+  // Show loading spinner to prevent blank page
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -95,7 +114,7 @@ export default function Signup() {
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-16 w-16 object-contain"
+              className="h-20 w-20 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';

@@ -247,7 +247,7 @@ export default function ProfileDetailView() {
               <h3 className="font-semibold text-lg border-b pb-2">User Details</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">VTRX ID:</span>
+                  <span className="text-gray-600">VTID:</span>
                   <span className="font-medium">{profile._id || profile.id || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">

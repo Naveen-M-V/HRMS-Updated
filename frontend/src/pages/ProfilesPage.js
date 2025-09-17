@@ -70,7 +70,7 @@ export default function ProfilesPage() {
     }
   }, [deleteProfile]);
 
-  // Generate consistent VTID/VTRX ID
+  // Generate consistent VTID
   const generateVTID = useCallback((profile) => {
     if (profile.skillkoId) return profile.skillkoId;
     if (profile.vtid) return profile.vtid;

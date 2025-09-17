@@ -37,7 +37,7 @@ export default function Profile() {
     );
   }, [certificates, userProfile, user]);
 
-  // Generate consistent VTID/VTRX ID
+  // Generate consistent VTID
   const generateVTID = useCallback((profile) => {
     if (profile.skillkoId) return profile.skillkoId;
     if (profile.vtid) return profile.vtid;
@@ -239,7 +239,7 @@ export default function Profile() {
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Professional Information</h2>
                 <div className="space-y-4">
                   <div>
-                    <div className="text-sm text-gray-500">VTRX ID</div>
+                    <div className="text-sm text-gray-500">VTID</div>
                     <div className="font-medium">{generateVTID(userProfile)}</div>
                   </div>
                   <div>

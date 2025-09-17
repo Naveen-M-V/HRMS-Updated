@@ -18,11 +18,12 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loading, error } = useAuth();
   
-  // Load saved email if "remember me" was checked
+  // Load saved email if "remember me" was checked and fix loading issue
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
     if (savedEmail) {
@@ -32,6 +33,12 @@ export default function Login() {
         rememberMe: true
       }));
     }
+    // Fix loading issue by setting loading to false after component mounts
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const handleChange = (e) => {
@@ -105,6 +112,15 @@ export default function Login() {
     }
   };
 
+  // Show loading spinner to prevent blank page
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -115,7 +131,7 @@ export default function Login() {
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-18 w-18 object-contain"
+              className="h-20 w-20 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';
@@ -318,6 +334,7 @@ export default function Login() {
                     Privacy Policy
                   </button>
                 </p>
+                <p className= "text-xs text-gray-500"> Powered by Vitrux Shield </p>
               </div>
             </div>
           </div>
