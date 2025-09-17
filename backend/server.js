@@ -175,6 +175,31 @@ const profileSchema = new mongoose.Schema({
   otherInformation: String,
 });
 
+// Auto-generate VTID as sequential number from 1000-9000
+profileSchema.pre('save', async function(next) {
+  if (!this.vtid) {
+    // Find the highest existing VTID
+    const lastProfile = await this.constructor.findOne({ vtid: { $exists: true } })
+      .sort({ vtid: -1 })
+      .select('vtid')
+      .lean();
+    
+    let newVtid = 1000; // Start from 1000
+    
+    if (lastProfile && lastProfile.vtid) {
+      newVtid = lastProfile.vtid + 1;
+    }
+    
+    // Ensure we don't exceed 9000
+    if (newVtid > 9000) {
+      throw new Error('VTID limit exceeded. Maximum VTID is 9000.');
+    }
+    
+    this.vtid = newVtid;
+  }
+  next();
+});
+
 // Auto-generate skillkoId as random 4-digit number
 profileSchema.pre('save', async function(next) {
   if (!this.skillkoId) {
@@ -191,12 +216,12 @@ profileSchema.pre('save', async function(next) {
     }
     
     this.skillkoId = newId;
-  }
+   }
   next();
 });
 
 // Add compound indexes for better query performance
-profileSchema.index({ firstName: 1, lastName: 1 });
+profileSchema.index({ firstName: 1, lastName: 1, email: 1 });
 profileSchema.index({ company: 1, createdOn: -1 });
 profileSchema.index({ skillkoId: 1, vtid: 1, vtrxId: 1 });
 
@@ -393,7 +418,7 @@ app.get('/api/profiles', async (req, res) => {
   try {
     // Optimize query by selecting only essential fields and using lean() for better performance
     const profiles = await Profile.find()
-      .select('firstName lastName email phone company jobRole skillkoId vtid vtrxId createdOn profilePicture')
+      .select('firstName lastName email phone company jobRole skillkoId vtid createdOn profilePicture')
       .sort({ createdOn: -1 })
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
