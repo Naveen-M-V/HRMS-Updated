@@ -1,12 +1,12 @@
 // src/pages/ProfilesPage.js
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { Link } from "react-router-dom";
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
 export default function ProfilesPage() {
-  const { profiles, deleteProfile } = useProfiles();
+  const { profiles, deleteProfile, fetchProfiles } = useProfiles();
   const [search, setSearch] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedRole, setSelectedRole] = useState("");
@@ -83,6 +83,24 @@ export default function ProfilesPage() {
     const timestamp = profile.createdOn ? new Date(profile.createdOn).getTime() : Date.now();
     
     return `${company.substring(0, 3).toUpperCase()}${firstName.substring(0, 2).toUpperCase()}${lastName.substring(0, 2).toUpperCase()}${timestamp.toString().slice(-4)}`;
+  }, []);
+
+  // Load profiles on mount and refresh when component becomes visible
+  useEffect(() => {
+    fetchProfiles();
+    
+    // Add visibility change listener to refresh data when page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchProfiles();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // ✅ Filtered profiles with memoization for performance

@@ -5,6 +5,7 @@ import { useProfiles } from "../context/ProfileContext";
 import JobRoleDropdown from "../components/JobRoleDropdown";
 import JobRoleCheckboxPicker from "../components/JobRoleCheckboxPicker";
 import JobLevelDropdown from "../components/JobLevelDropdown";
+import JobTitleDropdown from "../components/JobTitleDropdown";
 
 export default function ProfilesCreate() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ export default function ProfilesCreate() {
     dob: "",
     company: "",
     jobRole: [],
+    jobTitle: [],
     jobLevel: "",
     mobile: "",
     language: "",
@@ -77,7 +79,8 @@ export default function ProfilesCreate() {
       lastName: formData.lastName.trim(),
       staffType: formData.staffType || "Direct",
       company: formData.company || "VitruX Ltd",
-      jobRole: formData.jobRole || "",
+      jobRole: Array.isArray(formData.jobRole) ? formData.jobRole : (formData.jobRole ? [formData.jobRole] : []),
+      jobTitle: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
       jobLevel: formData.jobLevel,
       email: formData.email.trim().toLowerCase(),
       mobile: formData.mobile || "",
@@ -230,6 +233,20 @@ export default function ProfilesCreate() {
                 You can type to search existing job levels or add a new one
               </p>
             </div>
+          </div>
+
+          {/* Job Title */}
+          <div>
+            <label className="block text-sm font-medium">Job Title</label>
+            <JobTitleDropdown
+              name="jobTitle"
+              value={formData.jobTitle}
+              onChange={handleChange}
+              placeholder="Select or add job title"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              You can type to search existing job titles or add a new one
+            </p>
           </div>
 
           {/* Mobile */}

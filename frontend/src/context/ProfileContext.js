@@ -118,6 +118,9 @@ export const ProfileProvider = ({ children }) => {
       localStorage.removeItem('profiles_cache');
       localStorage.removeItem('profiles_cache_time');
       
+      // Refresh profiles to ensure we have latest data
+      await fetchProfiles();
+      
       return data;
     } catch (err) {
       setError('Failed to create profile');
@@ -257,20 +260,23 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
+  const value = {
+    profiles,
+    loading,
+    error,
+    addProfile,
+    updateProfile,
+    deleteProfile,
+    refreshProfiles,
+    fetchProfiles,
+    getProfileById,
+    uploadProfilePicture,
+    userProfile,
+    updateUserProfile
+  };
+
   return (
-    <ProfileContext.Provider value={{
-      profiles,
-      loading,
-      error,
-      addProfile,
-      updateProfile,
-      deleteProfile,
-      getProfileById,
-      uploadProfilePicture,
-      refreshProfiles,
-      userProfile,
-      updateUserProfile
-    }}>
+    <ProfileContext.Provider value={value}>
       {children}
     </ProfileContext.Provider>
   );
