@@ -110,9 +110,9 @@ mongoose.connection.on('disconnected', () => {
 // Profile Schema
 const profileSchema = new mongoose.Schema({
   // Basic Info
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  firstName: { type: String, required: true, index: true },
+  lastName: { type: String, required: true, index: true },
+  email: { type: String, required: true, unique: true, index: true },
   mobile: String,
   dateOfBirth: Date,
   gender: String,
@@ -131,7 +131,7 @@ const profileSchema = new mongoose.Schema({
   startDate: Date,
   
   // System IDs
-  skillkoId: { type: Number, unique: true },
+  skillkoId: { type: Number, unique: true, index: true },
   externalSystemId: String,
   extThirdPartySystemId: String,
   nopsId: String,
@@ -195,6 +195,11 @@ profileSchema.pre('save', async function(next) {
   next();
 });
 
+// Add compound indexes for better query performance
+profileSchema.index({ firstName: 1, lastName: 1 });
+profileSchema.index({ company: 1, createdOn: -1 });
+profileSchema.index({ skillkoId: 1, vtid: 1, vtrxId: 1 });
+
 const Profile = mongoose.model('Profile', profileSchema);
 
 // User Schema for Authentication
@@ -247,18 +252,17 @@ const certificateSchema = new mongoose.Schema({
   mimeType: String, // Store file MIME type
   
   archived: { type: String, default: 'Unarchived' },
-  createdOn: { type: Date, default: Date.now },
+  createdOn: { type: Date, default: Date.now, index: true },
   updatedOn: { type: Date, default: Date.now }
 });
 
 const Certificate = mongoose.model('Certificate', certificateSchema);
 
-// Supplier Schema
 const supplierSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdOn: { type: Date, default: Date.now },
-  usageCount: { type: Number, default: 1 }
+  updatedOn: { type: Date, default: Date.now }
 });
 
 const Supplier = mongoose.model('Supplier', supplierSchema);
@@ -266,12 +270,26 @@ const Supplier = mongoose.model('Supplier', supplierSchema);
 // Job Role Schema
 const jobRoleSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
+  description: { type: String },
+  isActive: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdOn: { type: Date, default: Date.now },
-  usageCount: { type: Number, default: 1 }
+  updatedOn: { type: Date, default: Date.now }
 });
 
 const JobRole = mongoose.model('JobRole', jobRoleSchema);
+
+// Job Title Schema
+const jobTitleSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  description: { type: String },
+  isActive: { type: Boolean, default: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdOn: { type: Date, default: Date.now },
+  updatedOn: { type: Date, default: Date.now }
+});
+
+const JobTitle = mongoose.model('JobTitle', jobTitleSchema);
 
 // Job Level Schema
 const jobLevelSchema = new mongoose.Schema({
@@ -370,12 +388,18 @@ const parseExpiryDate = (dateString) => {
 
 // Routes
 
-// Get all profiles
+// Get all profiles with optimized query
 app.get('/api/profiles', async (req, res) => {
   try {
-    const profiles = await Profile.find().sort({ createdOn: -1 });
+    // Optimize query by selecting only essential fields and using lean() for better performance
+    const profiles = await Profile.find()
+      .select('firstName lastName email phone company jobRole skillkoId vtid vtrxId createdOn profilePicture')
+      .sort({ createdOn: -1 })
+      .lean(); // Returns plain JavaScript objects instead of Mongoose documents
+    
     res.json(profiles);
   } catch (error) {
+    console.error('Error fetching profiles:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -825,72 +849,64 @@ app.get('/api/suppliers/search', async (req, res) => {
   }
 });
 
-// Job Role Routes
+// Job Title Routes
 
-// Get all job roles
-app.get('/api/job-roles', async (req, res) => {
+// Get all job titles
+app.get('/api/job-titles', async (req, res) => {
   try {
-    const jobRoles = await JobRole.find().sort({ usageCount: -1, name: 1 });
-    res.json(jobRoles);
+    const jobTitles = await JobTitle.find({ isActive: true }).sort({ name: 1 });
+    res.json(jobTitles);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Create or get job role
-app.post('/api/job-roles', async (req, res) => {
+// Search job titles
+app.get('/api/job-titles/search', async (req, res) => {
   try {
-    const { name } = req.body;
+    const { q } = req.query;
+    const jobTitles = await JobTitle.find({
+      name: { $regex: q, $options: 'i' },
+      isActive: true
+    }).sort({ name: 1 }).limit(10);
+    res.json(jobTitles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Create new job title
+app.post('/api/job-titles', async (req, res) => {
+  try {
+    const { name, description } = req.body;
     
     if (!name || name.trim().length === 0) {
-      return res.status(400).json({ message: 'Job role name is required' });
+      return res.status(400).json({ message: 'Job title name is required' });
     }
     
     const trimmedName = name.trim();
     
-    // Check if job role already exists
-    let jobRole = await JobRole.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
+    // Check if job title already exists
+    let jobTitle = await JobTitle.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
     
-    if (jobRole) {
-      // Increment usage count
-      jobRole.usageCount += 1;
-      await jobRole.save();
-    } else {
-      // Create new job role
-      jobRole = new JobRole({
-        name: trimmedName,
-        createdBy: req.user?.userId,
-        usageCount: 1
-      });
-      await jobRole.save();
+    if (jobTitle) {
+      return res.json(jobTitle);
     }
     
-    res.json(jobRole);
+    // Create new job title
+    jobTitle = new JobTitle({
+      name: trimmedName,
+      description: description?.trim(),
+      createdBy: req.user?.userId
+    });
+    await jobTitle.save();
+    
+    res.status(201).json(jobTitle);
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ message: 'Job role already exists' });
+      return res.status(400).json({ message: 'Job title already exists' });
     }
     res.status(400).json({ message: error.message });
-  }
-});
-
-// Search job roles
-app.get('/api/job-roles/search', async (req, res) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q) {
-      const jobRoles = await JobRole.find().sort({ usageCount: -1, name: 1 }).limit(10);
-      return res.json(jobRoles);
-    }
-    
-    const jobRoles = await JobRole.find({
-      name: { $regex: q, $options: 'i' }
-    }).sort({ usageCount: -1, name: 1 }).limit(10);
-    
-    res.json(jobRoles);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
 });
 
@@ -1388,6 +1404,7 @@ const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils
 
 // Import notification routes
 const notificationRoutes = require('./routes/notifications');
+const bulkJobRolesRoutes = require('./routes/bulkJobRoles');
 
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
@@ -1597,6 +1614,7 @@ const authenticateToken = authenticateSession;
 
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
+app.use('/api', bulkJobRolesRoutes);
 
 // Email configuration using SMTP settings from .env
 const transporter = nodemailer.createTransport({
