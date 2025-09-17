@@ -1405,6 +1405,8 @@ const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils
 // Import notification routes
 const notificationRoutes = require('./routes/notifications');
 const bulkJobRolesRoutes = require('./routes/bulkJobRoles');
+const jobRolesRoutes = require('./routes/jobRoles');
+const jobLevelsRoutes = require('./routes/jobLevels');
 
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
@@ -1615,6 +1617,8 @@ const authenticateToken = authenticateSession;
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
 app.use('/api', bulkJobRolesRoutes);
+app.use('/api/job-roles', jobRolesRoutes);
+app.use('/api/job-levels', jobLevelsRoutes);
 
 // Email configuration using SMTP settings from .env
 const transporter = nodemailer.createTransport({
