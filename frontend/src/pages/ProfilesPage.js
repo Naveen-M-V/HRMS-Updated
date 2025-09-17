@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { Link } from "react-router-dom";
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { generateVTID } from '../utils/vtid'; // Import VTID utility
 
 export default function ProfilesPage() {
   const { profiles, deleteProfile, fetchProfiles } = useProfiles();
@@ -70,26 +71,10 @@ export default function ProfilesPage() {
     }
   }, [deleteProfile]);
 
-  // Generate consistent VTID
-  const generateVTID = useCallback((profile) => {
-    if (profile.skillkoId) return profile.skillkoId;
-    if (profile.vtid) return profile.vtid;
-    if (profile.vtrxId) return profile.vtrxId;
-    
-    // Generate consistent ID based on profile data
-    const firstName = profile.firstName || '';
-    const lastName = profile.lastName || '';
-    const company = profile.company || 'VTX';
-    const timestamp = profile.createdOn ? new Date(profile.createdOn).getTime() : Date.now();
-    
-    return `${company.substring(0, 3).toUpperCase()}${firstName.substring(0, 2).toUpperCase()}${lastName.substring(0, 2).toUpperCase()}${timestamp.toString().slice(-4)}`;
-  }, []);
-
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {
     fetchProfiles();
     
-    // Add visibility change listener to refresh data when page becomes visible
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         fetchProfiles();
@@ -101,9 +86,9 @@ export default function ProfilesPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [fetchProfiles]);
 
-  // ✅ Filtered profiles with memoization for performance
+  // Filtered profiles with memoization for performance
   const filteredProfiles = useMemo(() => {
     return profiles.filter((p) => {
       const matchesSearch = `${p.firstName} ${p.lastName}`
@@ -131,9 +116,8 @@ export default function ProfilesPage() {
         </button>
       </div>
 
-      {/* Search + Row selector */}
+      {/* Search + Rows selector */}
       <div className="flex items-center justify-between mb-4">
-        {/* Search box */}
         <input
           type="text"
           placeholder="Search employee..."
@@ -142,7 +126,6 @@ export default function ProfilesPage() {
           className="border px-3 py-2 rounded w-1/3"
         />
 
-        {/* Rows per page selector */}
         <div className="flex items-center gap-2">
           <span className="text-sm">Show</span>
           <select
@@ -202,7 +185,6 @@ export default function ProfilesPage() {
           ))}
         </select>
 
-        {/* Clear filters button */}
         <button
           onClick={clearAllFilters}
           className="ml-auto text-sm bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { useCertificates } from "../context/CertificateContext";
 import { getImageUrl } from '../utils/config';
+import { generateVTID } from '../utils/vtid';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
@@ -47,18 +48,12 @@ export default function ProfileDetailView() {
     if (file) {
       setUploading(true);
       try {
-        const result = await uploadProfilePicture(id, file);
-        
-        // Refresh profile data from context to get updated profilePicture path
+        await uploadProfilePicture(id, file);
         const updatedProfile = getProfileById(id);
         if (updatedProfile) {
           setProfile(updatedProfile);
         }
-        
-        // Force image refresh by updating imageKey
         setImageKey(Date.now());
-        
-        // Clear the file input
         event.target.value = '';
         alert('Profile picture updated successfully!');
       } catch (error) {
@@ -90,11 +85,10 @@ export default function ProfileDetailView() {
     });
   };
 
-  const userCertificates = certificates.filter(cert => 
+  const userCertificates = certificates.filter(cert =>
     cert.profileName === `${profile?.firstName} ${profile?.lastName}`
   );
 
-  // Debug logging for certificates
   useEffect(() => {
     console.log('📋 Profile certificates debug:', {
       profileName: `${profile?.firstName} ${profile?.lastName}`,
@@ -124,17 +118,16 @@ export default function ProfileDetailView() {
         {/* Top Navigation Bar */}
         <div className="flex items-center justify-between px-6 py-3 border-b">
           {/* Left: Account Dropdown */}
-         
+          {/* (Potentially add content here) */}
 
           {/* Center: Company Logo */}
           <div className="flex justify-center items-center">
-          <img 
-            src="/vlogo.png" 
-            alt="VitruX Logo" 
-            className="h-12 w-auto"
-          />
-        </div>
-
+            <img
+              src="/vlogo.png"
+              alt="VitruX Logo"
+              className="h-12 w-auto"
+            />
+          </div>
         </div>
 
         {/* User Name Row */}
@@ -144,31 +137,29 @@ export default function ProfileDetailView() {
               {profile.firstName} {profile.lastName}
             </h1>
             <div className="flex items-center gap-2">
+              {/* Additional controls or badges */}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => navigate("/reporting/profiles")}
               className="flex items-center gap-2 px-3 py-1 border rounded text-sm hover:bg-gray-50"
             >
               <EyeIcon className="h-4 w-4" />
               View profile list
             </button>
-            <button 
+            <button
               onClick={() => navigate("/dashboard/createcretificate")}
               className="flex items-center gap-2 px-3 py-1 border rounded text-sm hover:bg-gray-50"
             >
               <PlusIcon className="h-4 w-4" />
               Add certificate
             </button>
-            <button 
+            <button
               onClick={() => {
                 console.log('Edit button clicked, navigating to:', `/profiles/edit/${id}`);
-                console.log('Profile ID:', id);
-                console.log('Current profile data:', profile);
                 if (!profile) {
-                  console.error('No profile data found for ID:', id);
                   alert('Profile data not found. Please refresh the page and try again.');
                   return;
                 }
@@ -187,16 +178,15 @@ export default function ProfileDetailView() {
       <div className="px-6 py-6">
         <div className="bg-white rounded-lg shadow border p-6">
           <div className="grid grid-cols-4 gap-8">
-            
             {/* Column 1: Profile Overview */}
             <div className="space-y-4">
               <div className="text-center">
                 <div className="relative inline-block">
                   <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                     {profile.profilePicture ? (
-                      <img 
+                      <img
                         src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
-                        alt="Profile Picture" 
+                        alt="Profile Picture"
                         className="w-full h-full object-cover"
                         key={`profile-pic-${imageKey}`}
                         loading="lazy"
@@ -221,7 +211,7 @@ export default function ProfileDetailView() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div>
                   <span className="font-medium">User role:</span>
@@ -247,7 +237,11 @@ export default function ProfileDetailView() {
               <h3 className="font-semibold text-lg border-b pb-2">User Details</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">VTID:</span>
+                  <span className="text-gray-600 font-semibold">VTID:</span>
+                  <span className="font-medium">{generateVTID(profile)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">VTID (legacy):</span>
                   <span className="font-medium">{profile.vtid || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
@@ -327,21 +321,13 @@ export default function ProfileDetailView() {
             <div className="space-y-4">
               <h3 className="font-semibold text-lg border-b pb-2">Job, Team & Training Details</h3>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Generic Job Title:</span>
-                  <span className="font-medium">
-                    {Array.isArray(profile.jobTitle) 
-                      ? profile.jobTitle.join(', ') 
-                      : (profile.jobTitle || "N/A")
-                    }
-                  </span>
-                </div>
+                <div className="flex justify-between"></div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Active Job Roles:</span>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
-                      {Array.isArray(profile.jobRole) 
-                        ? profile.jobRole.join(', ') 
+                      {Array.isArray(profile.jobRole)
+                        ? profile.jobRole.join(', ')
                         : (profile.jobRole || "N/A")
                       }
                     </span>
@@ -463,13 +449,13 @@ export default function ProfileDetailView() {
               className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
             >
               <h3 className="font-semibold text-lg">Active Training Certificates</h3>
-              <ChevronDownIcon 
+              <ChevronDownIcon
                 className={`h-5 w-5 transform transition-transform ${
                   showCertificates ? 'rotate-180' : ''
-                }`} 
+                }`}
               />
             </button>
-            
+
             {showCertificates && (
               <div className="border-t p-4">
                 {userCertificates.length > 0 ? (
@@ -493,31 +479,82 @@ export default function ProfileDetailView() {
                             <td className="p-2 border">{formatDate(cert.expiryDate)}</td>
                             <td className="p-2 border">{cert.provider}</td>
                             <td className="p-2 border">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                cert.status === 'Approved' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : cert.status === 'Pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
+                              <span
+                                className={`px-2 py-1 rounded text-xs font-medium ${
+                                  cert.status === "Approved"
+                                    ? "bg-green-100 text-green-800"
+                                    : cert.status === "Pending"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
                                 {cert.status}
                               </span>
                             </td>
-                            <td className="p-2 border">
+                            <td className="p-2 border flex items-center gap-2">
                               {cert.certificateFile ? (
-                                <a 
-                                  href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${cert.id || cert._id}/file`}
-                                  target="_blank" 
+                                <a
+                                  href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${
+                                    cert.id || cert._id
+                                  }/file`}
+                                  target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
-                                  onClick={() => console.log('🔗 Opening certificate:', cert.certificate, 'File URL:', `${process.env.REACT_APP_API_BASE_URL}/certificates/${cert.id || cert._id}/file`)}
+                                  className="inline-flex items-center px-2 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+                                  onClick={() =>
+                                    console.log(
+                                      "🔗 Opening certificate:",
+                                      cert.certificate,
+                                      "File URL:",
+                                      `${process.env.REACT_APP_API_BASE_URL}/certificates/${
+                                        cert.id || cert._id
+                                      }/file`
+                                    )
+                                  }
+                                  title="View Certificate"
                                 >
                                   <EyeIcon className="h-4 w-4" />
-                                  View Certificate
                                 </a>
                               ) : (
                                 <span className="text-gray-500 text-sm">No file available</span>
                               )}
+
+                              <button
+                                onClick={() => console.log("Upload clicked for:", cert.certificate)}
+                                title="Upload Certificate"
+                                className="inline-flex items-center px-2 py-1 text-sm bg-yellow-400 text-white hover:bg-yellow-500 rounded transition-colors"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0-8l-4 4m4-4l4 4M12 4v8"
+                                  />
+                                </svg>
+                              </button>
+
+                              <button
+                                onClick={() => console.log("Delete clicked for:", cert.certificate)}
+                                title="Delete Certificate"
+                                className="inline-flex items-center px-2 py-1 text-sm bg-red-600 text-white hover:bg-red-700 rounded transition-colors"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
                             </td>
                           </tr>
                         ))}
