@@ -132,6 +132,7 @@ const profileSchema = new mongoose.Schema({
   startDate: Date,
   
   // System IDs
+  vtid: { type: Number, unique: true, sparse: true, index: true }, // VTID field
   skillkoId: { type: Number, unique: true, index: true },
   externalSystemId: String,
   extThirdPartySystemId: String,
@@ -414,12 +415,11 @@ const parseExpiryDate = (dateString) => {
 
 // Routes
 
-// Get all profiles with optimized query
+// Get all profiles with complete data
 app.get('/api/profiles', async (req, res) => {
   try {
-    // Optimize query by selecting only essential fields and using lean() for better performance
+    // Return all profile fields for complete data display
     const profiles = await Profile.find()
-      .select('firstName lastName email phone company jobRole jobTitle skillkoId vtid createdOn profilePicture')
       .sort({ createdOn: -1 })
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
