@@ -1,9 +1,12 @@
 // src/App.js
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
-import { lazy, Suspense } from "react";
+import { CertificateProvider } from "./context/CertificateContext";
+import { ProfileProvider } from "./context/ProfileContext";
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Lazy load components for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -27,10 +30,6 @@ const Login = lazy(() => import("./pages/Login"));
 const StaffDetail = lazy(() => import("./pages/StaffDetail"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-import { CertificateProvider } from "./context/CertificateContext";
-import { ProfileProvider } from "./context/ProfileContext";
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { NotificationProvider } from './context/NotificationContext';
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
