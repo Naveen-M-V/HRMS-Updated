@@ -182,7 +182,11 @@ export default function ProfileDetailView() {
               Add certificate
             </button>
             <button 
-              onClick={() => navigate(`/profiles/edit/${id}`)}
+              onClick={() => {
+                console.log('Edit button clicked, navigating to:', `/profiles/edit/${id}`);
+                console.log('Profile ID:', id);
+                navigate(`/profiles/edit/${id}`);
+              }}
               className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
             >
               <PencilIcon className="h-4 w-4" />

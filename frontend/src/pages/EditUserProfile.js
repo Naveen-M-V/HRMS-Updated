@@ -50,8 +50,10 @@ export default function EditUserProfile() {
   const tabs = ["Profile Details", "Emergency Contact", "Profile Address", "Extra Information"];
 
   useEffect(() => {
+    console.log('EditUserProfile mounted with ID:', id);
     if (id) {
       const profile = getProfileById(id);
+      console.log('Profile found:', profile);
       if (profile) {
         setFormData({
           firstName: profile.firstName || "",

@@ -322,7 +322,6 @@ export default function EditCertificate() {
               onChange={handleChange}
               className="w-full border rounded px-3 py-2"
             >
-              <option value="Jobs">Jobs</option>
               <option value="Yes">Yes</option>
               <option value="No">No</option>
             </select>
@@ -345,51 +344,7 @@ export default function EditCertificate() {
           </div>
         </div>
 
-        {/* Time Logged */}
-        <div className="grid grid-cols-12 gap-4 items-center">
-          <label className="col-span-2 text-right font-medium">Time Logged</label>
-          <div className="col-span-10">
-            <div className="flex gap-4 items-center">
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-500 mb-1">Days</label>
-                <input
-                  type="number"
-                  name="timeLogged.days"
-                  value={formData.timeLogged.days}
-                  onChange={handleChange}
-                  className="w-20 border rounded px-2 py-1 text-center"
-                  min="0"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-500 mb-1">Hours</label>
-                <input
-                  type="number"
-                  name="timeLogged.hours"
-                  value={formData.timeLogged.hours}
-                  onChange={handleChange}
-                  className="w-20 border rounded px-2 py-1 text-center"
-                  min="0"
-                  max="23"
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-xs text-gray-500 mb-1">Minutes</label>
-                <input
-                  type="number"
-                  name="timeLogged.minutes"
-                  value={formData.timeLogged.minutes}
-                  onChange={handleChange}
-                  className="w-20 border rounded px-2 py-1 text-center"
-                  min="0"
-                  max="59"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Time logged to complete training</p>
-          </div>
-        </div>
-
+        
         {/* Supplier */}
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Supplier</label>

@@ -31,41 +31,23 @@ export const ProfileProvider = ({ children }) => {
   const { user } = useAuth();
 
   // Fetch profiles from API
-  const fetchProfiles = async (useCache = true) => {
+  const fetchProfiles = async () => {
     setLoading(true);
     try {
-      const cacheKey = 'profiles_cache';
-      const cacheTimeKey = 'profiles_cache_time';
-      const cacheExpiry = 5 * 60 * 1000; // 5 minutes
-      
-      // Check cache first if useCache is true
-      if (useCache) {
-        const cachedData = localStorage.getItem(cacheKey);
-        const cacheTime = localStorage.getItem(cacheTimeKey);
-        
-        if (cachedData && cacheTime && (Date.now() - parseInt(cacheTime)) < cacheExpiry) {
-          console.log('Loading profiles from cache');
-          setProfiles(JSON.parse(cachedData));
-          return;
-        }
-      }
-      
       console.log('Fetching profiles from API');
       const response = await fetch(`${getApiUrl()}/api/profiles`, {
         headers: {
-          'Cache-Control': useCache ? 'max-age=300' : 'no-cache',
+          'Cache-Control': 'no-cache',
         },
       });
       
       if (response.ok) {
         const data = await response.json();
         setProfiles(data);
-        
-        // Cache the data
-        localStorage.setItem(cacheKey, JSON.stringify(data));
-        localStorage.setItem(cacheTimeKey, Date.now().toString());
+        setError(null);
       } else {
         console.error('Failed to fetch profiles:', response.status, response.statusText);
+        setError(`Failed to fetch profiles: ${response.status}`);
       }
     } catch (error) {
       setError('Failed to fetch profiles');
@@ -101,12 +83,9 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
-  // Add refresh profiles function
+  // Refresh profiles function
   const refreshProfiles = async () => {
-    // Clear cache and fetch fresh data
-    localStorage.removeItem('profiles_cache');
-    localStorage.removeItem('profiles_cache_time');
-    await fetchProfiles(false);
+    await fetchProfiles();
   };
   // Load profiles on mount
   useEffect(() => {
@@ -182,7 +161,7 @@ export const ProfileProvider = ({ children }) => {
         )
       );
       
-      console.log('🔄 ProfileContext: Local state updated, scheduling refresh...');
+      console.log('🔄 ProfileContext: Local state updated');
       
       // Also refresh the entire profiles list to ensure persistence
       setTimeout(() => {
@@ -272,7 +251,9 @@ export const ProfileProvider = ({ children }) => {
       deleteProfile,
       getProfileById,
       uploadProfilePicture,
-      refreshProfiles
+      refreshProfiles,
+      userProfile,
+      updateUserProfile
     }}>
       {children}
     </ProfileContext.Provider>

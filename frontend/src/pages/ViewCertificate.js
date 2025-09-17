@@ -390,18 +390,6 @@ export default function ViewCertificate() {
                 </div>
               </div>
             </div>
-
-            {/* Time Logged */}
-            {certificate.timeLogged && (
-              <div className="mt-6 pt-4 border-t">
-                <h4 className="font-medium text-gray-800 mb-2">Time Logged</h4>
-                <div className="text-sm">
-                  <span className="text-gray-600">
-                    {certificate.timeLogged.days || 0} days, {certificate.timeLogged.hours || 0} hours, {certificate.timeLogged.minutes || 0} minutes
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
