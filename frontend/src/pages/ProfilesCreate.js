@@ -235,20 +235,6 @@ export default function ProfilesCreate() {
             </div>
           </div>
 
-          {/* Job Title */}
-          <div>
-            <label className="block text-sm font-medium">Job Title</label>
-            <JobTitleDropdown
-              name="jobTitle"
-              value={formData.jobTitle}
-              onChange={handleChange}
-              placeholder="Select or add job title"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              You can type to search existing job titles or add a new one
-            </p>
-          </div>
-
           {/* Mobile */}
           <div>
             <label className="block text-sm font-medium">Mobile</label>

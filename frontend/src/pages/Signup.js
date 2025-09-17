@@ -114,14 +114,13 @@ export default function Signup() {
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-20 w-20 object-contain"
+              className="h-24 w-24 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';
               }}
             />
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900">Join Talent Shield</h2>
           <p className="mt-1 text-sm text-gray-500">Create your account to get started</p>
         </div>
 
