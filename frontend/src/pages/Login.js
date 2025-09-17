@@ -145,11 +145,11 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto h-48 w-48 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-36 w-36 object-contain"
+              className="h-40 w-40 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';

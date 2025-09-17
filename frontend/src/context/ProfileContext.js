@@ -222,16 +222,30 @@ export const ProfileProvider = ({ children }) => {
   // Fetch individual profile with complete data (when needed)
   const fetchProfileById = async (id) => {
     try {
+      console.log('ProfileContext: Fetching individual profile for ID:', id);
       const response = await fetch(`${getApiUrl()}/api/profiles/${id}`, {
         credentials: 'include'
       });
       
       if (response.ok) {
         const profile = await response.json();
+        console.log('ProfileContext: Individual profile fetched:', {
+          id: profile._id,
+          vtid: profile.vtid,
+          skillkoId: profile.skillkoId,
+          firstName: profile.firstName,
+          lastName: profile.lastName
+        });
+        
         // Update the profile in the local state
-        setProfiles(prev => 
-          prev.map(p => p._id === id ? { ...p, ...profile } : p)
-        );
+        const updatedProfiles = profiles.map(p => p._id === id ? { ...p, ...profile } : p);
+        setProfiles(updatedProfiles);
+        
+        // Update optimized cache with the new profile data
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
+        console.log('ProfileContext: Profile updated in state and cache');
+        
         return profile;
       } else {
         throw new Error(`Failed to fetch profile: ${response.status}`);

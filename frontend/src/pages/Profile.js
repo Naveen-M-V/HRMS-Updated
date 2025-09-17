@@ -29,6 +29,7 @@ export default function Profile() {
   // Find current user's profile or use auth user data (memoized for performance)
   const userProfile = useMemo(() => {
     const foundProfile = profiles.find(p => p.email === user?.email);
+    console.log('User profile found:', foundProfile ? 'Yes' : 'No', foundProfile?.vtid ? `VTID: ${foundProfile.vtid}` : 'No VTID');
     return foundProfile || user || {};
   }, [profiles, user]);
 
@@ -38,9 +39,9 @@ export default function Profile() {
       if (userProfile._id && !profileLoading) {
         try {
           setProfileLoading(true);
-          console.log('Fetching complete user profile data...');
-          await fetchProfileById(userProfile._id);
-          console.log('Complete user profile data loaded');
+          console.log('Fetching complete user profile data for ID:', userProfile._id);
+          const completeProfile = await fetchProfileById(userProfile._id);
+          console.log('Complete user profile data loaded:', completeProfile?.vtid ? `VTID: ${completeProfile.vtid}` : 'No VTID in response');
         } catch (error) {
           console.error('Error fetching complete user profile:', error);
         } finally {
@@ -49,8 +50,11 @@ export default function Profile() {
       }
     };
 
-    fetchCompleteUserProfile();
-  }, [userProfile._id, fetchProfileById, profileLoading]);
+    // Only fetch if we have a profile ID but missing key data like VTID
+    if (userProfile._id && (!userProfile.vtid || !userProfile.skillkoId)) {
+      fetchCompleteUserProfile();
+    }
+  }, [userProfile._id, userProfile.vtid, userProfile.skillkoId, fetchProfileById, profileLoading]);
   
   // Get user's certificates (memoized for performance)
   const userCertificates = useMemo(() => {
@@ -276,7 +280,13 @@ export default function Profile() {
                 <div className="space-y-4">
                   <div>
                     <div className="text-sm text-gray-500">VTID</div>
-                    <div className="font-medium">{userProfile?.vtid || 'Not assigned'}</div>
+                    <div className="font-medium">
+                      {(() => {
+                        const vtid = userProfile?.vtid || userProfile?.skillkoId;
+                        console.log('VTID Display - userProfile.vtid:', userProfile?.vtid, 'userProfile.skillkoId:', userProfile?.skillkoId, 'Final VTID:', vtid);
+                        return vtid || 'Not assigned';
+                      })()}
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Skillko ID</div>
