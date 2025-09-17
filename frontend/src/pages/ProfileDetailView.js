@@ -248,11 +248,11 @@ export default function ProfileDetailView() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">VTID:</span>
-                  <span className="font-medium">{profile._id || profile.id || "N/A"}</span>
+                  <span className="font-medium">{profile.vtid || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">User Role:</span>
-                  <span className="font-medium">{profile.role || profile.jobLevel || "User"}</span>
+                  <span className="font-medium">{profile.role || "User"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Circet UIN:</span>
@@ -264,7 +264,7 @@ export default function ProfileDetailView() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">NOPS ID:</span>
-                  <span className="font-medium">{profile.nopsID || "N/A"}</span>
+                  <span className="font-medium">{profile.nopsId || profile.nopsID || "N/A"}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Email:</span>
@@ -300,6 +300,26 @@ export default function ProfileDetailView() {
                   <span className="text-gray-600">Status:</span>
                   <span className="font-medium">{profile.status || "N/A"}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Skillko ID:</span>
+                  <span className="font-medium">{profile.skillkoId || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">POC:</span>
+                  <span className="font-medium">{profile.poc || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Insurance Number:</span>
+                  <span className="font-medium">{profile.insuranceNumber || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Morrisons ID:</span>
+                  <span className="font-medium">{profile.morrisonsIDNumber || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Morrisons UIN:</span>
+                  <span className="font-medium">{profile.morrisonsUIN || "N/A"}</span>
+                </div>
               </div>
             </div>
 
@@ -319,13 +339,29 @@ export default function ProfileDetailView() {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Active Job Roles:</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{profile.jobLevel || "N/A"}</span>
-                    
+                    <span className="font-medium">
+                      {Array.isArray(profile.jobRole) 
+                        ? profile.jobRole.join(', ') 
+                        : (profile.jobRole || "N/A")
+                      }
+                    </span>
                   </div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Job Level:</span>
+                  <span className="font-medium">{profile.jobLevel || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600"># of Active Certificates:</span>
                   <span className="font-medium">{userCertificates.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Start Date:</span>
+                  <span className="font-medium">{formatDate(profile.startDate)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Staff Type:</span>
+                  <span className="font-medium">{profile.staffType || "N/A"}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Client Contracts:</span>
@@ -337,11 +373,83 @@ export default function ProfileDetailView() {
               </div>
             </div>
 
-            {/* Column 4: Compliance Summary */}
+            {/* Column 4: Additional Information */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-lg border-b pb-2">Compliance Summary</h3>
-              <div className="text-sm text-gray-500 italic">
-                No applicable compliance matrix found to perform an assessment.
+              <h3 className="font-semibold text-lg border-b pb-2">Additional Information</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">External System ID:</span>
+                  <span className="font-medium">{profile.externalSystemId || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Third Party System ID:</span>
+                  <span className="font-medium">{profile.extThirdPartySystemId || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Gender:</span>
+                  <span className="font-medium">{profile.gender || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Bio:</span>
+                  <span className="font-medium">{profile.bio || "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Other Information:</span>
+                  <span className="font-medium">{profile.otherInformation || "N/A"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Address and Emergency Contact Section */}
+        <div className="mt-6">
+          <div className="bg-white rounded-lg shadow border p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Address Information */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg border-b pb-2">Address Information</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Address Line 1:</span>
+                    <span className="font-medium">{profile.address?.line1 || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Address Line 2:</span>
+                    <span className="font-medium">{profile.address?.line2 || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">City:</span>
+                    <span className="font-medium">{profile.address?.city || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Post Code:</span>
+                    <span className="font-medium">{profile.address?.postCode || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Country:</span>
+                    <span className="font-medium">{profile.address?.country || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact Information */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg border-b pb-2">Emergency Contact</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Contact Name:</span>
+                    <span className="font-medium">{profile.emergencyContact?.name || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Relationship:</span>
+                    <span className="font-medium">{profile.emergencyContact?.relationship || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Phone Number:</span>
+                    <span className="font-medium">{profile.emergencyContact?.phone || "N/A"}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

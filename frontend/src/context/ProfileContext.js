@@ -30,21 +30,44 @@ export const ProfileProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
-  // Fetch profiles from API
-  const fetchProfiles = async () => {
+  // Fetch profiles from API with persistence
+  const fetchProfiles = async (forceRefresh = false) => {
     setLoading(true);
     try {
       console.log('Fetching profiles from API');
+      
+      // Check cache first unless force refresh
+      if (!forceRefresh) {
+        const cachedProfiles = localStorage.getItem('profiles_cache');
+        const cacheTime = localStorage.getItem('profiles_cache_time');
+        const cacheAge = Date.now() - parseInt(cacheTime || '0');
+        
+        // Use cache if it's less than 5 minutes old
+        if (cachedProfiles && cacheAge < 5 * 60 * 1000) {
+          console.log('Using cached profiles data');
+          setProfiles(JSON.parse(cachedProfiles));
+          setError(null);
+          setLoading(false);
+          return;
+        }
+      }
+      
       const response = await fetch(`${getApiUrl()}/api/profiles`, {
         headers: {
           'Cache-Control': 'no-cache',
         },
+        credentials: 'include'
       });
       
       if (response.ok) {
         const data = await response.json();
         setProfiles(data);
         setError(null);
+        
+        // Cache the data for persistence
+        localStorage.setItem('profiles_cache', JSON.stringify(data));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
+        console.log('Profiles cached successfully');
       } else {
         console.error('Failed to fetch profiles:', response.status, response.statusText);
         setError(`Failed to fetch profiles: ${response.status}`);
@@ -52,7 +75,15 @@ export const ProfileProvider = ({ children }) => {
     } catch (error) {
       setError('Failed to fetch profiles');
       console.error('Error fetching profiles:', error);
-      setProfiles([]);
+      
+      // Try to use cached data as fallback
+      const cachedProfiles = localStorage.getItem('profiles_cache');
+      if (cachedProfiles) {
+        console.log('Using cached profiles as fallback');
+        setProfiles(JSON.parse(cachedProfiles));
+      } else {
+        setProfiles([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -85,7 +116,7 @@ export const ProfileProvider = ({ children }) => {
 
   // Refresh profiles function
   const refreshProfiles = async () => {
-    await fetchProfiles();
+    await fetchProfiles(true); // Force refresh
   };
   // Load profiles on mount
   useEffect(() => {
@@ -114,12 +145,12 @@ export const ProfileProvider = ({ children }) => {
       setProfiles(prev => [data, ...prev]);
       setError(null);
       
-      // Clear cache to force refresh
-      localStorage.removeItem('profiles_cache');
-      localStorage.removeItem('profiles_cache_time');
+      // Update cache with new data
+      const updatedProfiles = [data, ...profiles];
+      localStorage.setItem('profiles_cache', JSON.stringify(updatedProfiles));
+      localStorage.setItem('profiles_cache_time', Date.now().toString());
       
-      // Refresh profiles to ensure we have latest data
-      await fetchProfiles();
+      console.log('Profile added to cache successfully');
       
       return data;
     } catch (err) {
@@ -134,12 +165,31 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = async (id, updatedProfile) => {
     setLoading(true);
     try {
-      const response = await axios.put(`${API_BASE_URL}/profiles/${id}`, updatedProfile);
+      const response = await fetch(`${getApiUrl()}/api/profiles/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedProfile),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update profile: ${response.status}`);
+      }
+      
+      const data = await response.json();
       setProfiles(prev => 
-        prev.map(profile => profile._id === id ? response.data : profile)
+        prev.map(profile => profile._id === id ? data : profile)
       );
+      
+      // Update cache
+      const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
+      localStorage.setItem('profiles_cache', JSON.stringify(updatedProfiles));
+      localStorage.setItem('profiles_cache_time', Date.now().toString());
+      
       setError(null);
-      return response.data;
+      return data;
     } catch (err) {
       setError('Failed to update profile');
       console.error('Error updating profile:', err);
@@ -163,38 +213,39 @@ export const ProfileProvider = ({ children }) => {
       formData.append('profilePicture', file);
       
       console.log('🌐 ProfileContext: Sending request to server...');
-      const response = await axios.post(`${API_BASE_URL}/profiles/${id}/upload-picture`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const response = await fetch(`${getApiUrl()}/api/profiles/${id}/upload-picture`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
       });
       
-      console.log('📥 ProfileContext: Server response received:', response.data);
+      if (!response.ok) {
+        throw new Error(`Failed to upload profile picture: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('📥 ProfileContext: Server response received:', data);
       
       // Update profile in state immediately
-      setProfiles(prev => 
-        prev.map(profile => 
-          profile._id === id 
-            ? { ...profile, profilePicture: response.data.profilePicture }
-            : profile
-        )
+      const updatedProfiles = profiles.map(profile => 
+        profile._id === id 
+          ? { ...profile, profilePicture: data.profilePicture }
+          : profile
       );
+      setProfiles(updatedProfiles);
       
-      console.log('🔄 ProfileContext: Local state updated');
+      // Update cache immediately
+      localStorage.setItem('profiles_cache', JSON.stringify(updatedProfiles));
+      localStorage.setItem('profiles_cache_time', Date.now().toString());
       
-      // Also refresh the entire profiles list to ensure persistence
-      setTimeout(() => {
-        console.log('🔄 ProfileContext: Refreshing profiles list for persistence...');
-        fetchProfiles();
-      }, 500);
+      console.log('🔄 ProfileContext: Local state and cache updated');
       
       setError(null);
       console.log('✅ ProfileContext: Upload completed successfully');
-      return response.data.profilePicture;
+      return data.profilePicture;
     } catch (err) {
       setError('Failed to upload profile picture');
       console.error('❌ ProfileContext: Upload error:', err);
-      console.error('❌ ProfileContext: Error response:', err.response?.data);
       throw err;
     } finally {
       setLoading(false);

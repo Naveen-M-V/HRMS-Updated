@@ -231,6 +231,20 @@ export default function Profile() {
                       <div className="font-medium">{userProfile?.address?.country || 'Not specified'}</div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-5 w-5 flex items-center justify-center text-gray-400 font-bold text-xs">ID</div>
+                    <div>
+                      <div className="text-sm text-gray-500">Nationality</div>
+                      <div className="font-medium">{userProfile?.nationality || 'Not specified'}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-5 w-5 flex items-center justify-center text-gray-400 font-bold text-xs">♂♀</div>
+                    <div>
+                      <div className="text-sm text-gray-500">Gender</div>
+                      <div className="font-medium">{userProfile?.gender || 'Not specified'}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -240,19 +254,82 @@ export default function Profile() {
                 <div className="space-y-4">
                   <div>
                     <div className="text-sm text-gray-500">VTID</div>
-                    <div className="font-medium">{generateVTID(userProfile)}</div>
+                    <div className="font-medium">{userProfile?.vtid || 'Not assigned'}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Department</div>
-                    <div className="font-medium">{userProfile?.department || 'Not specified'}</div>
+                    <div className="text-sm text-gray-500">Skillko ID</div>
+                    <div className="font-medium">{userProfile?.skillkoId || 'Not assigned'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Job Roles</div>
+                    <div className="font-medium">
+                      {Array.isArray(userProfile?.jobRole) 
+                        ? userProfile.jobRole.join(', ') 
+                        : (userProfile?.jobRole || 'Not specified')
+                      }
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Job Level</div>
                     <div className="font-medium">{userProfile?.jobLevel || 'Not specified'}</div>
                   </div>
                   <div>
+                    <div className="text-sm text-gray-500">Staff Type</div>
+                    <div className="font-medium">{userProfile?.staffType || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Status</div>
+                    <div className="font-medium">{userProfile?.status || 'Active'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Information */}
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">System Information</h2>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-500">NOPS ID</div>
+                    <div className="font-medium">{userProfile?.nopsId || userProfile?.nopsID || 'Not assigned'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Circet UIN</div>
+                    <div className="font-medium">{userProfile?.circetUIN || 'Not assigned'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Circet SCID</div>
+                    <div className="font-medium">{userProfile?.circetSCID || 'Not assigned'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Morrisons ID</div>
+                    <div className="font-medium">{userProfile?.morrisonsIDNumber || 'Not assigned'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Insurance Number</div>
+                    <div className="font-medium">{userProfile?.insuranceNumber || 'Not assigned'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Additional Information</h2>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-500">POC</div>
+                    <div className="font-medium">{userProfile?.poc || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Start Date</div>
+                    <div className="font-medium">{formatDate(userProfile?.startDate)}</div>
+                  </div>
+                  <div>
                     <div className="text-sm text-gray-500">Preferred Language</div>
                     <div className="font-medium">{userProfile?.language || 'English'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Other Information</div>
+                    <div className="font-medium">{userProfile?.otherInformation || 'None'}</div>
                   </div>
                 </div>
               </div>
@@ -262,6 +339,52 @@ export default function Profile() {
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">About Me</h2>
                 <div className="text-gray-600">
                   {userProfile?.bio || 'No bio information available. Click edit profile to add your bio.'}
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Address Information</h2>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Address Line 1</div>
+                    <div className="font-medium">{userProfile?.address?.line1 || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Address Line 2</div>
+                    <div className="font-medium">{userProfile?.address?.line2 || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">City</div>
+                    <div className="font-medium">{userProfile?.address?.city || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Post Code</div>
+                    <div className="font-medium">{userProfile?.address?.postCode || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Country</div>
+                    <div className="font-medium">{userProfile?.address?.country || 'Not specified'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Emergency Contact</h2>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Contact Name</div>
+                    <div className="font-medium">{userProfile?.emergencyContact?.name || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Relationship</div>
+                    <div className="font-medium">{userProfile?.emergencyContact?.relationship || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Phone Number</div>
+                    <div className="font-medium">{userProfile?.emergencyContact?.phone || 'Not specified'}</div>
+                  </div>
                 </div>
               </div>
             </div>
