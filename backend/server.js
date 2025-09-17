@@ -125,6 +125,7 @@ const profileSchema = new mongoose.Schema({
   role: { type: String, default: 'User' },
   staffType: { type: String, default: 'Direct' },
   company: { type: String, default: 'VitruX Ltd' },
+  jobRole: [String], // Array of job roles to support multiple selections
   jobTitle: [String], // Array of job titles to support multiple selections
   jobLevel: String,
   language: { type: String, default: 'English' },
@@ -418,7 +419,7 @@ app.get('/api/profiles', async (req, res) => {
   try {
     // Optimize query by selecting only essential fields and using lean() for better performance
     const profiles = await Profile.find()
-      .select('firstName lastName email phone company jobRole skillkoId vtid createdOn profilePicture')
+      .select('firstName lastName email phone company jobRole jobTitle skillkoId vtid createdOn profilePicture')
       .sort({ createdOn: -1 })
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
