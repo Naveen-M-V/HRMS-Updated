@@ -18,17 +18,39 @@ import {
 
 export default function Profile() {
   const { user } = useAuth();
-  const { profiles, uploadProfilePicture } = useProfiles();
+  const { profiles, uploadProfilePicture, fetchProfileById } = useProfiles();
   const { certificates } = useCertificates();
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [imageKey, setImageKey] = useState(Date.now());
+  const [profileLoading, setProfileLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   // Find current user's profile or use auth user data (memoized for performance)
   const userProfile = useMemo(() => {
-    return profiles.find(p => p.email === user?.email) || user || {};
+    const foundProfile = profiles.find(p => p.email === user?.email);
+    return foundProfile || user || {};
   }, [profiles, user]);
+
+  // Fetch complete profile data when component mounts if user profile is found
+  useEffect(() => {
+    const fetchCompleteUserProfile = async () => {
+      if (userProfile._id && !profileLoading) {
+        try {
+          setProfileLoading(true);
+          console.log('Fetching complete user profile data...');
+          await fetchProfileById(userProfile._id);
+          console.log('Complete user profile data loaded');
+        } catch (error) {
+          console.error('Error fetching complete user profile:', error);
+        } finally {
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    fetchCompleteUserProfile();
+  }, [userProfile._id, fetchProfileById, profileLoading]);
   
   // Get user's certificates (memoized for performance)
   const userCertificates = useMemo(() => {

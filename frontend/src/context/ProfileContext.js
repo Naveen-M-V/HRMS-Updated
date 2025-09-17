@@ -30,21 +30,21 @@ export const ProfileProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
-  // Fetch profiles from API with persistence
-  const fetchProfiles = async (forceRefresh = false) => {
+  // Fetch profiles from API with optimization and persistence
+  const fetchProfiles = async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
     setLoading(true);
     try {
-      console.log('Fetching profiles from API');
+      console.log('Fetching profiles from API (optimized)');
       
       // Check cache first unless force refresh
-      if (!forceRefresh) {
-        const cachedProfiles = localStorage.getItem('profiles_cache');
+      if (!forceRefresh && !usePagination) {
+        const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
         const cacheTime = localStorage.getItem('profiles_cache_time');
         const cacheAge = Date.now() - parseInt(cacheTime || '0');
         
         // Use cache if it's less than 5 minutes old
         if (cachedProfiles && cacheAge < 5 * 60 * 1000) {
-          console.log('Using cached profiles data');
+          console.log('Using cached profiles data (optimized)');
           setProfiles(JSON.parse(cachedProfiles));
           setError(null);
           setLoading(false);
@@ -52,7 +52,12 @@ export const ProfileProvider = ({ children }) => {
         }
       }
       
-      const response = await fetch(`${getApiUrl()}/api/profiles`, {
+      // Choose endpoint based on pagination
+      const endpoint = usePagination 
+        ? `/api/profiles/paginated?page=${page}&limit=${limit}`
+        : '/api/profiles'; // Optimized endpoint (excludes binary data)
+      
+      const response = await fetch(`${getApiUrl()}${endpoint}`, {
         headers: {
           'Cache-Control': 'no-cache',
         },
@@ -61,13 +66,23 @@ export const ProfileProvider = ({ children }) => {
       
       if (response.ok) {
         const data = await response.json();
-        setProfiles(data);
+        const profilesData = usePagination ? data.profiles : data;
+        
+        setProfiles(profilesData);
         setError(null);
         
-        // Cache the data for persistence
-        localStorage.setItem('profiles_cache', JSON.stringify(data));
-        localStorage.setItem('profiles_cache_time', Date.now().toString());
-        console.log('Profiles cached successfully');
+        // Cache the optimized data for persistence (only for non-paginated)
+        if (!usePagination) {
+          localStorage.setItem('profiles_cache_optimized', JSON.stringify(profilesData));
+          localStorage.setItem('profiles_cache_time', Date.now().toString());
+          console.log(`Profiles cached successfully (${profilesData.length} profiles, optimized)`);
+        }
+        
+        // Log data size reduction
+        const dataSize = JSON.stringify(profilesData).length;
+        console.log(`Fetched ${profilesData.length} profiles, data size: ${(dataSize / 1024 / 1024).toFixed(2)}MB`);
+        
+        return usePagination ? data : profilesData;
       } else {
         console.error('Failed to fetch profiles:', response.status, response.statusText);
         setError(`Failed to fetch profiles: ${response.status}`);
@@ -77,9 +92,9 @@ export const ProfileProvider = ({ children }) => {
       console.error('Error fetching profiles:', error);
       
       // Try to use cached data as fallback
-      const cachedProfiles = localStorage.getItem('profiles_cache');
+      const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
       if (cachedProfiles) {
-        console.log('Using cached profiles as fallback');
+        console.log('Using cached profiles as fallback (optimized)');
         setProfiles(JSON.parse(cachedProfiles));
       } else {
         setProfiles([]);
@@ -145,12 +160,12 @@ export const ProfileProvider = ({ children }) => {
       setProfiles(prev => [data, ...prev]);
       setError(null);
       
-      // Update cache with new data
+      // Update optimized cache with new data
       const updatedProfiles = [data, ...profiles];
-      localStorage.setItem('profiles_cache', JSON.stringify(updatedProfiles));
+      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
       
-      console.log('Profile added to cache successfully');
+      console.log('Profile added to optimized cache successfully');
       
       return data;
     } catch (err) {
@@ -183,9 +198,9 @@ export const ProfileProvider = ({ children }) => {
         prev.map(profile => profile._id === id ? data : profile)
       );
       
-      // Update cache
+      // Update optimized cache
       const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
-      localStorage.setItem('profiles_cache', JSON.stringify(updatedProfiles));
+      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
       
       setError(null);
@@ -202,6 +217,48 @@ export const ProfileProvider = ({ children }) => {
 
   const getProfileById = (id) => {
     return profiles.find(profile => profile._id === id);
+  };
+
+  // Fetch individual profile with complete data (when needed)
+  const fetchProfileById = async (id) => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/profiles/${id}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const profile = await response.json();
+        // Update the profile in the local state
+        setProfiles(prev => 
+          prev.map(p => p._id === id ? { ...p, ...profile } : p)
+        );
+        return profile;
+      } else {
+        throw new Error(`Failed to fetch profile: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching individual profile:', error);
+      throw error;
+    }
+  };
+
+  // Fetch profile with complete data including binary data (rarely used)
+  const fetchCompleteProfileById = async (id) => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/profiles/${id}/complete`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const profile = await response.json();
+        return profile;
+      } else {
+        throw new Error(`Failed to fetch complete profile: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching complete profile:', error);
+      throw error;
+    }
   };
 
   const uploadProfilePicture = async (id, file) => {
@@ -234,8 +291,8 @@ export const ProfileProvider = ({ children }) => {
       );
       setProfiles(updatedProfiles);
       
-      // Update cache immediately
-      localStorage.setItem('profiles_cache', JSON.stringify(updatedProfiles));
+      // Update optimized cache immediately
+      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
       
       console.log('🔄 ProfileContext: Local state and cache updated');
@@ -321,6 +378,8 @@ export const ProfileProvider = ({ children }) => {
     refreshProfiles,
     fetchProfiles,
     getProfileById,
+    fetchProfileById,
+    fetchCompleteProfileById,
     uploadProfilePicture,
     userProfile,
     updateUserProfile
