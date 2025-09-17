@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import JobRoleDropdown from "../components/JobRoleDropdown";
+import JobRoleCheckboxPicker from "../components/JobRoleCheckboxPicker";
 import JobLevelDropdown from "../components/JobLevelDropdown";
 
 export default function ProfilesCreate() {
@@ -12,7 +13,7 @@ export default function ProfilesCreate() {
     lastName: "",
     dob: "",
     company: "",
-    jobRole: "",
+    jobRole: [],
     jobLevel: "",
     mobile: "",
     language: "",
@@ -205,16 +206,15 @@ export default function ProfilesCreate() {
           {/* Job Role & Job Level */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium">Job Role</label>
-              <JobRoleDropdown
+              <label className="block text-sm font-medium">Job Roles</label>
+              <JobRoleCheckboxPicker
                 name="jobRole"
                 value={formData.jobRole}
                 onChange={handleChange}
-                placeholder="Type to search job roles or add new..."
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                You can type to search existing job roles or add a new one
+                Select multiple job roles using checkboxes. Use search to filter roles.
               </p>
             </div>
             <div>
