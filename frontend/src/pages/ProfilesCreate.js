@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import JobRoleDropdown from "../components/JobRoleDropdown";
-import JobTitleDropdown from "../components/JobTitleDropdown";
+import JobLevelDropdown from "../components/JobLevelDropdown";
 
 export default function ProfilesCreate() {
   const [formData, setFormData] = useState({
@@ -13,7 +13,6 @@ export default function ProfilesCreate() {
     dob: "",
     company: "",
     jobRole: "",
-    jobTitle: [],
     jobLevel: "",
     mobile: "",
     language: "",
@@ -39,6 +38,27 @@ export default function ProfilesCreate() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleJobRoleChange = (jobRole) => {
+    setFormData((prev) => {
+      const currentJobRoles = prev.jobRole || [];
+      const isSelected = currentJobRoles.includes(jobRole);
+      
+      if (isSelected) {
+        // Remove job role
+        return {
+          ...prev,
+          jobRole: currentJobRoles.filter(role => role !== jobRole)
+        };
+      } else {
+        // Add job role
+        return {
+          ...prev,
+          jobRole: [...currentJobRoles, jobRole]
+        };
+      }
+    });
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,7 +77,6 @@ export default function ProfilesCreate() {
       staffType: formData.staffType || "Direct",
       company: formData.company || "VitruX Ltd",
       jobRole: formData.jobRole || "",
-      jobTitle: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
       jobLevel: formData.jobLevel,
       email: formData.email.trim().toLowerCase(),
       mobile: formData.mobile || "",
@@ -183,84 +202,33 @@ export default function ProfilesCreate() {
             />
           </div>
 
-          {/* Job Roles & Job Level */}
+          {/* Job Role & Job Level */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium">Job Role</label>
               <JobRoleDropdown
                 name="jobRole"
-                value={formData.jobRole || ""}
+                value={formData.jobRole}
                 onChange={handleChange}
-                placeholder="Select or add job role"
-                className="w-full"
+                placeholder="Type to search job roles or add new..."
+                required
               />
               <p className="text-xs text-gray-500 mt-1">
                 You can type to search existing job roles or add a new one
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium">Job Title</label>
-              <JobTitleDropdown
-                name="jobTitle"
-                value={Array.isArray(formData.jobTitle) ? formData.jobTitle.join(', ') : formData.jobTitle || ""}
-                onChange={(e) => {
-                  // Handle multiple job titles separated by commas
-                  const titles = e.target.value.split(',').map(title => title.trim()).filter(title => title);
-                  setFormData(prev => ({ ...prev, jobTitle: titles }));
-                }}
-                placeholder="Select or add job title"
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                You can type to search existing job titles or add a new one. Separate multiple titles with commas.
-              </p>
-              {Array.isArray(formData.jobTitle) && formData.jobTitle.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-xs text-gray-500 mb-1">Selected ({formData.jobTitle.length}):</div>
-                  <div className="flex flex-wrap gap-1">
-                    {formData.jobTitle.map((title, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"
-                      >
-                        {title}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              jobTitle: prev.jobTitle.filter((_, i) => i !== index)
-                            }));
-                          }}
-                          className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-emerald-400 hover:bg-emerald-200 hover:text-emerald-600 focus:outline-none"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div>
               <label className="block text-sm font-medium">Job Level</label>
-              <select
+              <JobLevelDropdown
                 name="jobLevel"
                 value={formData.jobLevel}
                 onChange={handleChange}
-                className="mt-1 block w-full border rounded p-2"
-              >
-                <option value="">Select Job Level</option>
-                <option value="Entry Level">Entry Level</option>
-                <option value="Junior">Junior</option>
-                <option value="Mid Level">Mid Level</option>
-                <option value="Senior">Senior</option>
-                <option value="Lead">Lead</option>
-                <option value="Manager">Manager</option>
-                <option value="Senior Manager">Senior Manager</option>
-                <option value="Director">Director</option>
-                <option value="Executive">Executive</option>
-              </select>
+                placeholder="Select or add job level"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                You can type to search existing job levels or add a new one
+              </p>
             </div>
           </div>
 

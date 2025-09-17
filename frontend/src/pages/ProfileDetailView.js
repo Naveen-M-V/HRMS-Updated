@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { useCertificates } from "../context/CertificateContext";
+import { getImageUrl } from '../utils/config';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
@@ -44,47 +45,27 @@ export default function ProfileDetailView() {
   const handleProfilePictureUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      console.log('🔄 Starting profile picture upload...', {
-        fileName: file.name,
-        fileSize: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-        fileType: file.type,
-        profileId: id
-      });
-      
       setUploading(true);
       try {
-        console.log('📤 Uploading profile picture to server...');
-        const profilePictureUrl = await uploadProfilePicture(id, file);
+        const result = await uploadProfilePicture(id, file);
         
-        console.log('✅ Profile picture upload successful!', {
-          newUrl: profilePictureUrl,
-          profileId: id
-        });
+        // Refresh profile data from context to get updated profilePicture path
+        const updatedProfile = getProfileById(id);
+        if (updatedProfile) {
+          setProfile(updatedProfile);
+        }
         
-        // Update local state immediately
-        setProfile(prev => ({ 
-          ...prev, 
-          profilePicture: profilePictureUrl
-        }));
-        
-        // Force image refresh by updating key
+        // Force image refresh by updating imageKey
         setImageKey(Date.now());
-        console.log('🔄 Image cache refreshed with new key:', Date.now());
         
         // Clear the file input
         event.target.value = '';
         alert('Profile picture updated successfully!');
       } catch (error) {
-        console.error("❌ Failed to upload profile picture:", error);
-        console.error("Error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        });
+        console.error("Failed to upload profile picture:", error);
         alert('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
-        console.log('🏁 Profile picture upload process completed');
       }
     }
   };
@@ -185,6 +166,12 @@ export default function ProfileDetailView() {
               onClick={() => {
                 console.log('Edit button clicked, navigating to:', `/profiles/edit/${id}`);
                 console.log('Profile ID:', id);
+                console.log('Current profile data:', profile);
+                if (!profile) {
+                  console.error('No profile data found for ID:', id);
+                  alert('Profile data not found. Please refresh the page and try again.');
+                  return;
+                }
                 navigate(`/profiles/edit/${id}`);
               }}
               className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
@@ -208,28 +195,15 @@ export default function ProfileDetailView() {
                   <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
                     {profile.profilePicture ? (
                       <img 
-                        src={`${process.env.REACT_APP_API_BASE_URL}/profiles/${id}/picture?t=${imageKey}`}
+                        src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
                         alt="Profile Picture" 
                         className="w-full h-full object-cover"
                         key={`profile-pic-${imageKey}`}
                         loading="lazy"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                        onLoad={(e) => {
-                          if (e.target.nextSibling) {
-                            e.target.nextSibling.style.display = 'none';
-                          }
-                        }}
                       />
-                    ) : null}
-                    <div 
-                      className={`w-full h-full flex items-center justify-center ${profile.profilePicture ? 'hidden' : 'flex'}`}
-                      style={{ display: profile.profilePicture ? 'none' : 'flex' }}
-                    >
+                    ) : (
                       <UserCircleIcon className="h-16 w-16 text-gray-400" />
-                    </div>
+                    )}
                   </div>
                   <button
                     onClick={() => fileInputRef.current?.click()}

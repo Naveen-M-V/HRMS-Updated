@@ -54,6 +54,12 @@ export default function EditUserProfile() {
     if (id) {
       const profile = getProfileById(id);
       console.log('Profile found:', profile);
+      if (!profile) {
+        console.error('Profile not found for ID:', id);
+        alert('Profile not found. Redirecting to profiles page.');
+        navigate('/profiles');
+        return;
+      }
       if (profile) {
         setFormData({
           firstName: profile.firstName || "",
@@ -62,7 +68,7 @@ export default function EditUserProfile() {
           mobile: profile.mobile || "",
           dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "",
           gender: profile.gender || "",
-          jobTitle: profile.jobTitle || "",
+          jobTitle: Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : (profile.jobRole || profile.jobTitle || ""),
           jobLevel: profile.jobLevel || "",
           language: profile.language || "English",
           company: profile.company || "VitruX Ltd",
