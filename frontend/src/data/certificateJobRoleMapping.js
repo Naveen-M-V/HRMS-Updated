@@ -1062,7 +1062,7 @@ export const allCertificates = {
 // Helper function to get all certificates for a job role
 export const getCertificatesForJobRole = (jobRole) => {
   const mapping = jobRoleCertifications[jobRole];
-  if (!mapping) return { mandatory: [], optional: [] };
+  if (!mapping) return { mandatory: [], alternative: [] };
 
   return {
     mandatory: mapping.map(cert => ({
@@ -1070,7 +1070,7 @@ export const getCertificatesForJobRole = (jobRole) => {
       description: allCertificates[cert] || cert,
       category: 'Mandatory'
     })),
-    optional: []
+    alternative: []
   };
 };
 

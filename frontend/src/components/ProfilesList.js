@@ -25,8 +25,8 @@ const ProfilesList = () => {
     const certs = getCertificatesForJobRole(jobTitle);
     return {
       mandatory: certs.mandatory.length,
-      optional: certs.optional.length,
-      total: certs.mandatory.length + certs.optional.length
+      alternative: certs.alternative.length,
+      total: certs.mandatory.length + certs.alternative.length
     };
   };
 
@@ -149,8 +149,8 @@ const ProfilesList = () => {
                       <div className="text-xs text-red-700">Mandatory</div>
                     </div>
                     <div className="bg-blue-50 p-2 rounded">
-                      <div className="text-lg font-bold text-blue-600">{certCount.optional}</div>
-                      <div className="text-xs text-blue-700">Optional</div>
+                      <div className="text-lg font-bold text-blue-600">{certCount.alternative}</div>
+                      <div className="text-xs text-blue-700">Alternative</div>
                     </div>
                     <div className="bg-gray-50 p-2 rounded">
                       <div className="text-lg font-bold text-gray-600">{certCount.total}</div>
@@ -180,11 +180,11 @@ const ProfilesList = () => {
                               </div>
                             </div>
                           )}
-                          {certs.optional.length > 0 && (
+                          {certs.alternative.length > 0 && (
                             <div>
-                              <h5 className="text-sm font-medium text-blue-700 mb-2">Optional ({certs.optional.length})</h5>
+                              <h5 className="text-sm font-medium text-blue-700 mb-2">Alternative ({certs.alternative.length})</h5>
                               <div className="space-y-1">
-                                {certs.optional.map((cert) => (
+                                {certs.alternative.map((cert) => (
                                   <div key={cert.code} className="text-xs bg-blue-50 p-2 rounded border-l-2 border-blue-200">
                                     <div className="font-medium text-blue-800">{cert.code}</div>
                                     <div className="text-blue-600">{cert.description}</div>

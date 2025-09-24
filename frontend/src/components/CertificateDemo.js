@@ -3,7 +3,7 @@ import { getCertificatesForJobRole, getAllJobRoles, allCertificates } from '../d
 
 const CertificateDemo = () => {
   const [selectedJobRole, setSelectedJobRole] = useState('');
-  const [availableCertificates, setAvailableCertificates] = useState({ mandatory: [], optional: [] });
+  const [availableCertificates, setAvailableCertificates] = useState({ mandatory: [], alternative: [] });
 
   const handleJobRoleChange = (e) => {
     const jobRole = e.target.value;
@@ -13,7 +13,7 @@ const CertificateDemo = () => {
       const certificates = getCertificatesForJobRole(jobRole);
       setAvailableCertificates(certificates);
     } else {
-      setAvailableCertificates({ mandatory: [], optional: [] });
+      setAvailableCertificates({ mandatory: [], alternative: [] });
     }
   };
 
@@ -68,11 +68,11 @@ const CertificateDemo = () => {
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-blue-800 mb-3">
-              Optional Certificates ({availableCertificates.optional.length})
+              Alternative Certificates ({availableCertificates.alternative.length})
             </h3>
-            {availableCertificates.optional.length > 0 ? (
+            {availableCertificates.alternative.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {availableCertificates.optional.map((cert) => (
+                {availableCertificates.alternative.map((cert) => (
                   <div key={cert.code} className="bg-white p-3 rounded border">
                     <div className="font-medium text-blue-700">{cert.code}</div>
                     <div className="text-sm text-gray-600">{cert.description}</div>
@@ -83,7 +83,7 @@ const CertificateDemo = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 italic">No optional certificates defined for this role.</p>
+              <p className="text-gray-500 italic">No alternative certificates defined for this role.</p>
             )}
           </div>
 
@@ -126,7 +126,7 @@ const CertificateDemo = () => {
         <ul className="text-sm text-yellow-700 space-y-1">
           <li>• Select a job role from the dropdown above</li>
           <li>• The system automatically displays all relevant certificates</li>
-          <li>• Certificates are categorized as Mandatory (Safety, Craft, NRSWA, Security) and Optional</li>
+          <li>• Certificates are categorized as Mandatory (Safety, Craft, NRSWA, Security) and Alternative</li>
           <li>• This same logic is now integrated into the Create Certificate page</li>
           <li>• When creating a certificate, users can only select certificates relevant to the profile's job role</li>
         </ul>
