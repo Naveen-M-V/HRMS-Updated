@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useProfiles } from '../context/ProfileContext';
 import { getCertificatesForJobRole } from '../data/certificateJobRoleMapping';
+import JobRoleDropdown from './JobRoleDropdown';
 
 const ProfilesList = () => {
-  const { profiles, loading } = useProfiles();
+  const { profiles, loading, updateProfileJobRole } = useProfiles();
   const [expandedProfile, setExpandedProfile] = useState(null);
+  const [editingJobRoleId, setEditingJobRoleId] = useState(null);
 
   const formatDate = (date) => {
     if (!date) return "N/A";
@@ -17,9 +19,7 @@ const ProfilesList = () => {
     });
   };
 
-  const toggleExpanded = (profileId) => {
-    setExpandedProfile(expandedProfile === profileId ? null : profileId);
-  };
+  const toggleExpanded = (profileId) => setExpandedProfile(expandedProfile === profileId ? null : profileId);
 
   const getCertificateCount = (jobTitle) => {
     const certs = getCertificatesForJobRole(jobTitle);
@@ -28,6 +28,14 @@ const ProfilesList = () => {
       optional: certs.optional.length,
       total: certs.mandatory.length + certs.optional.length
     };
+  };
+
+  const handleJobRoleChange = (profileId, event) => {
+    const newJobRole = event.target.value;
+    if (updateProfileJobRole) {
+      updateProfileJobRole(profileId, newJobRole);
+    }
+    setEditingJobRoleId(null);
   };
 
   if (loading) {
@@ -55,10 +63,11 @@ const ProfilesList = () => {
         {profiles.map((profile) => {
           const certCount = getCertificateCount(profile.jobTitle);
           const isExpanded = expandedProfile === profile._id;
-          
+          const isEditing = editingJobRoleId === profile._id;
+
           return (
-            <div 
-              key={profile._id} 
+            <div
+              key={profile._id}
               className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => toggleExpanded(profile._id)}
             >
@@ -73,15 +82,15 @@ const ProfilesList = () => {
                   </div>
                   <div className="flex flex-col items-end">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      profile.role === 'Manager' 
-                        ? 'bg-purple-100 text-purple-800' 
+                      profile.role === 'Manager'
+                        ? 'bg-purple-100 text-purple-800'
                         : 'bg-blue-100 text-blue-800'
                     }`}>
                       {profile.role}
                     </span>
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-1 ${
-                      profile.isActive 
-                        ? 'bg-green-100 text-green-800' 
+                      profile.isActive
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
                       {profile.isActive ? 'Active' : 'Inactive'}
@@ -92,7 +101,26 @@ const ProfilesList = () => {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Job Title:</span>
-                    <span className="font-medium text-gray-900">{profile.jobTitle}</span>
+                    <span className="font-medium text-gray-900">
+                      {isEditing ? (
+                        <JobRoleDropdown
+                          value={profile.jobTitle}
+                          onChange={(event) => handleJobRoleChange(profile._id, event)}
+                          className="w-56"
+                        />
+                      ) : (
+                        <>
+                          {profile.jobTitle}{' '}
+                          <span
+                            className="ml-2 text-xs underline text-blue-600 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingJobRoleId(profile._id);
+                            }}
+                          >Change Role</span>
+                        </>
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Company:</span>
@@ -152,7 +180,6 @@ const ProfilesList = () => {
                               </div>
                             </div>
                           )}
-                          
                           {certs.optional.length > 0 && (
                             <div>
                               <h5 className="text-sm font-medium text-blue-700 mb-2">Optional ({certs.optional.length})</h5>

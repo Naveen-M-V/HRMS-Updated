@@ -1,5 +1,6 @@
 const { MongoClient } = require('mongodb');
-require('dotenv').config({ path: '../.env' });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const jobRoles = [
   "Spine Survey",
@@ -15,10 +16,8 @@ const jobRoles = [
   "CPN Fibre Casing - OH (Ladder)",
   "CPN Fibre Casing - OH (MEWP)",
   "FTTP Access Survey",
-  "FTTP Access Survey",
   "FTTP Quality Checks",
   "MDU Survey",
-  "FTTP Quality Checks",
   "Internal MDU Build",
   "FTTP LDC fibre install",
   "FTTP LDC step 1 (Ladder)",
@@ -31,7 +30,6 @@ const jobRoles = [
   "Optical Test Head Installation - Mast",
   "Optical Test Head Installation - EiC",
   "Supervisor",
-  "Supervisor",
   "Piling - SELL Operative",
   "Piling - Overhead Copper programming (Ladder)",
   "Piling - Overhead Copper disconnection (MEWP)",
@@ -42,7 +40,6 @@ const jobRoles = [
   "Pole recovery",
   "Aerial cabling (MEWP)",
   "Aerial cabling (Ladder)",
-  "Aerial cabling (MEWP)",
   "Pole Labelling",
   "Scouting",
   "Chambers Module",
@@ -77,14 +74,12 @@ const jobRoles = [
   "CAL-OMI (MEWP)",
   "Copper Jointing UG",
   "FTTC Fibre Soak UG",
-  "FTTC Commissioning",
   "FTTC MI (MEWP)",
   "FTTC MI (Ladder)",
   "Heavy cable recovery",
   "Supply and Install Engineer",
   "Supply and Install - Mast Valve installation",
   "Supply and Install - Mast Plumbing",
-  "Ancillary Wiring or LLU Cabling",
   "Ancillary Wiring or LLU Cabling",
   "Ancillary Overhead",
   "DSLAM",
@@ -94,36 +89,39 @@ const jobRoles = [
   "Earthing Bonding"
 ];
 
+// Remove duplicates, trim whitespace
+const uniqueJobRoles = [...new Set(jobRoles.map(j => j.trim()))];
+
 async function populateJobRoles() {
   const client = new MongoClient(process.env.MONGODB_URI);
-  
+
   try {
     await client.connect();
     console.log('Connected to MongoDB');
-    
+
     const db = client.db('hrms');
     const collection = db.collection('jobroles');
-    
+
     // Clear existing job roles
     await collection.deleteMany({});
     console.log('Cleared existing job roles');
-    
+
     // Insert new job roles
-    const jobRoleDocuments = jobRoles.map(name => ({
-      name: name.trim(),
+    const jobRoleDocuments = uniqueJobRoles.map(name => ({
+      name,
       createdAt: new Date(),
       updatedAt: new Date()
     }));
-    
+
     const result = await collection.insertMany(jobRoleDocuments);
     console.log(`Successfully inserted ${result.insertedCount} job roles`);
-    
+
     // Display inserted job roles
     console.log('\nInserted job roles:');
-    jobRoles.forEach((role, index) => {
+    uniqueJobRoles.forEach((role, index) => {
       console.log(`${index + 1}. ${role}`);
     });
-    
+
   } catch (error) {
     console.error('Error populating job roles:', error);
   } finally {
@@ -132,5 +130,4 @@ async function populateJobRoles() {
   }
 }
 
-// Run the script
 populateJobRoles();

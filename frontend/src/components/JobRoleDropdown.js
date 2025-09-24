@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const JobRoleDropdown = ({ 
-  value, 
-  onChange, 
+const JobRoleDropdown = ({
+  value,
+  onChange,
   name = "jobRole",
   placeholder = "Type to search job roles or add new...",
   className = "",
@@ -17,28 +17,29 @@ const JobRoleDropdown = ({
   const inputRef = useRef(null);
 
   const getApiUrl = () => {
-    if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_API_URL) {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.REACT_APP_API_URL
+    ) {
       return process.env.REACT_APP_API_URL;
     }
-    return process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
+    // Default safer fallback
+    return process.env.REACT_APP_API_URL || 'http://localhost:5000';
   };
 
-  // Initialize search term with current value
   useEffect(() => {
     if (value && typeof value === 'string') {
       setSearchTerm(value);
     }
   }, [value]);
 
-  // Fetch job roles on component mount
   useEffect(() => {
     fetchJobRoles();
   }, []);
 
-  // Filter job roles based on search term
   useEffect(() => {
     if (searchTerm) {
-      const filtered = jobRoles.filter(role => 
+      const filtered = jobRoles.filter(role =>
         role.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredJobRoles(filtered);
@@ -47,14 +48,12 @@ const JobRoleDropdown = ({
     }
   }, [jobRoles, searchTerm]);
 
-  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -66,7 +65,6 @@ const JobRoleDropdown = ({
       const response = await fetch(`${getApiUrl()}/api/job-roles`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Job roles fetched:', data.length, 'roles');
         setJobRoles(data);
       } else {
         console.error('Failed to fetch job roles:', response.status, response.statusText);
@@ -107,15 +105,11 @@ const JobRoleDropdown = ({
 
       if (response.ok) {
         const newJobRoleData = await response.json();
-        
-        // Add to local state
         setJobRoles(prev => [...prev, newJobRoleData]);
-        
-        // Select the new job role
         setSearchTerm(newJobRoleData.name);
-        onChange({ target: { name, value: newJobRoleData.name } });
-        
-        // Close dropdown
+        if (onChange) {
+          onChange({ target: { name, value: newJobRoleData.name } });
+        }
         setIsOpen(false);
       }
     } catch (error) {
@@ -127,8 +121,7 @@ const JobRoleDropdown = ({
     const newValue = e.target.value;
     setSearchTerm(newValue);
     setIsOpen(true);
-    
-    // Call onChange immediately for typing
+
     if (onChange) {
       onChange({
         target: {
@@ -138,7 +131,6 @@ const JobRoleDropdown = ({
       });
     }
 
-    // Call search if provided (for API calls)
     if (newValue) {
       handleJobRoleSearch(newValue);
     } else {
@@ -149,7 +141,7 @@ const JobRoleDropdown = ({
   const handleOptionSelect = (jobRole) => {
     setSearchTerm(jobRole.name);
     setIsOpen(false);
-    
+
     if (onChange) {
       onChange({
         target: {
@@ -160,15 +152,15 @@ const JobRoleDropdown = ({
     }
   };
 
-  const handleInputFocus = () => {
-    setIsOpen(true);
-  };
+  const handleInputFocus = () => setIsOpen(true);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (searchTerm && !filteredJobRoles.find(role => role.name.toLowerCase() === searchTerm.toLowerCase())) {
-        // Add new job role if it doesn't exist
+      if (
+        searchTerm &&
+        !filteredJobRoles.find(role => role.name.toLowerCase() === searchTerm.toLowerCase())
+      ) {
         handleAddJobRole(searchTerm);
       }
       setIsOpen(false);
@@ -191,23 +183,20 @@ const JobRoleDropdown = ({
         className="w-full border rounded-lg p-2 pr-8"
         required={required}
         disabled={disabled}
+        autoComplete="off"
       />
-      
-      {/* Dropdown arrow */}
-      <div 
-        className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"
-      >
-        <svg 
+
+      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+        <svg
           className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none" 
-          stroke="currentColor" 
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
 
-      {/* Dropdown menu */}
       {isOpen && (
         <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {filteredJobRoles.length > 0 ? (
@@ -226,24 +215,24 @@ const JobRoleDropdown = ({
                   )}
                 </div>
               ))}
-              
-              {/* Add new option if search term doesn't match any existing option */}
-              {searchTerm && !filteredJobRoles.find(role => role.name.toLowerCase() === searchTerm.toLowerCase()) && (
-                <div
-                  className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-blue-600 border-t border-gray-200"
-                  onClick={() => {
-                    handleAddJobRole(searchTerm);
-                    setIsOpen(false);
-                  }}
-                >
-                  <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add "{searchTerm}"
-                  </span>
-                </div>
-              )}
+
+              {searchTerm &&
+                !filteredJobRoles.find(role => role.name.toLowerCase() === searchTerm.toLowerCase()) && (
+                  <div
+                    className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-blue-600 border-t border-gray-200"
+                    onClick={() => {
+                      handleAddJobRole(searchTerm);
+                      setIsOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add "{searchTerm}"
+                    </span>
+                  </div>
+                )}
             </>
           ) : (
             <div className="px-3 py-2 text-gray-500">
