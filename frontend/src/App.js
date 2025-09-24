@@ -31,6 +31,9 @@ const Login = lazy(() => import("./pages/Login"));
 const StaffDetail = lazy(() => import("./pages/StaffDetail"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+// const UserCertificateCreate = lazy(() => import("./pages/UserCertificateCreate"));
+// const UserCertificateView = lazy(() => import("./pages/UserCertificateView"));
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -48,6 +51,58 @@ function ProtectedRoute({ children }) {
   }
   
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+// Admin Protected Route Component
+function AdminProtectedRoute({ children }) {
+  const { isAuthenticated, loading, user } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (user?.role !== 'admin') {
+    return <Navigate to="/user-dashboard" replace />;
+  }
+  
+  return children;
+}
+
+// User Protected Route Component
+function UserProtectedRoute({ children }) {
+  const { isAuthenticated, loading, user } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (user?.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return children;
 }
 
 function App() {
@@ -92,9 +147,24 @@ function App() {
             </ErrorBoundary>
           } />
           
-          {/* Main app routes with layout - Protected */}
+          {/* User Dashboard Routes - No Sidebar */}
+          <Route path="/user-dashboard" element={
+            <UserProtectedRoute>
+              <ErrorBoundary>
+                <Suspense fallback={
+                  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
+                }>
+                  <UserDashboard />
+                </Suspense>
+              </ErrorBoundary>
+            </UserProtectedRoute>
+          } />
+
+          {/* Admin routes with layout - Protected */}
           <Route path="/*" element={
-            <ProtectedRoute>
+            <AdminProtectedRoute>
               <ProfileProvider>
                 <CertificateProvider>
                   <NotificationProvider>
@@ -139,7 +209,7 @@ function App() {
                   </NotificationProvider>
                 </CertificateProvider>
               </ProfileProvider>
-            </ProtectedRoute>
+            </AdminProtectedRoute>
           } />
         </Routes>
       </Router>

@@ -124,11 +124,11 @@ export default function Signup() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-48 w-48 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+          <div className="mx-auto h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-40 w-40 object-contain"
+              className="h-20 w-20 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';

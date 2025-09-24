@@ -12,6 +12,7 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    role: "user", // default to user
     rememberMe: false
   });
   const [errors, setErrors] = useState({});
@@ -114,9 +115,17 @@ export default function Login() {
           localStorage.removeItem('rememberedEmail');
         }
         
-        // Redirect to intended path or default to dashboard
-        const from = location.state?.from?.pathname || "/dashboard";
-        navigate(from, { replace: true });
+        // Role-based routing using selected role
+        const selectedRole = formData.role;
+        let redirectPath = "/dashboard";
+        
+        if (selectedRole === 'admin') {
+          redirectPath = location.state?.from?.pathname || "/dashboard";
+        } else if (selectedRole === 'user') {
+          redirectPath = "/user-dashboard";
+        }
+        
+        navigate(redirectPath, { replace: true });
       } else {
         setErrors({ general: result.error || "Invalid email or password" });
       }
@@ -145,11 +154,11 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-48 w-48 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+          <div className="mx-auto h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
             <img 
               src="/TSL.png" 
               alt="TSL Logo" 
-              className="h-40 w-40 object-contain"
+              className="h-20 w-20 object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextElementSibling.style.display = 'block';
@@ -180,6 +189,80 @@ export default function Login() {
                   </div>
                 </div>
               )}
+              
+              {/* Role Selection */}
+              <div>
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                  Login as
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
+                    formData.role === 'user' 
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900' 
+                      : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="role"
+                      value="user"
+                      checked={formData.role === 'user'}
+                      onChange={handleChange}
+                      className="sr-only"
+                      aria-labelledby="user-option-label"
+                    />
+                    <div className="flex w-full items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="text-sm">
+                          <div id="user-option-label" className="font-medium">
+                            User
+                          </div>
+                          <div className="text-gray-500">
+                            <p className="sm:inline">Access your profile & certificates</p>
+                          </div>
+                        </div>
+                      </div>
+                      {formData.role === 'user' && (
+                        <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </label>
+
+                  <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
+                    formData.role === 'admin' 
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900' 
+                      : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="role"
+                      value="admin"
+                      checked={formData.role === 'admin'}
+                      onChange={handleChange}
+                      className="sr-only"
+                      aria-labelledby="admin-option-label"
+                    />
+                    <div className="flex w-full items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="text-sm">
+                          <div id="admin-option-label" className="font-medium">
+                            Admin
+                          </div>
+                          <div className="text-gray-500">
+                            <p className="sm:inline">Full system management</p>
+                          </div>
+                        </div>
+                      </div>
+                      {formData.role === 'admin' && (
+                        <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
               
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
