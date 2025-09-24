@@ -1458,6 +1458,69 @@ app.get('/api/profiles/:id/stats', async (req, res) => {
   }
 });
 
+// Get profile by email (for user login)
+app.get('/api/profiles/by-email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const profile = await Profile.findOne({ email });
+    
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
+    res.json(profile);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Certificate delete request endpoint
+app.post('/api/certificates/delete-request', async (req, res) => {
+  try {
+    const { certificateId, certificateName, userEmail, userName, profileId } = req.body;
+    
+    // Get admin email from environment or use default
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@talentshield.com';
+    
+    // Create email content
+    const subject = `Certificate Deletion Request - ${certificateName}`;
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc2626;">Certificate Deletion Request</h2>
+        
+        <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Request Details</h3>
+          <p><strong>User:</strong> ${userName}</p>
+          <p><strong>Email:</strong> ${userEmail}</p>
+          <p><strong>Certificate:</strong> ${certificateName}</p>
+          <p><strong>Certificate ID:</strong> ${certificateId}</p>
+          <p><strong>Profile ID:</strong> ${profileId}</p>
+          <p><strong>Request Date:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+        
+        <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+          <p style="margin: 0;"><strong>Action Required:</strong> Please review this deletion request and take appropriate action in the admin panel.</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; font-size: 14px;">
+            This is an automated notification from the HRMS system.<br>
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+    
+    // Send email to admin
+    await sendNotificationEmail(adminEmail, subject, htmlContent);
+    
+    res.json({ message: 'Delete request sent successfully' });
+  } catch (error) {
+    console.error('Error sending delete request email:', error);
+    res.status(500).json({ message: 'Failed to send delete request' });
+  }
+});
+
 // Authentication Routes
 app.post('/api/auth/signup', async (req, res) => {
   try {
