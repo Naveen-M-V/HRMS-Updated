@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useProfiles } from '../context/ProfileContext';
 import { getCertificatesForJobRole } from '../data/certificateJobRoleMapping';
+import { getCertificatesForAnyJobRole } from '../utils/jobRoleResolver';
 import JobRoleDropdown from './JobRoleDropdown';
 
 const ProfilesList = () => {
@@ -22,7 +23,7 @@ const ProfilesList = () => {
   const toggleExpanded = (profileId) => setExpandedProfile(expandedProfile === profileId ? null : profileId);
 
   const getCertificateCount = (jobTitle) => {
-    const certs = getCertificatesForJobRole(jobTitle);
+    const certs = getCertificatesForAnyJobRole(jobTitle, getCertificatesForJobRole);
     return {
       mandatory: certs.mandatory.length,
       alternative: certs.alternative.length,
@@ -163,7 +164,7 @@ const ProfilesList = () => {
                   <div className="mt-4 pt-4 border-t">
                     <h4 className="font-medium text-gray-900 mb-3">Required Certificates:</h4>
                     {(() => {
-                      const certs = getCertificatesForJobRole(profile.jobTitle);
+                      const certs = getCertificatesForAnyJobRole(profile.jobTitle, getCertificatesForJobRole);
                       return (
                         <div className="space-y-3">
                           {certs.mandatory.length > 0 && (

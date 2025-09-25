@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getCertificatesForJobRole, getAllJobRoles, allCertificates } from '../data/certificateJobRoleMapping';
+import { getCertificatesForAnyJobRole } from '../utils/jobRoleResolver';
 
 const CertificateDemo = () => {
   const [selectedJobRole, setSelectedJobRole] = useState('');
@@ -10,7 +11,7 @@ const CertificateDemo = () => {
     setSelectedJobRole(jobRole);
     
     if (jobRole) {
-      const certificates = getCertificatesForJobRole(jobRole);
+      const certificates = getCertificatesForAnyJobRole(jobRole, getCertificatesForJobRole);
       setAvailableCertificates(certificates);
     } else {
       setAvailableCertificates({ mandatory: [], alternative: [] });

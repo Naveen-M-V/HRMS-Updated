@@ -873,14 +873,14 @@ export const jobRoleCertifications = {
     "SA005",
     "SA024"
   ],
-  "Copper jointing UG": [
+  "Copper Jointing UG": [
     "MT003",
     "SA002",
     "SA006",
     "F020",
     "NRSWA Certificate O1"
   ],
-  "Copper first look UG": [
+  "Copper First Look UG": [
     "MT003",
     "SA002",
     "SA006",
@@ -888,7 +888,7 @@ export const jobRoleCertifications = {
     "F020",
     "NRSWA Certificate O1"
   ],
-  "FTTC MI (Ladder)": [
+  "FTTC MI (LADDER)": [
     "MT003",
     "SA051C or Equivalent",
     "SA001",
@@ -942,7 +942,7 @@ export const jobRoleCertifications = {
     "SA007",
     "UKATA"
   ],
-  "Supply and Install - fibre cable installation": [
+  "Supply and Install - Fibre Cable installation": [
     "MT003",
     "SA020",
     "A16",
@@ -1001,7 +1001,7 @@ export const jobRoleCertifications = {
     "Equivalent",
     "NRSWA Certificate O1"
   ],
-  "DSLAM Battery replacement or rotation": [
+  "DSLAM Battery Replacement or Rotation": [
     "MT003",
     "Emergency first Aid",
     "Ace Telecoms Battery installation course, A350",
