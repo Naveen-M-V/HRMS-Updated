@@ -204,7 +204,7 @@ export default function EditCertificate() {
           <div className="col-span-8">
             <input
               type="text"
-              value="VitruX Ltd"
+              value="Vitrux Ltd"
               disabled
               className="w-full border rounded px-3 py-2 bg-gray-50"
             />

@@ -24,6 +24,41 @@ export default function ProfileDetailView() {
   const [uploading, setUploading] = useState(false);
   const [imageKey, setImageKey] = useState(Date.now());
   const fileInputRef = useRef(null);
+  const [uploadingCertId, setUploadingCertId] = useState(null);
+const uploadFileInputRef = useRef(null);
+const handleUploadClick = (certId) => {
+  setUploadingCertId(certId);
+  if (uploadFileInputRef.current) {
+    uploadFileInputRef.current.click();
+  }
+};
+
+const handleCertificateFileSelected = async (event) => {
+  const file = event.target.files[0];
+  if (!file || !uploadingCertId) return;
+
+  try {
+    setUploading(true);
+    await uploadCertificateFile(uploadingCertId, file);
+    alert("Certificate uploaded successfully");
+  } catch (error) {
+    alert("Failed to upload certificate. Please try again.");
+  } finally {
+    setUploading(false);
+    setUploadingCertId(null);
+    event.target.value = null;
+  }
+};
+
+const handleDeleteCertificate = async (certId) => {
+  if (!window.confirm("Are you sure you want to delete this certificate?")) return;
+  try {
+    await deleteCertificate(certId);
+    alert("Certificate deleted successfully");
+  } catch (error) {
+    alert("Failed to delete certificate");
+  }
+};
 
   useEffect(() => {
     const profileData = getProfileById(id);
@@ -161,6 +196,15 @@ export default function ProfileDetailView() {
                 console.log('Edit button clicked, navigating to:', `/profiles/edit/${id}`);
                 if (!profile) {
                   alert('Profile data not found. Please refresh the page and try again.');
+
+                  <input
+  type="file"
+  accept="application/pdf,image/*"
+  ref={uploadFileInputRef}
+  style={{ display: "none" }}
+  onChange={handleCertificateFileSelected}
+/>
+
                   return;
                 }
                 navigate(`/profiles/edit/${id}`);
@@ -519,42 +563,26 @@ export default function ProfileDetailView() {
                               )}
 
                               <button
-                                onClick={() => console.log("Upload clicked for:", cert.certificate)}
-                                title="Upload Certificate"
-                                className="inline-flex items-center px-2 py-1 text-sm bg-yellow-400 text-white hover:bg-yellow-500 rounded transition-colors"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0-8l-4 4m4-4l4 4M12 4v8"
-                                  />
-                                </svg>
-                              </button>
+  onClick={() => handleUploadClick(cert.id || cert._id)}
+  title="Upload Certificate"
+  className="inline-flex items-center px-2 py-1 text-sm bg-yellow-400 text-white hover:bg-yellow-500 rounded transition-colors"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12v8m0-8l-4 4m4-4l4 4M12 4v8" />
+  </svg>
+</button>
 
-                              <button
-                                onClick={() => console.log("Delete clicked for:", cert.certificate)}
-                                title="Delete Certificate"
-                                className="inline-flex items-center px-2 py-1 text-sm bg-red-600 text-white hover:bg-red-700 rounded transition-colors"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
+
+<button
+  onClick={() => handleDeleteCertificate(cert.id || cert._id)}
+  title="Delete Certificate"
+  className="inline-flex items-center px-2 py-1 text-sm bg-red-600 text-white hover:bg-red-700 rounded transition-colors"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+</button>
+
                             </td>
                           </tr>
                         ))}
