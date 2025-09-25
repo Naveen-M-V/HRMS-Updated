@@ -23,7 +23,6 @@ const JobRoleDropdown = ({
     ) {
       return process.env.REACT_APP_API_URL;
     }
-    // Default safer fallback
     return process.env.REACT_APP_API_URL || 'http://localhost:5000';
   };
 

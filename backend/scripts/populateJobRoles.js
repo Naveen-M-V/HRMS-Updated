@@ -2,6 +2,7 @@ const { MongoClient } = require('mongodb');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
+// 93 job roles - ensure this list is correct and unique. Review and match carefully!
 const jobRoles = [
   "Spine Survey",
   "Heavy Cabling UG",
@@ -38,13 +39,13 @@ const jobRoles = [
   "Poling - PEU Operative",
   "Poling - Overhead Copper dropwiring (Ladder)",
   "Poling - Overhead Copper dropwiring (MEWP)",
-  "Poling - Overhead Copper Jointing (LADDER)",
+  "Poling - Overhead Copper Jointing (Ladder)",
   "Poling - Overhead Copper Jointing (MEWP)",
   "MEWP Operator",
   "Manual poling (provision and recovery)",
   "Pole recovery",
   "Pole Survey (AAP)",
-  "Aerial cabling (LADDER)",
+  "Aerial cabling (Ladder)",
   "Aerial cabling (MEWP)",
   "Poling Labourer",
   "Blockages",
@@ -80,7 +81,7 @@ const jobRoles = [
   "CAL/OMI (MEWP)",
   "Copper Jointing UG",
   "Copper First Look UG",
-  "FTTC MI (LADDER)",
+  "FTTC MI (Ladder)",
   "FTTC MI (MEWP)",
   "FTTC SI",
   "PCP Maintenance",
@@ -98,8 +99,18 @@ const jobRoles = [
   "Equipotential Bonding"
 ];
 
-// Remove duplicates, trim whitespace
-const uniqueJobRoles = [...new Set(jobRoles.map(j => j.trim()))];
+// Remove duplicates and trim: deduplicate by lowercased string, but preserve display
+const displayToKey = role => role.trim().toLowerCase();
+const dedupedRolesMap = {};
+jobRoles.forEach(role => {
+  const key = displayToKey(role);
+  dedupedRolesMap[key] = role.trim();
+});
+const uniqueJobRoles = Object.values(dedupedRolesMap);
+
+if (uniqueJobRoles.length !== 93) {
+  console.warn(`Warning: Expected 93 unique job roles, found ${uniqueJobRoles.length}`);
+}
 
 async function populateJobRoles() {
   const client = new MongoClient(process.env.MONGODB_URI);

@@ -6,7 +6,6 @@ const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, { useUnifiedTopology: true });
 let db;
 
-// Establish global DB connection once
 async function connectDb() {
   if (!db) {
     await client.connect();
@@ -14,15 +13,13 @@ async function connectDb() {
     console.log('MongoDB connection established!');
   }
 }
-// Run at module load
 connectDb();
 
-// Get all job roles
 router.get('/', async (req, res) => {
   try {
     await connectDb();
     const collection = db.collection('jobroles');
-    const jobRoles = await collection.find({}).toArray();
+    const jobRoles = await collection.find({}).sort({ name: 1 }).toArray();
     res.json(jobRoles);
   } catch (error) {
     console.error('Error fetching job roles:', error);
@@ -30,7 +27,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Search job roles
 router.get('/search', async (req, res) => {
   try {
     const { q } = req.query;
@@ -47,7 +43,6 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// Add new job role
 router.post('/', async (req, res) => {
   try {
     const { name, description } = req.body;
@@ -57,7 +52,6 @@ router.post('/', async (req, res) => {
     await connectDb();
     const collection = db.collection('jobroles');
 
-    // Check for existing role (case insensitive)
     const existingJobRole = await collection.findOne({
       name: { $regex: `^${name.trim()}$`, $options: 'i' }
     });
