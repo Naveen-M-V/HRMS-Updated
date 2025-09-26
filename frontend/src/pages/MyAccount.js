@@ -17,22 +17,16 @@ export default function MyAccount() {
   const [savingImage, setSavingImage] = useState(false);
 
   // Update profile with actual user data only
-  useEffect(() => {
-    if (user) {
-      setProfile(user);
-    }
-  }, [user]);
 
   // handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (!file || !user?._id) return;
+    if (!file || !displayProfile?._id) return;
     try {
       setSavingImage(true);
-      const storedPath = await uploadProfilePicture(user._id, file);
+      const storedPath = await uploadProfilePicture(displayProfile._id, file);
       // Update local view with stored path
-      setProfile((prev) => ({ ...prev, profilePicture: storedPath }));
-      alert("Profile picture updated successfully!");
+await refetch();
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
       alert("Failed to upload profile picture. Please try again.");
@@ -55,6 +49,38 @@ export default function MyAccount() {
     }
   };
 
+  // Show loading state
+if (loading && !displayProfile.email) {
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Show error state if profile failed to load
+if (profileError && !displayProfile.email) {
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Failed to load profile data</p>
+          <button 
+            onClick={refetch}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
   return (
     <div className="p-6">
       {/* Header row with title + buttons */}
@@ -88,6 +114,8 @@ export default function MyAccount() {
                 Logout
               </>
             )}
+
+            
           </button>
         </div>
       </div>
