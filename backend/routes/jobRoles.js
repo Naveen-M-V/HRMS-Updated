@@ -53,8 +53,9 @@ router.post('/', async (req, res) => {
     const collection = db.collection('jobroles');
 
     const existingJobRole = await collection.findOne({
-      name: { $regex: `^${name.trim()}$`, $options: 'i' }
-    });
+  name: { $regex: `^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+});
+
 
     if (existingJobRole) {
       return res.status(409).json({ error: 'Job role already exists' });

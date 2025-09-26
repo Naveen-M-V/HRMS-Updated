@@ -7,17 +7,31 @@ import { getImageUrl } from "../utils/config";
 export default function MyAccount() {
   const navigate = useNavigate();
   const { user, logout, loading } = useAuth();
-  const { uploadProfilePicture } = useProfiles();
+  const { uploadProfilePicture, fetchProfileById, getProfileById } = useProfiles();
   
   const [profile, setProfile] = useState({});
   const [savingImage, setSavingImage] = useState(false);
 
-  // Update profile with actual user data only
+  // Load full profile from DB so this view reflects saved changes
   useEffect(() => {
-    if (user) {
-      setProfile(user);
-    }
-  }, [user]);
+    let isMounted = true;
+    const load = async () => {
+      if (!user?._id) return;
+      try {
+        // Try local cache first
+        const local = getProfileById(user._id);
+        if (local && isMounted) setProfile(local);
+        // Then fetch full profile to ensure freshest data
+        const fresh = await fetchProfileById(user._id);
+        if (fresh && isMounted) setProfile(fresh);
+      } catch (e) {
+        console.warn('Failed to load account profile, falling back to auth user:', e);
+        if (isMounted && user) setProfile(user);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, [user, fetchProfileById, getProfileById]);
 
   // handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
@@ -58,7 +72,13 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => navigate("/editprofile")}
+            onClick={() => {
+              if (!user?._id) {
+                alert('Cannot open edit page: missing user ID');
+                return;
+              }
+              navigate(`/profiles/edit/${user._id}`);
+            }}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow"
           >
             Edit

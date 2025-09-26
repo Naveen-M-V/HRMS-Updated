@@ -9,13 +9,13 @@ export default function Topbar({ toggleSidebar }) {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full flex items-center bg-white shadow px-6 py-3 gap-4 relative">
+    <div className="w-full flex items-center bg-white shadow px-8 py-6 gap-4 relative">
       {/* Logo */}
       <div className="flex items-center">
         <img 
           src="/TSL.png" 
           alt="TSL Logo" 
-          className="h-14 w-14 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
+          className="h-20 w-18 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/dashboard")}
           loading="lazy"
           onError={(e) => {
