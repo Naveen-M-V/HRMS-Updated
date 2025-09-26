@@ -55,7 +55,7 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => navigate("/myaccount/editprofile")}
+            onClick={() => navigate("/myaccount/profiles")}
             disabled={loading}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >
