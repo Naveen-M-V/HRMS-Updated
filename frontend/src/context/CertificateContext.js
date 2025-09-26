@@ -74,7 +74,56 @@ export const CertificateProvider = ({ children }) => {
     }
   }, []);
 
-  // Other functions similarly wrapped in useCallback (updateCertificate, deleteCertificate, etc.)
+  // Upload a certificate file for an existing certificate
+  const uploadCertificateFile = useCallback(async (certificateId, file) => {
+    if (!certificateId || !file) throw new Error('certificateId and file are required');
+    incrementLoading();
+    try {
+      const formData = new FormData();
+      formData.append('certificateFile', file);
+      const response = await axios.post(
+        `${API_BASE_URL}/certificates/${certificateId}/file`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      // Prefer server response to update local state; fallback to toggling certificateFile flag
+      if (response && response.data) {
+        setCertificates(prev => prev.map(c =>
+          (c._id === certificateId || c.id === certificateId) ? response.data : c
+        ));
+      } else {
+        setCertificates(prev => prev.map(c =>
+          (c._id === certificateId || c.id === certificateId) ? { ...c, certificateFile: true } : c
+        ));
+      }
+      setError(null);
+      return response?.data;
+    } catch (err) {
+      setError('Failed to upload certificate file');
+      console.error(err);
+      throw err;
+    } finally {
+      decrementLoading();
+    }
+  }, []);
+
+  // Delete a certificate
+  const deleteCertificate = useCallback(async (certificateId) => {
+    if (!certificateId) throw new Error('certificateId is required');
+    incrementLoading();
+    try {
+      await axios.delete(`${API_BASE_URL}/certificates/${certificateId}`);
+      setCertificates(prev => prev.filter(c => (c._id !== certificateId && c.id !== certificateId)));
+      setError(null);
+    } catch (err) {
+      setError('Failed to delete certificate');
+      console.error(err);
+      throw err;
+    } finally {
+      decrementLoading();
+    }
+  }, []);
 
   const getActiveCertificatesCount = useCallback(() => {
     if (!Array.isArray(certificates)) {
@@ -128,9 +177,8 @@ export const CertificateProvider = ({ children }) => {
     error,
     fetchCertificates,
     addCertificate,
-    // updateCertificate,
-    // updateCertificateWithFile,
-    // deleteCertificate,
+    uploadCertificateFile,
+    deleteCertificate,
     getCertificateById: (id) => certificates.find(cert => cert._id === id || cert.id === id),
     getActiveCertificatesCount,
     getExpiringCertificates,
@@ -143,6 +191,8 @@ export const CertificateProvider = ({ children }) => {
     error,
     fetchCertificates,
     addCertificate,
+    uploadCertificateFile,
+    deleteCertificate,
     getActiveCertificatesCount,
     getExpiringCertificates,
     getExpiredCertificates,

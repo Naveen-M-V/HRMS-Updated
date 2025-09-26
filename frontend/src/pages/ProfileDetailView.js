@@ -18,7 +18,7 @@ export default function ProfileDetailView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getProfileById, uploadProfilePicture } = useProfiles();
-  const { certificates } = useCertificates();
+  const { certificates, uploadCertificateFile, deleteCertificate } = useCertificates();
   const [profile, setProfile] = useState(null);
   const [showCertificates, setShowCertificates] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -196,15 +196,6 @@ const handleDeleteCertificate = async (certId) => {
                 console.log('Edit button clicked, navigating to:', `/profiles/edit/${id}`);
                 if (!profile) {
                   alert('Profile data not found. Please refresh the page and try again.');
-
-                  <input
-  type="file"
-  accept="application/pdf,image/*"
-  ref={uploadFileInputRef}
-  style={{ display: "none" }}
-  onChange={handleCertificateFileSelected}
-/>
-
                   return;
                 }
                 navigate(`/profiles/edit/${id}`);
@@ -217,6 +208,15 @@ const handleDeleteCertificate = async (certId) => {
           </div>
         </div>
       </div>
+
+      {/* Hidden input for certificate file upload */}
+      <input
+        type="file"
+        accept="application/pdf,image/*"
+        ref={uploadFileInputRef}
+        onChange={handleCertificateFileSelected}
+        className="hidden"
+      />
 
       {/* Main Profile Card */}
       <div className="px-6 py-6">
