@@ -8,7 +8,7 @@ export default function MyAccount() {
   const navigate = useNavigate();
   const { user, logout, loading } = useAuth();
   const { uploadProfilePicture } = useProfiles();
-  
+
   const [profile, setProfile] = useState({});
   const [savingImage, setSavingImage] = useState(false);
 
@@ -19,7 +19,7 @@ export default function MyAccount() {
     }
   }, [user]);
 
-  // handle profile picture change - persist to backend
+  // Handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !user?._id) return;
@@ -51,6 +51,9 @@ export default function MyAccount() {
     }
   };
 
+  // Debug log user to verify ID availability
+  // console.log("User in MyAccount:", user);
+
   return (
     <div className="p-6">
       {/* Header row with title + buttons */}
@@ -59,13 +62,14 @@ export default function MyAccount() {
         <div className="flex gap-3">
           <button
             onClick={() => {
-              if (user?._id) {
+              if (user && user._id) {
                 navigate(`/profiles/edit/${user._id}`);
               } else {
                 alert('User ID not found. Please refresh and try again.');
               }
             }}
-            className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow"
+            disabled={!user?._id}
+            className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Edit Profile
           </button>
@@ -157,16 +161,12 @@ export default function MyAccount() {
           <div className="text-sm space-y-4 w-full md:w-1/3 md:ml-12">
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Email</span>
-              <span>
-                {profile.email || "Not provided"}
-              </span>
+              <span>{profile.email || "Not provided"}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Mobile</span>
-              <span className="text-gray-500">
-                {profile.mobile || "Not provided"}
-              </span>
+              <span className="text-gray-500">{profile.mobile || "Not provided"}</span>
             </div>
 
             <div className="flex justify-between">
