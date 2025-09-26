@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useProfiles } from "../context/ProfileContext";
+import { getImageUrl } from "../utils/config";
 
 export default function MyAccount() {
   const navigate = useNavigate();
   const { user, logout, loading } = useAuth();
+  const { uploadProfilePicture } = useProfiles();
   
   const [profile, setProfile] = useState({});
+  const [savingImage, setSavingImage] = useState(false);
 
   // Update profile with actual user data only
   useEffect(() => {
@@ -15,12 +19,23 @@ export default function MyAccount() {
     }
   }, [user]);
 
-  // handle profile picture change
-  const handleImageChange = (e) => {
+  // handle profile picture change - persist to backend
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfile((prev) => ({ ...prev, photo: imageUrl }));
+    if (!file || !user?._id) return;
+    try {
+      setSavingImage(true);
+      const storedPath = await uploadProfilePicture(user._id, file);
+      // Update local view with stored path
+      setProfile((prev) => ({ ...prev, profilePicture: storedPath }));
+      alert("Profile picture updated successfully!");
+    } catch (err) {
+      console.error("Failed to upload profile picture:", err);
+      alert("Failed to upload profile picture. Please try again.");
+    } finally {
+      setSavingImage(false);
+      // clear the file input
+      e.target.value = "";
     }
   };
 
@@ -86,9 +101,9 @@ export default function MyAccount() {
           {/* Profile Image */}
           <div className="flex flex-col ml-10 items-center">
             <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-4xl overflow-hidden">
-              {profile.photo ? (
+              {profile.profilePicture ? (
                 <img
-                  src={profile.photo}
+                  src={`${getImageUrl(profile.profilePicture)}?t=${Date.now()}`}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -107,10 +122,11 @@ export default function MyAccount() {
             />
 
             <button
-              onClick={() => document.getElementById("profileUpload").click()}
-              className="mt-2 text-sm border px-3 py-1 rounded bg-gray-50 hover:bg-gray-100"
+              onClick={() => !savingImage && document.getElementById("profileUpload").click()}
+              className="mt-2 text-sm border px-3 py-1 rounded bg-gray-50 hover:bg-gray-100 disabled:opacity-50"
+              disabled={savingImage}
             >
-              Change
+              {savingImage ? "Saving..." : "Change"}
             </button>
           </div>
 

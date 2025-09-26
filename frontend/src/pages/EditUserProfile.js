@@ -15,7 +15,7 @@ export default function EditUserProfile() {
     jobTitle: "",
     jobLevel: "",
     language: "English",
-    company: "VitruX Ltd",
+    company: "Vitrux Ltd",
     
     // Emergency Contact
     emergencyContact: {
@@ -30,7 +30,7 @@ export default function EditUserProfile() {
       line2: "",
       city: "",
       postCode: "",
-      country: "Poland",
+      country: "",
     },
     
     // Extra Information
@@ -71,7 +71,7 @@ export default function EditUserProfile() {
           jobTitle: Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : (profile.jobRole || profile.jobTitle || ""),
           jobLevel: profile.jobLevel || "",
           language: profile.language || "English",
-          company: profile.company || "VitruX Ltd",
+          company: profile.company || "Vitrux Ltd",
           emergencyContact: {
             name: profile.emergencyContact?.name || "",
             relationship: profile.emergencyContact?.relationship || "",
@@ -82,7 +82,7 @@ export default function EditUserProfile() {
             line2: profile.address?.line2 || "",
             city: profile.address?.city || "",
             postCode: profile.address?.postCode || "",
-            country: profile.address?.country || "Poland",
+            country: profile.address?.country || "",
           },
           externalSystemId: profile.externalSystemId || "",
           extThirdPartySystemId: profile.extThirdPartySystemId || "",
