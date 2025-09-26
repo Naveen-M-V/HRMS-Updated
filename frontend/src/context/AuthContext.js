@@ -281,6 +281,12 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  const updateUser = (updatedUserData) => {
+    const newUserData = { ...user, ...updatedUserData };
+    setUser(newUserData);
+    sessionStorage.setUserSession(newUserData);
+  };
+
   const value = {
     user,
     isAuthenticated,
@@ -289,6 +295,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
+    updateUser,
     storeSessionCookie
   };
 

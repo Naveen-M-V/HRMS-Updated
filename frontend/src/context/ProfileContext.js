@@ -232,7 +232,6 @@ export const ProfileProvider = ({ children }) => {
         console.log('ProfileContext: Individual profile fetched:', {
           id: profile._id,
           vtid: profile.vtid,
-          skillkoId: profile.skillkoId,
           firstName: profile.firstName,
           lastName: profile.lastName
         });

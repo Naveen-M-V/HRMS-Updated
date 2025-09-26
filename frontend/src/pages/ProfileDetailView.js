@@ -370,9 +370,16 @@ const handleDeleteCertificate = async (certId) => {
                   <span className="text-gray-600">Active Job Roles:</span>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
-                      {Array.isArray(profile.jobRole)
-                        ? profile.jobRole.join(', ')
-                        : (profile.jobRole || "N/A")
+                      {(() => {
+                        // Try jobTitle first, then jobRole as fallback
+                        const jobTitles = Array.isArray(profile.jobTitle) ? profile.jobTitle : (profile.jobTitle ? [profile.jobTitle] : []);
+                        const jobRoles = Array.isArray(profile.jobRole) ? profile.jobRole : (profile.jobRole ? [profile.jobRole] : []);
+                        
+                        // Use jobTitle if available, otherwise use jobRole
+                        const displayRoles = jobTitles.length > 0 ? jobTitles : jobRoles;
+                        
+                        return displayRoles.length > 0 ? displayRoles.join(', ') : "N/A";
+                      })()
                       }
                     </span>
                   </div>

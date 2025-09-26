@@ -58,10 +58,16 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => navigate("/editprofile")}
+            onClick={() => {
+              if (user?._id) {
+                navigate(`/profiles/edit/${user._id}`);
+              } else {
+                alert('User ID not found. Please refresh and try again.');
+              }
+            }}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow"
           >
-            Edit
+            Edit Profile
           </button>
           <button
             onClick={handleLogout}

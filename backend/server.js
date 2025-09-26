@@ -133,7 +133,6 @@ const profileSchema = new mongoose.Schema({
   
   // System IDs
   vtid: { type: Number, unique: true, sparse: true, index: true }, // VTID field
-  skillkoId: { type: Number, unique: true, index: true },
   externalSystemId: String,
   extThirdPartySystemId: String,
   nopsId: String,

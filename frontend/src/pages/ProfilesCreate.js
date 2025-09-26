@@ -80,7 +80,7 @@ export default function ProfilesCreate() {
       staffType: formData.staffType || "Direct",
       company: formData.company || "VitruX Ltd",
       jobRole: Array.isArray(formData.jobRole) ? formData.jobRole : (formData.jobRole ? [formData.jobRole] : []),
-      jobTitle: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
+      jobTitle: Array.isArray(formData.jobRole) ? formData.jobRole : (formData.jobRole ? [formData.jobRole] : []), // Copy jobRole to jobTitle for display
       jobLevel: formData.jobLevel,
       email: formData.email.trim().toLowerCase(),
       mobile: formData.mobile || "",

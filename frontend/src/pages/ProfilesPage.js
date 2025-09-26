@@ -218,9 +218,16 @@ export default function ProfilesPage() {
               <td className="border px-2 py-1">{p.staffType}</td>
               <td className="border px-2 py-1">{p.company}</td>
               <td className="border px-2 py-1">
-                {Array.isArray(p.jobTitle) 
-                  ? p.jobTitle.join(', ') 
-                  : (p.jobTitle || "N/A")
+                {(() => {
+                  // Try jobTitle first, then jobRole as fallback
+                  const jobTitles = Array.isArray(p.jobTitle) ? p.jobTitle : (p.jobTitle ? [p.jobTitle] : []);
+                  const jobRoles = Array.isArray(p.jobRole) ? p.jobRole : (p.jobRole ? [p.jobRole] : []);
+                  
+                  // Use jobTitle if available, otherwise use jobRole
+                  const displayRoles = jobTitles.length > 0 ? jobTitles : jobRoles;
+                  
+                  return displayRoles.length > 0 ? displayRoles.join(', ') : "N/A";
+                })()
                 }
               </td>
               <td className="border px-2 py-1">{formatDate(p.lastSeen)}</td>
