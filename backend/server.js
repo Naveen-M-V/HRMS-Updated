@@ -133,6 +133,7 @@ const profileSchema = new mongoose.Schema({
   
   // System IDs
   vtid: { type: Number, unique: true, sparse: true, index: true }, // VTID field
+  skillkoId: { type: Number, unique: true, index: true },
   externalSystemId: String,
   extThirdPartySystemId: String,
   nopsId: String,
@@ -648,6 +649,27 @@ app.delete('/api/profiles/:id', async (req, res) => {
       return res.status(404).json({ message: 'Profile not found' });
     }
     
+    // Delete all certificates associated with this profile (cascading delete)
+    const deletedCertificates = await Certificate.deleteMany({ profileId: req.params.id });
+    console.log(`Deleted ${deletedCertificates.deletedCount} certificates associated with profile ${req.params.id}`);
+    
+    // Create notifications for deleted certificates
+    try {
+      const users = await User.find({ role: 'admin' });
+      for (const user of users) {
+        const notification = new Notification({
+          userId: user._id,
+          type: 'certificate_deleted',
+          priority: 'medium',
+          message: `All certificates for profile ${profile.firstName} ${profile.lastName} were deleted (${deletedCertificates.deletedCount} certificates)`,
+          read: false
+        });
+        await notification.save();
+      }
+    } catch (notificationError) {
+      console.error('Error creating certificate delete notifications:', notificationError);
+    }
+    
     const deletedProfile = await Profile.findByIdAndDelete(req.params.id);
     
     // Create notification for profile deletion
@@ -667,7 +689,13 @@ app.delete('/api/profiles/:id', async (req, res) => {
       console.error('Error creating delete notification:', notificationError);
     }
     
-    res.json({ message: 'Profile deleted successfully' });
+    res.json({ 
+      message: 'Profile and associated certificates deleted successfully',
+      details: {
+        profileDeleted: true,
+        certificatesDeleted: deletedCertificates.deletedCount
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

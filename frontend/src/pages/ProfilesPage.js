@@ -57,10 +57,32 @@ export default function ProfilesPage() {
 
   // Handle profile deletion
   const handleDeleteProfile = useCallback(async (profileId, profileName) => {
-    if (window.confirm(`Are you sure you want to delete the profile for ${profileName}? This action cannot be undone.`)) {
+    // Check how many certificates are associated with this profile
+    const profile = profiles.find(p => p._id === profileId);
+    const certificateCount = await fetch(`${getApiUrl()}/api/profiles/${profileId}/stats`)
+      .then(res => res.json())
+      .then(data => data.certificates?.total || 0)
+      .catch(() => 0);
+    
+    const confirmMessage = certificateCount > 0 
+      ? `Are you sure you want to delete the profile for ${profileName}? 
+
+This will also delete ${certificateCount} associated certificate(s). This action cannot be undone.`
+      : `Are you sure you want to delete the profile for ${profileName}? This action cannot be undone.`;
+    
+    if (window.confirm(confirmMessage)) {
       setLoading(true);
       try {
-        await deleteProfile(profileId);
+        const response = await deleteProfile(profileId);
+        
+        // Show detailed success message
+        const certCount = response.details?.certificatesDeleted || certificateCount;
+        if (certCount > 0) {
+          alert(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
+        } else {
+          alert('Profile deleted successfully!');
+        }
+        
         console.log(`Profile ${profileName} deleted successfully`);
       } catch (error) {
         console.error('Error deleting profile:', error);
@@ -69,7 +91,7 @@ export default function ProfilesPage() {
         setLoading(false);
       }
     }
-  }, [deleteProfile]);
+  }, [deleteProfile, profiles]);
 
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {

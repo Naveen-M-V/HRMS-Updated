@@ -57,7 +57,7 @@ export default function EditUserProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
-  const { getProfileById, updateProfile, deleteProfile } = useProfiles();
+  const { getProfileById, fetchProfileById, updateProfile, deleteProfile } = useProfiles();
   
   // Check if user is editing their own profile
   const isOwnProfile = user?._id === id;
@@ -67,15 +67,29 @@ export default function EditUserProfile() {
   useEffect(() => {
     console.log('EditUserProfile mounted with ID:', id);
     if (id) {
-      const profile = getProfileById(id);
-      console.log('Profile found:', profile);
-      if (!profile) {
-        console.error('Profile not found for ID:', id);
-        alert('Profile not found. Redirecting to profiles page.');
-        navigate('/profiles');
-        return;
-      }
-      if (profile) {
+      const loadProfile = async () => {
+        try {
+          setProfileLoading(true);
+          
+          // First try to get from local cache
+          let profile = getProfileById(id);
+          
+          // If not in cache, fetch from backend
+          if (!profile) {
+            console.log('Profile not in cache, fetching from backend...');
+            profile = await fetchProfileById(id);
+          }
+          
+          console.log('Profile loaded:', profile);
+          
+          if (!profile) {
+            console.error('Profile not found for ID:', id);
+            alert('Profile not found. Please try again or contact support.');
+            navigate('/profiles');
+            return;
+          }
+          
+          // Populate form data
         setFormData({
           firstName: profile.firstName || "",
           lastName: profile.lastName || "",
@@ -115,10 +129,19 @@ export default function EditUserProfile() {
           morrisonsUIN: profile.morrisonsUIN || "",
           bio: profile.bio || "",
           otherInformation: profile.otherInformation || "",
-        });
-      }
+          });
+        } catch (error) {
+          console.error('Error loading profile:', error);
+          alert('Failed to load profile. Please try again.');
+          navigate('/profiles');
+        } finally {
+          setProfileLoading(false);
+        }
+      };
+      
+      loadProfile();
     }
-  }, [id, getProfileById]);
+  }, [id, getProfileById, fetchProfileById, navigate]);
 
   const handleChange = (e, section = null) => {
     const { name, value } = e.target;
@@ -174,13 +197,23 @@ export default function EditUserProfile() {
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this profile? This action cannot be undone.")) {
+    if (window.confirm("Are you sure you want to delete this profile? This will also delete ALL certificates associated with this profile. This action cannot be undone.")) {
       setLoading(true);
       try {
-        await deleteProfile(id);
+        const response = await deleteProfile(id);
+        
+        // Show detailed success message
+        const certCount = response.details?.certificatesDeleted || 0;
+        if (certCount > 0) {
+          alert(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
+        } else {
+          alert('Profile deleted successfully!');
+        }
+        
         navigate("/reporting/profiles");
       } catch (error) {
         console.error("Failed to delete profile:", error);
+        alert('Failed to delete profile. Please try again.');
       } finally {
         setLoading(false);
       }

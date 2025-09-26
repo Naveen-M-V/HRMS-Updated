@@ -285,10 +285,6 @@ const handleDeleteCertificate = async (certId) => {
                   <span className="font-medium">{generateVTID(profile)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">VTID (legacy):</span>
-                  <span className="font-medium">{profile.vtid || "N/A"}</span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-gray-600">User Role:</span>
                   <span className="font-medium">{profile.role || "User"}</span>
                 </div>
@@ -337,10 +333,6 @@ const handleDeleteCertificate = async (certId) => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
                   <span className="font-medium">{profile.status || "N/A"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Skillko ID:</span>
-                  <span className="font-medium">{profile.skillkoId || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">POC:</span>

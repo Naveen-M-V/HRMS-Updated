@@ -112,6 +112,8 @@ export const ProfileProvider = ({ children }) => {
       });
       
       if (response.ok) {
+        const data = await response.json(); // Get the response data with certificate count
+        
         // Remove from local state
         setProfiles(prevProfiles => prevProfiles.filter(p => p._id !== profileId));
         
@@ -119,9 +121,11 @@ export const ProfileProvider = ({ children }) => {
         localStorage.removeItem('profiles_cache');
         localStorage.removeItem('profiles_cache_time');
         
-        console.log('Profile deleted successfully');
+        console.log('Profile deleted successfully:', data);
+        return data; // Return the response data with certificate count
       } else {
-        throw new Error('Failed to delete profile');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete profile');
       }
     } catch (error) {
       console.error('Error deleting profile:', error);
@@ -232,6 +236,7 @@ export const ProfileProvider = ({ children }) => {
         console.log('ProfileContext: Individual profile fetched:', {
           id: profile._id,
           vtid: profile.vtid,
+          skillkoId: profile.skillkoId,
           firstName: profile.firstName,
           lastName: profile.lastName
         });
