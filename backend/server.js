@@ -133,7 +133,6 @@ const profileSchema = new mongoose.Schema({
   
   // System IDs
   vtid: { type: Number, unique: true, sparse: true, index: true }, // VTID field
-  skillkoId: { type: Number, unique: true, index: true },
   externalSystemId: String,
   extThirdPartySystemId: String,
   nopsId: String,
@@ -162,7 +161,7 @@ const profileSchema = new mongoose.Schema({
     line2: String,
     city: String,
     postCode: String,
-    country: { type: String, default: 'Poland' },
+    country: { type: String, default: '' },
   },
   
   // Metadata
@@ -202,30 +201,16 @@ profileSchema.pre('save', async function(next) {
   next();
 });
 
-// Auto-generate skillkoId as random 4-digit number
-profileSchema.pre('save', async function(next) {
-  if (!this.skillkoId) {
-    let newId;
-    let isUnique = false;
+
     
-    // Generate random 4-digit number until we find a unique one
-    while (!isUnique) {
-      newId = Math.floor(Math.random() * 9000) + 1000; // Generates 1000-9999
-      const existingProfile = await this.constructor.findOne({ skillkoId: newId });
-      if (!existingProfile) {
-        isUnique = true;
-      }
-    }
-    
-    this.skillkoId = newId;
-   }
+
   next();
-});
+
 
 // Add compound indexes for better query performance
 profileSchema.index({ firstName: 1, lastName: 1, email: 1 });
 profileSchema.index({ company: 1, createdOn: -1 });
-profileSchema.index({ skillkoId: 1, vtid: 1, vtrxId: 1 });
+
 
 const Profile = mongoose.model('Profile', profileSchema);
 
@@ -531,7 +516,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       
       // Send email notification for account creation
       const subject = 'Welcome to Talent Shield HRMS';
-      const body = `Dear ${savedProfile.firstName} ${savedProfile.lastName},\n\nYour account has been successfully created in Talent Shield HRMS.\n\nYour login details:\nEmail: ${savedProfile.email}\nSkillko ID: ${savedProfile.skillkoId}\n\nPlease contact your administrator for your login credentials.\n\nBest regards,\nTalent Shield HRMS Team`;
+      const body = `Dear ${savedProfile.firstName} ${savedProfile.lastName},\n\nYour account has been successfully created in Talent Shield HRMS.\n\nYour login details:\nEmail: ${savedProfile.email}\nPlease contact your administrator for your login credentials.\n\nBest regards,\nTalent Shield HRMS Team`;
       
       await sendEmailNotification(savedProfile.email, subject, body);
     } catch (notificationError) {

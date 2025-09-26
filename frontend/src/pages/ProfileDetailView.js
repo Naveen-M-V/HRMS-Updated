@@ -338,10 +338,7 @@ const handleDeleteCertificate = async (certId) => {
                   <span className="text-gray-600">Status:</span>
                   <span className="font-medium">{profile.status || "N/A"}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Skillko ID:</span>
-                  <span className="font-medium">{profile.skillkoId || "N/A"}</span>
-                </div>
+                
                 <div className="flex justify-between">
                   <span className="text-gray-600">POC:</span>
                   <span className="font-medium">{profile.poc || "N/A"}</span>

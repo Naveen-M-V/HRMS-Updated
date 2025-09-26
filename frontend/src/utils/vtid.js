@@ -1,7 +1,6 @@
 // src/utils/vtid.js
 export function generateVTID(profile) {
   if (!profile) return "N/A";
-  if (profile.skillkoId) return profile.skillkoId;
   if (profile.vtid) return profile.vtid;
   if (profile.vtrxId) return profile.vtrxId;
 

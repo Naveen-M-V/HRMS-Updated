@@ -79,7 +79,6 @@ const ProfilesList = () => {
                       {profile.firstName} {profile.lastName}
                     </h3>
                     <p className="text-sm text-gray-600">{profile.email}</p>
-                    <p className="text-sm text-gray-500">ID: {profile.skillkoId}</p>
                   </div>
                   <div className="flex flex-col items-end">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
