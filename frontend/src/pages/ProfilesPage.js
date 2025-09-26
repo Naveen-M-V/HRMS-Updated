@@ -5,7 +5,6 @@ import { useProfiles } from "../context/ProfileContext";
 import { Link } from "react-router-dom";
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { generateVTID } from '../utils/vtid'; // Import VTID utility
-import { getApiUrl } from '../utils/api'; // Adjust path as needed
 
 
 export default function ProfilesPage() {
@@ -17,7 +16,7 @@ export default function ProfilesPage() {
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedManager, setSelectedManager] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const getApiUrl = () => "https://your-api-base-url.com";
   const navigate = useNavigate();
 
   // Get unique values for filter dropdowns
