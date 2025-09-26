@@ -5,7 +5,9 @@ import { useAuth } from "../context/AuthContext";
 
 export default function EditUserProfile() {
   const [activeTab, setActiveTab] = useState("Profile Details");
+  const [profileLoading, setProfileLoading] = useState(false);
   const [formData, setFormData] = useState({
+    
     // Profile Details
     firstName: "",
     lastName: "",

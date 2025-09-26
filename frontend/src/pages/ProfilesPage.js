@@ -5,6 +5,8 @@ import { useProfiles } from "../context/ProfileContext";
 import { Link } from "react-router-dom";
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { generateVTID } from '../utils/vtid'; // Import VTID utility
+import { getApiUrl } from '../utils/api'; // Adjust path as needed
+
 
 export default function ProfilesPage() {
   const { profiles, deleteProfile, fetchProfiles } = useProfiles();
