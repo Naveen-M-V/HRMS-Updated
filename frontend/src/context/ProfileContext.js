@@ -232,6 +232,7 @@ export const ProfileProvider = ({ children }) => {
         console.log('ProfileContext: Individual profile fetched:', {
           id: profile._id,
           vtid: profile.vtid,
+          skillkoId: profile.skillkoId,
           firstName: profile.firstName,
           lastName: profile.lastName
         });
@@ -342,6 +343,7 @@ export const ProfileProvider = ({ children }) => {
         address: user.address || {},
         staffType: user.staffType || 'Staff',
         role: user.role || '',
+        skillkoId: user.skillkoId || '',
         department: user.department || '',
         jobLevel: user.jobLevel || '',
         profilePicture: user.profilePicture || ''

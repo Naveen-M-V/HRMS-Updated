@@ -51,10 +51,10 @@ export default function Profile() {
     };
 
     // Only fetch if we have a profile ID but missing key data like VTID
-    if (userProfile._id && (!userProfile.vtid )) {
+    if (userProfile._id && (!userProfile.vtid || !userProfile.skillkoId)) {
       fetchCompleteUserProfile();
     }
-  }, [userProfile._id, userProfile.vtid, fetchProfileById, profileLoading]);
+  }, [userProfile._id, userProfile.vtid, userProfile.skillkoId, fetchProfileById, profileLoading]);
   
   // Get user's certificates (memoized for performance)
   const userCertificates = useMemo(() => {
@@ -65,6 +65,7 @@ export default function Profile() {
 
   // Generate consistent VTID
   const generateVTID = useCallback((profile) => {
+    if (profile.skillkoId) return profile.skillkoId;
     if (profile.vtid) return profile.vtid;
     if (profile.vtrxId) return profile.vtrxId;
     
@@ -281,14 +282,15 @@ export default function Profile() {
                     <div className="text-sm text-gray-500">VTID</div>
                     <div className="font-medium">
                       {(() => {
-                        const vtid = userProfile?.vtid 
-                        console.log('VTID Display - userProfile.vtid:', userProfile?.vtid, 'Final VTID:', vtid);
+                        const vtid = userProfile?.vtid || userProfile?.skillkoId;
+                        console.log('VTID Display - userProfile.vtid:', userProfile?.vtid, 'userProfile.skillkoId:', userProfile?.skillkoId, 'Final VTID:', vtid);
                         return vtid || 'Not assigned';
                       })()}
                     </div>
                   </div>
                   <div>
-              
+                    <div className="text-sm text-gray-500">Skillko ID</div>
+                    <div className="font-medium">{userProfile?.skillkoId || 'Not assigned'}</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Job Roles</div>

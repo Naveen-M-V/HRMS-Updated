@@ -3,17 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getImageUrl } from "../utils/config";
-import { useUserProfile } from "../hooks/useUserProfile";
 
 export default function MyAccount() {
   const navigate = useNavigate();
-  const { user, logout, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading, error: profileError, refetch } = useUserProfile();
+  const { user, logout, loading } = useAuth();
   const { uploadProfilePicture } = useProfiles();
-  // Add after the hooks
-  const loading = authLoading || profileLoading;
-  const displayProfile = profile || user || {};
-
+  
+  const [profile, setProfile] = useState({});
   const [savingImage, setSavingImage] = useState(false);
 
   // Update profile with actual user data only

@@ -162,6 +162,7 @@ The frontend will be available at `http://localhost:3000`
   mobile: String,
   jobTitle: String,
   company: String,
+  skillkoId: Number (auto-generated),
   role: String,
   staffType: String,
   address: Object,

@@ -177,7 +177,7 @@ export default function EditProfile() {
     addressLine2: userProfile.address?.line2 || '',
     city: userProfile.address?.city || '',
     postCode: userProfile.address?.postCode || '',
-    country: userProfile.address?.country || '',
+    country: userProfile.address?.country || 'Poland',
     // Emergency contact
     emergencyName: userProfile.emergencyContact?.name || '',
     emergencyRelationship: userProfile.emergencyContact?.relationship || '',

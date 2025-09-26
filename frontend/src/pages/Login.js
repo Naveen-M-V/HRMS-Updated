@@ -115,12 +115,16 @@ export default function Login() {
           localStorage.removeItem('rememberedEmail');
         }
         
-        // Role-based routing using server role
-        const serverRole = result.user?.role || 'user';
-        const redirectPath = serverRole === 'admin'
-          ? (location.state?.from?.pathname || '/dashboard')
-          : '/user-dashboard';
-
+        // Role-based routing using selected role
+        const selectedRole = formData.role;
+        let redirectPath = "/dashboard";
+        
+        if (selectedRole === 'admin') {
+          redirectPath = location.state?.from?.pathname || "/dashboard";
+        } else if (selectedRole === 'user') {
+          redirectPath = "/user-dashboard";
+        }
+        
         navigate(redirectPath, { replace: true });
       } else {
         setErrors({ general: result.error || "Invalid email or password" });
