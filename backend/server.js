@@ -245,6 +245,30 @@ const userSchema = new mongoose.Schema({
   termsAcceptedAt: { type: Date }
 }, { timestamps: true });
 
+// Add method to create default admin if none exists
+userSchema.statics.ensureAdminExists = async function() {
+  try {
+    const adminCount = await this.countDocuments({ role: 'admin' });
+    if (adminCount === 0) {
+      // Create default admin account
+      const hashedPassword = await bcrypt.hash('Admin@123', 10);
+      await this.create({
+        firstName: 'Admin',
+        lastName: 'User',
+        email: 'admin@talentshield.com',
+        password: hashedPassword,
+        role: 'admin',
+        isActive: true,
+        emailVerified: true,
+        adminApprovalStatus: 'approved'
+      });
+      console.log('Default admin account created');
+    }
+  } catch (error) {
+    console.error('Error ensuring admin exists:', error);
+  }
+};
+
 // Clear any existing User model to avoid schema conflicts
 if (mongoose.models.User) {
   delete mongoose.models.User;
@@ -1735,13 +1759,20 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
-    // Enforce email verification
-    if (!user.emailVerified) {
+    // In development, auto-verify email for admins
+    if (process.env.NODE_ENV === 'development' && user.role === 'admin' && !user.emailVerified) {
+      user.emailVerified = true;
+      user.adminApprovalStatus = 'approved';
+      await user.save();
+    }
+
+    // Enforce email verification for non-admins
+    if (!user.emailVerified && user.role !== 'admin') {
       return res.status(403).json({ message: 'Email not verified. Please verify your email to continue.' });
     }
 
-    // Enforce admin approval
-    if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
+    // Enforce admin approval only in production
+    if (process.env.NODE_ENV === 'production' && user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
       return res.status(403).json({ message: 'Admin account pending approval by super admin.' });
     }
 

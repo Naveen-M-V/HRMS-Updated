@@ -43,15 +43,36 @@ export default function EditCertificate() {
   useEffect(() => {
     const cert = certificates.find(c => (c.id || c._id) === id || (c.id || c._id) === parseInt(id));
     if (cert) {
+      console.log('Loading certificate data:', cert);
       // Format dates to YYYY-MM-DD for date inputs
       const formatDate = (dateString) => {
         if (!dateString) return "";
-        const date = new Date(dateString);
-        // First ensure we have a valid date
-        if (isNaN(date.getTime())) return "";
-        // Adjust for timezone to ensure consistent date
-        const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-        return localDate.toISOString().split('T')[0];
+        
+        try {
+          // Try to create a date object from the string
+          const date = new Date(dateString);
+          
+          // Check if it's a valid date
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid date string received:', dateString);
+            return "";
+          }
+          
+          // Adjust for timezone to ensure consistent date
+          const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+          const formattedDate = localDate.toISOString().split('T')[0];
+          
+          console.log('Formatting date:', {
+            original: dateString,
+            parsed: date.toISOString(),
+            formatted: formattedDate
+          });
+          
+          return formattedDate;
+        } catch (error) {
+          console.error('Error formatting date:', dateString, error);
+          return "";
+        }
       };
 
       setFormData({
@@ -168,19 +189,32 @@ export default function EditCertificate() {
     e.preventDefault();
     
     // Update certificate with new data - mapping to certificate page fields
+    const formatDateForSubmit = (dateString) => {
+      if (!dateString) return null;
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+          console.warn('Invalid date for submission:', dateString);
+          return null;
+        }
+        const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+        const isoString = utcDate.toISOString();
+        console.log('Formatting date for submission:', {
+          input: dateString,
+          output: isoString
+        });
+        return isoString;
+      } catch (error) {
+        console.error('Error formatting date for submission:', dateString, error);
+        return null;
+      }
+    };
+
     const updatedCert = {
       certificate: formData.certificate,
       description: formData.description,
-      issueDate: formData.issueDate ? (() => {
-        const date = new Date(formData.issueDate);
-        const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
-        return utcDate.toISOString();
-      })() : null,
-      expiryDate: formData.expiryDate ? (() => {
-        const date = new Date(formData.expiryDate);
-        const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
-        return utcDate.toISOString();
-      })() : null,
+      issueDate: formatDateForSubmit(formData.issueDate),
+      expiryDate: formatDateForSubmit(formData.expiryDate),
       profileName: formData.profileName || "N/A", // This should come from form
       provider: formData.supplier,
       fileRequired: formData.fileRequired,

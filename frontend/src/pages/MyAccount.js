@@ -14,6 +14,33 @@ export default function MyAccount() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-red-600">
+          <p>Error loading profile: {error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -24,17 +51,27 @@ export default function MyAccount() {
       
       try {
         setLoading(true);
-        const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk/api';
-        const response = await fetch(`${apiUrl}/profiles/user/${user.email}`, {
-          credentials: 'include'
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+        const response = await fetch(`${apiUrl}/api/profiles/user/${user.email}`, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         });
         
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Server returned non-JSON response');
+        }
+
+        const data = await response.json();
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to fetch profile data');
+          throw new Error(data.message || 'Failed to fetch profile data');
         }
         
-        const profileData = await response.json();
+        const profileData = data;
         console.log('Profile data loaded:', profileData);
         
         // If we have a valid profile data
@@ -98,7 +135,8 @@ export default function MyAccount() {
       const formData = new FormData();
       formData.append('profilePicture', file);
 
-      const response = await fetch(`/api/profiles/${user._id}/picture`, {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+      const response = await fetch(`${apiUrl}/api/profiles/${user._id}/picture`, {
         method: 'POST',
         credentials: 'include',
         body: formData
@@ -130,33 +168,6 @@ export default function MyAccount() {
       navigate("/login");
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-red-600">
-          <p>Error loading profile: {error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6">
