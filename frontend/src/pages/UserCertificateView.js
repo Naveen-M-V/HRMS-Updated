@@ -10,7 +10,6 @@ import {
   CurrencyPoundSterlingIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
-import usePageTitle from '../hooks/usePageTitle';
 
 const UserCertificateView = () => {
   const { id } = useParams();
@@ -19,9 +18,6 @@ const UserCertificateView = () => {
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Set dynamic page title based on certificate name
-  usePageTitle(certificate ? `Certificate - ${certificate.certificate}` : "Certificate Details");
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 

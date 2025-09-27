@@ -14,12 +14,7 @@ const cookieParser = require('cookie-parser');
 // Load environment configuration
 const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
-const express = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const User = require('./models/User');
-const { sendApprovalRequestEmail } = require('./utils/emailService'); // Add this line
-// other imports ...
+
 const app = express();
 const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
@@ -486,10 +481,10 @@ app.get('/api/profiles/paginated', async (req, res) => {
   }
 });
 
-// Get profile by email (for user role determination)
-app.get('/api/profiles/by-email/:email', async (req, res) => {
+// Get profile by ID (optimized - excludes binary data)
+app.get('/api/profiles/:id', async (req, res) => {
   try {
-    const profile = await Profile.findOne({ email: req.params.email })
+    const profile = await Profile.findById(req.params.id)
       .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
       .lean();
     if (!profile) {
@@ -654,17 +649,33 @@ app.delete('/api/profiles/:id', async (req, res) => {
       return res.status(404).json({ message: 'Profile not found' });
     }
     
-    // Delete all certificates associated with this profile
+    // Delete all certificates associated with this profile (cascading delete)
     const deletedCertificates = await Certificate.deleteMany({ profileId: req.params.id });
-    console.log(`Deleted ${deletedCertificates.deletedCount} certificates for profile ${req.params.id}`);
+    console.log(`Deleted ${deletedCertificates.deletedCount} certificates associated with profile ${req.params.id}`);
     
-    const deletedProfile = await Profile.findByIdAndDelete(req.params.id);
-    
-    // Create notification and send email for profile deletion
+    // Create notifications for deleted certificates
     try {
       const users = await User.find({ role: 'admin' });
       for (const user of users) {
-        // Create in-app notification
+        const notification = new Notification({
+          userId: user._id,
+          type: 'certificate_deleted',
+          priority: 'medium',
+          message: `All certificates for profile ${profile.firstName} ${profile.lastName} were deleted (${deletedCertificates.deletedCount} certificates)`,
+          read: false
+        });
+        await notification.save();
+      }
+    } catch (notificationError) {
+      console.error('Error creating certificate delete notifications:', notificationError);
+    }
+    
+    const deletedProfile = await Profile.findByIdAndDelete(req.params.id);
+    
+    // Create notification for profile deletion
+    try {
+      const users = await User.find({ role: 'admin' });
+      for (const user of users) {
         const notification = new Notification({
           userId: user._id,
           type: 'profile_deleted',
@@ -673,43 +684,18 @@ app.delete('/api/profiles/:id', async (req, res) => {
           read: false
         });
         await notification.save();
-        
-        // Send actual email notification
-        if (user.email) {
-          try {
-            await transporter.sendMail({
-              from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-              to: user.email,
-              subject: `Profile Deleted - ${profile.firstName} ${profile.lastName}`,
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #dc2626;">Profile Deleted</h2>
-                  <p>A user profile has been deleted from the HRMS system:</p>
-                  <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                    <strong>Deleted Profile:</strong> ${profile.firstName} ${profile.lastName}<br>
-                    <strong>Email:</strong> ${profile.email || 'N/A'}<br>
-                    <strong>Company:</strong> ${profile.company || 'N/A'}<br>
-                    <strong>Certificates Deleted:</strong> ${deletedCertificates.deletedCount}
-                  </div>
-                  <p>This action was performed on ${new Date().toLocaleString()}.</p>
-                  <hr style="margin: 20px 0;">
-                  <p style="color: #6b7280; font-size: 12px;">
-                    This is an automated notification from Talent Shield HRMS.
-                  </p>
-                </div>
-              `
-            });
-            console.log(`Email notification sent to admin: ${user.email}`);
-          } catch (emailError) {
-            console.error(`Failed to send email to ${user.email}:`, emailError);
-          }
-        }
       }
     } catch (notificationError) {
       console.error('Error creating delete notification:', notificationError);
     }
     
-    res.json({ message: 'Profile deleted successfully' });
+    res.json({ 
+      message: 'Profile and associated certificates deleted successfully',
+      details: {
+        profileDeleted: true,
+        certificatesDeleted: deletedCertificates.deletedCount
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -1515,30 +1501,6 @@ app.get('/api/profiles/by-email/:email', async (req, res) => {
   }
 });
 
-// Update profile by email (for user profile updates)
-app.put('/api/profiles/by-email/:email', async (req, res) => {
-  try {
-    const { email } = req.params;
-    const updateData = req.body;
-    
-    // Find and update the profile
-    const profile = await Profile.findOneAndUpdate(
-      { email },
-      updateData,
-      { new: true, runValidators: true }
-    );
-    
-    if (!profile) {
-      return res.status(404).json({ message: 'Profile not found' });
-    }
-    
-    res.json(profile);
-  } catch (error) {
-    console.error('Error updating profile by email:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
 // Certificate delete request endpoint
 app.post('/api/certificates/delete-request', async (req, res) => {
   try {
@@ -1589,56 +1551,44 @@ app.post('/api/certificates/delete-request', async (req, res) => {
 // Authentication Routes
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !role) {
-      return res.status(400).json({ message: 'All fields including role are required' });
-    }
-
-    // Check if the user already exists
+    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // Hash the password before saving
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create the new user object
-    const newUser = new User({
+    // Create new user
+    const user = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
-      role,
-      // Admins require approval (inactive initially)
-      isActive: role === 'admin' ? false : true
+      isActive: true
     });
 
-    // Save the user to the database
-    await newUser.save();
+    await user.save();
 
-    // If the role is admin, send approval request email
-    if (role === 'admin') {
-      try {
-        await sendApprovalRequestEmail(newUser);
-        return res.status(201).json({ message: 'Admin account created, pending approval.' });
-      } catch (emailError) {
-        console.error('Error sending approval email:', emailError);
-        // Admin created but email failed to send
-        return res.status(201).json({ message: 'Admin created pending approval, but failed to notify Super Admin.' });
+    res.status(201).json({ 
+      message: 'User created successfully',
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
       }
-    }
-
-    // For non-admin users, respond with success immediately
-    return res.status(201).json({ message: 'User account created successfully.' });
-
+    });
   } catch (error) {
-    console.error('Signup error:', error);
-    return res.status(500).json({ message: 'Failed to create account' });
+    res.status(500).json({ message: error.message });
   }
 });
-
+const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration } = require('./utils/emailService');
+const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 
 // Import notification routes
 const notificationRoutes = require('./routes/notifications');
@@ -1653,56 +1603,7 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
 
-    // First, check if this is a user account (Profile collection)
-    const profile = await Profile.findOne({ email });
-
-    if (profile) {
-      // User login - validate VTID as password
-      if (password !== profile.vtid?.toString()) {
-        return res.status(400).json({ message: 'Invalid VTID or password' });
-      }
-
-      // Create user object for session
-      const sessionUser = {
-        userId: profile._id,
-        email: profile.email,
-        role: 'user', // Users always have 'user' role
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        profileId: profile._id
-      };
-
-      // Store user in session
-      req.session.user = sessionUser;
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-        }
-      });
-
-      // If remember me is checked, extend session duration
-      if (rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      }
-
-      // Generate JWT token for API compatibility
-      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: '24h' });
-
-      return res.json({
-        message: 'Login successful',
-        token,
-        user: {
-          id: profile._id,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          email: profile.email,
-          role: 'user',
-          vtid: profile.vtid
-        }
-      });
-    }
-
-    // If no profile found, check User collection (admin accounts)
+    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
@@ -1713,13 +1614,13 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
-    // Admin login - verify password
+    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Create session data for admin
+    // Create session data
     const sessionUser = {
       userId: user._id,
       email: user.email,
@@ -1730,9 +1631,13 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Store user in session
     req.session.user = sessionUser;
+
+    // Force session save
     req.session.save((err) => {
       if (err) {
         console.error('Session save error:', err);
+      } else {
+        console.log('Session saved successfully for user:', sessionUser.email);
       }
     });
 
@@ -1744,20 +1649,21 @@ app.post('/api/auth/login', async (req, res) => {
     // Generate JWT token for API compatibility
     const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: '24h' });
 
-    // Send login success email notification for admin
+    // Send login success email notification
     try {
       const loginTime = new Date().toLocaleString();
       const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
       const userName = `${user.firstName} ${user.lastName}`;
-
+      
       await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
     } catch (emailError) {
       console.error('Failed to send login success email:', emailError);
+      // Don't fail the login if email fails
     }
 
     res.json({
       message: 'Login successful',
-      token,
+      token, // Keep for backward compatibility
       user: {
         id: user._id,
         firstName: user.firstName,

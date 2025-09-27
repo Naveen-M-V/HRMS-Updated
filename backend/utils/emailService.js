@@ -1,4 +1,3 @@
-// backend/utils/emailService.js
 const nodemailer = require('nodemailer');
 
 // Create SMTP transporter
@@ -23,7 +22,7 @@ const sendLoginSuccessEmail = async (userEmail, userName, loginTime, ipAddress) 
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM,
       to: userEmail,
       subject: 'Login Successful - HRMS System',
       html: `
@@ -69,7 +68,7 @@ const sendCertificateExpiryEmail = async (userEmail, userName, certificateName, 
     const urgencyText = daysUntilExpiry <= 7 ? 'URGENT' : daysUntilExpiry <= 30 ? 'WARNING' : 'NOTICE';
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM,
       to: userEmail,
       subject: `${urgencyText}: Certificate Expiry Notification - ${certificateName}`,
       html: `
@@ -109,16 +108,42 @@ const sendCertificateExpiryEmail = async (userEmail, userName, certificateName, 
   }
 };
 
-// Send notification email (generic)
-const sendNotificationEmail = async (userEmail, subject, html) => {
+// Send general notification email
+const sendNotificationEmail = async (userEmail, userName, subject, message, type = 'info') => {
   try {
     const transporter = createTransporter();
-
+    
+    const typeColors = {
+      success: '#4CAF50',
+      warning: '#ff9800',
+      error: '#f44336',
+      info: '#2196F3'
+    };
+    
     const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: process.env.EMAIL_FROM,
       to: userEmail,
-      subject,
-      html
+      subject: `HRMS Notification: ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: ${typeColors[type]}; color: white; padding: 20px; text-align: center;">
+            <h1>HRMS Notification</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>Hello <strong>${userName}</strong>,</p>
+            
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <h3>${subject}</h3>
+              <p>${message}</p>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666;">
+              <p>This is an automated message from HRMS System</p>
+              <p>Sent on: ${new Date().toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      `
     };
 
     const result = await transporter.sendMail(mailOptions);
@@ -126,42 +151,6 @@ const sendNotificationEmail = async (userEmail, subject, html) => {
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('Error sending notification email:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Send an email notifying the Super Admin that a new Admin signup requires approval
- * @param {Object} newUser - The user object containing at least firstName, lastName, email
- */
-const sendApprovalRequestEmail = async (newUser) => {
-  try {
-    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'superadmin@example.com';
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
-      to: superAdminEmail,
-      subject: 'New Admin Signup Request - Approval Needed',
-      html: `
-        <p>Hello Super Admin,</p>
-        <p>A new admin account has been created on Talent Shield HRMS and requires your approval to activate.</p>
-        <h3>Admin Details:</h3>
-        <ul>
-          <li><strong>Name:</strong> ${newUser.firstName} ${newUser.lastName}</li>
-          <li><strong>Email:</strong> ${newUser.email}</li>
-          <li><strong>Signup Date:</strong> ${new Date().toLocaleString()}</li>
-        </ul>
-        <p>Please review this request at your earliest convenience.</p>
-        <p>Thank you,<br/>Talent Shield HRMS Team</p>
-      `
-    };
-
-    let info = await transporter.sendMail(mailOptions);
-    console.log("Admin signup approval email sent: %s", info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error("Error sending admin approval email:", error);
     return { success: false, error: error.message };
   }
 };
@@ -183,6 +172,5 @@ module.exports = {
   sendLoginSuccessEmail,
   sendCertificateExpiryEmail,
   sendNotificationEmail,
-  sendApprovalRequestEmail,
   testEmailConfiguration
 };

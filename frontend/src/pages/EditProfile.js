@@ -4,14 +4,11 @@ import { Link } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
-import usePageTitle from "../hooks/usePageTitle";
 
 
 export default function EditProfile() {
   const navigate = useNavigate();
   const { userProfile, updateUserProfile } = useProfiles();
-  
-  usePageTitle("Edit My Profile");
   
   // State for job roles and job levels
   const [jobRoles, setJobRoles] = useState([]);
@@ -180,7 +177,7 @@ export default function EditProfile() {
     addressLine2: userProfile.address?.line2 || '',
     city: userProfile.address?.city || '',
     postCode: userProfile.address?.postCode || '',
-    country: userProfile.address?.country || 'United Kingdom',
+    country: userProfile.address?.country || 'Poland',
     // Emergency contact
     emergencyName: userProfile.emergencyContact?.name || '',
     emergencyRelationship: userProfile.emergencyContact?.relationship || '',
@@ -216,7 +213,7 @@ export default function EditProfile() {
       addressLine2: userProfile.address?.line2 || '',
       city: userProfile.address?.city || '',
       postCode: userProfile.address?.postCode || '',
-      country: userProfile.address?.country || 'United Kingdom',
+      country: userProfile.address?.country || 'Poland',
       // Emergency contact
       emergencyName: userProfile.emergencyContact?.name || '',
       emergencyRelationship: userProfile.emergencyContact?.relationship || '',
@@ -257,9 +254,8 @@ export default function EditProfile() {
       const result = await updateUserProfile(formData);
       
       if (result.success) {
-        alert("Profile updated successfully!");
-        // navigate back to my account page after saving
-        navigate("/myaccount");
+        // navigate back to profile page after saving
+        navigate("/profiles");
       } else {
         alert("Failed to save profile changes. Please try again.");
       }
@@ -271,7 +267,7 @@ export default function EditProfile() {
 
   const handleCancel = () => {
     // just go back without saving
-    navigate("/myaccount");
+    navigate("/myaccount/profiles");
   };
 
   return (
@@ -678,8 +674,8 @@ export default function EditProfile() {
                 onChange={handleChange}
                 className="mt-1 w-full border rounded px-3 py-2"
               >
-                <option value="United Kingdom">United Kingdom</option>
                 <option value="Poland">Poland</option>
+                <option value="United Kingdom">United Kingdom</option>
                 <option value="United States">United States</option>
                 <option value="Germany">Germany</option>
                 <option value="France">France</option>

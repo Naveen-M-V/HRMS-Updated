@@ -2,73 +2,38 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
-import usePageTitle from "../hooks/usePageTitle";
+import { getImageUrl } from "../utils/config";
 
 export default function MyAccount() {
   const navigate = useNavigate();
   const { user, logout, loading } = useAuth();
-  const { userProfile, fetchProfileById } = useProfiles();
-  
-  usePageTitle("My Profile");
-  
+  const { uploadProfilePicture } = useProfiles();
+
   const [profile, setProfile] = useState({});
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [savingImage, setSavingImage] = useState(false);
 
-  // Function to fetch profile data
-  const fetchUserProfile = async () => {
-    if (user?.email) {
-      try {
-        setProfileLoading(true);
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-        const response = await fetch(`${API_BASE_URL}/api/profiles/by-email/${user.email}`, {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const profileData = await response.json();
-          setProfile(profileData);
-          console.log('Profile data fetched:', profileData);
-        } else {
-          console.error('Failed to fetch profile:', response.status);
-          // Fallback to user data if profile fetch fails
-          setProfile(user);
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        // Fallback to user data if profile fetch fails
-        setProfile(user);
-      } finally {
-        setProfileLoading(false);
-      }
-    } else if (user) {
-      // If no email, use basic user data
+  // Update profile with actual user data only
+  useEffect(() => {
+    if (user) {
       setProfile(user);
-      setProfileLoading(false);
     }
-  };
-
-  // Fetch profile data on component mount and when user changes
-  useEffect(() => {
-    fetchUserProfile();
   }, [user]);
 
-  // Listen for focus events to refresh data when returning from edit page
-  useEffect(() => {
-    const handleFocus = () => {
-      console.log('Window focused, refreshing profile data...');
-      fetchUserProfile();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [user]);
-
-  // handle profile picture change
-  const handleImageChange = (e) => {
+  // Handle profile picture change - persist to backend
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfile((prev) => ({ ...prev, photo: imageUrl }));
+    if (!file || !user?._id) return;
+    try {
+      setSavingImage(true);
+      const storedPath = await uploadProfilePicture(user._id, file);
+      setProfile((prev) => ({ ...prev, profilePicture: storedPath }));
+      alert("Profile picture updated successfully!");
+    } catch (err) {
+      console.error("Failed to upload profile picture:", err);
+      alert("Failed to upload profile picture. Please try again.");
+    } finally {
+      setSavingImage(false);
+      e.target.value = "";
     }
   };
 
@@ -79,7 +44,6 @@ export default function MyAccount() {
       navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
-      // Still navigate to login even if logout fails
       navigate("/login");
     }
   };
@@ -92,9 +56,10 @@ export default function MyAccount() {
         <div className="flex gap-3">
           <button
             onClick={() => navigate("/editprofile")}
-            className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow"
+            disabled={loading}
+            className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Edit
+            Edit Profile
           </button>
           <button
             onClick={handleLogout}
@@ -105,14 +70,23 @@ export default function MyAccount() {
               <>
                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Logging out...
               </>
             ) : (
               <>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
                 </svg>
                 Logout
               </>
@@ -134,9 +108,9 @@ export default function MyAccount() {
           {/* Profile Image */}
           <div className="flex flex-col ml-10 items-center">
             <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-4xl overflow-hidden">
-              {profile.photo ? (
+              {profile.profilePicture ? (
                 <img
-                  src={profile.photo}
+                  src={`${getImageUrl(profile.profilePicture)}?t=${Date.now()}`}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -145,7 +119,6 @@ export default function MyAccount() {
               )}
             </div>
 
-            {/* Hidden input */}
             <input
               type="file"
               id="profileUpload"
@@ -155,23 +128,22 @@ export default function MyAccount() {
             />
 
             <button
-              onClick={() => document.getElementById("profileUpload").click()}
-              className="mt-2 text-sm border px-3 py-1 rounded bg-gray-50 hover:bg-gray-100"
+              onClick={() => !savingImage && document.getElementById("profileUpload").click()}
+              className="mt-2 text-sm border px-3 py-1 rounded bg-gray-50 hover:bg-gray-100 disabled:opacity-50"
+              disabled={savingImage}
             >
-              Change
+              {savingImage ? "Saving..." : "Change"}
             </button>
           </div>
 
           {/* Name + Role */}
           <div className="flex-1 ml-20">
             <h2 className="text-xl font-semibold">
-              {profileLoading ? 'Loading...' : (profile.firstName ? `${profile.firstName} ${profile.lastName || ''}` : 'Name not available')}
+              {profile.firstName ? `${profile.firstName} ${profile.lastName || ''}` : 'Loading...'}
             </h2>
-            <p className="text-gray-600">
-              {profileLoading ? 'Loading...' : (Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : (profile.jobRole || profile.jobTitle || 'No job title specified'))}
-            </p>
+            <p className="text-gray-600">{profile.jobTitle || 'No job title specified'}</p>
             <p className="text-green-600 text-sm mt-1">
-              {profileLoading ? 'Loading...' : `${profile.company || 'No company specified'} • ${profile.staffType || 'Staff'} Staff`}
+              {profile.company || 'No company specified'} • {profile.staffType || 'Staff'} Staff
             </p>
 
             {/* Bio */}
@@ -185,46 +157,32 @@ export default function MyAccount() {
           <div className="text-sm space-y-4 w-full md:w-1/3 md:ml-12">
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Email</span>
-              <span>
-                {profileLoading ? "Loading..." : (profile.email || "Not provided")}
-              </span>
+              <span>{profile.email || "Not provided"}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Mobile</span>
-              <span className="text-gray-500">
-                {profileLoading ? "Loading..." : (profile.mobile || "Not provided")}
-              </span>
+              <span className="text-gray-500">{profile.mobile || "Not provided"}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">D.O.B.</span>
-              <span>{profileLoading ? "Loading..." : (profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-GB') : "Not provided")}</span>
+              <span>{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-GB') : "Not provided"}</span>
             </div>
 
             <div className="flex justify-between">
-              <span className="font-medium text-gray-700">Gender</span>
-              <span>{profileLoading ? "Loading..." : (profile.gender || "Not specified")}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="font-medium text-gray-700">Nationality</span>
-              <span>{profileLoading ? "Loading..." : (profile.nationality || "Not specified")}</span>
+              <span className="font-medium text-gray-700">Department</span>
+              <span>{profile.department || "Not specified"}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Staff Type</span>
-              <span>{profileLoading ? "Loading..." : (profile.staffType || "Not specified")}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="font-medium text-gray-700">Job Level</span>
-              <span>{profileLoading ? "Loading..." : (profile.jobLevel || "Not specified")}</span>
+              <span>{profile.staffType || "Not specified"}</span>
             </div>
 
             <div className="flex justify-between">
               <span className="font-medium text-gray-700">Address</span>
-              <span>{profileLoading ? "Loading..." : (profile.address?.country || "Not provided")}</span>
+              <span>{profile.address?.country || "Not provided"}</span>
             </div>
           </div>
         </div>

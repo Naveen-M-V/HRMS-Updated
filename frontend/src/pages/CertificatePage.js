@@ -3,7 +3,6 @@ import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { getImageUrl } from '../utils/config';
-import usePageTitle from "../hooks/usePageTitle";
 
 export default function CertificatesPage() {
   const { certificates, deleteCertificate } = useCertificates();
@@ -11,8 +10,6 @@ export default function CertificatesPage() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [selectedCertificate, setSelectedCertificate] = useState(null); // 
   const navigate = useNavigate();
-  
-  usePageTitle("Certificates");
 
   // Get unique values for filter dropdowns
   const filterOptions = useMemo(() => {

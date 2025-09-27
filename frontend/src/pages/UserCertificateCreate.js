@@ -8,15 +8,12 @@ import {
   CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 import SearchableDropdown from '../components/SearchableDropdown';
-import usePageTitle from '../hooks/usePageTitle';
 
 const UserCertificateCreate = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(false);
-  
-  usePageTitle("Add Certificate");
   const [formData, setFormData] = useState({
     certificate: '',
     category: '',

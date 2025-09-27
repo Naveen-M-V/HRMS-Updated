@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import usePageTitle from '../hooks/usePageTitle';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -10,8 +9,6 @@ const UserDashboard = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  usePageTitle('My Dashboard');
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
