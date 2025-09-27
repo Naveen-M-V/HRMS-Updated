@@ -181,19 +181,32 @@ export default function ProfilesCreate() {
             </div>
           </div>
 
-          {/* Date of Birth */}
-          <div>
-            <label className="block text-sm font-medium">Date of Birth</label>
-            <input
-              type="date"
-              name="dob"
-              value={formData.dob}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded p-2"
-            />
+          {/* Date of Birth & Company */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium">Date of Birth</label>
+              <input
+                type="date"
+                name="dob"
+                value={formData.dob}
+                onChange={handleChange}
+                className="mt-1 block w-full border rounded p-2"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Company</label>
+              <input
+                type="text"
+                name="company"
+                value={formData.company}
+                onChange={handleChange}
+                placeholder="Company"
+                className="mt-1 block w-full border rounded p-2"
+              />
+            </div>
           </div>
 
-          {/* Company */}
+          {/* Removing old Company div since it's now part of the grid above */}
           <div>
             <label className="block text-sm font-medium">Company</label>
             <input

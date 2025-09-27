@@ -43,11 +43,19 @@ export default function EditCertificate() {
   useEffect(() => {
     const cert = certificates.find(c => (c.id || c._id) === id || (c.id || c._id) === parseInt(id));
     if (cert) {
+      // Format dates to YYYY-MM-DD for date inputs
+      const formatDate = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "";
+        return date.toISOString().split('T')[0];
+      };
+
       setFormData({
         certificate: cert.certificate || "",
         description: cert.description || cert.certificate || "",
-        issueDate: cert.issueDate || "",
-        expiryDate: cert.expiryDate || "",
+        issueDate: formatDate(cert.issueDate),
+        expiryDate: formatDate(cert.expiryDate),
         profileName: cert.profileName || "",
         approvalStatus: cert.status || "",
         isInterim: cert.isInterim || "Jobs",
@@ -160,8 +168,8 @@ export default function EditCertificate() {
     const updatedCert = {
       certificate: formData.certificate,
       description: formData.description,
-      issueDate: formData.issueDate,
-      expiryDate: formData.expiryDate,
+      issueDate: formData.issueDate ? new Date(formData.issueDate).toISOString() : null,
+      expiryDate: formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null,
       profileName: formData.profileName || "N/A", // This should come from form
       provider: formData.supplier,
       fileRequired: formData.fileRequired,

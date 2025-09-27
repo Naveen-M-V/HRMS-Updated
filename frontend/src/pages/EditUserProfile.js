@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
+import JobRoleDropdown from '../components/JobRoleDropdown';
 
 export default function EditUserProfile() {
   const [activeTab, setActiveTab] = useState("Profile Details");
@@ -278,9 +279,9 @@ export default function EditUserProfile() {
         <form onSubmit={handleSubmit}>
           {/* Profile Details */}
           {activeTab === "Profile Details" && (
-            <div className="space-y-4 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
                 <input
                   id="firstName"
                   type="text"
@@ -293,7 +294,7 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
                 <input
                   id="lastName"
                   type="text"
@@ -358,15 +359,14 @@ export default function EditUserProfile() {
                 </select>
               </div>
               <div>
-                <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
-                <input
+                <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+                <JobRoleDropdown
                   id="jobTitle"
-                  type="text"
                   name="jobTitle"
                   value={formData.jobTitle}
                   onChange={handleChange}
-                  placeholder="Job Title"
-                  className="border p-2 rounded w-full"
+                  placeholder="Select or type to add job title"
+                  className="w-full"
                 />
               </div>
               <div>
@@ -430,9 +430,9 @@ export default function EditUserProfile() {
 
           {/* Employment Info */}
           {activeTab === "Employment Info" && (
-            <div className="space-y-4 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
               <div>
-                <label htmlFor="staffType" className="block text-sm font-medium text-gray-700 mb-1">Staff Type</label>
+                <label htmlFor="staffType" className="block text-sm font-medium text-gray-700 mb-2">Staff Type</label>
                 <select
                   id="staffType"
                   name="staffType"
@@ -448,7 +448,7 @@ export default function EditUserProfile() {
                 </select>
               </div>
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select
                   id="status"
                   name="status"
@@ -464,7 +464,7 @@ export default function EditUserProfile() {
                 </select>
               </div>
               <div>
-                <label htmlFor="poc" className="block text-sm font-medium text-gray-700 mb-1">Point of Contact (POC)</label>
+                <label htmlFor="poc" className="block text-sm font-medium text-gray-700 mb-2">Point of Contact (POC)</label>
                 <input
                   id="poc"
                   type="text"
@@ -476,7 +476,7 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
                 <input
                   id="startDate"
                   type="date"
@@ -491,9 +491,9 @@ export default function EditUserProfile() {
 
           {/* System IDs */}
           {activeTab === "System IDs" && (
-            <div className="space-y-4 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
               <div>
-                <label htmlFor="circetUIN" className="block text-sm font-medium text-gray-700 mb-1">Circet UIN</label>
+                <label htmlFor="circetUIN" className="block text-sm font-medium text-gray-700 mb-2">Circet UIN</label>
                 <input
                   id="circetUIN"
                   type="text"
@@ -505,7 +505,7 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <label htmlFor="circetSCID" className="block text-sm font-medium text-gray-700 mb-1">Circet SCID</label>
+                <label htmlFor="circetSCID" className="block text-sm font-medium text-gray-700 mb-2">Circet SCID</label>
                 <input
                   id="circetSCID"
                   type="text"
@@ -596,9 +596,9 @@ export default function EditUserProfile() {
 
           {/* Emergency Contact */}
           {activeTab === "Emergency Contact" && (
-            <div className="space-y-4 grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
               <div>
-                <label htmlFor="emergencyName" className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                <label htmlFor="emergencyName" className="block text-sm font-medium text-gray-700 mb-2">Contact Name</label>
                 <input
                   id="emergencyName"
                   type="text"
@@ -610,7 +610,7 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <label htmlFor="relationship" className="block text-sm font-medium text-gray-700 mb-1">Relationship</label>
+                <label htmlFor="relationship" className="block text-sm font-medium text-gray-700 mb-2">Relationship</label>
                 <input
                   id="relationship"
                   type="text"
