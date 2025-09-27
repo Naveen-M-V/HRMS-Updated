@@ -12,12 +12,22 @@ export default function MyAccount() {
   const [profile, setProfile] = useState({});
   const [savingImage, setSavingImage] = useState(false);
 
-  // Update profile with actual user data only
+  const { userProfile } = useProfiles();
+
+  // Update profile with actual user data and userProfile data
   useEffect(() => {
-    if (user) {
-      setProfile(user);
+    if (user && userProfile) {
+      setProfile({
+        ...user,
+        ...userProfile, // Merge userProfile data which contains the latest updates
+        // Ensure compound fields are properly handled
+        fullName: `${userProfile.firstName || user.firstName || ''} ${userProfile.lastName || user.lastName || ''}`.trim(),
+        jobTitle: Array.isArray(userProfile.jobTitle) ? userProfile.jobTitle.join(', ') : userProfile.jobTitle || user.jobTitle,
+        address: userProfile.address || user.address || {},
+        emergencyContact: userProfile.emergencyContact || user.emergencyContact || {},
+      });
     }
-  }, [user]);
+  }, [user, userProfile]); // Depend on both user and userProfile
 
   // Handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
@@ -55,7 +65,7 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => navigate("/editprofile")}
+            onClick={() => navigate("/myaccount/edit")}
             disabled={loading}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >

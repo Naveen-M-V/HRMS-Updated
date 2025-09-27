@@ -169,13 +169,31 @@ export default function EditUserProfile() {
     setLoading(true);
     
     try {
-      // Ensure jobTitle is synchronized with jobRole for consistency
+      // Transform form data to match API expectations
       const profileData = {
         ...formData,
+        // Handle job roles/titles properly
         jobRole: formData.jobTitle ? formData.jobTitle.split(',').map(role => role.trim()) : [],
-        jobTitle: formData.jobTitle ? formData.jobTitle.split(',').map(role => role.trim()) : []
+        jobTitle: formData.jobTitle ? formData.jobTitle.split(',').map(role => role.trim()) : [],
+        // Convert date strings to proper format
+        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
+        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        // Ensure nested objects are properly structured
+        address: {
+          line1: formData.address?.line1 || '',
+          line2: formData.address?.line2 || '',
+          city: formData.address?.city || '',
+          postCode: formData.address?.postCode || '',
+          country: formData.address?.country || ''
+        },
+        emergencyContact: {
+          name: formData.emergencyContact?.name || '',
+          relationship: formData.emergencyContact?.relationship || '',
+          phone: formData.emergencyContact?.phone || ''
+        }
       };
       
+      console.log('Submitting profile update:', profileData);
       const updatedProfile = await updateProfile(id, profileData);
       
       // If user is editing their own profile, update the auth context

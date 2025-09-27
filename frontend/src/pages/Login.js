@@ -10,9 +10,8 @@ import { EnvelopeIcon as MailIcon } from '@heroicons/react/24/outline';
 
 export default function Login() {
   const [formData, setFormData] = useState({
-    email: "",
+    emailOrUsername: "",
     password: "",
-    role: "user", // default to user
     rememberMe: false
   });
   const [errors, setErrors] = useState({});
@@ -35,7 +34,7 @@ export default function Login() {
         if (savedEmail && isMounted) {
           setFormData(prev => ({
             ...prev,
-            email: savedEmail,
+            emailOrUsername: savedEmail,
             rememberMe: true
           }));
         }
@@ -78,10 +77,10 @@ export default function Login() {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+    if (!formData.emailOrUsername) {
+      newErrors.emailOrUsername = "Username or email is required";
+    } else if (formData.emailOrUsername.includes('@') && !/\S+@\S+\.\S+/.test(formData.emailOrUsername)) {
+      newErrors.emailOrUsername = "Email is invalid";
     }
     
     if (!formData.password) {
@@ -105,25 +104,21 @@ export default function Login() {
     setErrors({});
     
     try {
-      const result = await login(formData.email, formData.password, formData.rememberMe);
+      const result = await login(formData.emailOrUsername, formData.password, formData.rememberMe);
       
       if (result.success) {
         // Handle remember me
         if (formData.rememberMe) {
-          localStorage.setItem('rememberedEmail', formData.email);
+          localStorage.setItem('rememberedEmail', formData.emailOrUsername);
         } else {
           localStorage.removeItem('rememberedEmail');
         }
         
-        // Role-based routing using selected role
-        const selectedRole = formData.role;
-        let redirectPath = "/dashboard";
-        
-        if (selectedRole === 'admin') {
-          redirectPath = location.state?.from?.pathname || "/dashboard";
-        } else if (selectedRole === 'user') {
-          redirectPath = "/user-dashboard";
-        }
+        // Role-based routing using returned user role
+        const userRole = result.user?.role || 'user';
+        const redirectPath = userRole === 'admin'
+          ? (location.state?.from?.pathname || "/dashboard")
+          : "/user-dashboard";
         
         navigate(redirectPath, { replace: true });
       } else {
@@ -190,106 +185,34 @@ export default function Login() {
                 </div>
               )}
               
-              {/* Role Selection */}
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                  Login as
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                    formData.role === 'user' 
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900' 
-                      : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="role"
-                      value="user"
-                      checked={formData.role === 'user'}
-                      onChange={handleChange}
-                      className="sr-only"
-                      aria-labelledby="user-option-label"
-                    />
-                    <div className="flex w-full items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="text-sm">
-                          <div id="user-option-label" className="font-medium">
-                            User
-                          </div>
-                          <div className="text-gray-500">
-                            <p className="sm:inline">Access your profile & certificates</p>
-                          </div>
-                        </div>
-                      </div>
-                      {formData.role === 'user' && (
-                        <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  </label>
-
-                  <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                    formData.role === 'admin' 
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900' 
-                      : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="role"
-                      value="admin"
-                      checked={formData.role === 'admin'}
-                      onChange={handleChange}
-                      className="sr-only"
-                      aria-labelledby="admin-option-label"
-                    />
-                    <div className="flex w-full items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="text-sm">
-                          <div id="admin-option-label" className="font-medium">
-                            Admin
-                          </div>
-                          <div className="text-gray-500">
-                            <p className="sm:inline">Full system management</p>
-                          </div>
-                        </div>
-                      </div>
-                      {formData.role === 'admin' && (
-                        <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  </label>
-                </div>
-              </div>
+              {/* Username or Email */}
               
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email address
+                <label htmlFor="emailOrUsername" className="block text-sm font-medium text-gray-700">
+                  Username or Email
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <MailIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    value={formData.email}
+                    id="emailOrUsername"
+                    name="emailOrUsername"
+                    type="text"
+                    autoComplete="username"
+                    value={formData.emailOrUsername}
                     onChange={handleChange}
                     disabled={isSubmitting}
                     className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
+                      errors.emailOrUsername ? 'border-red-300' : 'border-gray-300'
                     } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out sm:text-sm`}
-                    placeholder="Enter your email"
-                    aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? 'email-error' : ''}
+                    placeholder="Enter your username or email"
+                    aria-invalid={!!errors.emailOrUsername}
+                    aria-describedby={errors.emailOrUsername ? 'emailOrUsername-error' : ''}
                   />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-600" id="email-error">
-                      {errors.email}
+                  {errors.emailOrUsername && (
+                    <p className="mt-1 text-sm text-red-600" id="emailOrUsername-error">
+                      {errors.emailOrUsername}
                     </p>
                   )}
                 </div>
@@ -407,13 +330,22 @@ export default function Login() {
               </div>
 
               <div className="mt-6">
-                <Link
-                  to="/signup"
-                  state={{ from: location.state?.from }}
-                  className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-                >
-                  Create new account
-                </Link>
+                <div className="grid grid-cols-2 gap-3">
+                  <Link
+                    to="/signup?role=user"
+                    state={{ from: location.state?.from }}
+                    className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
+                  >
+                    Signup as User
+                  </Link>
+                  <Link
+                    to="/signup?role=admin"
+                    state={{ from: location.state?.from }}
+                    className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
+                  >
+                    Signup as Admin
+                  </Link>
+                </div>
                 
                 <div className="mt-4 text-center">
                   <p className="text-xs text-gray-500">

@@ -1,3 +1,58 @@
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Signup as</label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
+                  formData.role === 'user' ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="user"
+                    checked={formData.role === 'user'}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <div className="flex w-full items-center justify-between">
+                    <div className="text-sm">
+                      <div className="font-medium">User</div>
+                      <div className="text-gray-500">Access your profile & certificates</div>
+                    </div>
+                    {formData.role === 'user' && (
+                      <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </label>
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
+                  formData.role === 'admin' ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
+                }`}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value="admin"
+                    checked={formData.role === 'admin'}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <div className="flex w-full items-center justify-between">
+                    <div className="text-sm">
+                      <div className="font-medium">Admin</div>
+                      <div className="text-gray-500">Full system management (requires approval)</div>
+                    </div>
+                    {formData.role === 'admin' && (
+                      <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+    if (!formData.termsAccepted) {
+      newErrors.termsAccepted = "You must accept the terms & conditions";
+    }
 // src/pages/Signup.js
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -10,12 +65,23 @@ export default function Signup() {
     lastName: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    role: "user",
+    termsAccepted: false,
+    requireEmailVerification: true
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { signup, loading, error } = useAuth();
+  // Preselect role from query string
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role');
+    if (role === 'admin' || role === 'user') {
+      setFormData(prev => ({ ...prev, role }));
+    }
+  }, []);
 
   // Fix loading issue
   useEffect(() => {
@@ -95,10 +161,25 @@ export default function Signup() {
     }
     
     try {
-      const result = await signup(formData);
+      const payload = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        termsAccepted: formData.termsAccepted,
+        requireEmailVerification: formData.requireEmailVerification
+      };
+      const result = await signup(payload);
       
       if (result.success) {
-        alert("Account created successfully! Please login.");
+        if (formData.role === 'admin') {
+          alert("Admin account created. A request has been sent to the super admin for approval. You'll be able to login once approved.");
+        } else if (formData.requireEmailVerification) {
+          alert("Account created! Please check your email to verify your account before logging in.");
+        } else {
+          alert("Account created successfully! You can login now.");
+        }
         navigate("/login");
       } else {
         setErrors({ general: result.error || "Signup failed. Please try again." });
@@ -271,6 +352,43 @@ export default function Signup() {
                 />
                 {errors.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Email verification option */}
+            <div className="flex items-center">
+              <input
+                id="requireEmailVerification"
+                name="requireEmailVerification"
+                type="checkbox"
+                checked={formData.requireEmailVerification}
+                onChange={(e) => setFormData(prev => ({ ...prev, requireEmailVerification: e.target.checked }))}
+                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+              />
+              <label htmlFor="requireEmailVerification" className="ml-2 block text-sm text-gray-700">
+                Require email verification before login
+              </label>
+            </div>
+
+            {/* Terms & Conditions */}
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="termsAccepted"
+                  name="termsAccepted"
+                  type="checkbox"
+                  checked={formData.termsAccepted}
+                  onChange={(e) => setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
+                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="termsAccepted" className="text-gray-700">
+                  I agree to the <Link to="/terms" className="text-emerald-600 hover:text-emerald-500 underline">Terms & Conditions</Link>
+                </label>
+                {errors.termsAccepted && (
+                  <p className="text-sm text-red-600">{errors.termsAccepted}</p>
                 )}
               </div>
             </div>

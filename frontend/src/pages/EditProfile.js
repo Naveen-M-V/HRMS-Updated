@@ -251,17 +251,43 @@ export default function EditProfile() {
     e.preventDefault();
     
     try {
-      const result = await updateUserProfile(formData);
+      // Transform form data to match API expectations
+      const profileData = {
+        ...formData,
+        // Handle job roles/titles properly
+        jobRole: formData.jobTitle,
+        // Convert date strings to proper format
+        dateOfBirth: formData.dob ? new Date(formData.dob).toISOString() : null,
+        // Ensure nested objects are properly structured
+        address: {
+          line1: formData.addressLine1,
+          line2: formData.addressLine2,
+          city: formData.city,
+          postCode: formData.postCode,
+          country: formData.country
+        },
+        emergencyContact: {
+          name: formData.emergencyName,
+          relationship: formData.emergencyRelationship,
+          phone: formData.emergencyPhone
+        },
+        // Ensure other fields are properly named
+        otherInformation: formData.otherInfo
+      };
+
+      const result = await updateUserProfile(profileData);
       
       if (result.success) {
-        // navigate back to profile page after saving
-        navigate("/profiles");
+        // Show success message
+        alert("Profile updated successfully!");
+        // Navigate back to MyAccount page
+        navigate("/myaccount");
       } else {
-        alert("Failed to save profile changes. Please try again.");
+        alert(result.error || "Failed to save profile changes. Please try again.");
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert("Failed to save profile changes. Please try again.");
+      alert("Failed to save profile changes: " + (error.message || "Please try again."));
     }
   };
 

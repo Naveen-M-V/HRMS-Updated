@@ -358,31 +358,65 @@ export const ProfileProvider = ({ children }) => {
   const updateUserProfile = async (profileData) => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call when backend profile update endpoint is ready
-      // const response = await axios.put('/api/users/profile', profileData);
-      
-      setUserProfile(prev => ({
-        ...prev,
+      // Properly structure the data for the API
+      const updatedData = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
-        name: `${profileData.firstName} ${profileData.lastName}`,
-        role: `Account Administrator, ${profileData.jobTitle}, ${profileData.company}`,
-        email: profileData.username,
-        company: profileData.company,
-        jobTitle: profileData.jobTitle,
+        email: profileData.email || profileData.username,
         mobile: profileData.mobile,
-        dob: profileData.dob,
-        bio: profileData.bio,
+        dateOfBirth: profileData.dob,
+        gender: profileData.gender,
+        company: profileData.company,
+        jobTitle: Array.isArray(profileData.jobTitle) ? profileData.jobTitle : [profileData.jobTitle],
+        jobLevel: profileData.jobLevel,
         language: profileData.language,
-        otherInfo: profileData.otherInfo
-      }));
+        staffType: profileData.staffType,
+        nationality: profileData.nationality,
+        bio: profileData.bio,
+        otherInformation: profileData.otherInfo,
+        // Properly structure nested objects
+        address: {
+          line1: profileData.addressLine1,
+          line2: profileData.addressLine2,
+          city: profileData.city,
+          postCode: profileData.postCode,
+          country: profileData.country
+        },
+        emergencyContact: {
+          name: profileData.emergencyName,
+          relationship: profileData.emergencyRelationship,
+          phone: profileData.emergencyPhone
+        }
+      };
+
+      // Make the API call
+      const response = await fetch(`${getApiUrl()}/api/profiles/${user._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update profile: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      console.log('Profile updated:', profileData);
+      // Update local state with the response from the server
+      setUserProfile(data);
+      
+      console.log('Profile updated successfully:', data);
       setError(null);
-      return { success: true };
+      return { success: true, data };
     } catch (err) {
-      setError('Failed to update profile');
+      console.error('Failed to update profile:', err);
+      setError('Failed to update profile: ' + err.message);
       return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
     }
   };
 

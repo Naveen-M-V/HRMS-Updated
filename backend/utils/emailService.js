@@ -16,6 +16,77 @@ const createTransporter = () => {
   });
 };
 
+// Send email verification link
+const sendVerificationEmail = async (userEmail, verifyUrl, userName = 'User') => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: userEmail,
+      subject: 'Verify your email - HRMS',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #2196F3; color: white; padding: 20px; text-align: center;">
+            <h1>Email Verification</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>Hello <strong>${userName}</strong>,</p>
+            <p>Thanks for signing up. Please verify your email to activate your account.</p>
+            <div style="text-align:center; margin: 24px 0;">
+              <a href="${verifyUrl}" style="background:#2196F3;color:#fff;padding:12px 18px;border-radius:6px;text-decoration:none;display:inline-block;">Verify Email</a>
+            </div>
+            <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; color:#555;">${verifyUrl}</p>
+            <p>If you did not request this, you can safely ignore this email.</p>
+          </div>
+        </div>
+      `
+    };
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Verification email sent:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Send super-admin approval request for admin signup
+const sendAdminApprovalRequestEmail = async (superAdminEmail, applicantName, applicantEmail, approveUrl) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: superAdminEmail,
+      subject: 'Admin Signup Approval Request - HRMS',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #ff9800; color: white; padding: 20px; text-align: center;">
+            <h1>Approval Request</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>A new admin signup needs your approval.</p>
+            <div style="background-color:#fff;padding:15px;border-radius:6px;margin:16px 0;">
+              <p><strong>Name:</strong> ${applicantName}</p>
+              <p><strong>Email:</strong> ${applicantEmail}</p>
+            </div>
+            <div style="text-align:center; margin: 24px 0;">
+              <a href="${approveUrl}" style="background:#4CAF50;color:#fff;padding:12px 18px;border-radius:6px;text-decoration:none;display:inline-block;">Approve Admin</a>
+            </div>
+            <p>If you did not expect this request, please ignore.</p>
+          </div>
+        </div>
+      `
+    };
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Admin approval request email sent:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending admin approval email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Send login success email
 const sendLoginSuccessEmail = async (userEmail, userName, loginTime, ipAddress) => {
   try {
@@ -172,5 +243,7 @@ module.exports = {
   sendLoginSuccessEmail,
   sendCertificateExpiryEmail,
   sendNotificationEmail,
-  testEmailConfiguration
+  testEmailConfiguration,
+  sendVerificationEmail,
+  sendAdminApprovalRequestEmail
 };

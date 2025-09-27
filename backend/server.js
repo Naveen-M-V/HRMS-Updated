@@ -234,9 +234,15 @@ const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  username: { type: String },
   password: { type: String, required: true },
-  role: { type: String, default: 'user' }, // user, admin
-  isActive: { type: Boolean, default: true }
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  isActive: { type: Boolean, default: true },
+  emailVerified: { type: Boolean, default: false },
+  verificationToken: { type: String },
+  adminApprovalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
+  adminApprovalToken: { type: String },
+  termsAcceptedAt: { type: Date }
 }, { timestamps: true });
 
 // Clear any existing User model to avoid schema conflicts
@@ -493,6 +499,62 @@ app.get('/api/profiles/:id', async (req, res) => {
     res.json(profile);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify email endpoint
+app.get('/api/auth/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).send('Missing token');
+
+    let payload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+      return res.status(400).send('Invalid or expired token');
+    }
+
+    const user = await User.findOne({ email: payload.email, verificationToken: token });
+    if (!user) return res.status(404).send('User not found');
+
+    user.emailVerified = true;
+    user.verificationToken = undefined;
+    await user.save();
+
+    res.send('Email verified successfully. You can close this window and login.');
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// Approve admin endpoint (accessed via email link by super admin)
+app.get('/api/auth/approve-admin', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).send('Missing token');
+
+    let payload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+      return res.status(400).send('Invalid or expired token');
+    }
+
+    const user = await User.findOne({ email: payload.email, adminApprovalToken: token });
+    if (!user) return res.status(404).send('User not found');
+
+    if (user.role !== 'admin') return res.status(400).send('User is not an admin');
+
+    user.adminApprovalStatus = 'approved';
+    user.adminApprovalToken = undefined;
+    await user.save();
+
+    res.send('Admin account approved successfully.');
+  } catch (error) {
+    console.error('Approve admin error:', error);
+    res.status(500).send('Server error');
   }
 });
 
@@ -1551,7 +1613,7 @@ app.post('/api/certificates/delete-request', async (req, res) => {
 // Authentication Routes
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, role = 'user', termsAccepted = false, requireEmailVerification = true } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -1563,16 +1625,57 @@ app.post('/api/auth/signup', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create new user
+    // Prepare user document
     const user = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
-      isActive: true
+      role: role === 'admin' ? 'admin' : 'user',
+      isActive: true,
+      termsAcceptedAt: termsAccepted ? new Date() : undefined,
+      emailVerified: !requireEmailVerification
     });
 
+    if (requireEmailVerification) {
+      user.verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '48h' });
+    }
+
+    if (role === 'admin') {
+      user.adminApprovalStatus = 'pending';
+      user.adminApprovalToken = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+    }
+
     await user.save();
+
+    // Send verification email if required
+    try {
+      if (requireEmailVerification && user.verificationToken) {
+        const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`;
+        const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(user.verificationToken)}`;
+        const name = `${user.firstName} ${user.lastName}`.trim();
+        await sendVerificationEmail(user.email, verifyUrl, name);
+      }
+    } catch (e) {
+      console.error('Failed to send verification email:', e);
+    }
+
+    // If admin role, send approval request to super admin
+    try {
+      if (role === 'admin' && user.adminApprovalToken) {
+        const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+        if (superAdminEmail) {
+          const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`;
+          const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
+          const name = `${user.firstName} ${user.lastName}`.trim();
+          await sendAdminApprovalRequestEmail(superAdminEmail, name, user.email, approveUrl);
+        } else {
+          console.warn('SUPER_ADMIN_EMAIL not configured; cannot send admin approval email');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to send admin approval email:', e);
+    }
 
     res.status(201).json({ 
       message: 'User created successfully',
@@ -1580,14 +1683,15 @@ app.post('/api/auth/signup', async (req, res) => {
         id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
-        email: user.email
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration } = require('./utils/emailService');
+const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail } = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 
 // Import notification routes
@@ -1601,10 +1705,11 @@ const jobLevelsRoutes = require('./routes/jobLevels');
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password, rememberMe } = req.body;
+    const { email, password, rememberMe } = req.body; // 'email' may be email or username
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    const identifier = email;
+    // Find user by email or username
+    const user = await User.findOne({ $or: [ { email: identifier }, { username: identifier } ] });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
@@ -1612,6 +1717,16 @@ app.post('/api/auth/login', async (req, res) => {
     // Check if user is active
     if (!user.isActive) {
       return res.status(400).json({ message: 'Account is deactivated' });
+    }
+
+    // Enforce email verification
+    if (!user.emailVerified) {
+      return res.status(403).json({ message: 'Email not verified. Please verify your email to continue.' });
+    }
+
+    // Enforce admin approval
+    if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
+      return res.status(403).json({ message: 'Admin account pending approval by super admin.' });
     }
 
     // Verify password
