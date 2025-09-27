@@ -21,7 +21,7 @@ export default function MyAccount() {
       
       try {
         setLoading(true);
-        const response = await fetch(`https://talentshield.co.uk/api/profiles/${user._id}`, {
+        const response = await fetch(`/api/profiles/${user._id}`, {
           credentials: 'include'
         });
         
@@ -31,23 +31,42 @@ export default function MyAccount() {
         
         const profileData = await response.json();
         
-        setProfile({
-          ...user,
-          ...profileData,
-          fullName: `${profileData.firstName || user.firstName || ''} ${profileData.lastName || user.lastName || ''}`.trim(),
-          jobTitle: Array.isArray(profileData.jobTitle) ? profileData.jobTitle.join(', ') : profileData.jobTitle || user.jobTitle,
-          address: profileData.address || user.address || {},
-          emergencyContact: profileData.emergencyContact || user.emergencyContact || {},
-        });
+        // If we have a valid profile data
+        if (profileData) {
+          setProfile({
+            ...user,
+            ...profileData,
+            fullName: `${profileData.firstName || user.firstName || ''} ${profileData.lastName || user.lastName || ''}`.trim(),
+            jobTitle: Array.isArray(profileData.jobTitle) ? profileData.jobTitle.join(', ') : profileData.jobTitle || user.jobTitle,
+            address: profileData.address || user.address || {},
+            emergencyContact: profileData.emergencyContact || user.emergencyContact || {},
+          });
+        } else {
+          // If we don't have profile data, use user data
+          setProfile({
+            ...user,
+            fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            jobTitle: user.jobTitle || '',
+            address: user.address || {},
+            emergencyContact: user.emergencyContact || {},
+          });
+        }
       } catch (err) {
         console.error('Error fetching profile:', err);
         setError(err.message);
+        // Set profile with user data even if fetch fails
+        setProfile({
+          ...user,
+          fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserProfile();
+    if (user) {
+      fetchUserProfile();
+    }
   }, [user]);
 
   // Handle profile picture change - persist to backend
@@ -73,7 +92,7 @@ export default function MyAccount() {
       const formData = new FormData();
       formData.append('profilePicture', file);
 
-      const response = await fetch(`https://talentshield.co.uk/api/profiles/${user._id}/picture`, {
+      const response = await fetch(`/api/profiles/${user._id}/picture`, {
         method: 'POST',
         credentials: 'include',
         body: formData
@@ -113,15 +132,15 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => navigate("/myaccount/edit")}
-            disabled={loading}
+            onClick={() => navigate(`/editprofile/${user._id}`)}
+            disabled={loading || !user?._id}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Edit Profile
           </button>
           <button
             onClick={handleLogout}
-            disabled={loading}
+            disabled={authLoading}
             className="text-sm border px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading ? (
