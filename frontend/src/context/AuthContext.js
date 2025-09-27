@@ -7,56 +7,39 @@ const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
 };
 
 const getApiUrl = () => {
-  // In development, use localhost URL
-  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  // In production or when API_BASE_URL is relative, use relative path
-  if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) {
-    return '';
-  }
-  // Fallback to localhost for development
+  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+  if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) return '';
   return process.env.REACT_APP_API_URL || 'http://localhost:5003';
 };
 
-const API_BASE_URL = `${getApiUrl()}`;
+const API_BASE_URL = getApiUrl();
 
-// Configure axios to include credentials (cookies) with requests
 axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }) => {
-  // Session storage utilities - only for authentication state
   const sessionStorage = {
-    // Store user session data
     setUserSession: (userData, token = null) => {
       try {
         localStorage.setItem('user_session', JSON.stringify({
           user: userData,
           timestamp: Date.now(),
-          expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000)
         }));
-        if (token) {
-          localStorage.setItem('auth_token', token);
-        }
+        if (token) localStorage.setItem('auth_token', token);
       } catch (error) {
         console.error('Error storing session:', error);
       }
     },
-
-    // Get user session data
     getUserSession: () => {
       try {
-        const sessionData = localStorage.getItem('user_session');
-        if (sessionData) {
-          const parsed = JSON.parse(sessionData);
-          // Check if session is expired
+        const val = localStorage.getItem('user_session');
+        if (val) {
+          const parsed = JSON.parse(val);
           if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
             sessionStorage.clearSession();
             return null;
@@ -69,8 +52,6 @@ export const AuthProvider = ({ children }) => {
       }
       return null;
     },
-
-    // Clear all session data
     clearSession: () => {
       try {
         localStorage.removeItem('user_session');
@@ -80,8 +61,6 @@ export const AuthProvider = ({ children }) => {
         console.error('Error clearing session:', error);
       }
     },
-
-    // Store session cookie for backend communication
     setSessionCookie: (cookieValue) => {
       try {
         localStorage.setItem('session_cookie', cookieValue);
@@ -89,8 +68,6 @@ export const AuthProvider = ({ children }) => {
         console.error('Error storing session cookie:', error);
       }
     },
-
-    // Get auth token
     getAuthToken: () => {
       try {
         return localStorage.getItem('auth_token');
@@ -101,19 +78,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Initialize state from session storage
   const getInitialState = () => {
     const sessionData = sessionStorage.getUserSession();
-    if (sessionData && sessionData.user) {
-      return {
-        user: sessionData.user,
-        isAuthenticated: true
-      };
-    }
-    return {
-      user: null,
-      isAuthenticated: false
-    };
+    if (sessionData && sessionData.user) return { user: sessionData.user, isAuthenticated: true };
+    return { user: null, isAuthenticated: false };
   };
 
   const initialState = getInitialState();
@@ -122,17 +90,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Store session cookie for session maintenance
   const storeSessionCookie = () => {
     const cookies = document.cookie.split(';');
     const sessionCookie = cookies.find(cookie => cookie.trim().startsWith('talentshield.sid='));
-
-    if (sessionCookie) {
-      console.log('Session cookie captured:', sessionCookie);
-      sessionStorage.setSessionCookie(sessionCookie);
-    } else {
-      sessionStorage.clearSession();
-    }
+    if (sessionCookie) sessionStorage.setSessionCookie(sessionCookie);
+    else sessionStorage.clearSession();
   };
 
   const checkExistingSession = useCallback(async () => {
@@ -144,9 +106,7 @@ export const AuthProvider = ({ children }) => {
             withCredentials: true,
             timeout: 5000
           });
-          // Session is valid, no action needed
         } catch (error) {
-          // Session invalid, clear it
           if (error.response?.status === 403 || error.response?.status === 401) {
             handleInvalidSession();
           }
@@ -154,23 +114,14 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error checking session:', error);
-      // Don't clear session on network errors, only on auth errors
     }
   }, []);
 
-  // Check for existing session on app start
   useEffect(() => {
     let isMounted = true;
-    
-    // Only run background validation if user is not already set
-    if (!user && isMounted) {
-      checkExistingSession();
-    }
-
-    // Listen for localStorage changes to sync across tabs (session management only)
+    if (!user && isMounted) checkExistingSession();
     const handleStorageChange = (e) => {
       if (!isMounted) return;
-      
       if (e.key === 'user_session') {
         if (e.newValue) {
           try {
@@ -182,51 +133,32 @@ export const AuthProvider = ({ children }) => {
           } catch (error) {
             console.error('Error parsing session storage change:', error);
           }
-        } else {
-          // Session was removed
-          if (isMounted) {
-            setUser(null);
-            setIsAuthenticated(false);
-          }
+        } else if (isMounted) {
+          setUser(null);
+          setIsAuthenticated(false);
         }
       }
     };
-
     window.addEventListener('storage', handleStorageChange);
     return () => {
       isMounted = false;
       window.removeEventListener('storage', handleStorageChange);
-    };
+    }
   }, [user, checkExistingSession]);
 
-
+  // login function unchanged, keeps role in user session for redirect
   const login = async (email, password, rememberMe = false) => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-        email,
-        password,
-        rememberMe
-      }, {
-        timeout: 10000,
-        withCredentials: true
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, { email, password, rememberMe }, {
+        timeout: 10000, withCredentials: true
       });
-
       const { token, user: userData } = response.data;
-
-      if (!userData) {
-        throw new Error('Invalid response from server');
-      }
-
-      // Store session data using our session storage utility
+      if (!userData) throw new Error('Invalid response from server');
       sessionStorage.setUserSession(userData, token);
-
-      // Update state - session is automatically handled by cookies
       setUser(userData);
       setIsAuthenticated(true);
-
       return { success: true, user: userData };
     } catch (err) {
       const errorMessage = getErrorMessage(err);
@@ -237,17 +169,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // signup with admin approval request support
   const signup = async (userData) => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData, {
-        timeout: 10000,
-        withCredentials: true
-      });
-
-      return { success: true, message: "Account created successfully" };
+      if (userData.role === 'admin') {
+        // Send admin signup approval request
+        await axios.post(`${API_BASE_URL}/api/auth/admin-approval-request`, {
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        }, {
+          timeout: 10000,
+          withCredentials: true
+        });
+        return { success: true, message: "Admin approval request sent" };
+      } else {
+        await axios.post(`${API_BASE_URL}/api/auth/signup`, userData, {
+          timeout: 10000,
+          withCredentials: true
+        });
+        return { success: true, message: "User account created successfully" };
+      }
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
@@ -260,12 +204,10 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setLoading(true);
     try {
-      // Call backend logout endpoint to destroy session
       await axios.post(`${API_BASE_URL}/api/auth/logout`);
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
-      // Clear session data using our session storage utility
       sessionStorage.clearSession();
       setUser(null);
       setIsAuthenticated(false);
