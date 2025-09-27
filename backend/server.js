@@ -1589,44 +1589,56 @@ app.post('/api/certificates/delete-request', async (req, res) => {
 // Authentication Routes
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, role } = req.body;
 
-    // Check if user already exists
+    if (!firstName || !lastName || !email || !password || !role) {
+      return res.status(400).json({ message: 'All fields including role are required' });
+    }
+
+    // Check if the user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Hash the password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
-    const user = new User({
+    // Create the new user object
+    const newUser = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
-      isActive: true
+      role,
+      // Admins require approval (inactive initially)
+      isActive: role === 'admin' ? false : true
     });
 
-    await user.save();
+    // Save the user to the database
+    await newUser.save();
 
-    res.status(201).json({ 
-      message: 'User created successfully',
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
+    // If the role is admin, send approval request email
+    if (role === 'admin') {
+      try {
+        await sendApprovalRequestEmail(newUser);
+        return res.status(201).json({ message: 'Admin account created, pending approval.' });
+      } catch (emailError) {
+        console.error('Error sending approval email:', emailError);
+        // Admin created but email failed to send
+        return res.status(201).json({ message: 'Admin created pending approval, but failed to notify Super Admin.' });
       }
-    });
+    }
+
+    // For non-admin users, respond with success immediately
+    return res.status(201).json({ message: 'User account created successfully.' });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Signup error:', error);
+    return res.status(500).json({ message: 'Failed to create account' });
   }
 });
-const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration } = require('./utils/emailService');
-const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
+
 
 // Import notification routes
 const notificationRoutes = require('./routes/notifications');
