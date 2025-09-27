@@ -12,7 +12,6 @@ export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "user", // default to user
     rememberMe: false
   });
   const [errors, setErrors] = useState({});
@@ -85,9 +84,19 @@ export default function Login() {
     }
     
     if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      newErrors.password = formData.email.includes('@') ? "VTID is required" : "Password is required";
+    } else if (formData.email.includes('@')) {
+      // VTID validation for user accounts - should be numeric
+      if (!/^\d+$/.test(formData.password)) {
+        newErrors.password = "VTID must contain only numbers";
+      } else if (formData.password.length < 4) {
+        newErrors.password = "VTID must be at least 4 digits";
+      }
+    } else {
+      // Password validation for admin accounts
+      if (formData.password.length < 6) {
+        newErrors.password = "Password must be at least 6 characters";
+      }
     }
     
     setErrors(newErrors);
@@ -115,19 +124,19 @@ export default function Login() {
           localStorage.removeItem('rememberedEmail');
         }
         
-        // Role-based routing using selected role
-        const selectedRole = formData.role;
-        let redirectPath = "/dashboard";
+        // Role-based routing is now handled by the backend based on email
+        // The backend will return the appropriate role and redirect accordingly
+        const userRole = result.user?.role;
         
-        if (selectedRole === 'admin') {
-          redirectPath = location.state?.from?.pathname || "/dashboard";
-        } else if (selectedRole === 'user') {
+        let redirectPath = "/dashboard"; // Default for admin
+        
+        if (userRole === 'user') {
           redirectPath = "/user-dashboard";
         }
         
         navigate(redirectPath, { replace: true });
       } else {
-        setErrors({ general: result.error || "Invalid email or password" });
+        setErrors({ general: result.error || "Invalid email or VTID" });
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -190,80 +199,7 @@ export default function Login() {
                 </div>
               )}
               
-              {/* Role Selection */}
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                  Login as
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                    formData.role === 'user' 
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900' 
-                      : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="role"
-                      value="user"
-                      checked={formData.role === 'user'}
-                      onChange={handleChange}
-                      className="sr-only"
-                      aria-labelledby="user-option-label"
-                    />
-                    <div className="flex w-full items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="text-sm">
-                          <div id="user-option-label" className="font-medium">
-                            User
-                          </div>
-                          <div className="text-gray-500">
-                            <p className="sm:inline">Access your profile & certificates</p>
-                          </div>
-                        </div>
-                      </div>
-                      {formData.role === 'user' && (
-                        <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  </label>
-
-                  <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                    formData.role === 'admin' 
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900' 
-                      : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="role"
-                      value="admin"
-                      checked={formData.role === 'admin'}
-                      onChange={handleChange}
-                      className="sr-only"
-                      aria-labelledby="admin-option-label"
-                    />
-                    <div className="flex w-full items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="text-sm">
-                          <div id="admin-option-label" className="font-medium">
-                            Admin
-                          </div>
-                          <div className="text-gray-500">
-                            <p className="sm:inline">Full system management</p>
-                          </div>
-                        </div>
-                      </div>
-                      {formData.role === 'admin' && (
-                        <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  </label>
-                </div>
-              </div>
-              
+              {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
@@ -297,7 +233,7 @@ export default function Login() {
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
+                  {formData.email.includes('@') ? 'VTID' : 'Password'}
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -314,7 +250,7 @@ export default function Login() {
                     className={`block w-full pl-10 pr-10 py-3 border ${
                       errors.password ? 'border-red-300' : 'border-gray-300'
                     } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                    placeholder="Enter your password"
+                    placeholder={formData.email.includes('@') ? 'Enter your VTID' : 'Enter your password'}
                     aria-invalid={!!errors.password}
                     aria-describedby={errors.password ? 'password-error' : ''}
                   />

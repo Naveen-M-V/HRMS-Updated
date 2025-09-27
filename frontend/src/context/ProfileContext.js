@@ -112,8 +112,6 @@ export const ProfileProvider = ({ children }) => {
       });
       
       if (response.ok) {
-        const data = await response.json(); // Get the response data with certificate count
-        
         // Remove from local state
         setProfiles(prevProfiles => prevProfiles.filter(p => p._id !== profileId));
         
@@ -121,11 +119,9 @@ export const ProfileProvider = ({ children }) => {
         localStorage.removeItem('profiles_cache');
         localStorage.removeItem('profiles_cache_time');
         
-        console.log('Profile deleted successfully:', data);
-        return data; // Return the response data with certificate count
+        console.log('Profile deleted successfully');
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete profile');
+        throw new Error('Failed to delete profile');
       }
     } catch (error) {
       console.error('Error deleting profile:', error);
@@ -358,31 +354,77 @@ export const ProfileProvider = ({ children }) => {
   const updateUserProfile = async (profileData) => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call when backend profile update endpoint is ready
-      // const response = await axios.put('/api/users/profile', profileData);
-      
-      setUserProfile(prev => ({
-        ...prev,
+      // Prepare the data for API call
+      const updateData = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
-        name: `${profileData.firstName} ${profileData.lastName}`,
-        role: `Account Administrator, ${profileData.jobTitle}, ${profileData.company}`,
-        email: profileData.username,
-        company: profileData.company,
-        jobTitle: profileData.jobTitle,
+        email: profileData.email,
         mobile: profileData.mobile,
-        dob: profileData.dob,
-        bio: profileData.bio,
+        dateOfBirth: profileData.dob,
+        gender: profileData.gender,
+        company: profileData.company,
+        jobRole: Array.isArray(profileData.jobTitle) ? profileData.jobTitle : [profileData.jobTitle].filter(Boolean),
+        jobLevel: profileData.jobLevel,
+        staffType: profileData.staffType,
         language: profileData.language,
-        otherInfo: profileData.otherInfo
-      }));
-      
-      console.log('Profile updated:', profileData);
-      setError(null);
-      return { success: true };
+        nationality: profileData.nationality,
+        poc: profileData.poc,
+        circetUIN: profileData.circetUIN,
+        circetSCID: profileData.circetSCID,
+        morrisonsIDNumber: profileData.morrisonsIDNumber,
+        morrisonsUIN: profileData.morrisonsUIN,
+        nopsID: profileData.nopsID,
+        status: profileData.status,
+        bio: profileData.bio,
+        otherInformation: profileData.otherInfo,
+        address: {
+          line1: profileData.addressLine1,
+          line2: profileData.addressLine2,
+          city: profileData.city,
+          postCode: profileData.postCode,
+          country: profileData.country
+        },
+        emergencyContact: {
+          name: profileData.emergencyName,
+          relationship: profileData.emergencyRelationship,
+          phone: profileData.emergencyPhone
+        }
+      };
+
+      // Make API call to update user profile by email
+      const response = await fetch(`${getApiUrl()}/api/profiles/by-email/${user.email}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData)
+      });
+
+      if (response.ok) {
+        const updatedProfile = await response.json();
+        
+        // Update local state
+        setUserProfile(prev => ({
+          ...prev,
+          ...updatedProfile,
+          name: `${updatedProfile.firstName} ${updatedProfile.lastName}`,
+          role: `Account Administrator, ${Array.isArray(updatedProfile.jobRole) ? updatedProfile.jobRole.join(', ') : updatedProfile.jobRole}, ${updatedProfile.company}`,
+        }));
+        
+        console.log('Profile updated successfully:', updatedProfile);
+        setError(null);
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
     } catch (err) {
+      console.error('Error updating profile:', err);
       setError('Failed to update profile');
       return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
     }
   };
 
