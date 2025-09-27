@@ -81,7 +81,11 @@ const UserCertificateView = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not specified';
-    return new Date(dateString).toLocaleDateString('en-GB', {
+    const date = new Date(dateString);
+    // First ensure we have a valid date
+    if (isNaN(date.getTime())) return 'Not specified';
+    // For display in view, use localized format
+    return new Date(date.toISOString()).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'

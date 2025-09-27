@@ -47,8 +47,11 @@ export default function EditCertificate() {
       const formatDate = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
+        // First ensure we have a valid date
         if (isNaN(date.getTime())) return "";
-        return date.toISOString().split('T')[0];
+        // Adjust for timezone to ensure consistent date
+        const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+        return localDate.toISOString().split('T')[0];
       };
 
       setFormData({
@@ -168,8 +171,16 @@ export default function EditCertificate() {
     const updatedCert = {
       certificate: formData.certificate,
       description: formData.description,
-      issueDate: formData.issueDate ? new Date(formData.issueDate).toISOString() : null,
-      expiryDate: formData.expiryDate ? new Date(formData.expiryDate).toISOString() : null,
+      issueDate: formData.issueDate ? (() => {
+        const date = new Date(formData.issueDate);
+        const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+        return utcDate.toISOString();
+      })() : null,
+      expiryDate: formData.expiryDate ? (() => {
+        const date = new Date(formData.expiryDate);
+        const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+        return utcDate.toISOString();
+      })() : null,
       profileName: formData.profileName || "N/A", // This should come from form
       provider: formData.supplier,
       fileRequired: formData.fileRequired,
