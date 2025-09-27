@@ -250,7 +250,10 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
             )}
           </div>
         </div>
-
+{/* Version Text */}
+        <div className="text-center pb-2 text-xs text-green-300/50">
+          Talentshield v.0.1
+        </div>
         
       </div>
     </div>
