@@ -1,58 +1,3 @@
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Signup as</label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                  formData.role === 'user' ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                }`}>
-                  <input
-                    type="radio"
-                    name="role"
-                    value="user"
-                    checked={formData.role === 'user'}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  <div className="flex w-full items-center justify-between">
-                    <div className="text-sm">
-                      <div className="font-medium">User</div>
-                      <div className="text-gray-500">Access your profile & certificates</div>
-                    </div>
-                    {formData.role === 'user' && (
-                      <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </label>
-                <label className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                  formData.role === 'admin' ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
-                }`}>
-                  <input
-                    type="radio"
-                    name="role"
-                    value="admin"
-                    checked={formData.role === 'admin'}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  <div className="flex w-full items-center justify-between">
-                    <div className="text-sm">
-                      <div className="font-medium">Admin</div>
-                      <div className="text-gray-500">Full system management (requires approval)</div>
-                    </div>
-                    {formData.role === 'admin' && (
-                      <svg className="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </label>
-              </div>
-            </div>
-    if (!formData.termsAccepted) {
-      newErrors.termsAccepted = "You must accept the terms & conditions";
-    }
 // src/pages/Signup.js
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -68,36 +13,37 @@ export default function Signup() {
     confirmPassword: "",
     role: "user",
     termsAccepted: false,
-    requireEmailVerification: true
+    requireEmailVerification: true,
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { signup, loading, error } = useAuth();
+
   // Preselect role from query string
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const role = params.get('role');
-    if (role === 'admin' || role === 'user') {
-      setFormData(prev => ({ ...prev, role }));
+    const role = params.get("role");
+    if (role === "admin" || role === "user") {
+      setFormData((prev) => ({ ...prev, role }));
     }
   }, []);
 
   // Fix loading issue
   useEffect(() => {
     let isMounted = true;
-    
+
     const initializeComponent = () => {
       if (isMounted) {
         setIsLoading(false);
       }
     };
-    
+
     // Use requestAnimationFrame to ensure DOM is ready
     const timer = requestAnimationFrame(() => {
       initializeComponent();
     });
-    
+
     return () => {
       isMounted = false;
       cancelAnimationFrame(timer);
@@ -105,61 +51,64 @@ export default function Signup() {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: type === "checkbox" ? checked : value,
     }));
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ""
+        [name]: "",
       }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.firstName.trim()) {
       newErrors.firstName = "First name is required";
     }
-    
+
     if (!formData.lastName.trim()) {
       newErrors.lastName = "Last name is required";
     }
-    
+
     if (!formData.email) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-    
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-    
-    
+
+    if (!formData.termsAccepted) {
+      newErrors.termsAccepted = "You must accept the terms & conditions";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     try {
       const payload = {
         firstName: formData.firstName,
@@ -168,15 +117,19 @@ export default function Signup() {
         password: formData.password,
         role: formData.role,
         termsAccepted: formData.termsAccepted,
-        requireEmailVerification: formData.requireEmailVerification
+        requireEmailVerification: formData.requireEmailVerification,
       };
       const result = await signup(payload);
-      
+
       if (result.success) {
-        if (formData.role === 'admin') {
-          alert("Admin account created. A request has been sent to the super admin for approval. You'll be able to login once approved.");
+        if (formData.role === "admin") {
+          alert(
+            "Admin account created. A request has been sent to the super admin for approval. You'll be able to login once approved."
+          );
         } else if (formData.requireEmailVerification) {
-          alert("Account created! Please check your email to verify your account before logging in.");
+          alert(
+            "Account created! Please check your email to verify your account before logging in."
+          );
         } else {
           alert("Account created successfully! You can login now.");
         }
@@ -188,7 +141,6 @@ export default function Signup() {
       setErrors({ general: "Signup failed. Please try again." });
     }
   };
-
 
   // Show loading spinner to prevent blank page
   if (isLoading) {
@@ -202,244 +154,364 @@ export default function Signup() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-            <img 
-              src="/TSL.png" 
-              alt="TSL Logo" 
-              className="h-20 w-20 object-contain"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'block';
-              }}
-            />
-            <svg className="h-8 w-8 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <p className="mt-1 text-sm text-gray-500">Create your account to get started</p>
-        </div>
-
-        {/* Signup Form */}
-        <div className="bg-white py-8 px-6 shadow-xl rounded-xl border border-gray-200">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {(errors.general || error) && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{errors.general || error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name <span className="text-red-500">*</span>
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className={`appearance-none block w-full px-4 py-3 border ${
-                      errors.firstName ? 'border-red-300' : 'border-gray-300'
-                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                    placeholder="First name"
-                  />
-                  {errors.firstName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name <span className="text-red-500">*</span>
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    className={`appearance-none block w-full px-4 py-3 border ${
-                      errors.lastName ? 'border-red-300' : 'border-gray-300'
-                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                    placeholder="Last name"
-                  />
-                  {errors.lastName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address <span className="text-red-500">*</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                  placeholder="Enter your email"
-                />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                )}
-              </div>
-            </div>
-
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                  placeholder="Enter your password"
-                />
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <div className="mt-1">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`appearance-none block w-full px-4 py-3 border ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                  placeholder="Confirm your password"
-                />
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Email verification option */}
-            <div className="flex items-center">
-              <input
-                id="requireEmailVerification"
-                name="requireEmailVerification"
-                type="checkbox"
-                checked={formData.requireEmailVerification}
-                onChange={(e) => setFormData(prev => ({ ...prev, requireEmailVerification: e.target.checked }))}
-                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+        <div className="max-w-md w-full space-y-8">
+          {/* Header */}
+          <div className="text-center">
+            <div className="mx-auto h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+              <img
+                src="/TSL.png"
+                alt="TSL Logo"
+                className="h-20 w-20 object-contain"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.nextElementSibling.style.display = "block";
+                }}
               />
-              <label htmlFor="requireEmailVerification" className="ml-2 block text-sm text-gray-700">
-                Require email verification before login
-              </label>
+              <svg
+                className="h-8 w-8 text-white hidden"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
             </div>
+            <p className="mt-1 text-sm text-gray-500">Create your account to get started</p>
+          </div>
 
-            {/* Terms & Conditions */}
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
+          {/* Signup Form */}
+          <div className="bg-white py-8 px-6 shadow-xl rounded-xl border border-gray-200">
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {(errors.general || error) && (
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="h-5 w-5 text-red-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-red-700">{errors.general || error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      className={`appearance-none block w-full px-4 py-3 border ${
+                        errors.firstName ? "border-red-300" : "border-gray-300"
+                      } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
+                      placeholder="First name"
+                    />
+                    {errors.firstName && (
+                      <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      className={`appearance-none block w-full px-4 py-3 border ${
+                        errors.lastName ? "border-red-300" : "border-gray-300"
+                      } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
+                      placeholder="Last name"
+                    />
+                    {errors.lastName && (
+                      <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`appearance-none block w-full px-4 py-3 border ${
+                      errors.email ? "border-red-300" : "border-gray-300"
+                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
+                    placeholder="Enter your email"
+                  />
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`appearance-none block w-full px-4 py-3 border ${
+                      errors.password ? "border-red-300" : "border-gray-300"
+                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
+                    placeholder="Enter your password"
+                  />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className={`appearance-none block w-full px-4 py-3 border ${
+                      errors.confirmPassword ? "border-red-300" : "border-gray-300"
+                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
+                    placeholder="Confirm your password"
+                  />
+                  {errors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Role Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Signup as
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label
+                    className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
+                      formData.role === "user"
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                        : "border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="user"
+                      checked={formData.role === "user"}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <div className="flex w-full items-center justify-between">
+                      <div className="text-sm">
+                        <div className="font-medium">User</div>
+                        <div className="text-gray-500">Access your profile & certificates</div>
+                      </div>
+                      {formData.role === "user" && (
+                        <svg
+                          className="h-5 w-5 text-emerald-600"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </label>
+                  <label
+                    className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
+                      formData.role === "admin"
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                        : "border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="admin"
+                      checked={formData.role === "admin"}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <div className="flex w-full items-center justify-between">
+                      <div className="text-sm">
+                        <div className="font-medium">Admin</div>
+                        <div className="text-gray-500">Full system management (requires approval)</div>
+                      </div>
+                      {formData.role === "admin" && (
+                        <svg
+                          className="h-5 w-5 text-emerald-600"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Email verification option */}
+              <div className="flex items-center">
                 <input
-                  id="termsAccepted"
-                  name="termsAccepted"
+                  id="requireEmailVerification"
+                  name="requireEmailVerification"
                   type="checkbox"
-                  checked={formData.termsAccepted}
-                  onChange={(e) => setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
+                  checked={formData.requireEmailVerification}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, requireEmailVerification: e.target.checked }))
+                  }
                   className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
                 />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="termsAccepted" className="text-gray-700">
-                  I agree to the <Link to="/terms" className="text-emerald-600 hover:text-emerald-500 underline">Terms & Conditions</Link>
+                <label htmlFor="requireEmailVerification" className="ml-2 block text-sm text-gray-700">
+                  Require email verification before login
                 </label>
-                {errors.termsAccepted && (
-                  <p className="text-sm text-red-600">{errors.termsAccepted}</p>
-                )}
               </div>
-            </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition duration-150 ease-in-out ${
-                  loading 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500'
-                }`}
-              >
-                {loading ? (
-                  <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creating account...
-                  </div>
-                ) : (
-                  'Create account'
-                )}
-              </button>
-            </div>
-          </form>
+              {/* Terms & Conditions */}
+              <div className="flex items-start">
+                <div className="flex items-center h-5">
+                  <input
+                    id="termsAccepted"
+                    name="termsAccepted"
+                    type="checkbox"
+                    checked={formData.termsAccepted}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, termsAccepted: e.target.checked }))
+                    }
+                    className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  />
+                </div>
+                <div className="ml-3 text-sm">
+                  <label htmlFor="termsAccepted" className="text-gray-700">
+                    I agree to the{" "}
+                    <Link to="/terms" className="text-emerald-600 hover:text-emerald-500 underline">
+                      Terms & Conditions
+                    </Link>
+                  </label>
+                  {errors.termsAccepted && (
+                    <p className="text-sm text-red-600">{errors.termsAccepted}</p>
+                  )}
+                </div>
+              </div>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+              <div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition duration-150 ease-in-out ${
+                    loading
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                  }`}
+                >
+                  {loading ? (
+                    <div className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Creating account...
+                    </div>
+                  ) : (
+                    "Create account"
+                  )}
+                </button>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Already have an account?</span>
-              </div>
-            </div>
+            </form>
 
             <div className="mt-6">
-              <Link
-                to="/login"
-                className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
-              >
-                Sign in to existing account
-              </Link>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Already have an account?</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Link
+                  to="/login"
+                  className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
+                >
+                  Sign in to existing account
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </ErrorBoundary>
   );
 }
