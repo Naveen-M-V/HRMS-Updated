@@ -1613,7 +1613,7 @@ app.post('/api/certificates/delete-request', async (req, res) => {
 // Authentication Routes
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role = 'user', termsAccepted = false, requireEmailVerification = true } = req.body;
+    const { firstName, lastName, email, password, role = 'user', termsAccepted = false } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -1625,7 +1625,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Prepare user document
+    // Prepare user document (email verification disabled; admins approved immediately)
     const user = new User({
       firstName,
       lastName,
@@ -1634,48 +1634,18 @@ app.post('/api/auth/signup', async (req, res) => {
       role: role === 'admin' ? 'admin' : 'user',
       isActive: true,
       termsAcceptedAt: termsAccepted ? new Date() : undefined,
-      emailVerified: !requireEmailVerification
+      emailVerified: true
     });
 
-    if (requireEmailVerification) {
-      user.verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '48h' });
-    }
-
+    // Immediately approve admins; do not generate tokens
     if (role === 'admin') {
-      user.adminApprovalStatus = 'pending';
-      user.adminApprovalToken = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+      user.adminApprovalStatus = 'approved';
+      user.adminApprovalToken = undefined;
     }
 
     await user.save();
 
-    // Send verification email if required
-    try {
-      if (requireEmailVerification && user.verificationToken) {
-        const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`;
-        const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(user.verificationToken)}`;
-        const name = `${user.firstName} ${user.lastName}`.trim();
-        await sendVerificationEmail(user.email, verifyUrl, name);
-      }
-    } catch (e) {
-      console.error('Failed to send verification email:', e);
-    }
-
-    // If admin role, send approval request to super admin
-    try {
-      if (role === 'admin' && user.adminApprovalToken) {
-        const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
-        if (superAdminEmail) {
-          const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`;
-          const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
-          const name = `${user.firstName} ${user.lastName}`.trim();
-          await sendAdminApprovalRequestEmail(superAdminEmail, name, user.email, approveUrl);
-        } else {
-          console.warn('SUPER_ADMIN_EMAIL not configured; cannot send admin approval email');
-        }
-      }
-    } catch (e) {
-      console.error('Failed to send admin approval email:', e);
-    }
+    // Skip sending verification and approval emails (disabled per requirement)
 
     res.status(201).json({ 
       message: 'User created successfully',
@@ -1691,7 +1661,7 @@ app.post('/api/auth/signup', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail } = require('./utils/emailService');
+const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration } = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 
 // Import notification routes
@@ -1719,15 +1689,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
-    // Enforce email verification
-    if (!user.emailVerified) {
-      return res.status(403).json({ message: 'Email not verified. Please verify your email to continue.' });
-    }
-
-    // Enforce admin approval
-    if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
-      return res.status(403).json({ message: 'Admin account pending approval by super admin.' });
-    }
+    // Skip email verification and admin approval checks (disabled per requirement)
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);

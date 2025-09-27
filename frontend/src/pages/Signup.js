@@ -327,7 +327,7 @@ export default function Signup() {
               </div>
 
               {/* Role Selection */}
-              <div>
+              {/*<div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Signup as
                 </label>
@@ -403,10 +403,10 @@ export default function Signup() {
                     </div>
                   </label>
                 </div>
-              </div>
+              </div>*/}
 
               {/* Email verification option */}
-              <div className="flex items-center">
+              {/*<div className="flex items-center">
                 <input
                   id="requireEmailVerification"
                   name="requireEmailVerification"
@@ -420,7 +420,7 @@ export default function Signup() {
                 <label htmlFor="requireEmailVerification" className="ml-2 block text-sm text-gray-700">
                   Require email verification before login
                 </label>
-              </div>
+              </div>*/}
 
               {/* Terms & Conditions */}
               <div className="flex items-start">

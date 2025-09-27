@@ -9,13 +9,13 @@ export default function Topbar({ toggleSidebar }) {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full flex items-center bg-white shadow px-8 py-6 gap-4 relative">
+    <div className="w-full flex items-center bg-white shadow px-6 py-3 gap-4 relative">
       {/* Logo */}
       <div className="flex items-center">
         <img 
           src="/TSL.png" 
           alt="TSL Logo" 
-          className="h-20 w-18 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
+          className="h-14 w-14 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/dashboard")}
           loading="lazy"
           onError={(e) => {
@@ -30,11 +30,11 @@ export default function Topbar({ toggleSidebar }) {
       </button>
 
       {/* Search Box */}
-      {/*<input
+      /*<input
         type="text"
         placeholder="Search accounts..."
         className="border rounded px-3 py-1 w-1/3"
-      />*/}
+      />
 
       <div className="ml-auto flex items-center gap-4 relative">
         <span className="text-sm font-semibold">Account: Vitrux Ltd</span>
@@ -64,7 +64,7 @@ export default function Topbar({ toggleSidebar }) {
               <button
                 onClick={() => {
                   setOpen(false);
-                  navigate("/dashboard/createcretificate"); 
+                  navigate("/dashboard/createcertificate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >
