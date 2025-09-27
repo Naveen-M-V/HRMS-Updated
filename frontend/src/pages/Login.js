@@ -1,356 +1,457 @@
+// src/pages/Login.js
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ErrorBoundary from "../components/ErrorBoundary";
-
+import { EyeIcon } from '@heroicons/react/24/outline';
+import { EyeSlashIcon as EyeOffIcon } from '@heroicons/react/24/outline';
+import { LockClosedIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon as MailIcon } from '@heroicons/react/24/outline';
 
 export default function Login() {
-  const [mode, setMode] = useState("signin"); // signin or signup
-  const [signInData, setSignInData] = useState({ email: "", password: "", rememberMe: false });
-  const [signUpData, setSignUpData] = useState({
-    firstName: "", lastName: "", email: "", password: "", confirmPassword: "", isUser: true, isAdmin: false
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    rememberMe: false
   });
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
+  const location = useLocation();
+  const { login, loading, error } = useAuth();
+  
+  // Load saved email if "remember me" was checked and fix loading issue
+  useEffect(() => {
+    let isMounted = true;
+    
+    const initializeComponent = () => {
+      try {
+        const savedEmail = localStorage.getItem('rememberedEmail');
+        if (savedEmail && isMounted) {
+          setFormData(prev => ({
+            ...prev,
+            email: savedEmail,
+            rememberMe: true
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading saved email:', error);
+      }
+      
+      // Fix loading issue by setting loading to false after component mounts
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    };
+    
+    // Use requestAnimationFrame to ensure DOM is ready
+    const timer = requestAnimationFrame(() => {
+      initializeComponent();
+    });
+    
+    return () => {
+      isMounted = false;
+      cancelAnimationFrame(timer);
+    };
+  }, []);
 
-  // Toggle between signin and signup mode
-  const toggleMode = (newMode) => {
-    setErrors({});
-    setMode(newMode);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
-  // Handle input changes
-  const handleSignInChange = (e) => {
-    setSignInData({ ...signInData, [e.target.name]: e.target.value });
-    setErrors({});
-  };
-
-  const handleSignUpChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (type === "checkbox") {
-      // Mutually exclusive checkboxes
-      if (name === "isUser") {
-        setSignUpData(prev => ({ ...prev, isUser: checked, isAdmin: !checked }));
-      } else if (name === "isAdmin") {
-        setSignUpData(prev => ({ ...prev, isAdmin: checked, isUser: !checked }));
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email is invalid";
+    }
+    
+    if (!formData.password) {
+      newErrors.password = formData.email.includes('@') ? "VTID is required" : "Password is required";
+    } else if (formData.email.includes('@')) {
+      // VTID validation for user accounts - should be numeric
+      if (!/^\d+$/.test(formData.password)) {
+        newErrors.password = "VTID must contain only numbers";
+      } else if (formData.password.length < 4) {
+        newErrors.password = "VTID must be at least 4 digits";
       }
     } else {
-      setSignUpData({ ...signUpData, [name]: value });
+      // Password validation for admin accounts
+      if (formData.password.length < 6) {
+        newErrors.password = "Password must be at least 6 characters";
+      }
     }
-    setErrors({});
-  };
-
-  const validateSignInForm = () => {
-    const newErrors = {};
-    if (!signInData.email) newErrors.email = "Email is required";
-    if (!signInData.password) newErrors.password = "Password is required";
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateSignUpForm = () => {
-    const newErrors = {};
-    if (!signUpData.firstName.trim()) newErrors.firstName = "First Name is required";
-    if (!signUpData.lastName.trim()) newErrors.lastName = "Last Name is required";
-    if (!signUpData.email) newErrors.email = "Email is required";
-    if (signUpData.password.length < 6) newErrors.password = "Password must be at least 6 characters";
-    if (signUpData.confirmPassword !== signUpData.password) newErrors.confirmPassword = "Passwords do not match";
-    if (!signUpData.isUser && !signUpData.isAdmin) newErrors.role = "Select either User or Admin";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSignInSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateSignInForm()) return;
-    setLoading(true);
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setErrors({});
+    
     try {
-      const result = await login(signInData.email, signInData.password, signInData.rememberMe);
+      const result = await login(formData.email, formData.password, formData.rememberMe);
+      
       if (result.success) {
+        // Handle remember me
+        if (formData.rememberMe) {
+          localStorage.setItem('rememberedEmail', formData.email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+        
+        // Role-based routing is now handled by the backend based on email
+        // The backend will return the appropriate role and redirect accordingly
         const userRole = result.user?.role;
-        const redirectPath = userRole === "admin" ? "/admin-dashboard" : "/user-dashboard";
+        
+        let redirectPath = "/dashboard"; // Default for admin
+        
+        if (userRole === 'user') {
+          redirectPath = "/user-dashboard";
+        }
+        
         navigate(redirectPath, { replace: true });
       } else {
-        setErrors({ general: result.error || "Invalid email or password" });
+        setErrors({ general: result.error || "Invalid email or VTID" });
       }
-    } catch (err) {
-      setErrors({ general: "Login failed. Please try again." });
+    } catch (error) {
+      console.error("Login error:", error);
+      setErrors({ 
+        general: error.response?.data?.message || "An error occurred. Please try again." 
+      });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleSignUpSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateSignUpForm()) return;
-    setLoading(true);
-    try {
-      if (signUpData.isUser) {
-        // Create normal user
-        const result = await signup({
-          firstName: signUpData.firstName,
-          lastName: signUpData.lastName,
-          email: signUpData.email,
-          password: signUpData.password,
-          role: "user"
-        });
-        if (result.success) {
-          alert("User account created! Please login.");
-          setSignUpData({
-            firstName: "", lastName: "", email: "", password: "", confirmPassword: "", isUser: true, isAdmin: false
-          });
-          setMode("signin");
-        } else {
-          setErrors({ general: result.error || "Signup failed" });
-        }
-      }
-      if (signUpData.isAdmin) {
-        // Send Admin approval request - ideally call API to notify super admin
-        alert("Admin account request sent for approval. Please wait for approval email.");
-        setSignUpData({
-          firstName: "", lastName: "", email: "", password: "", confirmPassword: "", isUser: true, isAdmin: false
-        });
-        setMode("signin");
-        // Implement backend API for admin approval request if needed
-      }
-    } catch (err) {
-      setErrors({ general: "Signup failed. Please try again." });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Show loading spinner to prevent blank page
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          {/* Tab Switch */}
-          <div className="flex justify-center space-x-4 mb-6">
-            <button
-              className={`px-6 py-2 rounded ${mode === "signin" ? "bg-emerald-600 text-white" : "bg-gray-200"}`}
-              onClick={() => toggleMode("signin")}
-            >
-              Sign In
-            </button>
-            <button
-              className={`px-6 py-2 rounded ${mode === "signup" ? "bg-emerald-600 text-white" : "bg-gray-200"}`}
-              onClick={() => toggleMode("signup")}
-            >
-              Sign Up
-            </button>
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <div className="mx-auto h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+            <img 
+              src="/TSL.png" 
+              alt="TSL Logo" 
+              className="h-20 w-20 object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'block';
+              }}
+            />
+            <svg className="h-8 w-8 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
           </div>
+          <p className="mt-1 text-sm text-gray-500">Sign in to access your account</p>
+        </div>
 
-          {/* Errors */}
-          {(errors.general) && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded mb-4 text-red-700">
-              {errors.general}
-            </div>
-          )}
-
-          {/* Sign In Form */}
-          {mode === "signin" && (
-            <form className="space-y-6" onSubmit={handleSignInSubmit}>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={signInData.email}
-                  onChange={handleSignInChange}
-                  disabled={loading}
-                  className={`block w-full px-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm ${errors.email ? "border-red-300" : "border-gray-300"}`}
-                  placeholder="Enter your email"
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? "email-error" : ""}
-                />
-                {errors.email && <p id="email-error" className="mt-1 text-sm text-red-600">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={signInData.password}
-                  onChange={handleSignInChange}
-                  disabled={loading}
-                  className={`block w-full px-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm ${errors.password ? "border-red-300" : "border-gray-300"}`}
-                  placeholder="Enter your password"
-                  aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? "password-error" : ""}
-                />
-                {errors.password && <p id="password-error" className="mt-1 text-sm text-red-600">{errors.password}</p>}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <label htmlFor="rememberMe" className="inline-flex items-center text-sm text-gray-700 cursor-pointer">
-                  <input
-                    id="rememberMe"
-                    name="rememberMe"
-                    type="checkbox"
-                    checked={signInData.rememberMe}
-                    onChange={(e) => setSignInData(prev => ({ ...prev, rememberMe: e.target.checked }))}
-                    disabled={loading}
-                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span className="ml-2">Remember me</span>
-                </label>
-                <Link to="/forgot-password" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
-                  Forgot your password?
-                </Link>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-                >
-                  {loading ? "Signing in..." : "Sign in"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Sign Up Form */}
-          {mode === "signup" && (
-            <form className="space-y-6" onSubmit={handleSignUpSubmit}>
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  value={signUpData.firstName}
-                  onChange={handleSignUpChange}
-                  className={`block w-full px-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm ${errors.firstName ? "border-red-300" : "border-gray-300"}`}
-                  placeholder="Enter your first name"
-                  required
-                  autoComplete="given-name"
-                />
-                {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  value={signUpData.lastName}
-                  onChange={handleSignUpChange}
-                  className={`block w-full px-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm ${errors.lastName ? "border-red-300" : "border-gray-300"}`}
-                  placeholder="Enter your last name"
-                  required
-                  autoComplete="family-name"
-                />
-                {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
-              </div>
-
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          {/* Login Form */}
+          <div className="bg-white py-8 px-6 shadow-xl rounded-xl border border-gray-200">
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {(errors.general || error) && (
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-red-700">{errors.general || error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
+                  Email address
                 </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={signUpData.email}
-                  onChange={handleSignUpChange}
-                  className={`block w-full px-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm ${errors.email ? "border-red-300" : "border-gray-300"}`}
-                  placeholder="Enter your email address"
-                  required
-                  autoComplete="email"
-                />
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MailIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                  </div>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    disabled={isSubmitting}
+                    className={`block w-full pl-10 pr-3 py-3 border ${
+                      errors.email ? 'border-red-300' : 'border-gray-300'
+                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out sm:text-sm`}
+                    placeholder="Enter your email"
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? 'email-error' : ''}
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600" id="email-error">
+                      {errors.email}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
+                  {formData.email.includes('@') ? 'VTID' : 'Password'}
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={signUpData.password}
-                  onChange={handleSignUpChange}
-                  className={`block w-full px-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm ${errors.password ? "border-red-300" : "border-gray-300"}`}
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="new-password"
-                />
-                {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <LockClosedIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={isSubmitting}
+                    className={`block w-full pl-10 pr-10 py-3 border ${
+                      errors.password ? 'border-red-300' : 'border-gray-300'
+                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
+                    placeholder={formData.email.includes('@') ? 'Enter your VTID' : 'Enter your password'}
+                    aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? 'password-error' : ''}
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <button
+                      type="button"
+                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex="-1"
+                    >
+                      {showPassword ? (
+                        <EyeOffIcon className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600" id="password-error">
+                      {errors.password}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={signUpData.confirmPassword}
-                  onChange={handleSignUpChange}
-                  className={`block w-full px-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm ${errors.confirmPassword ? "border-red-300" : "border-gray-300"}`}
-                  placeholder="Confirm your password"
-                  required
-                  autoComplete="new-password"
-                />
-                {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
-              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="rememberMe"
+                    type="checkbox"
+                    checked={formData.rememberMe}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      rememberMe: e.target.checked
+                    }))}
+                    disabled={isSubmitting}
+                    className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                    Remember me
+                  </label>
+                </div>
 
-              {/* User / Admin selection checkboxes */}
-              <div className="flex gap-6">
-                <label className="inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="isUser"
-                    checked={signUpData.isUser}
-                    onChange={handleSignUpChange}
-                    className="form-checkbox h-5 w-5 text-emerald-600"
-                  />
-                  <span className="ml-2 text-gray-700">User</span>
-                </label>
-                <label className="inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="isAdmin"
-                    checked={signUpData.isAdmin}
-                    onChange={handleSignUpChange}
-                    className="form-checkbox h-5 w-5 text-emerald-600"
-                  />
-                  <span className="ml-2 text-gray-700">Admin (requires approval)</span>
-                </label>
+                <div className="text-sm">
+                  <Link
+                    to="/forgot-password"
+                    className="font-medium text-emerald-600 hover:text-emerald-500 transition duration-150 ease-in-out"
+                  >
+                    Forgot your password?
+                  </Link>
+                </div>
               </div>
-              {errors.role && <p className="mt-1 text-sm text-red-600">{errors.role}</p>}
 
               <div>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                  disabled={loading || isSubmitting}
+                  aria-live="polite"
+                  aria-busy={isSubmitting}
+                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition duration-150 ease-in-out ${
+                    loading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500'
+                  }`}
                 >
-                  {loading ? "Processing..." : "Create Account"}
+                  {loading ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Signing in...
+                    </div>
+                  ) : (
+                    'Sign in'
+                  )}
                 </button>
               </div>
             </form>
-          )}
 
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">New to Talent Shield?</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Link
+                  to="/signup"
+                  state={{ from: location.state?.from }}
+                  className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                >
+                  Create new account
+                </Link>
+                
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    By signing in, you agree to our{' '}
+                    <button 
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-emerald-600 hover:text-emerald-500 font-medium underline bg-transparent border-none cursor-pointer"
+                    >
+                      Terms of Service
+                    </button>{' '}
+                    and{' '}
+                    <button 
+                      type="button"
+                      onClick={() => setShowPrivacyModal(true)}
+                      className="text-emerald-600 hover:text-emerald-500 font-medium underline bg-transparent border-none cursor-pointer"
+                    >
+                      Privacy Policy
+                    </button>
+                  </p>
+                  <p className="text-xs text-gray-500">Powered by Vitrux Shield</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Terms and Conditions Modal */}
+        {showTermsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Terms and Conditions</h3>
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                  <h4 className="mb-4 font-semibold text-gray-900">Terms & Conditions</h4>
+                  <p className="mb-4">
+                    Welcome to Vitrux Shield. By accessing and using this Application, you agree to comply with and be bound by these Terms & Conditions.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end p-6 border-t bg-gray-50">
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Privacy Policy Modal */}
+        {showPrivacyModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Privacy Policy</h3>
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                  <h4 className="mb-4 font-semibold text-gray-900">Privacy Policy</h4>
+                  <p className="mb-4">
+                    This Privacy Policy explains how Vitrux Shield collects, uses, and protects personal data within the HRMS application.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end p-6 border-t bg-gray-50">
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
     </ErrorBoundary>
   );
 }
