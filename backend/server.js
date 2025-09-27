@@ -14,7 +14,12 @@ const cookieParser = require('cookie-parser');
 // Load environment configuration
 const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
-
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
+const { sendApprovalRequestEmail } = require('./utils/emailService'); // Add this line
+// other imports ...
 const app = express();
 const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
