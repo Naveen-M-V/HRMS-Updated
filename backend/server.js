@@ -546,10 +546,30 @@ app.get('/api/auth/verify-email', async (req, res) => {
     user.verificationToken = undefined;
     await user.save();
 
-    res.send('Email verified successfully. You can close this window and login.');
+    // Get frontend URL for redirect
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    
+    // If user is admin, redirect to dashboard after verification
+    if (user.role === 'admin') {
+      // Create session for the verified admin
+      req.session.user = {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role
+      };
+      
+      // Redirect to admin dashboard
+      return res.redirect(`${frontendUrl}/dashboard?verified=true`);
+    } else {
+      // For regular users, redirect to login with success message
+      return res.redirect(`${frontendUrl}/login?verified=true`);
+    }
   } catch (error) {
     console.error('Verify email error:', error);
-    res.status(500).send('Server error');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/login?error=verification_failed`);
   }
 });
 
@@ -1759,16 +1779,12 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
-    // In development, auto-verify email for admins
-    if (process.env.NODE_ENV === 'development' && user.role === 'admin' && !user.emailVerified) {
-      user.emailVerified = true;
-      user.adminApprovalStatus = 'approved';
-      await user.save();
-    }
-
-    // Enforce email verification for non-admins
-    if (!user.emailVerified && user.role !== 'admin') {
-      return res.status(403).json({ message: 'Email not verified. Please verify your email to continue.' });
+    // Enforce email verification for all users (including admins)
+    if (!user.emailVerified) {
+      return res.status(403).json({ 
+        message: 'Email not verified. Please check your email and click the verification link to continue.',
+        requiresVerification: true
+      });
     }
 
     // Enforce admin approval only in production
