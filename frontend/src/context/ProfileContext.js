@@ -7,14 +7,25 @@ const ProfileContext = createContext();
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 const getApiUrl = () => {
-  // In development, use localhost URL
-  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
+  // Use production API URL from environment variables
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
+  const apiUrl = process.env.REACT_APP_API_URL;
+  
+  // Prefer API_BASE_URL if it includes /api path, otherwise use API_URL
+  if (apiBaseUrl) {
+    return apiBaseUrl.replace(/\/$/, ""); // Remove trailing slash
   }
   
-  // In production, use the environment variable or fallback
-  return process.env.REACT_APP_API_URL || 'http://localhost:5003';
+  if (apiUrl) {
+    return apiUrl.replace(/\/$/, ""); // Remove trailing slash
+  }
+  
+  // Fallback for local development
+  return "http://localhost:5000";
 };
+
+// Export getApiUrl so it can be imported by other components
+export { getApiUrl };
 
 export const useProfiles = () => {
   const context = useContext(ProfileContext);
