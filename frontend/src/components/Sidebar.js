@@ -28,21 +28,39 @@ export default function Sidebar({ isOpen }) {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          console.error('Authentication token not found');
+          return;
+        }
+
         const response = await fetch('https://talentshield.co.uk/api/notifications/unread-count', {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (typeof data.count === 'number') {
-            setUnreadNotifications(data.count);
-          } else {
-            console.error('Unexpected response format:', data);
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
           }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Server returned non-JSON response');
+        }
+
+        const data = await response.json();
+        if (typeof data.count === 'number') {
+          setUnreadNotifications(data.count);
         } else {
-          console.error('Failed to fetch notification count. Status:', response.status);
+          console.error('Unexpected response format:', data);
         }
       } catch (error) {
         console.error('Failed to fetch notification count:', error);
+        setUnreadNotifications(0); // Reset count on error
       }
     };
 

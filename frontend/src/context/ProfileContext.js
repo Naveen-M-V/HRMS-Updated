@@ -45,8 +45,16 @@ export const ProfileProvider = ({ children }) => {
         : `/api/profiles`;
 
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const response = await fetch(`https://talentshield.co.uk${endpoint}`, {
+        credentials: 'include',
         headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
