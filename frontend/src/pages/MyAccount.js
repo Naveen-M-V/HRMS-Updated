@@ -24,8 +24,7 @@ export default function MyAccount() {
       
       try {
         setLoading(true);
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-        const response = await fetch(`${apiUrl}/api/profiles/user/${user.email}`, {
+        const response = await fetch('/api/my-profile', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
