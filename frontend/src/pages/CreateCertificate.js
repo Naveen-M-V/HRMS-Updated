@@ -14,6 +14,9 @@ export default function CreateCertificate() {
   console.log('CreateCertificate - profiles:', profiles);
   console.log('CreateCertificate - profiles length:', profiles?.length);
 
+  // State for certificate suggestions based on job role
+  const [suggestedCertificates, setSuggestedCertificates] = useState([]);
+
   const [form, setForm] = useState({
     profile: "",
     certificateName: "",
@@ -186,6 +189,15 @@ export default function CreateCertificate() {
       const profile = profiles.find(p => `${p.firstName} ${p.lastName}` === value);
       setSelectedProfile(profile);
       
+      // Get suggested certificates based on job role
+      if (profile && profile.jobRole && profile.jobRole.length > 0) {
+        const jobRole = Array.isArray(profile.jobRole) ? profile.jobRole[0] : profile.jobRole;
+        const certificates = getCertificatesForJobRole(jobRole);
+        setSuggestedCertificates(certificates.mandatory || []);
+      } else {
+        setSuggestedCertificates([]);
+      }
+      
       // Reset certificate selection when profile changes
       setForm(prev => ({ ...prev, certificateName: "" }));
     }
@@ -311,6 +323,25 @@ export default function CreateCertificate() {
             )}
           </div>
 
+          {/* Suggested Certificates */}
+          {suggestedCertificates.length > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-800 mb-2">Suggested Certificates for {selectedProfile?.jobRole?.[0] || selectedProfile?.jobRole}</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {suggestedCertificates.map((cert, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, certificateName: cert }))}
+                    className="text-left p-2 bg-white border border-blue-300 rounded hover:bg-blue-100 text-sm"
+                  >
+                    {cert}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Certificate Name */}
           <div>
             <label className="block font-medium mb-1">Certificate Name <span className="text-red-500">*</span></label>
@@ -323,7 +354,6 @@ export default function CreateCertificate() {
               onSearch={handleCertificateNameSearch}
               onAddNew={handleAddCertificateName}
               className="w-full"
-              required
             />
             <p className="text-xs text-gray-500 mt-1">
               You can type to search existing certificates or add a new one

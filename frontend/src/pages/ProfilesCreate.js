@@ -1,11 +1,7 @@
 // src/pages/ProfilesCreate.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
-import JobRoleDropdown from "../components/JobRoleDropdown";
-import JobRoleCheckboxPicker from "../components/JobRoleCheckboxPicker";
-import JobLevelDropdown from "../components/JobLevelDropdown";
-import JobTitleDropdown from "../components/JobTitleDropdown";
 
 export default function ProfilesCreate() {
   const [formData, setFormData] = useState({
@@ -31,8 +27,52 @@ export default function ProfilesCreate() {
     status: "",
   });
 
+  const [jobRoles, setJobRoles] = useState([]);
+  const [jobLevels, setJobLevels] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
   const { addProfile } = useProfiles();
+
+  // Fetch job roles and levels on component mount
+  useEffect(() => {
+    fetchJobRoles();
+    fetchJobLevels();
+  }, []);
+
+  const fetchJobRoles = async () => {
+    try {
+      const response = await fetch('/api/job-roles', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setJobRoles(data);
+      } else {
+        console.error('Failed to fetch job roles');
+      }
+    } catch (error) {
+      console.error('Error fetching job roles:', error);
+    }
+  };
+
+  const fetchJobLevels = async () => {
+    try {
+      const response = await fetch('/api/job-levels', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setJobLevels(data);
+      } else {
+        console.error('Failed to fetch job levels');
+      }
+    } catch (error) {
+      console.error('Error fetching job levels:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
 
@@ -211,27 +251,60 @@ export default function ProfilesCreate() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium">Job Roles</label>
-              <JobRoleCheckboxPicker
-                name="jobRole"
-                value={formData.jobRole}
-                onChange={handleJobRoleChange}
-                required
-              />
+              {loading ? (
+                <div className="mt-1 block w-full border rounded p-2 bg-gray-50">
+                  Loading job roles...
+                </div>
+              ) : (
+                <select
+                  name="jobRole"
+                  value={formData.jobRole[0] || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      jobRole: value ? [value] : []
+                    }));
+                  }}
+                  className="mt-1 block w-full border rounded p-2"
+                  required
+                >
+                  <option value="">Select a job role...</option>
+                  {jobRoles.map((role) => (
+                    <option key={role._id} value={role.name}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <p className="text-xs text-gray-500 mt-1">
-                Select multiple job roles using checkboxes. Use search to filter roles.
+                {jobRoles.length} job roles available. Select one for this profile.
               </p>
             </div>
             <div>
               <label className="block text-sm font-medium">Job Level</label>
-              <JobLevelDropdown
-                name="jobLevel"
-                value={formData.jobLevel}
-                onChange={handleChange}
-                placeholder="Select or add job level"
-                required
-              />
+              {loading ? (
+                <div className="mt-1 block w-full border rounded p-2 bg-gray-50">
+                  Loading job levels...
+                </div>
+              ) : (
+                <select
+                  name="jobLevel"
+                  value={formData.jobLevel}
+                  onChange={handleChange}
+                  className="mt-1 block w-full border rounded p-2"
+                  required
+                >
+                  <option value="">Select job level...</option>
+                  {jobLevels.map((level) => (
+                    <option key={level._id} value={level.name}>
+                      {level.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <p className="text-xs text-gray-500 mt-1">
-                You can type to search existing job levels or add a new one
+                {jobLevels.length} job levels available. Select the appropriate level.
               </p>
             </div>
           </div>

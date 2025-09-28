@@ -197,7 +197,7 @@ function App() {
                               <Route path="/editprofile" element={<EditProfile />} />
                               <Route path="/sharestaff" element={<Sharestaff/>} />
                               <Route path="/staffdetail" element={<StaffDetail/>} />
-                              <Route path="/dashboard/createcretificate" element={<CreateCertificate />} />
+                              <Route path="/dashboard/createcertificate" element={<CreateCertificate />} />
                               <Route path="/reporting/certificates" element={<CertificatesPage />} />
                               <Route path="/certificates" element={<CertificateManagement />} />
                               <Route path="/editcertificate/:id" element={<EditCertificate />} />
