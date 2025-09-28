@@ -131,23 +131,35 @@ export const ProfileProvider = ({ children }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles`, {
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const response = await fetch('https://talentshield.co.uk/api/profiles', {
         method: 'POST',
         headers: { 
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
         body: JSON.stringify(newProfile),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to create profile: ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
       }
 
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to create profile: ${response.status}`);
+      }
+
       setProfiles(prev => [data, ...prev]);
+      // Clear the cache to ensure fresh data on next fetch
+      localStorage.removeItem('profiles_cache_optimized');
+      localStorage.removeItem('profiles_cache_time');
 
       const updatedProfiles = [data, ...profiles];
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));

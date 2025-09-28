@@ -272,7 +272,7 @@ export default function CertificateManagement() {
                 }
               </p>
               <button
-                onClick={() => navigate("/dashboard/createcretificate")}
+                onClick={() => navigate("/dashboard/createcretificates")}
                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
               >
                 <PlusIcon className="h-4 w-4" />

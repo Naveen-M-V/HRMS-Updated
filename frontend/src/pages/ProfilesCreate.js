@@ -42,33 +42,57 @@ export default function ProfilesCreate() {
 
   const fetchJobRoles = async () => {
     try {
-      const response = await fetch('/api/job-roles', {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setJobRoles(data);
-      } else {
-        console.error('Failed to fetch job roles');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Authentication token not found');
       }
+
+      const response = await fetch('https://talentshield.co.uk/api/job-roles', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch job roles: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setJobRoles(data);
     } catch (error) {
       console.error('Error fetching job roles:', error);
+      setJobRoles([]);
     }
   };
 
   const fetchJobLevels = async () => {
     try {
-      const response = await fetch('/api/job-levels', {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setJobLevels(data);
-      } else {
-        console.error('Failed to fetch job levels');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Authentication token not found');
       }
+
+      const response = await fetch('https://talentshield.co.uk/api/job-levels', {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch job levels: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setJobLevels(data);
     } catch (error) {
       console.error('Error fetching job levels:', error);
+      setJobLevels([]);
     } finally {
       setLoading(false);
     }
