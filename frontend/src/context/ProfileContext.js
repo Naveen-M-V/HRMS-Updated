@@ -6,7 +6,7 @@ const ProfileContext = createContext();
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
-const getApiUrl = () => {
+export const getApiUrl = () => {
   // In development, use localhost URL
   if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
