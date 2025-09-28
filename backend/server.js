@@ -2088,9 +2088,8 @@ const authenticateToken = authenticateSession;
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
 
-// Import password generator and email service
+// Import password generator (email service already imported above)
 const { generateSimplePassword } = require('./utils/passwordGenerator');
-const { sendUserCredentialsEmail } = require('./utils/emailService');
 
 // Create new user endpoint (Admin only)
 app.post('/api/users/create', authenticateSession, async (req, res) => {
