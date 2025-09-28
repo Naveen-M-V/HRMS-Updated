@@ -51,6 +51,52 @@ const sendVerificationEmail = async (userEmail, verifyUrl, userName = 'User') =>
   }
 };
 
+// Send user account credentials email
+const sendUserCredentialsEmail = async (userEmail, userName, vtid, loginUrl) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: userEmail,
+      subject: 'Welcome to Talent Shield HRMS - Your Login Credentials',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #10b981; color: white; padding: 20px; text-align: center;">
+            <h1>Welcome to Talent Shield HRMS</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>Hello <strong>${userName}</strong>,</p>
+            <p>Your account has been successfully created in the Talent Shield HRMS system. You can now access your profile and certificates.</p>
+            
+            <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
+              <h3 style="margin-top:0;color:#10b981;">Your Login Credentials</h3>
+              <p><strong>Email:</strong> ${userEmail}</p>
+              <p><strong>Password (VTID):</strong> <span style="background:#f3f4f6;padding:4px 8px;border-radius:4px;font-family:monospace;font-size:16px;">${vtid}</span></p>
+            </div>
+            
+            <div style="text-align:center; margin: 24px 0;">
+              <a href="${loginUrl}" style="background:#10b981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;">Login to Your Account</a>
+            </div>
+            
+            <div style="background-color:#fef3c7;padding:15px;border-radius:6px;margin:20px 0;">
+              <p style="margin:0;color:#92400e;"><strong>Important:</strong> Please keep your VTID secure and do not share it with anyone. You can use this VTID as your password to login to the system.</p>
+            </div>
+            
+            <p>If you have any questions or need assistance, please contact your administrator.</p>
+            <p>Best regards,<br>Talent Shield HRMS Team</p>
+          </div>
+        </div>
+      `
+    };
+    const result = await transporter.sendMail(mailOptions);
+    console.log('User credentials email sent:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending user credentials email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Send super-admin approval request for admin signup
 const sendAdminApprovalRequestEmail = async (superAdminEmail, applicantName, applicantEmail, approveUrl) => {
   try {
@@ -245,5 +291,6 @@ module.exports = {
   sendNotificationEmail,
   testEmailConfiguration,
   sendVerificationEmail,
-  sendAdminApprovalRequestEmail
+  sendAdminApprovalRequestEmail,
+  sendUserCredentialsEmail
 };

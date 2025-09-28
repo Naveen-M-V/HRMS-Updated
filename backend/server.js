@@ -621,6 +621,50 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
     const profile = new Profile(req.body);
     const savedProfile = await profile.save();
     
+    // Create user account for the profile
+    try {
+      // Check if user account already exists
+      const existingUser = await User.findOne({ email: savedProfile.email });
+      
+      if (!existingUser) {
+        // Create new user account with VTID as password
+        const vtid = savedProfile.vtid || Math.floor(1000 + Math.random() * 8000); // Generate VTID if not exists
+        
+        // Update profile with VTID if it wasn't set
+        if (!savedProfile.vtid) {
+          savedProfile.vtid = vtid;
+          await savedProfile.save();
+        }
+        
+        // Create user account
+        const newUser = new User({
+          firstName: savedProfile.firstName,
+          lastName: savedProfile.lastName,
+          email: savedProfile.email,
+          password: vtid.toString(), // Store VTID as plain text for user accounts
+          role: 'user',
+          isActive: true,
+          emailVerified: true, // Auto-verify user accounts created by admin
+          createdBy: 'admin',
+          profileId: savedProfile._id
+        });
+        
+        await newUser.save();
+        console.log('User account created for profile:', savedProfile.email);
+        
+        // Send credentials email to user
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const loginUrl = `${frontendUrl}/login`;
+        const userName = `${savedProfile.firstName} ${savedProfile.lastName}`;
+        
+        await sendUserCredentialsEmail(savedProfile.email, userName, vtid, loginUrl);
+        console.log('Credentials email sent to:', savedProfile.email);
+      }
+    } catch (userCreationError) {
+      console.error('Error creating user account:', userCreationError);
+      // Don't fail the profile creation if user account creation fails
+    }
+    
     // Create notification for profile creation
     try {
       const users = await User.find({ role: 'admin' });
@@ -634,12 +678,6 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         });
         await notification.save();
       }
-      
-      // Send email notification for account creation
-      const subject = 'Welcome to Talent Shield HRMS';
-      const body = `Dear ${savedProfile.firstName} ${savedProfile.lastName},\n\nYour account has been successfully created in Talent Shield HRMS.\n\nYour login details:\nEmail: ${savedProfile.email}\nSkillko ID: ${savedProfile.skillkoId}\n\nPlease contact your administrator for your login credentials.\n\nBest regards,\nTalent Shield HRMS Team`;
-      
-      await sendEmailNotification(savedProfile.email, subject, body);
     } catch (notificationError) {
       console.error('Error creating notifications:', notificationError);
     }
@@ -1751,7 +1789,7 @@ app.post('/api/auth/signup', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail } = require('./utils/emailService');
+const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail, sendUserCredentialsEmail } = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 
 // Import notification routes
@@ -1765,11 +1803,75 @@ const jobLevelsRoutes = require('./routes/jobLevels');
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password, rememberMe } = req.body; // 'email' may be email or username
+    const { email, password, rememberMe } = req.body;
 
-    const identifier = email;
-    // Find user by email or username
-    const user = await User.findOne({ $or: [ { email: identifier }, { username: identifier } ] });
+    // First, check if this is a user account (Profile collection)
+    const profile = await Profile.findOne({ email: email });
+    if (profile) {
+      // This is a user account - validate VTID
+      if (password !== profile.vtid?.toString()) {
+        return res.status(400).json({ message: 'Invalid email or VTID' });
+      }
+
+      // Find the corresponding user account
+      const user = await User.findOne({ email: email, role: 'user' });
+      if (!user || !user.isActive) {
+        return res.status(400).json({ message: 'User account not found or deactivated' });
+      }
+
+      // Create session data for user
+      const sessionUser = {
+        userId: user._id,
+        email: user.email,
+        role: 'user',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileId: profile._id
+      };
+
+      // Store user in session
+      req.session.user = sessionUser;
+
+      // Force session save
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+        } else {
+          console.log('Session saved successfully for user:', sessionUser.email);
+        }
+      });
+
+      // If remember me is checked, extend session duration
+      if (rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      }
+
+      // Generate JWT token for API compatibility
+      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: '24h' });
+
+      // Send login success email notification
+      try {
+        const loginTime = new Date().toLocaleString();
+        const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+        const userName = `${user.firstName} ${user.lastName}`;
+        
+        await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
+      } catch (emailError) {
+        console.error('Failed to send login success email:', emailError);
+        // Don't fail the login if email fails
+      }
+
+      return res.json({
+        success: true,
+        message: 'Login successful',
+        user: sessionUser,
+        token: token,
+        redirectTo: '/user-dashboard'
+      });
+    }
+
+    // If not found in Profile collection, check User collection (admin accounts)
+    const user = await User.findOne({ $or: [ { email: email }, { username: email } ] });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
@@ -1792,7 +1894,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(403).json({ message: 'Admin account pending approval by super admin.' });
     }
 
-    // Verify password
+    // Verify password for admin accounts (hashed)
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
@@ -1840,6 +1942,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     res.json({
+      success: true,
       message: 'Login successful',
       token, // Keep for backward compatibility
       user: {
@@ -1848,7 +1951,8 @@ app.post('/api/auth/login', async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         role: user.role
-      }
+      },
+      redirectTo: '/dashboard'
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
