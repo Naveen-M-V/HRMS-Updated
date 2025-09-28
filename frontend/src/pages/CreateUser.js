@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlusIcon, EnvelopeIcon as MailIcon, UserIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon, MailIcon, UserIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 
 const CreateUser = () => {
   const [formData, setFormData] = useState({
