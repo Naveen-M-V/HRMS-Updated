@@ -157,56 +157,67 @@ export default function Login() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto h-24 w-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-            <img 
-              src="/TSL.png" 
-              alt="TSL Logo" 
-              className="h-20 w-20 object-contain"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'block';
-              }}
-            />
-            <svg className="h-8 w-8 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <p className="mt-1 text-sm text-gray-500">Sign in to access your account</p>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100 flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
         </div>
+        
+        <div className="max-w-md w-full space-y-8 relative z-10">
+          {/* Header */}
+          <div className="text-center animate-fade-in-up">
+            <div className="mx-auto h-28 w-28 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full flex items-center justify-center mb-4 shadow-lg border-4 border-white">
+              <img 
+                src="/TSL.png" 
+                alt="TSL Logo" 
+                className="h-20 w-20 object-contain drop-shadow-sm"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextElementSibling.style.display = 'block';
+                }}
+              />
+              <svg className="h-10 w-10 text-emerald-600 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+            <p className="text-gray-600">Sign in to access your HRMS dashboard</p>
+          </div>
 
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          {/* Login Form */}
-          <div className="bg-white py-8 px-6 shadow-xl rounded-xl border border-gray-200">
+          <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-fade-in-up animation-delay-200">
+            {/* Login Form */}
+            <div className="bg-white/80 backdrop-blur-sm py-8 px-8 shadow-2xl rounded-2xl border border-white/50 hover:shadow-3xl transition-all duration-300">
             <form className="space-y-6" onSubmit={handleSubmit}>
               {verificationMessage && (
-                <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded">
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-l-4 border-emerald-400 p-4 rounded-lg shadow-sm animate-slide-in">
                   <div className="flex">
                     <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
+                      <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <svg className="h-4 w-4 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm text-green-700">{verificationMessage}</p>
+                      <p className="text-sm font-medium text-emerald-800">{verificationMessage}</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {(errors.general || error) && (
-                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                <div className="bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-400 p-4 rounded-lg shadow-sm animate-shake">
                   <div className="flex">
                     <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                      </svg>
+                      <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg className="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm text-red-700">{errors.general || error}</p>
+                      <p className="text-sm font-medium text-red-800">{errors.general || error}</p>
                     </div>
                   </div>
                 </div>
@@ -214,13 +225,13 @@ export default function Login() {
               
               {/* Username or Email */}
               
-              <div>
-                <label htmlFor="emailOrUsername" className="block text-sm font-medium text-gray-700">
+              <div className="space-y-1">
+                <label htmlFor="emailOrUsername" className="block text-sm font-semibold text-gray-700 mb-2">
                   Username or Email
                 </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MailIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <MailIcon className="h-5 w-5 text-emerald-400" aria-hidden="true" />
                   </div>
                   <input
                     id="emailOrUsername"
@@ -230,28 +241,33 @@ export default function Login() {
                     value={formData.emailOrUsername}
                     onChange={handleChange}
                     disabled={isSubmitting}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.emailOrUsername ? 'border-red-300' : 'border-gray-300'
-                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out sm:text-sm`}
+                    className={`block w-full pl-12 pr-4 py-3 border-2 ${
+                      errors.emailOrUsername 
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                        : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
+                    } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
                     placeholder="Enter your username or email"
                     aria-invalid={!!errors.emailOrUsername}
                     aria-describedby={errors.emailOrUsername ? 'emailOrUsername-error' : ''}
                   />
                   {errors.emailOrUsername && (
-                    <p className="mt-1 text-sm text-red-600" id="emailOrUsername-error">
+                    <p className="mt-2 text-sm text-red-600 flex items-center" id="emailOrUsername-error">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
                       {errors.emailOrUsername}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <div className="space-y-1">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Password
                 </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LockClosedIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <LockClosedIcon className="h-5 w-5 text-emerald-400" aria-hidden="true" />
                   </div>
                   <input
                     id="password"
@@ -261,17 +277,19 @@ export default function Login() {
                     value={formData.password}
                     onChange={handleChange}
                     disabled={isSubmitting}
-                    className={`block w-full pl-10 pr-10 py-3 border ${
-                      errors.password ? 'border-red-300' : 'border-gray-300'
-                    } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
+                    className={`block w-full pl-12 pr-12 py-3 border-2 ${
+                      errors.password 
+                        ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                        : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
+                    } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
                     placeholder="Enter your password"
                     aria-invalid={!!errors.password}
                     aria-describedby={errors.password ? 'password-error' : ''}
                   />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
                     <button
                       type="button"
-                      className="text-gray-400 hover:text-gray-500 focus:outline-none focus:text-gray-500"
+                      className="text-emerald-400 hover:text-emerald-600 focus:outline-none focus:text-emerald-600 transition-colors duration-200"
                       onClick={() => setShowPassword(!showPassword)}
                       tabIndex="-1"
                     >
@@ -283,28 +301,33 @@ export default function Login() {
                     </button>
                   </div>
                   {errors.password && (
-                    <p className="mt-1 text-sm text-red-600" id="password-error">
+                    <p className="mt-2 text-sm text-red-600 flex items-center" id="password-error">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
                       {errors.password}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="rememberMe"
-                    type="checkbox"
-                    checked={formData.rememberMe}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      rememberMe: e.target.checked
-                    }))}
-                    disabled={isSubmitting}
-                    className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  <div className="relative">
+                    <input
+                      id="remember-me"
+                      name="rememberMe"
+                      type="checkbox"
+                      checked={formData.rememberMe}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        rememberMe: e.target.checked
+                      }))}
+                      disabled={isSubmitting}
+                      className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded transition-colors duration-200"
+                    />
+                  </div>
+                  <label htmlFor="remember-me" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer">
                     Remember me
                   </label>
                 </div>
@@ -312,26 +335,26 @@ export default function Login() {
                 <div className="text-sm">
                   <Link
                     to="/forgot-password"
-                    className="font-medium text-emerald-600 hover:text-emerald-500 transition duration-150 ease-in-out"
+                    className="font-semibold text-emerald-600 hover:text-emerald-700 transition-colors duration-200 hover:underline"
                   >
-                    Forgot your password?
+                    Forgot password?
                   </Link>
                 </div>
               </div>
 
-              <div>
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={loading || isSubmitting}
                   aria-live="polite"
                   aria-busy={isSubmitting}
-                  className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition duration-150 ease-in-out ${
-                    loading 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500'
+                  className={`w-full flex justify-center py-4 px-6 border border-transparent rounded-xl text-base font-semibold text-white transition-all duration-200 ease-in-out transform ${
+                    loading || isSubmitting
+                      ? 'bg-gray-400 cursor-not-allowed scale-95' 
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-4 focus:ring-emerald-200 hover:scale-105 shadow-lg hover:shadow-xl'
                   }`}
                 >
-                  {loading ? (
+                  {loading || isSubmitting ? (
                     <div className="flex items-center">
                       <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -340,19 +363,24 @@ export default function Login() {
                       Signing in...
                     </div>
                   ) : (
-                    'Sign in'
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                      </svg>
+                      Sign in
+                    </div>
                   )}
                 </button>
               </div>
             </form>
 
-            <div className="mt-6">
+            <div className="mt-8">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
+                  <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">New Admin?</span>
+                  <span className="px-4 bg-white/80 text-gray-600 font-medium">New Admin?</span>
                 </div>
               </div>
 
@@ -361,19 +389,22 @@ export default function Login() {
                   <Link
                     to="/signup"
                     state={{ from: location.state?.from }}
-                    className="w-full max-w-xs flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
+                    className="w-full max-w-xs flex justify-center py-3 px-6 border-2 border-emerald-500 rounded-xl text-sm font-semibold text-emerald-600 bg-white/50 backdrop-blur-sm hover:bg-emerald-50 hover:border-emerald-600 focus:outline-none focus:ring-4 focus:ring-emerald-200 transition-all duration-200 ease-in-out transform hover:scale-105 shadow-md hover:shadow-lg"
                   >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
                     Admin Signup
                   </Link>
                 </div>
                 
-                <div className="mt-4 text-center">
-                  <p className="text-xs text-gray-500">
+                <div className="mt-6 text-center space-y-3">
+                  <p className="text-xs text-gray-500 leading-relaxed">
                     By signing in, you agree to our{' '}
                     <button 
                       type="button"
                       onClick={() => setShowTermsModal(true)}
-                      className="text-emerald-600 hover:text-emerald-500 font-medium underline bg-transparent border-none cursor-pointer"
+                      className="text-emerald-600 hover:text-emerald-700 font-semibold underline bg-transparent border-none cursor-pointer transition-colors duration-200"
                     >
                       Terms of Service
                     </button>{' '}
@@ -381,12 +412,16 @@ export default function Login() {
                     <button 
                       type="button"
                       onClick={() => setShowPrivacyModal(true)}
-                      className="text-emerald-600 hover:text-emerald-500 font-medium underline bg-transparent border-none cursor-pointer"
+                      className="text-emerald-600 hover:text-emerald-700 font-semibold underline bg-transparent border-none cursor-pointer transition-colors duration-200"
                     >
                       Privacy Policy
                     </button>
                   </p>
-                  <p className="text-xs text-gray-500">Powered by Vitrux Shield</p>
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <p className="text-xs text-gray-600 font-medium">Powered by Vitrux Shield</p>
+                    <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse animation-delay-1000"></div>
+                  </div>
                 </div>
               </div>
             </div>
