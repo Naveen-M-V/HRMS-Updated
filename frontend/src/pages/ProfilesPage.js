@@ -5,7 +5,25 @@ import { useProfiles } from "../context/ProfileContext";
 import { Link } from "react-router-dom";
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
 
-import { getApiUrl } from '../utils/apiConfig';
+// Helpers
+// Determine the API base URL for frontend calls
+function getApiUrl() {
+  // Use production API URL from environment variables
+  const apiBaseUrl = process.env.REACT_APP_API_BASE_URL;
+  const apiUrl = process.env.REACT_APP_API_URL;
+  
+  // Prefer API_BASE_URL if it includes /api path, otherwise use API_URL
+  if (apiBaseUrl) {
+    return apiBaseUrl.replace(/\/$/, ""); // Remove trailing slash
+  }
+  
+  if (apiUrl) {
+    return apiUrl.replace(/\/$/, ""); // Remove trailing slash
+  }
+  
+  // Fallback for local development
+  return "http://localhost:5000";
+}
 
 // Safely get VTID for a profile row
 function generateVTID(profile) {

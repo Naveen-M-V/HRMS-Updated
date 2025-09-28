@@ -39,7 +39,15 @@ export default function CreateCertificate() {
     initializeCertificateNames();
   }, []);
 
-import { getApiUrl } from '../utils/apiConfig';
+  const getApiUrl = () => {
+    // In development, use localhost URL
+    if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {
+      return process.env.REACT_APP_API_URL;
+    }
+    // In production or when API_BASE_URL is relative, use relative path
+    if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) {
+      return '';
+    }
     // Fallback to localhost for development
     return process.env.REACT_APP_API_URL || 'http://localhost:5003';
   };
