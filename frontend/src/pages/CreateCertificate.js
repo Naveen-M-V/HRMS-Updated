@@ -10,6 +10,10 @@ export default function CreateCertificate() {
   const { addCertificate } = useCertificates();
   const { profiles } = useProfiles();
 
+  // Debug logging
+  console.log('CreateCertificate - profiles:', profiles);
+  console.log('CreateCertificate - profiles length:', profiles?.length);
+
   const [form, setForm] = useState({
     profile: "",
     certificateName: "",

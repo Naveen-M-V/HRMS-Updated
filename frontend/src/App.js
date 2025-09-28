@@ -17,7 +17,7 @@ const CertificatesPage = lazy(() => import("./pages/CertificatePage"));
 const MyAccount = lazy(() => import("./pages/MyAccount"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const ProfilesCreate = lazy(() => import("./pages/ProfilesCreate"));
-const CreateCertificate = lazy(() => import("./pages/CreateCertificateSimple"));
+const CreateCertificate = lazy(() => import("./pages/CreateCertificate"));
 const Sharestaff = lazy(() => import("./pages/ShareStaff"));
 const NoAccess = lazy(() => import("./pages/NoAccess"));
 const EditUserProfile = lazy(() => import("./pages/EditUserProfile"));
