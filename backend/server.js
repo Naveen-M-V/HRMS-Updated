@@ -23,15 +23,16 @@ const MONGODB_URI = config.database.uri;
 // Middleware
 app.use(cookieParser());
 
-// Updated session middleware configuration
+// Session middleware configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET, // Removed insecure fallback
+  secret: process.env.SESSION_SECRET || JWT_SECRET,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
+    mongoUrl: MONGODB_URI,
     touchAfter: 24 * 3600, // Lazy session update
-    ttl: 14 * 24 * 60 * 60 // 14 days
+    ttl: 14 * 24 * 60 * 60, // 14 days
+    autoRemove: 'native'
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
@@ -44,16 +45,15 @@ app.use(session({
   name: 'talentshield.sid' // Custom session name
 }));
 
-// Adjusted CORS configuration to use FRONTEND_URL from .env
+// CORS configuration
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'https://talentshield.co.uk',
-    'https://talentshield.co.uk',
-    'http://localhost:5003'
-  ],
+  origin: process.env.NODE_ENV === 'development'
+    ? ['http://localhost:3000', 'http://localhost:5003']
+    : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -1806,15 +1806,38 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
 
-    // First, check if this is a user account (Profile collection)
+    // First check admin accounts
+    const admin = await User.findOne({ email: email });
+    if (admin) {
+      const isValidPassword = await bcrypt.compare(password, admin.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ message: 'Invalid email or password' });
+      }
+
+      // Create session data for admin
+      const sessionUser = {
+        userId: admin._id,
+        email: admin.email,
+        role: 'admin',
+        firstName: admin.firstName,
+        lastName: admin.lastName
+      };
+
+      // Generate JWT token for admin
+      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
+
+      // Store admin in session
+      req.session.user = sessionUser;
+      return res.json({ user: sessionUser, token });
+    }
+
+    // Then check user accounts
     const profile = await Profile.findOne({ email: email });
     if (profile) {
-      // This is a user account - validate password (stored in profile)
       if (password !== profile.password) {
         return res.status(400).json({ message: 'Invalid email or password' });
       }
 
-      // Check if profile is active
       if (!profile.isActive) {
         return res.status(400).json({ message: 'User account is deactivated' });
       }
@@ -1848,7 +1871,13 @@ app.post('/api/auth/login', async (req, res) => {
       }
 
       // Generate JWT token for API compatibility
-      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
+      
+      // Send response with both session and token
+      res.json({
+        user: sessionUser,
+        token
+      });
 
       // Send login success email notification
       try {
@@ -2058,28 +2087,35 @@ app.post('/api/auth/reset-password', async (req, res) => {
 });
 
 // Session-based authentication middleware
-const authenticateSession = (req, res, next) => {
-  // Check if user is authenticated via session
-  if (req.session && req.session.user) {
-    req.user = req.session.user;
-    return next();
-  }
+const authenticateSession = async (req, res, next) => {
+  try {
+    // First check session
+    if (req.session && req.session.user) {
+      req.user = req.session.user;
+      return next();
+    }
 
-  // Fallback to JWT token authentication for API compatibility
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+    // Then check JWT token
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
+    try {
+      const decoded = await jwt.verify(token, JWT_SECRET);
+      req.user = decoded;
+      // Update session with token data
+      req.session.user = decoded;
+      return next();
+    } catch (tokenError) {
       return res.status(403).json({ message: 'Invalid or expired token' });
     }
-    req.user = user;
-    next();
-  });
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return res.status(500).json({ message: 'Internal server error during authentication' });
+  }
 };
 
 // Legacy JWT middleware for backward compatibility
@@ -2098,14 +2134,21 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
     // For admin users, get from User collection
     if (req.user.role === 'admin') {
       const user = await User.findOne({ email: req.user.email })
-        .select('-password') // Exclude password field
+        .select('-password -__v') // Exclude sensitive fields
         .lean();
       
       if (!user) {
-        return res.status(404).json({ message: 'User profile not found' });
+        return res.status(404).json({ message: 'Admin profile not found' });
       }
+
+      // Include additional admin-specific data if needed
+      const adminData = {
+        ...user,
+        isAdmin: true,
+        permissions: ['all']
+      };
       
-      res.json(user);
+      return res.json(adminData);
     } else {
       // For regular users, get from Profile collection
       const profile = await Profile.findOne({ email: req.user.email })

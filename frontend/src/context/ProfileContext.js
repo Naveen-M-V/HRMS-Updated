@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 const ProfileContext = createContext();
 
 // Use API base URL from .env with a localhost fallback for dev
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5003";
 
 export const useProfiles = () => {
   const context = useContext(ProfileContext);
@@ -44,8 +44,12 @@ export const ProfileProvider = ({ children }) => {
         ? `/api/profiles/paginated?page=${page}&limit=${limit}`
         : `/api/profiles`;
 
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        headers: { 'Cache-Control': 'no-cache' },
+        headers: { 
+          'Cache-Control': 'no-cache',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         credentials: 'include'
       });
 
@@ -82,8 +86,13 @@ export const ProfileProvider = ({ children }) => {
 
   const deleteProfile = async (profileId) => {
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/profiles/${profileId}`, {
         method: 'DELETE',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -113,9 +122,13 @@ export const ProfileProvider = ({ children }) => {
   const addProfile = async (newProfile) => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/profiles`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         credentials: 'include',
         body: JSON.stringify(newProfile),
       });
@@ -171,20 +184,47 @@ export const ProfileProvider = ({ children }) => {
 
   const getProfileById = (id) => profiles.find(profile => profile._id === id);
 
+  const fetchMyProfile = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/my-profile`, { 
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
+        throw new Error(errorData.message || `Failed to fetch profile: ${response.status}`);
+      }
+
+      const profile = await response.json();
+      return profile;
+    } catch (err) {
+      console.error('Error fetching my profile:', err);
+      throw err;
+    }
+  };
+
   const fetchProfileById = async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, { credentials: 'include' });
 
-      if (response.ok) {
-        const profile = await response.json();
-        const updatedProfiles = profiles.map(p => p._id === id ? { ...p, ...profile } : p);
-        setProfiles(updatedProfiles);
-        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-        localStorage.setItem('profiles_cache_time', Date.now().toString());
-        return profile;
-      } else {
-        throw new Error(`Failed to fetch profile: ${response.status}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
+        throw new Error(errorData.message || `Failed to fetch profile: ${response.status}`);
       }
+
+      const profile = await response.json().catch(() => {
+        throw new Error('Invalid JSON response from server');
+      });
+
+      const updatedProfiles = profiles.map(p => p._id === id ? { ...p, ...profile } : p);
+      setProfiles(updatedProfiles);
+      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+      localStorage.setItem('profiles_cache_time', Date.now().toString());
+      return profile;
     } catch (err) {
       console.error('Error fetching profile:', err);
       throw err;
@@ -193,7 +233,13 @@ export const ProfileProvider = ({ children }) => {
 
   const fetchCompleteProfileById = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/complete`, { credentials: 'include' });
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/complete`, { 
+        credentials: 'include',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
       if (response.ok) return await response.json();
       throw new Error(`Failed to fetch complete profile: ${response.status}`);
     } catch (err) {
@@ -208,8 +254,12 @@ export const ProfileProvider = ({ children }) => {
       const formData = new FormData();
       formData.append('profilePicture', file);
 
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/upload-picture`, {
         method: 'POST',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: formData,
         credentials: 'include'
       });
@@ -291,9 +341,13 @@ export const ProfileProvider = ({ children }) => {
         }
       };
 
-      const response = await fetch(`${API_BASE_URL}/profiles/${user._id}`, {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${user._id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
         body: JSON.stringify(updatedData),
         credentials: 'include'
       });
@@ -321,6 +375,7 @@ export const ProfileProvider = ({ children }) => {
     refreshProfiles,
     fetchProfiles,
     getProfileById,
+    fetchMyProfile,
     fetchProfileById,
     fetchCompleteProfileById,
     uploadProfilePicture,
