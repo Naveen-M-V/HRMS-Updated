@@ -4,12 +4,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useProfiles } from '../context/ProfileContext';
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useProfiles } from "../context/ProfileContext";
-import { Link } from "react-router-dom";
-import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
-
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
   return process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
@@ -73,20 +67,7 @@ export default function ProfilesPage() {
   }, []);
 
   // Handle profile deletion
-    const handleDeleteProfile = useCallback(async (profileId, profileName) => {
-    if (window.confirm(`Are you sure you want to delete ${profileName}'s profile?`)) {
-      setLoading(true);
-      try {
-        await deleteProfile(profileId);
-        // Profile will be removed from the list automatically through context
-      } catch (error) {
-        console.error('Error deleting profile:', error);
-        alert(`Failed to delete profile: ${error.message}`);
-      } finally {
-        setLoading(false);
-      }
-    }
-  }, [deleteProfile]);
+  const handleDeleteProfile = useCallback(async (profileId, profileName) => {
     // Check how many certificates are associated with this profile
     const profile = profiles.find(p => p._id === profileId);
     const certificateCount = await fetch(`${getApiUrl()}/api/profiles/${profileId}/stats`)
