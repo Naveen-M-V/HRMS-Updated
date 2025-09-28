@@ -2208,9 +2208,12 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
     });
   }
 });
+const profileRoutes = require('./routes/profiles');
+
 app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
+app.use('/api/profiles', profileRoutes);
 
 // Email configuration using SMTP settings from .env
 const transporter = nodemailer.createTransport({

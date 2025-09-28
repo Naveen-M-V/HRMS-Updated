@@ -24,7 +24,10 @@ export default function MyAccount() {
       
       try {
         setLoading(true);
-        const response = await fetch('/api/my-profile', {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+        console.log('Fetching profile from:', `${apiUrl}/api/profiles/user/${user.email}`);
+        
+        const response = await fetch(`${apiUrl}/api/profiles/user/${user.email}`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -32,9 +35,14 @@ export default function MyAccount() {
           }
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Server returned non-JSON response');
+          const text = await response.text();
+          console.error('Server response:', text);
+          throw new Error(`Server returned non-JSON response. Status: ${response.status}, Content-Type: ${contentType || 'none'}`);
         }
 
         const data = await response.json();
