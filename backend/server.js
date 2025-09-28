@@ -1749,7 +1749,7 @@ app.post('/api/auth/signup', async (req, res) => {
     // Send verification email if required
     try {
       if (requireEmailVerification && user.verificationToken) {
-        const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`;
+        const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
         const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(user.verificationToken)}`;
         const name = `${user.firstName} ${user.lastName}`.trim();
         await sendVerificationEmail(user.email, verifyUrl, name);

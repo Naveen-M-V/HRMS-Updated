@@ -40,7 +40,7 @@ const testEmailComplete = async () => {
     console.log('🔍 Test 2: Generating verification token...');
     const testUser = {
       _id: 'test123',
-      email: 'sanjaymaheshwaran024@gmail.com',
+      email: 'sanjaymaheshwaran0124@gmail.com',
       firstName: 'Sanjay',
       lastName: 'Maheshwaran'
     };
@@ -53,7 +53,8 @@ const testEmailComplete = async () => {
     console.log('✅ Verification token generated\n');
 
     // Test 3: Create verification link
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    const backendUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || 'https://talentshield.co.uk';
+    const verificationLink = `${backendUrl}/api/auth/verify-email?token=${verificationToken}`;
     console.log('🔍 Test 3: Verification link created:');
     console.log(verificationLink);
     console.log('');
