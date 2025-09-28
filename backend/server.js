@@ -1663,42 +1663,6 @@ app.get('/api/profiles/by-email/:email', async (req, res) => {
   }
 });
 
-// Get current user's profile (for My Settings page)
-app.get('/api/my-profile', authenticateSession, async (req, res) => {
-  try {
-    if (!req.user || !req.user.email) {
-      return res.status(401).json({ message: 'User not authenticated' });
-    }
-
-    // For admin users, get from User collection
-    if (req.user.role === 'admin') {
-      const user = await User.findOne({ email: req.user.email })
-        .select('-password') // Exclude password field
-        .lean();
-      
-      if (!user) {
-        return res.status(404).json({ message: 'User profile not found' });
-      }
-      
-      res.json(user);
-    } else {
-      // For regular users, get from Profile collection
-      const profile = await Profile.findOne({ email: req.user.email })
-        .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
-        .lean();
-      
-      if (!profile) {
-        return res.status(404).json({ message: 'Profile not found' });
-      }
-      
-      res.json(profile);
-    }
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
 app.post('/api/certificates/delete-request', async (req, res) => {
   try {
     const { certificateId, certificateName, userEmail, userName, profileId } = req.body;
@@ -2124,8 +2088,41 @@ const authenticateToken = authenticateSession;
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
 
-// Import password generator (email service already imported above)
-const { generateSimplePassword } = require('./utils/passwordGenerator');
+// Get current user's profile (for My Settings page)
+app.get('/api/my-profile', authenticateSession, async (req, res) => {
+  try {
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // For admin users, get from User collection
+    if (req.user.role === 'admin') {
+      const user = await User.findOne({ email: req.user.email })
+        .select('-password') // Exclude password field
+        .lean();
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User profile not found' });
+      }
+      
+      res.json(user);
+    } else {
+      // For regular users, get from Profile collection
+      const profile = await Profile.findOne({ email: req.user.email })
+        .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
+        .lean();
+      
+      if (!profile) {
+        return res.status(404).json({ message: 'Profile not found' });
+      }
+      
+      res.json(profile);
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // Create new user endpoint (Admin only)
 app.post('/api/users/create', authenticateSession, async (req, res) => {
