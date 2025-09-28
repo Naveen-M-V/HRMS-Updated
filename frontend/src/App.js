@@ -188,7 +188,7 @@ function App() {
                               <Route path="/myaccount/notifications" element={<Notifications />} />
                               <Route path="/clients" element={<Clients />} />
                               <Route path="/profiles" element={<ProfilesPage />} />
-                              <Route path="dashboard/profilescreate" element={<ProfilesCreate />} />
+                              <Route path="/dashboard/profilescreate" element={<ProfilesCreate />} />
                               <Route path="/create-user" element={<CreateUser />} />
                               <Route path="/profiles/:id" element={<ProfileDetailView />} />
                               <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
