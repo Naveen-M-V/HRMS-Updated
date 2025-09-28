@@ -13,6 +13,8 @@ export default function MyAccount() {
   const [savingImage, setSavingImage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
 
   // Fetch user profile data
   useEffect(() => {
@@ -135,6 +137,70 @@ export default function MyAccount() {
     }
   };
 
+  // Handle edit mode toggle
+  const handleEditToggle = () => {
+    if (!isEditing) {
+      // Entering edit mode - populate form with current profile data
+      setEditForm({
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        email: profile.email || '',
+        mobile: profile.mobile || '',
+        bio: profile.bio || ''
+      });
+    }
+    setIsEditing(!isEditing);
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Handle save profile changes
+  const handleSaveProfile = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('auth_token');
+      
+      const response = await fetch('/api/admin/update-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include',
+        body: JSON.stringify(editForm)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
+
+      const data = await response.json();
+      
+      // Update profile state with new data
+      setProfile(prev => ({
+        ...prev,
+        ...editForm
+      }));
+      
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -180,29 +246,10 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => {
-              if (loading || !user) {
-                return;
-              }
-              
-              console.log('Debug - Edit Profile Click:', {
-                user,
-                profile,
-                userRole: user.role
-              });
-              
-              // For admin users, show a simple alert for now and navigate to edit profile
-              if (user.role === 'admin') {
-                // Navigate to edit profile - the ProfileContext should handle admin data
-                navigate('/editprofile');
-              } else {
-                // For regular users
-                navigate('/editprofile');
-              }
-            }}
-            className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            onClick={handleEditToggle}
             disabled={loading || !user}
-            title={loading ? 'Loading your profile...' : !user ? 'Please log in to edit your profile' : 'Edit your profile'}
+            className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            title={loading ? 'Loading your profile...' : !user ? 'Please log in to edit your profile' : (isEditing ? 'Cancel editing' : 'Edit your profile')}
           >
             {loading ? (
               <>
@@ -215,12 +262,24 @@ export default function MyAccount() {
             ) : (
               <>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isEditing ? "M6 18L18 6M6 6l12 12" : "M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"} />
                 </svg>
-                Edit Profile
+                {isEditing ? 'Cancel' : 'Edit Profile'}
               </>
             )}
           </button>
+          {isEditing && (
+            <button
+              onClick={handleSaveProfile}
+              disabled={loading}
+              className="text-sm border px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Save Changes
+            </button>
+          )}
           <button
             onClick={handleLogout}
             disabled={authLoading}
@@ -318,19 +377,79 @@ export default function MyAccount() {
 
             {/* Name + Role */}
             <div className="flex-1">
-              <h2 className="text-xl font-semibold">
-                {profile.firstName ? `${profile.firstName} ${profile.lastName || ''}` : 'Loading...'}
-              </h2>
-              <p className="text-gray-600">{profile.jobTitle || 'No job title specified'}</p>
-              <p className="text-green-600 text-sm mt-1">
-                {profile.company || 'No company specified'} • {profile.staffType || 'Staff'} Staff
-              </p>
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={editForm.firstName || ''}
+                        onChange={handleInputChange}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={editForm.lastName || ''}
+                        onChange={handleInputChange}
+                        className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={editForm.email || ''}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                    <input
+                      type="tel"
+                      name="mobile"
+                      value={editForm.mobile || ''}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                    <textarea
+                      name="bio"
+                      value={editForm.bio || ''}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Tell us about yourself..."
+                    />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="text-xl font-semibold">
+                    {profile.firstName ? `${profile.firstName} ${profile.lastName || ''}` : 'Loading...'}
+                  </h2>
+                  <p className="text-gray-600">{profile.jobTitle || 'No job title specified'}</p>
+                  <p className="text-green-600 text-sm mt-1">
+                    {profile.company || 'No company specified'} • {profile.staffType || 'Admin'} Staff
+                  </p>
 
-              {/* Bio */}
-              <div className="mt-6">
-                <p className="text-gray-500 text-sm font-medium">Bio</p>
-                <p className="text-sm">{profile.bio || "No bio information available"}</p>
-              </div>
+                  {/* Bio */}
+                  <div className="mt-6">
+                    <p className="text-gray-500 text-sm font-medium">Bio</p>
+                    <p className="text-sm">{profile.bio || "No bio information available"}</p>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Details Section */}
