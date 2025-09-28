@@ -78,10 +78,11 @@ export default function ViewCertificate() {
     try {
       const formData = new FormData();
       formData.append('certificateFile', selectedFile);
+      formData.append('certificateId', certificateId);
 
       console.log('Uploading file:', selectedFile.name);
       console.log('Certificate ID:', certificateId);
-      console.log('Certificate object:', certificate);
+      console.log('File size:', (selectedFile.size / 1024 / 1024).toFixed(2) + 'MB');
 
       const updatedCertificate = await updateCertificateWithFile(certificateId, formData);
       setCertificate(updatedCertificate);
@@ -313,14 +314,15 @@ export default function ViewCertificate() {
               {certificate.certificateFile ? (
                 <>
                   <p className="text-sm text-gray-600 mb-2">
-                    Current file: {certificate.certificate?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf
+                    Current file: {certificate.certificateFile?.originalname || certificate.certificate?.replace(/[^a-zA-Z0-9]/g, '_')}
                   </p>
                   <p className="text-xs text-gray-500 mb-4">
                     Added: {formatDate(certificate.createdOn)} 14:37
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
                     <a 
-                      href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${certificate.id || certificate._id}/file`}
+                      href={`http://localhost:5000/api/certificates/${certificate.id || certificate._id}/file`}
+                      download={`${certificate.certificate?.replace(/[^a-zA-Z0-9]/g, '_')}`}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
