@@ -20,16 +20,18 @@ const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
 const MONGODB_URI = config.database.uri;
 
-// Middleware
+// Middleware - Order is important!
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Updated session middleware configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET, // Removed insecure fallback
+  secret: config.jwt.secret, // Use the same secret as JWT
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
+    mongoUrl: MONGODB_URI, // Use the same MongoDB URI
     touchAfter: 24 * 3600, // Lazy session update
     ttl: 14 * 24 * 60 * 60 // 14 days
   }),
@@ -44,16 +46,16 @@ app.use(session({
   name: 'talentshield.sid' // Custom session name
 }));
 
-// Adjusted CORS configuration to use FRONTEND_URL from .env
+// CORS configuration with proper frontend URLs
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'https://talentshield.co.uk',
-    'https://talentshield.co.uk',
-    'http://localhost:5003'
+    config.frontend.url || 'https://talentshield.co.uk',
+    'http://localhost:3000', // Common React development port
+    'http://127.0.0.1:3000'  // Alternative localhost
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -2455,4 +2457,13 @@ app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.status || 500).json({
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
 });
