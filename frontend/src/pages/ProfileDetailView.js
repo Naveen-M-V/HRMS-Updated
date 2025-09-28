@@ -229,7 +229,7 @@ const handleDeleteCertificate = async (certId) => {
                   alert('Profile data not found. Please refresh the page and try again.');
                   return;
                 }
-                navigate(`/profiles/edit/${p._id}`);
+                navigate(`/profiles/edit/${id}`);
               }}
               className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
             >
