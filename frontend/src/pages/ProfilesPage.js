@@ -274,7 +274,7 @@ This will also delete ${certificateCount} associated certificate(s). This action
                     <EyeIcon className="h-4 w-4" />
                   </Link>
                   <button
-                    onClick={() => navigate(`/profiles/EditUserProfile/${p._id}`)}
+                    onClick={() => navigate(`/profiles/edit/${p._id}`)}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile"
                     disabled={loading}
