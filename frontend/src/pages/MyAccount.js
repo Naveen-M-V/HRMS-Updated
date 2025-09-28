@@ -180,11 +180,18 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => navigate(`/dashboard/profile/edit/${user._id}`)}
+            onClick={() => {
+              if (user?._id) {
+                navigate(`/profiles/edit/${user._id}`);
+              } else {
+                alert('Cannot edit profile: User ID not found');
+              }
+            }}
             disabled={loading || !user?._id}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!user?._id ? 'Please wait while we load your profile' : 'Edit your profile'}
           >
-            Edit Profile
+            {loading ? 'Loading...' : 'Edit Profile'}
           </button>
           <button
             onClick={handleLogout}

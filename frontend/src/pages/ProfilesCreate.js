@@ -294,7 +294,7 @@ export default function ProfilesCreate() {
                   className="mt-1 block w-full border rounded p-2"
                   required
                 >
-                  <option value="">Select a job role...</option>
+                  <option value="" disabled>-- Select a job role --</option>
                   {jobRoles.map((role) => (
                     <option key={role._id} value={role.name}>
                       {role.name}
@@ -303,7 +303,7 @@ export default function ProfilesCreate() {
                 </select>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                {jobRoles.length} job roles available. Select one for this profile.
+                {jobRoles.length > 0 ? `${jobRoles.length} job roles available` : 'No job roles available'}. Select one for this profile.
               </p>
             </div>
             <div>
