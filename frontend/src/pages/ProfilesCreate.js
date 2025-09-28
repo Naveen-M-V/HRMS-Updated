@@ -158,6 +158,7 @@ export default function ProfilesCreate() {
     } catch (error) {
       console.error('Failed to create profile:', error);
       console.error('Error details:', error.response?.data || error.message);
+      console.log('Profile data that failed:', newProfile);
       
       // Show more specific error message
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';

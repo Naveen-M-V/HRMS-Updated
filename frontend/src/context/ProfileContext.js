@@ -116,10 +116,14 @@ export const ProfileProvider = ({ children }) => {
       const response = await fetch(`${API_BASE_URL}/api/profiles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newProfile),
       });
 
-      if (!response.ok) throw new Error(`Failed to create profile: ${response.status}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to create profile: ${response.status}`);
+      }
 
       const data = await response.json();
       setProfiles(prev => [data, ...prev]);
