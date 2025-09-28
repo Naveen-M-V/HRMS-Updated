@@ -593,6 +593,7 @@ app.get('/api/auth/approve-admin', async (req, res) => {
 
     user.adminApprovalStatus = 'approved';
     user.adminApprovalToken = undefined;
+    user.emailVerified = true; // Auto-verify email when admin is approved
     await user.save();
 
     res.send('Admin account approved successfully.');
