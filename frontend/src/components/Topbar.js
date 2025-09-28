@@ -1,4 +1,4 @@
-// src/components/Topbar.js
+cd// src/components/Topbar.js
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useState } from "react";
@@ -65,7 +65,7 @@ export default function Topbar({ toggleSidebar }) {
                 onClick={() => {
                   setOpen(false);
                   console.log('Navigating to create certificate page...');
-                  navigate("/dashboard/createcertificate"); 
+                  navigate("/dashboard/createcretificate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >
