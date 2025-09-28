@@ -24,18 +24,6 @@ export default function ProfileDetailView() {
   const handleEditProfile = () => {
     navigate(`/profiles/edit/${id}`);
   };
-
-  const handleDeleteProfile = async () => {
-    if (window.confirm('Are you sure you want to delete this profile?')) {
-      try {
-        await deleteProfile(id);
-        navigate('/reporting/profiles');
-      } catch (error) {
-        console.error('Error deleting profile:', error);
-        alert('Failed to delete profile');
-      }
-    }
-  };
   const [profile, setProfile] = useState(null);
   const [showCertificates, setShowCertificates] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -167,74 +155,26 @@ const handleDeleteCertificate = async (certId) => {
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
       <div className="bg-white shadow-sm border-b">
-        {/* Top Navigation Bar */}
-        <div className="flex items-center justify-between px-6 py-3 border-b">
-          {/* Left: Account Dropdown */}
-          {/* (Potentially add content here) */}
-
-          {/* Center: Company Logo */}
-          <div className="flex justify-center items-center">
-            <img
-              src="/vlogo.png"
-              alt="VitruX Logo"
-              className="h-12 w-auto"
-            />
-          </div>
-        </div>
-
-        {/* User Name Row */}
-        <div className="px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold text-gray-900">
               {profile.firstName} {profile.lastName}
             </h1>
-            <div className="flex items-center gap-2">
-              {/* Additional controls or badges */}
-            </div>
           </div>
-
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/dashboard/createcertificate")}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              <PlusIcon className="h-5 w-5" />
+              Add Certificate
+            </button>
             <button
               onClick={handleEditProfile}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              <PencilIcon className="h-4 w-4" />
+              <PencilIcon className="h-5 w-5" />
               Edit Profile
-            </button>
-            <button
-              onClick={handleDeleteProfile}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              <TrashIcon className="h-4 w-4" />
-              Delete Profile
-            </button>
-            <button
-              onClick={() => navigate("/reporting/profiles")}
-              className="flex items-center gap-2 px-3 py-1 border rounded text-sm hover:bg-gray-50"
-            >
-              <EyeIcon className="h-4 w-4" />
-              View profile list
-            </button>
-            <button
-              onClick={() => navigate("/dashboard/createcretificate")}
-              className="flex items-center gap-2 px-3 py-1 border rounded text-sm hover:bg-gray-50"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add certificate
-            </button>
-            <button
-              onClick={() => {
-                console.log('Edit button clicked, navigating to:', `/profiles/edit/${id}`);
-                if (!profile) {
-                  alert('Profile data not found. Please refresh the page and try again.');
-                  return;
-                }
-                navigate(`/profiles/edit/${id}`);
-              }}
-              className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-            >
-              <PencilIcon className="h-4 w-4" />
-              Edit profile
             </button>
           </div>
         </div>

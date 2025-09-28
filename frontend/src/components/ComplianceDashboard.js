@@ -171,7 +171,7 @@ const ComplianceDashboard = () => {
             Create Profile
           </Link>
           <Link 
-            to="/dashboard/createcretificate"
+            to="/dashboard/createcertificate"
             className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center"
           >
             Add Certificates
