@@ -4,10 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ClipboardDocumentIcon as ClipboardIcon } from '@heroicons/react/24/outline';
 import { AcademicCapIcon } from '@heroicons/react/24/outline';
-import { LinkIcon } from '@heroicons/react/24/outline';
-import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
-import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { HomeIcon } from '@heroicons/react/24/outline';
@@ -23,7 +20,7 @@ export default function Sidebar({ isOpen }) {
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
-  const [openSupply, setOpenSupply] = useState(false);
+  // const [openSupply, setOpenSupply] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 

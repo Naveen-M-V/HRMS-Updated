@@ -230,7 +230,7 @@ const handleDeleteCertificate = async (certId) => {
                     {profile.profilePicture ? (
                       <img
                         src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
-                        alt="Profile Picture"
+                        alt={`${profile.name || 'User'}`}
                         className="w-full h-full object-cover"
                         key={`profile-pic-${imageKey}`}
                         loading="lazy"

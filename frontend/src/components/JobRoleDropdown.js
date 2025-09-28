@@ -34,7 +34,7 @@ const JobRoleDropdown = ({
 
   useEffect(() => {
     fetchJobRoles();
-  }, []);
+  }, [fetchJobRoles]);
 
   useEffect(() => {
     if (searchTerm) {
