@@ -8,14 +8,54 @@ import SearchableDropdown from "../components/SearchableDropdown";
 export default function CreateCertificate() {
   const navigate = useNavigate();
   const { addCertificate } = useCertificates();
-  const { profiles } = useProfiles();
+  const { profiles, loading: profilesLoading, error: profilesError } = useProfiles();
 
   // Debug logging
   console.log('CreateCertificate - profiles:', profiles);
   console.log('CreateCertificate - profiles length:', profiles?.length);
+  console.log('CreateCertificate - loading:', profilesLoading);
+  console.log('CreateCertificate - error:', profilesError);
 
   // State for certificate suggestions based on job role
   const [suggestedCertificates, setSuggestedCertificates] = useState([]);
+  const [pageError, setPageError] = useState(null);
+  const [localProfiles, setLocalProfiles] = useState([]);
+  const [localLoading, setLocalLoading] = useState(false);
+
+  // Fallback function to fetch profiles directly if context fails
+  const fetchProfilesDirectly = async () => {
+    try {
+      setLocalLoading(true);
+      const response = await fetch('/api/profiles', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLocalProfiles(data);
+        console.log('Profiles fetched directly:', data);
+      } else {
+        throw new Error(`Failed to fetch profiles: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error fetching profiles directly:', error);
+      setPageError(error.message);
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  // Use effect to fetch profiles if context fails
+  useEffect(() => {
+    if (profilesError && (!profiles || profiles.length === 0)) {
+      console.log('ProfileContext failed, trying direct fetch...');
+      fetchProfilesDirectly();
+    }
+  }, [profilesError, profiles]);
+
+  // Determine which profiles to use
+  const availableProfiles = profiles && profiles.length > 0 ? profiles : localProfiles;
+  const isLoading = profilesLoading || localLoading;
 
   const [form, setForm] = useState({
     profile: "",
@@ -186,7 +226,7 @@ export default function CreateCertificate() {
 
     // Handle profile selection change
     if (name === 'profile') {
-      const profile = profiles.find(p => `${p.firstName} ${p.lastName}` === value);
+      const profile = availableProfiles.find(p => `${p.firstName} ${p.lastName}` === value);
       setSelectedProfile(profile);
       
       // Get suggested certificates based on job role
@@ -284,6 +324,64 @@ export default function CreateCertificate() {
     // OR navigate("/certificates"); // redirect to certificate list
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex-1 p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading profiles...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (profilesError || pageError) {
+    return (
+      <div className="flex-1 p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+          <h3 className="text-red-800 font-medium mb-2">Error Loading Create Certificate Page</h3>
+          <p className="text-red-600 mb-4">{profilesError || pageError}</p>
+          <div className="space-x-2">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no profiles available
+  if (!availableProfiles || availableProfiles.length === 0) {
+    return (
+      <div className="flex-1 p-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
+          <h3 className="text-yellow-800 font-medium mb-2">No Profiles Available</h3>
+          <p className="text-yellow-600 mb-4">You need to create profiles before you can create certificates.</p>
+          <button 
+            onClick={() => navigate('/dashboard/profilescreate')}
+            className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+          >
+            Create Profile First
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex">
       {/* Main content */}
@@ -304,7 +402,7 @@ export default function CreateCertificate() {
               required
             >
               <option value="">Select a profile...</option>
-              {profiles.map((profile) => (
+              {availableProfiles.map((profile) => (
                 <option key={profile._id} value={`${profile.firstName} ${profile.lastName}`}>
                   {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobTitle) 
                     ? profile.jobTitle.join(', ') 
