@@ -69,38 +69,90 @@ export default function EditUserProfile() {
 
   useEffect(() => {
     console.log('EditUserProfile mounted with ID:', id);
-    if (id) {
-      const loadProfile = async () => {
-        try {
-          setProfileLoading(true);
+    if (!id) {
+      navigate('/profiles');
+      return;
+    }
+
+    const loadProfile = async () => {
+      setProfileLoading(true);
+      try {
+        // First try to get from local cache
+        let profile = getProfileById(id);
+        
+        // If not in cache, fetch from backend
+        if (!profile) {
+          console.log('Profile not in cache, fetching from backend...');
+          profile = await fetchProfileById(id);
+        }
+        
+        console.log('Profile loaded:', profile);
+        
+        if (!profile) {
+          throw new Error('Profile not found');
+        }
           
-          // First try to get from local cache
-          let profile = getProfileById(id);
-          
-          // If not in cache, fetch from backend
-          if (!profile) {
-            console.log('Profile not in cache, fetching from backend...');
-            profile = await fetchProfileById(id);
-          }
-          
-          console.log('Profile loaded:', profile);
-          
-          if (!profile) {
-            console.error('Profile not found for ID:', id);
-            alert('Profile not found. Please try again or contact support.');
-            navigate('/profiles');
-            return;
-          }
-          
-          // Populate form data
+          // Populate form data with all fields
         setFormData({
           firstName: profile.firstName || "",
           lastName: profile.lastName || "",
           email: profile.email || "",
           mobile: profile.mobile || "",
+          dateOfBirth: profile.dateOfBirth || "",
+          gender: profile.gender || "",
+          jobTitle: profile.jobTitle || "",
+          jobLevel: profile.jobLevel || "",
+          language: profile.language || "English",
+          company: profile.company || "Vitrux Ltd",
+          staffType: profile.staffType || "",
+          nationality: profile.nationality || "",
+          status: profile.status || "",
+          poc: profile.poc || "",
+          startDate: profile.startDate || "",
+          emergencyContact: {
+            name: profile.emergencyContact?.name || "",
+            relationship: profile.emergencyContact?.relationship || "",
+            phone: profile.emergencyContact?.phone || "",
+          },
+          address: {
+            line1: profile.address?.line1 || "",
+            line2: profile.address?.line2 || "",
+            city: profile.address?.city || "",
+            postCode: profile.address?.postCode || "",
+            country: profile.address?.country || "",
+          },
+          externalSystemId: profile.externalSystemId || "",
+          extThirdPartySystemId: profile.extThirdPartySystemId || "",
+          nopsId: profile.nopsId || profile.nopsID || "",
+          nopsID: profile.nopsId || profile.nopsID || "",
+          insuranceNumber: profile.insuranceNumber || "",
+          circetUIN: profile.circetUIN || "",
+          circetSCID: profile.circetSCID || "",
+          morrisonsIDNumber: profile.morrisonsIDNumber || "",
+          morrisonsUIN: profile.morrisonsUIN || "",
+          bio: profile.bio || "",
+          otherInformation: profile.otherInformation || "",
+          address: {
+            line1: profile.address?.line1 || "",
+            line2: profile.address?.line2 || "",
+            city: profile.address?.city || "",
+            postCode: profile.address?.postCode || "",
+            country: profile.address?.country || "",
+          },
+          externalSystemId: profile.externalSystemId || "",
+          extThirdPartySystemId: profile.extThirdPartySystemId || "",
+          nopsId: profile.nopsId || profile.nopsID || "",
+          nopsID: profile.nopsId || profile.nopsID || "",
+          insuranceNumber: profile.insuranceNumber || "",
+          circetUIN: profile.circetUIN || "",
+          circetSCID: profile.circetSCID || "",
+          morrisonsIDNumber: profile.morrisonsIDNumber || "",
+          morrisonsUIN: profile.morrisonsUIN || "",
+          bio: profile.bio || "",
+          otherInformation: profile.otherInformation || "",
           dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "",
           gender: profile.gender || "",
-          jobTitle: Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : (profile.jobRole || profile.jobTitle || ""),
+          jobTitle: profile.jobTitle || (Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : profile.jobRole || ""),
           jobLevel: profile.jobLevel || "",
           language: profile.language || "English",
           company: profile.company || "Vitrux Ltd",
@@ -135,7 +187,9 @@ export default function EditUserProfile() {
           });
         } catch (error) {
           console.error('Error loading profile:', error);
-          alert('Failed to load profile. Please try again.');
+          alert(error.message === 'Profile not found' ? 
+            'Profile not found. Redirecting to profiles page.' : 
+            'Failed to load profile. Please try again or contact support.');
           navigate('/profiles');
         } finally {
           setProfileLoading(false);
