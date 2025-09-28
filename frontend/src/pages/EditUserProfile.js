@@ -68,12 +68,12 @@ export default function EditUserProfile() {
   const tabs = ["Profile Details", "Employment Info", "System IDs", "Emergency Contact", "Profile Address", "Extra Information"];
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!id) {
-        navigate('/profiles');
-        return;
-      }
+    if (!id) {
+      navigate('/profiles');
+      return;
+    }
 
+    async function loadProfile() {
       console.log('EditUserProfile mounted with ID:', id);
       setProfileLoading(true);
       try {
@@ -143,10 +143,7 @@ export default function EditUserProfile() {
           setProfileLoading(false);
         }
       };
-      
-      loadProfile();
-    }
-    
+
     loadProfile();
   }, [id, getProfileById, fetchProfileById, navigate]);
 
