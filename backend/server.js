@@ -2167,6 +2167,54 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
   }
 });
 
+// Update admin profile endpoint
+app.put('/api/admin/update-profile', authenticateSession, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { firstName, lastName, email, mobile, bio } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ message: 'First name, last name, and email are required' });
+    }
+
+    // Update admin user in User collection
+    const updatedUser = await User.findOneAndUpdate(
+      { email: req.user.email },
+      {
+        firstName,
+        lastName,
+        email,
+        mobile,
+        bio,
+        updatedAt: new Date()
+      },
+      { new: true, select: '-password -__v' }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'Admin user not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Admin profile updated successfully',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error('Error updating admin profile:', error);
+    res.status(500).json({ 
+      message: 'Failed to update admin profile', 
+      error: error.message 
+    });
+  }
+});
+
 // Create new user endpoint (Admin only)
 app.post('/api/users/create', authenticateSession, async (req, res) => {
   try {

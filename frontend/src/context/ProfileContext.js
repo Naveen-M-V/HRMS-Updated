@@ -307,26 +307,68 @@ export const ProfileProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState({});
 
   useEffect(() => {
-    if (user) {
-      setUserProfile({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        company: user.company || '',
-        jobTitle: user.jobTitle || '',
-        mobile: user.mobile || '',
-        dateOfBirth: user.dateOfBirth || '',
-        bio: user.bio || '',
-        language: user.language || 'English',
-        address: user.address || {},
-        staffType: user.staffType || 'Staff',
-        role: user.role || '',
-        skillkoId: user.skillkoId || '',
-        department: user.department || '',
-        jobLevel: user.jobLevel || '',
-        profilePicture: user.profilePicture || ''
-      });
-    }
+    const loadUserProfile = async () => {
+      if (user) {
+        // For admin users, fetch their profile from the API
+        if (user.role === 'admin') {
+          try {
+            const adminProfile = await fetchMyProfile();
+            setUserProfile({
+              firstName: adminProfile.firstName || '',
+              lastName: adminProfile.lastName || '',
+              email: adminProfile.email || '',
+              company: adminProfile.company || '',
+              jobTitle: adminProfile.jobTitle || '',
+              mobile: adminProfile.mobile || '',
+              dateOfBirth: adminProfile.dateOfBirth || '',
+              bio: adminProfile.bio || '',
+              language: adminProfile.language || 'English',
+              address: adminProfile.address || {},
+              staffType: adminProfile.staffType || 'Admin',
+              role: adminProfile.role || 'admin',
+              skillkoId: adminProfile.skillkoId || '',
+              department: adminProfile.department || '',
+              jobLevel: adminProfile.jobLevel || '',
+              profilePicture: adminProfile.profilePicture || '',
+              _id: adminProfile._id || adminProfile.id
+            });
+          } catch (error) {
+            console.error('Failed to load admin profile:', error);
+            // Fallback to user context data
+            setUserProfile({
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              email: user.email || '',
+              role: user.role || 'admin',
+              _id: user._id || user.id || user.userId
+            });
+          }
+        } else {
+          // For regular users, use the existing logic
+          setUserProfile({
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            email: user.email || '',
+            company: user.company || '',
+            jobTitle: user.jobTitle || '',
+            mobile: user.mobile || '',
+            dateOfBirth: user.dateOfBirth || '',
+            bio: user.bio || '',
+            language: user.language || 'English',
+            address: user.address || {},
+            staffType: user.staffType || 'Staff',
+            role: user.role || '',
+            skillkoId: user.skillkoId || '',
+            department: user.department || '',
+            jobLevel: user.jobLevel || '',
+            profilePicture: user.profilePicture || '',
+            _id: user._id || user.profileId
+          });
+        }
+      }
+    };
+
+    loadUserProfile();
   }, [user]);
 
   const updateUserProfile = async (profileData) => {
@@ -362,21 +404,56 @@ export const ProfileProvider = ({ children }) => {
       };
 
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${user._id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify(updatedData),
-        credentials: 'include'
-      });
+      
+      // For admin users, we need to create an admin profile update endpoint
+      // For now, let's create a basic admin profile update
+      if (user.role === 'admin') {
+        // For admin users, we'll update the User collection instead of Profile collection
+        const adminUpdateData = {
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          email: profileData.email || profileData.username,
+          mobile: profileData.mobile,
+          bio: profileData.bio,
+          // Add other admin-specific fields as needed
+        };
+        
+        const response = await fetch('/api/admin/update-profile', {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(adminUpdateData),
+          credentials: 'include'
+        });
 
-      if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
+        if (!response.ok) {
+          // If admin endpoint doesn't exist, show a message for now
+          throw new Error('Admin profile editing is not yet implemented. Please contact system administrator.');
+        }
 
-      const data = await response.json();
-      setUserProfile(data);
-      return { success: true, data };
+        const data = await response.json();
+        setUserProfile(prev => ({ ...prev, ...data }));
+        return { success: true, data };
+      } else {
+        // For regular users, use the existing profile update endpoint
+        const response = await fetch(`${API_BASE_URL}/api/profiles/${user._id}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+          body: JSON.stringify(updatedData),
+          credentials: 'include'
+        });
+
+        if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
+
+        const data = await response.json();
+        setUserProfile(data);
+        return { success: true, data };
+      }
     } catch (err) {
       setError('Failed to update profile: ' + err.message);
       return { success: false, error: err.message };
