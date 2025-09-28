@@ -13,12 +13,29 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
+import { TrashIcon } from '@heroicons/react/24/outline';
 
 export default function ProfileDetailView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getProfileById, uploadProfilePicture } = useProfiles();
+  const { getProfileById, uploadProfilePicture, deleteProfile } = useProfiles();
   const { certificates, uploadCertificateFile, deleteCertificate } = useCertificates();
+
+  const handleEditProfile = () => {
+    navigate(`/profiles/edit/${id}`);
+  };
+
+  const handleDeleteProfile = async () => {
+    if (window.confirm('Are you sure you want to delete this profile?')) {
+      try {
+        await deleteProfile(id);
+        navigate('/reporting/profiles');
+      } catch (error) {
+        console.error('Error deleting profile:', error);
+        alert('Failed to delete profile');
+      }
+    }
+  };
   const [profile, setProfile] = useState(null);
   const [showCertificates, setShowCertificates] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -178,6 +195,20 @@ const handleDeleteCertificate = async (certId) => {
 
           <div className="flex items-center gap-3">
             <button
+              onClick={handleEditProfile}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              <PencilIcon className="h-4 w-4" />
+              Edit Profile
+            </button>
+            <button
+              onClick={handleDeleteProfile}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              <TrashIcon className="h-4 w-4" />
+              Delete Profile
+            </button>
+            <button
               onClick={() => navigate("/reporting/profiles")}
               className="flex items-center gap-2 px-3 py-1 border rounded text-sm hover:bg-gray-50"
             >
@@ -198,7 +229,7 @@ const handleDeleteCertificate = async (certId) => {
                   alert('Profile data not found. Please refresh the page and try again.');
                   return;
                 }
-                navigate(`/profiles/edit/${id}`);
+                navigate(`/profiles/edit/${p._id}`);
               }}
               className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
             >

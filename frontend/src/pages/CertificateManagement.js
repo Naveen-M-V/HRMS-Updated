@@ -124,7 +124,7 @@ export default function CertificateManagement() {
                 <p className="text-gray-600 mt-1">Manage and track all certificates across your organization</p>
               </div>
               <button
-                onClick={() => navigate("/dashboard/createcretificate")}
+                onClick={() => navigate("/dashboard/createcertificate")}
                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 <PlusIcon className="h-5 w-5" />
@@ -272,7 +272,7 @@ export default function CertificateManagement() {
                 }
               </p>
               <button
-                onClick={() => navigate("/dashboard/createcretificates")}
+                onClick={() => navigate("/dashboard/createcertificates")}
                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
               >
                 <PlusIcon className="h-4 w-4" />

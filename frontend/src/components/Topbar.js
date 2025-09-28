@@ -65,7 +65,7 @@ export default function Topbar({ toggleSidebar }) {
                 onClick={() => {
                   setOpen(false);
                   console.log('Navigating to create certificate page...');
-                  navigate("/dashboard/createcretificate"); 
+                  navigate("/dashboard/createcertificate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >
