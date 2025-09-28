@@ -55,7 +55,7 @@ export default function Topbar({ toggleSidebar }) {
               <button
                 onClick={() => {
                   setOpen(false);
-                  navigate("dashboard/profilescreate"); 
+                  navigate("/dashboard/profilescreate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >
@@ -64,11 +64,12 @@ export default function Topbar({ toggleSidebar }) {
               <button
                 onClick={() => {
                   setOpen(false);
+                  console.log('Navigating to create certificate page...');
                   navigate("/dashboard/createcertificate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >
-                Certificate
+                Create Certificate
               </button>
             </div>
           )}
