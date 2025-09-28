@@ -20,6 +20,7 @@ export default function Login() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [verificationMessage, setVerificationMessage] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loading, error } = useAuth();
@@ -37,6 +38,17 @@ export default function Login() {
             emailOrUsername: savedEmail,
             rememberMe: true
           }));
+        }
+
+        // Check for verification success/error messages from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const verified = urlParams.get('verified');
+        const error = urlParams.get('error');
+        
+        if (verified === 'true') {
+          setVerificationMessage("Email verified successfully! You can now login to access your admin dashboard.");
+        } else if (error === 'verification_failed') {
+          setErrors({ general: "Email verification failed. Please try again or contact support." });
         }
       } catch (error) {
         console.error('Error loading saved email:', error);
@@ -170,6 +182,21 @@ export default function Login() {
           {/* Login Form */}
           <div className="bg-white py-8 px-6 shadow-xl rounded-xl border border-gray-200">
             <form className="space-y-6" onSubmit={handleSubmit}>
+              {verificationMessage && (
+                <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-green-700">{verificationMessage}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {(errors.general || error) && (
                 <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
                   <div className="flex">
@@ -325,25 +352,18 @@ export default function Login() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">New to Talent Shield?</span>
+                  <span className="px-2 bg-white text-gray-500">New Admin?</span>
                 </div>
               </div>
 
               <div className="mt-6">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex justify-center">
                   <Link
-                    to="/signup?role=user"
+                    to="/signup"
                     state={{ from: location.state?.from }}
-                    className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
+                    className="w-full max-w-xs flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
                   >
-                    Signup as User
-                  </Link>
-                  <Link
-                    to="/signup?role=admin"
-                    state={{ from: location.state?.from }}
-                    className="w-full flex justify-center py-3 px-4 border border-emerald-600 rounded-lg shadow-sm text-sm font-medium text-emerald-600 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out"
-                  >
-                    Signup as Admin
+                    Admin Signup
                   </Link>
                 </div>
                 

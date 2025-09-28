@@ -11,7 +11,7 @@ export default function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "user",
+    role: "admin", // Always admin for this signup page
     termsAccepted: false,
     requireEmailVerification: true,
   });
@@ -20,13 +20,10 @@ export default function Signup() {
   const navigate = useNavigate();
   const { signup, loading, error } = useAuth();
 
-  // Preselect role from query string
+  // This signup page is admin-only
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const role = params.get("role");
-    if (role === "admin" || role === "user") {
-      setFormData((prev) => ({ ...prev, role }));
-    }
+    // Ensure role is always admin for this page
+    setFormData((prev) => ({ ...prev, role: "admin" }));
   }, []);
 
   // Fix loading issue
@@ -122,17 +119,9 @@ export default function Signup() {
       const result = await signup(payload);
 
       if (result.success) {
-        if (formData.role === "admin") {
-          alert(
-            "Admin account created. A request has been sent to the super admin for approval. You'll be able to login once approved."
-          );
-        } else if (formData.requireEmailVerification) {
-          alert(
-            "Account created! Please check your email to verify your account before logging in."
-          );
-        } else {
-          alert("Account created successfully! You can login now.");
-        }
+        alert(
+          "Admin account created successfully! Please check your email to verify your account. Once verified, you'll be automatically redirected to the admin dashboard."
+        );
         navigate("/login");
       } else {
         setErrors({ general: result.error || "Signup failed. Please try again." });
@@ -181,7 +170,8 @@ export default function Signup() {
                 />
               </svg>
             </div>
-            <p className="mt-1 text-sm text-gray-500">Create your account to get started</p>
+            <h2 className="text-2xl font-bold text-gray-900">Admin Signup</h2>
+            <p className="mt-1 text-sm text-gray-500">Create your admin account - email verification required</p>
           </div>
 
           {/* Signup Form */}
