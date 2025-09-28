@@ -1,9 +1,14 @@
 // src/pages/ProfilesPage.js
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useProfiles, getApiUrl } from "../context/ProfileContext";
+import { useProfiles } from "../context/ProfileContext";
 import { Link } from "react-router-dom";
 import { PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+
+// Get API URL - same logic as ProfileContext
+const getApiUrl = () => {
+  return process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+};
 
 // Safely get VTID for a profile row
 function generateVTID(profile) {
