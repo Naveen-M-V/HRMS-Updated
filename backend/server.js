@@ -20,18 +20,16 @@ const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
 const MONGODB_URI = config.database.uri;
 
-// Middleware - Order is important!
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Middleware
 app.use(cookieParser());
 
 // Updated session middleware configuration
 app.use(session({
-  secret: config.jwt.secret, // Use the same secret as JWT
+  secret: process.env.SESSION_SECRET, // Removed insecure fallback
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: MONGODB_URI, // Use the same MongoDB URI
+    mongoUrl: process.env.MONGODB_URI,
     touchAfter: 24 * 3600, // Lazy session update
     ttl: 14 * 24 * 60 * 60 // 14 days
   }),
@@ -46,16 +44,16 @@ app.use(session({
   name: 'talentshield.sid' // Custom session name
 }));
 
-// CORS configuration with proper frontend URLs
+// Adjusted CORS configuration to use FRONTEND_URL from .env
 app.use(cors({
   origin: [
-    config.frontend.url || 'https://talentshield.co.uk',
-    'http://localhost:3000', // Common React development port
-    'http://127.0.0.1:3000'  // Alternative localhost
+    process.env.FRONTEND_URL || 'https://talentshield.co.uk',
+    'https://talentshield.co.uk',
+    'http://localhost:5003'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -1660,11 +1658,47 @@ app.get('/api/profiles/by-email/:email', async (req, res) => {
     
     res.json(profile);
   } catch (error) {
+    console.error('Error fetching profile by email:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// Certificate delete request endpoint
+// Get current user's profile (for My Settings page)
+app.get('/api/my-profile', authenticateSession, async (req, res) => {
+  try {
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // For admin users, get from User collection
+    if (req.user.role === 'admin') {
+      const user = await User.findOne({ email: req.user.email })
+        .select('-password') // Exclude password field
+        .lean();
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User profile not found' });
+      }
+      
+      res.json(user);
+    } else {
+      // For regular users, get from Profile collection
+      const profile = await Profile.findOne({ email: req.user.email })
+        .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
+        .lean();
+      
+      if (!profile) {
+        return res.status(404).json({ message: 'Profile not found' });
+      }
+      
+      res.json(profile);
+    }
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 app.post('/api/certificates/delete-request', async (req, res) => {
   try {
     const { certificateId, certificateName, userEmail, userName, profileId } = req.body;
@@ -2457,13 +2491,4 @@ app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(err.status || 500).json({
-        message: err.message || 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
-    });
 });

@@ -41,8 +41,8 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const endpoint = usePagination
-        ? `/profiles/paginated?page=${page}&limit=${limit}`
-        : `/profiles`;
+        ? `/api/profiles/paginated?page=${page}&limit=${limit}`
+        : `/api/profiles`;
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: { 'Cache-Control': 'no-cache' },
@@ -82,7 +82,7 @@ export const ProfileProvider = ({ children }) => {
 
   const deleteProfile = async (profileId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/profiles/${profileId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${profileId}`, {
         method: 'DELETE',
       });
 
@@ -113,7 +113,7 @@ export const ProfileProvider = ({ children }) => {
   const addProfile = async (newProfile) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/profiles`, {
+      const response = await fetch(`${API_BASE_URL}/api/profiles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProfile),
@@ -140,7 +140,7 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = async (id, updatedProfile) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/profiles/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedProfile),
@@ -169,7 +169,7 @@ export const ProfileProvider = ({ children }) => {
 
   const fetchProfileById = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/profiles/${id}`, { credentials: 'include' });
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, { credentials: 'include' });
 
       if (response.ok) {
         const profile = await response.json();
@@ -189,7 +189,7 @@ export const ProfileProvider = ({ children }) => {
 
   const fetchCompleteProfileById = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/profiles/${id}/complete`, { credentials: 'include' });
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/complete`, { credentials: 'include' });
       if (response.ok) return await response.json();
       throw new Error(`Failed to fetch complete profile: ${response.status}`);
     } catch (err) {
@@ -204,7 +204,7 @@ export const ProfileProvider = ({ children }) => {
       const formData = new FormData();
       formData.append('profilePicture', file);
 
-      const response = await fetch(`${API_BASE_URL}/profiles/${id}/upload-picture`, {
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/upload-picture`, {
         method: 'POST',
         body: formData,
         credentials: 'include'

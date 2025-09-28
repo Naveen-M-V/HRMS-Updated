@@ -18,44 +18,47 @@ import {
 
 export default function Profile() {
   const { user } = useAuth();
-  const { profiles, uploadProfilePicture, fetchProfileById } = useProfiles();
+  const { uploadProfilePicture } = useProfiles();
   const { certificates } = useCertificates();
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [imageKey, setImageKey] = useState(Date.now());
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState({});
+  const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Find current user's profile or use auth user data (memoized for performance)
-  const userProfile = useMemo(() => {
-    const foundProfile = profiles.find(p => p.email === user?.email);
-    console.log('User profile found:', foundProfile ? 'Yes' : 'No', foundProfile?.vtid ? `VTID: ${foundProfile.vtid}` : 'No VTID');
-    return foundProfile || user || {};
-  }, [profiles, user]);
+  // Fetch current user's profile data
+  const fetchMyProfile = useCallback(async () => {
+    try {
+      setProfileLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/my-profile', {
+        credentials: 'include'
+      });
 
-  // Fetch complete profile data when component mounts if user profile is found
-  useEffect(() => {
-    const fetchCompleteUserProfile = async () => {
-      if (userProfile._id && !profileLoading) {
-        try {
-          setProfileLoading(true);
-          console.log('Fetching complete user profile data for ID:', userProfile._id);
-          const completeProfile = await fetchProfileById(userProfile._id);
-          console.log('Complete user profile data loaded:', completeProfile?.vtid ? `VTID: ${completeProfile.vtid}` : 'No VTID in response');
-        } catch (error) {
-          console.error('Error fetching complete user profile:', error);
-        } finally {
-          setProfileLoading(false);
-        }
+      if (response.ok) {
+        const profileData = await response.json();
+        console.log('My profile data loaded:', profileData);
+        setUserProfile(profileData);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch profile');
       }
-    };
-
-    // Only fetch if we have a profile ID but missing key data like VTID
-    if (userProfile._id && (!userProfile.vtid || !userProfile.skillkoId)) {
-      fetchCompleteUserProfile();
+    } catch (error) {
+      console.error('Error fetching my profile:', error);
+      setError(error.message);
+      // Fallback to user data from auth context
+    } finally {
+      setProfileLoading(false);
     }
-  }, [userProfile._id, userProfile.vtid, userProfile.skillkoId, fetchProfileById, profileLoading]);
-  
+  }, [user]);
+
+  // Fetch profile data when component mounts
+  useEffect(() => {
+    fetchMyProfile();
+  }, [fetchMyProfile]);
   // Get user's certificates (memoized for performance)
   const userCertificates = useMemo(() => {
     return certificates.filter(cert => 
@@ -110,6 +113,36 @@ export default function Profile() {
     { id: 'certificates', name: 'Certificates', icon: AcademicCapIcon },
     { id: 'experience', name: 'Experience', icon: BriefcaseIcon }
   ];
+
+  // Show loading state
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+          <h3 className="text-red-800 font-medium mb-2">Error Loading Profile</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={fetchMyProfile}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
