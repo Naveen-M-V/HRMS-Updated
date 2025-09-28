@@ -68,13 +68,13 @@ export default function EditUserProfile() {
   const tabs = ["Profile Details", "Employment Info", "System IDs", "Emergency Contact", "Profile Address", "Extra Information"];
 
   useEffect(() => {
-    console.log('EditUserProfile mounted with ID:', id);
-    if (!id) {
-      navigate('/profiles');
-      return;
-    }
-
     const loadProfile = async () => {
+      if (!id) {
+        navigate('/profiles');
+        return;
+      }
+
+      console.log('EditUserProfile mounted with ID:', id);
       setProfileLoading(true);
       try {
         // First try to get from local cache
@@ -98,58 +98,6 @@ export default function EditUserProfile() {
           lastName: profile.lastName || "",
           email: profile.email || "",
           mobile: profile.mobile || "",
-          dateOfBirth: profile.dateOfBirth || "",
-          gender: profile.gender || "",
-          jobTitle: profile.jobTitle || "",
-          jobLevel: profile.jobLevel || "",
-          language: profile.language || "English",
-          company: profile.company || "Vitrux Ltd",
-          staffType: profile.staffType || "",
-          nationality: profile.nationality || "",
-          status: profile.status || "",
-          poc: profile.poc || "",
-          startDate: profile.startDate || "",
-          emergencyContact: {
-            name: profile.emergencyContact?.name || "",
-            relationship: profile.emergencyContact?.relationship || "",
-            phone: profile.emergencyContact?.phone || "",
-          },
-          address: {
-            line1: profile.address?.line1 || "",
-            line2: profile.address?.line2 || "",
-            city: profile.address?.city || "",
-            postCode: profile.address?.postCode || "",
-            country: profile.address?.country || "",
-          },
-          externalSystemId: profile.externalSystemId || "",
-          extThirdPartySystemId: profile.extThirdPartySystemId || "",
-          nopsId: profile.nopsId || profile.nopsID || "",
-          nopsID: profile.nopsId || profile.nopsID || "",
-          insuranceNumber: profile.insuranceNumber || "",
-          circetUIN: profile.circetUIN || "",
-          circetSCID: profile.circetSCID || "",
-          morrisonsIDNumber: profile.morrisonsIDNumber || "",
-          morrisonsUIN: profile.morrisonsUIN || "",
-          bio: profile.bio || "",
-          otherInformation: profile.otherInformation || "",
-          address: {
-            line1: profile.address?.line1 || "",
-            line2: profile.address?.line2 || "",
-            city: profile.address?.city || "",
-            postCode: profile.address?.postCode || "",
-            country: profile.address?.country || "",
-          },
-          externalSystemId: profile.externalSystemId || "",
-          extThirdPartySystemId: profile.extThirdPartySystemId || "",
-          nopsId: profile.nopsId || profile.nopsID || "",
-          nopsID: profile.nopsId || profile.nopsID || "",
-          insuranceNumber: profile.insuranceNumber || "",
-          circetUIN: profile.circetUIN || "",
-          circetSCID: profile.circetSCID || "",
-          morrisonsIDNumber: profile.morrisonsIDNumber || "",
-          morrisonsUIN: profile.morrisonsUIN || "",
-          bio: profile.bio || "",
-          otherInformation: profile.otherInformation || "",
           dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "",
           gender: profile.gender || "",
           jobTitle: profile.jobTitle || (Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : profile.jobRole || ""),
@@ -175,8 +123,8 @@ export default function EditUserProfile() {
           },
           externalSystemId: profile.externalSystemId || "",
           extThirdPartySystemId: profile.extThirdPartySystemId || "",
-          nopsId: profile.nopsId || "",
-          nopsID: profile.nopsID || "",
+          nopsId: profile.nopsId || profile.nopsID || "",
+          nopsID: profile.nopsId || profile.nopsID || "",
           insuranceNumber: profile.insuranceNumber || "",
           circetUIN: profile.circetUIN || "",
           circetSCID: profile.circetSCID || "",
@@ -198,6 +146,8 @@ export default function EditUserProfile() {
       
       loadProfile();
     }
+    
+    loadProfile();
   }, [id, getProfileById, fetchProfileById, navigate]);
 
   const handleChange = (e, section = null) => {
