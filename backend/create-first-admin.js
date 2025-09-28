@@ -14,11 +14,11 @@ async function createFirstAdmin() {
     const users = db.collection('users');
     
     // Check if any admin exists
-    const existingAdmin = await users.findOne({ email: 'sanjaymaheshwaran024@gmail.com' });
+    const existingAdmin = await users.findOne({ email: 'sanjaymaheshwaran0124@gmail.com' });
     if (existingAdmin) {
       console.log('Admin already exists, updating verification status...');
       await users.updateOne(
-        { email: 'sanjaymaheshwaran024@gmail.com' },
+        { email: 'sanjaymaheshwaran0124@gmail.com' },
         { $set: { emailVerified: true, adminApprovalStatus: 'approved' } }
       );
       console.log('✅ Admin verification status updated');
@@ -27,7 +27,7 @@ async function createFirstAdmin() {
       const hashedPassword = await bcrypt.hash('admin123', 10);
       
       const adminUser = {
-        email: 'sanjaymaheshwaran024@gmail.com',
+        email: 'sanjaymaheshwaran0124@gmail.com',
         password: hashedPassword,
         firstName: 'Sanjay',
         lastName: 'Maheshwaran',
@@ -41,13 +41,13 @@ async function createFirstAdmin() {
       
       const result = await users.insertOne(adminUser);
       console.log('✅ First admin account created successfully!');
-      console.log('📧 Email: sanjaymaheshwaran024@gmail.com');
+      console.log('📧 Email: sanjaymaheshwaran0124@gmail.com');
       console.log('🔑 Password: admin123');
       console.log('🆔 User ID:', result.insertedId);
     }
     
     // Verify the admin was created/updated
-    const admin = await users.findOne({ email: 'sanjaymaheshwaran024@gmail.com' });
+    const admin = await users.findOne({ email: 'sanjaymaheshwaran0124@gmail.com' });
     console.log('\n📊 Admin account status:');
     console.log('- Email:', admin.email);
     console.log('- Role:', admin.role);
