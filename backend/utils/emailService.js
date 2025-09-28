@@ -52,7 +52,7 @@ const sendVerificationEmail = async (userEmail, verifyUrl, userName = 'User') =>
 };
 
 // Send user account credentials email
-const sendUserCredentialsEmail = async (userEmail, userName, vtid, loginUrl) => {
+const sendUserCredentialsEmail = async (userEmail, userName, password, loginUrl) => {
   try {
     const transporter = createTransporter();
     const mailOptions = {
@@ -71,7 +71,7 @@ const sendUserCredentialsEmail = async (userEmail, userName, vtid, loginUrl) => 
             <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
               <h3 style="margin-top:0;color:#10b981;">Your Login Credentials</h3>
               <p><strong>Email:</strong> ${userEmail}</p>
-              <p><strong>Password (VTID):</strong> <span style="background:#f3f4f6;padding:4px 8px;border-radius:4px;font-family:monospace;font-size:16px;">${vtid}</span></p>
+              <p><strong>Password:</strong> <span style="background:#f3f4f6;padding:8px 12px;border-radius:4px;font-family:monospace;font-size:16px;font-weight:bold;color:#1f2937;">${password}</span></p>
             </div>
             
             <div style="text-align:center; margin: 24px 0;">
@@ -79,7 +79,7 @@ const sendUserCredentialsEmail = async (userEmail, userName, vtid, loginUrl) => 
             </div>
             
             <div style="background-color:#fef3c7;padding:15px;border-radius:6px;margin:20px 0;">
-              <p style="margin:0;color:#92400e;"><strong>Important:</strong> Please keep your VTID secure and do not share it with anyone. You can use this VTID as your password to login to the system.</p>
+              <p style="margin:0;color:#92400e;"><strong>Important:</strong> Please keep your password secure and do not share it with anyone. You can change your password after logging in for the first time.</p>
             </div>
             
             <p>If you have any questions or need assistance, please contact your administrator.</p>

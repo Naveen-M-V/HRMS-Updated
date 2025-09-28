@@ -12,6 +12,7 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 import { HomeIcon } from '@heroicons/react/24/outline';
 import { UserIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon } from '@heroicons/react/24/outline';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
@@ -168,6 +169,11 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
                 name="Profiles"
                 icon={UserIcon}
                 onClick={() => navigate("/reporting/profiles")}
+              />
+              <ChildItem
+                name="Create User"
+                icon={UserPlusIcon}
+                onClick={() => navigate("/create-user")}
               />
               <ChildItem
                 name="Certificates"

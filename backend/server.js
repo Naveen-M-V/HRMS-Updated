@@ -1809,25 +1809,25 @@ app.post('/api/auth/login', async (req, res) => {
     // First, check if this is a user account (Profile collection)
     const profile = await Profile.findOne({ email: email });
     if (profile) {
-      // This is a user account - validate VTID
-      if (password !== profile.vtid?.toString()) {
-        return res.status(400).json({ message: 'Invalid email or VTID' });
+      // This is a user account - validate password (stored in profile)
+      if (password !== profile.password) {
+        return res.status(400).json({ message: 'Invalid email or password' });
       }
 
-      // Find the corresponding user account
-      const user = await User.findOne({ email: email, role: 'user' });
-      if (!user || !user.isActive) {
-        return res.status(400).json({ message: 'User account not found or deactivated' });
+      // Check if profile is active
+      if (!profile.isActive) {
+        return res.status(400).json({ message: 'User account is deactivated' });
       }
 
       // Create session data for user
       const sessionUser = {
-        userId: user._id,
-        email: user.email,
+        userId: profile._id,
+        email: profile.email,
         role: 'user',
-        firstName: user.firstName,
-        lastName: user.lastName,
-        profileId: profile._id
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        profileId: profile._id,
+        vtid: profile.vtid
       };
 
       // Store user in session
@@ -1854,9 +1854,9 @@ app.post('/api/auth/login', async (req, res) => {
       try {
         const loginTime = new Date().toLocaleString();
         const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
-        const userName = `${user.firstName} ${user.lastName}`;
+        const userName = `${profile.firstName} ${profile.lastName}`;
         
-        await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
+        await sendLoginSuccessEmail(profile.email, userName, loginTime, ipAddress);
       } catch (emailError) {
         console.error('Failed to send login success email:', emailError);
         // Don't fail the login if email fails
@@ -2087,6 +2087,95 @@ const authenticateToken = authenticateSession;
 
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
+
+// Import password generator and email service
+const { generateSimplePassword } = require('./utils/passwordGenerator');
+const { sendUserCredentialsEmail } = require('./utils/emailService');
+
+// Create new user endpoint (Admin only)
+app.post('/api/users/create', authenticateSession, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { firstName, lastName, email, vtid } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ message: 'First name, last name, and email are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    // Check if user already exists
+    const existingProfile = await Profile.findOne({ email });
+    if (existingProfile) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    // Generate a secure password (minimum 6 characters)
+    const generatedPassword = generateSimplePassword(8);
+
+    // Create new profile
+    const newProfile = new Profile({
+      firstName,
+      lastName,
+      email,
+      vtid: vtid || `VT${Date.now()}`, // Generate VTID if not provided
+      password: generatedPassword, // Store plain text password for user login
+      role: 'user',
+      isActive: true,
+      emailVerified: true, // Auto-verify email for admin-created users
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: req.user.email // Track who created the user
+    });
+
+    // Save the profile
+    const savedProfile = await newProfile.save();
+
+    // Send credentials email
+    const loginUrl = `${process.env.FRONTEND_URL || 'https://talentshield.co.uk'}/login`;
+    const userName = `${firstName} ${lastName}`;
+    
+    try {
+      await sendUserCredentialsEmail(email, userName, generatedPassword, loginUrl);
+      console.log(`Credentials email sent to ${email}`);
+    } catch (emailError) {
+      console.error('Failed to send credentials email:', emailError);
+      // Don't fail the user creation if email fails
+    }
+
+    // Return success response (without password for security)
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully and credentials sent via email',
+      user: {
+        id: savedProfile._id,
+        firstName: savedProfile.firstName,
+        lastName: savedProfile.lastName,
+        email: savedProfile.email,
+        vtid: savedProfile.vtid,
+        role: savedProfile.role,
+        isActive: savedProfile.isActive,
+        createdAt: savedProfile.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ 
+      message: 'Failed to create user', 
+      error: error.message 
+    });
+  }
+});
 app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);

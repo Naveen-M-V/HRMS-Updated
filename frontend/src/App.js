@@ -32,6 +32,7 @@ const StaffDetail = lazy(() => import("./pages/StaffDetail"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+const CreateUser = lazy(() => import("./pages/CreateUser"));
 // const UserCertificateCreate = lazy(() => import("./pages/UserCertificateCreate"));
 // const UserCertificateView = lazy(() => import("./pages/UserCertificateView"));
 
@@ -188,6 +189,7 @@ function App() {
                               <Route path="/clients" element={<Clients />} />
                               <Route path="/profiles" element={<ProfilesPage />} />
                               <Route path="dashboard/profilescreate" element={<ProfilesCreate />} />
+                              <Route path="/create-user" element={<CreateUser />} />
                               <Route path="/profiles/:id" element={<ProfileDetailView />} />
                               <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
                               <Route path="/profile" element={<Profile />} />
