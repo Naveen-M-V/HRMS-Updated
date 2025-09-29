@@ -72,7 +72,6 @@ export default function MyAccount() {
         }
         
         const profileData = data;
-        console.log('Profile data loaded:', profileData);
         
         // Set profile data
         if (profileData) {
