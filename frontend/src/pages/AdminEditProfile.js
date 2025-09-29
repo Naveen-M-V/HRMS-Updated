@@ -1,46 +1,59 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useProfiles } from "../context/ProfileContext";
-import { API_BASE_URL, getImageUrl } from "../utils/config";
+import { getImageUrl } from "../utils/config";
 
 export default function AdminEditProfile() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  
   const [profile, setProfile] = useState({});
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    mobile: "",
-    bio: "",
-    jobTitle: "",
-    department: "",
-    company: "",
-    staffType: "Admin",
-    dateOfBirth: "",
-    nationality: "",
-    gender: "",
-    location: "",
-    address: { line1: "", line2: "", city: "", postCode: "", country: "" },
-    emergencyContact: { name: "", relationship: "", phone: "" }
-  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingImage, setSavingImage] = useState(false);
   const [error, setError] = useState(null);
+  const [savingImage, setSavingImage] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    mobile: '',
+    bio: '',
+    jobTitle: '',
+    department: '',
+    company: '',
+    staffType: '',
+    dateOfBirth: '',
+    nationality: '',
+    gender: '',
+    location: '',
+    address: {
+      line1: '',
+      line2: '',
+      city: '',
+      postCode: '',
+      country: ''
+    },
+    emergencyContact: {
+      name: '',
+      relationship: '',
+      phone: ''
+    }
+  });
 
-  // Load current admin profile
+  // Fetch admin profile data
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchAdminProfile = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token || !user) {
+        navigate('/login');
+        return;
+      }
+
       try {
-        const token = localStorage.getItem('auth_token');
-        if (!token || !user) {
-          navigate('/login');
-          return;
-        }
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/my-profile`, {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+        const response = await fetch(`${apiUrl}/api/my-profile`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -48,21 +61,22 @@ export default function AdminEditProfile() {
             'Authorization': `Bearer ${token}`
           }
         });
-        const ct = response.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) {
-          const txt = await response.text();
-          throw new Error(`Unexpected response: ${ct} ${txt.slice(0,120)}...`);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
         }
+
         const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Failed to load');
         setProfile(data);
+        
+        // Populate form with existing data
         setFormData({
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
           mobile: data.mobile || '',
           bio: data.bio || '',
-          jobTitle: Array.isArray(data.jobTitle) ? data.jobTitle.join(', ') : (data.jobTitle || ''),
+          jobTitle: data.jobTitle || '',
           department: data.department || '',
           company: data.company || '',
           staffType: data.staffType || 'Admin',
@@ -75,89 +89,149 @@ export default function AdminEditProfile() {
             line2: data.address?.line2 || '',
             city: data.address?.city || '',
             postCode: data.address?.postCode || '',
-            country: data.address?.country || '',
+            country: data.address?.country || ''
           },
           emergencyContact: {
             name: data.emergencyContact?.name || '',
             relationship: data.emergencyContact?.relationship || '',
-            phone: data.emergencyContact?.phone || '',
-          },
+            phone: data.emergencyContact?.phone || ''
+          }
         });
-      } catch (e) {
-        setError(e.message);
+      } catch (err) {
+        console.error('Error fetching admin profile:', err);
+        
+        // Handle specific error cases
+        if (err.message.includes('Authentication required') || err.message.includes('401')) {
+          setError('Please login again to edit your profile.');
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          setError('Unable to connect to server. Please check your connection and try again.');
+        } else {
+          setError('Failed to load profile data: ' + err.message);
+        }
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+
+    if (user && user.email) {
+      fetchAdminProfile();
+    }
   }, [user, navigate]);
 
+  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
-      setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [child]: value } }));
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
   };
 
+  // Handle profile picture change
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const token = localStorage.getItem('auth_token');
-    if (!token || !user) {
+    if (!token) {
+      alert('Authentication required. Please login again.');
       navigate('/login');
       return;
     }
-    setSavingImage(true);
+
+    // Validate file
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, or GIF)');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size should be less than 5MB');
+      return;
+    }
+
     try {
-      const fd = new FormData();
-      fd.append('profilePicture', file);
-      const resp = await fetch(`${API_BASE_URL}/admin/upload-picture`, {
+      setSavingImage(true);
+      const formDataImg = new FormData();
+      formDataImg.append('profilePicture', file);
+
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+      const response = await fetch(`${apiUrl}/api/admin/upload-picture`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         credentials: 'include',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: fd
+        body: formDataImg
       });
-      if (!resp.ok) {
-        const t = await resp.text();
-        throw new Error(t.slice(0,120));
+
+      if (!response.ok) {
+        throw new Error('Failed to upload profile picture');
       }
-      const data = await resp.json();
-      setProfile(p => ({ ...p, profilePicture: data.profilePicture }));
+
+      const data = await response.json();
+      setProfile(prev => ({ ...prev, profilePicture: data.profilePicture }));
+      alert("Profile picture updated successfully!");
     } catch (err) {
-      setError(err.message);
+      console.error("Failed to upload profile picture:", err);
+      alert("Failed to upload profile picture: " + err.message);
     } finally {
       setSavingImage(false);
-      e.target.value = '';
+      e.target.value = "";
     }
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     const token = localStorage.getItem('auth_token');
-    if (!token || !user) {
+    if (!token) {
+      alert('Authentication required. Please login again.');
       navigate('/login');
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      alert('First name, last name, and email are required.');
       return;
     }
 
     try {
       setSaving(true);
-      const response = await fetch(`${API_BASE_URL}/admin/update-profile`, {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+      
+      const response = await fetch(`${apiUrl}/api/admin/update-profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify(formData)
       });
-      const ct = response.headers.get('content-type') || '';
-      if (!ct.includes('application/json')) {
-        const txt = await response.text();
-        throw new Error(`Unexpected response: ${ct} ${txt.slice(0, 120)}...`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update profile');
       }
 
       alert('Profile updated successfully!');

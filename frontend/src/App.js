@@ -36,7 +36,6 @@ const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const CreateUser = lazy(() => import("./pages/CreateUser"));
 // const UserCertificateCreate = lazy(() => import("./pages/UserCertificateCreate"));
 // const UserCertificateView = lazy(() => import("./pages/UserCertificateView"));
-const AdminDetailsModal = lazy(() => import("./pages/AdminDetailsModal"));
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -207,7 +206,6 @@ function App() {
                               <Route path="/editcertificate/:id" element={<EditCertificate />} />
                               <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
                               <Route path="/reporting/profiles" element={<ProfilesPage />} />
-                              <Route path="/dashboard/admin-details" element={<AdminDetailsModal />} />
                             </Routes>
                           </Suspense>
                         </div>

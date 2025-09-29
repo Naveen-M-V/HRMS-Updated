@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
-import { getImageUrl, API_BASE_URL } from "../utils/config";
+import { getImageUrl } from "../utils/config";
 
 export default function MyAccount() {
   const navigate = useNavigate();
@@ -47,7 +47,9 @@ export default function MyAccount() {
       
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/my-profile`, {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+
+        const response = await fetch(`${apiUrl}/api/my-profile`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -157,7 +159,8 @@ export default function MyAccount() {
       const formData = new FormData();
       formData.append('profilePicture', file);
 
-      const response = await fetch(`${API_BASE_URL}/admin/upload-picture`, {
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+      const response = await fetch(`${apiUrl}/api/admin/upload-picture`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
