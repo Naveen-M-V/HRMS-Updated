@@ -82,7 +82,7 @@ export const CertificateProvider = ({ children }) => {
     const formData = new FormData();
     formData.append('certificateFile', file);
     const response = await axios.put(
-      `${API_BASE_URL}/certificates/${certificateId}/upload`,  // Fixed: removed /api prefix
+      `${API_BASE_URL}/api/certificates/${certificateId}/upload`,  // Note the /api prefix and PUT
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
@@ -109,32 +109,8 @@ export const CertificateProvider = ({ children }) => {
   }
 }, []);
 
-  // Update certificate with file (used for file deletion)
-  const updateCertificateWithFile = useCallback(async (certificateId, formData) => {
-    if (!certificateId) throw new Error('certificateId is required');
-    incrementLoading();
-    try {
-      const response = await axios.put(
-        `${API_BASE_URL}/certificates/${certificateId}`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
 
-      if (response && response.data) {
-        setCertificates(prev =>
-          prev.map(c => (c._id === certificateId || c.id === certificateId ? response.data : c))
-        );
-      }
-      setError(null);
-      return response.data;
-    } catch (err) {
-      setError('Failed to update certificate');
-      console.error(err);
-      throw err;
-    } finally {
-      decrementLoading();
-    }
-  }, []);
+  // Delete a certificate
   const deleteCertificate = useCallback(async (certificateId) => {
     if (!certificateId) throw new Error('certificateId is required');
     incrementLoading();
@@ -204,7 +180,6 @@ export const CertificateProvider = ({ children }) => {
     fetchCertificates,
     addCertificate,
     uploadCertificateFile,
-    updateCertificateWithFile,
     deleteCertificate,
     getCertificateById: (id) => certificates.find(cert => cert._id === id || cert.id === id),
     getActiveCertificatesCount,
@@ -219,7 +194,6 @@ export const CertificateProvider = ({ children }) => {
     fetchCertificates,
     addCertificate,
     uploadCertificateFile,
-    updateCertificateWithFile,
     deleteCertificate,
     getActiveCertificatesCount,
     getExpiringCertificates,
