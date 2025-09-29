@@ -37,14 +37,27 @@ export const AuthProvider = ({ children }) => {
     // Store user session data
     setUserSession: (userData, token = null) => {
       try {
-        localStorage.setItem('user_session', JSON.stringify({
-          user: userData,
+        if (!userData?._id) {
+          console.error('Attempted to store invalid user data');
+          return;
+        }
+
+        const sessionData = {
+          user: {
+            ...userData,
+            _id: userData._id // Ensure _id is always included
+          },
           timestamp: Date.now(),
           expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-        }));
+        };
+
+        localStorage.setItem('user_session', JSON.stringify(sessionData));
         if (token) {
           localStorage.setItem('auth_token', token);
         }
+
+        // Store user separately for redundancy
+        localStorage.setItem('user', JSON.stringify(userData));
       } catch (error) {
         console.error('Error storing session:', error);
       }
@@ -138,19 +151,36 @@ export const AuthProvider = ({ children }) => {
   const checkExistingSession = useCallback(async () => {
     try {
       const sessionData = sessionStorage.getUserSession();
-      if (sessionData && sessionData.user) {
+      const token = sessionStorage.getAuthToken();
+
+      if (sessionData?.user && token) {
         try {
-          await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
+          const response = await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
             withCredentials: true,
-            timeout: 5000
+            timeout: 5000,
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           });
-          // Session is valid, no action needed
+          
+          // Update user data if the session is valid
+          if (response.data?.user) {
+            setUser(response.data.user);
+            setIsAuthenticated(true);
+            sessionStorage.setUserSession(response.data.user, token);
+          }
         } catch (error) {
           // Session invalid, clear it
           if (error.response?.status === 403 || error.response?.status === 401) {
             handleInvalidSession();
+          } else {
+            // For network errors, keep the session but log the error
+            console.error('Session validation network error:', error);
           }
         }
+      } else {
+        // No valid session data or token
+        handleInvalidSession();
       }
     } catch (error) {
       console.error('Error checking session:', error);
@@ -161,11 +191,40 @@ export const AuthProvider = ({ children }) => {
   // Check for existing session on app start
   useEffect(() => {
     let isMounted = true;
+    let sessionCheckInterval;
     
-    // Only run background validation if user is not already set
-    if (!user && isMounted) {
-      checkExistingSession();
+    const validateAndUpdateSession = async () => {
+      if (!isMounted) return;
+      
+      const currentUser = sessionStorage.getUserSession()?.user;
+      const token = sessionStorage.getAuthToken();
+
+      // If we have no user data but have a token, try to recover
+      if (!currentUser?._id && token) {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            withCredentials: true
+          });
+          if (response.data?.user) {
+            setUser(response.data.user);
+            setIsAuthenticated(true);
+            sessionStorage.setUserSession(response.data.user, token);
+          }
+        } catch (error) {
+          console.error('Failed to recover user session:', error);
+          handleInvalidSession();
+        }
+      }
+    };
+
+    // Initial check
+    if (!user?._id) {
+      validateAndUpdateSession();
     }
+
+    // Set up periodic session validation (every 5 minutes)
+    sessionCheckInterval = setInterval(validateAndUpdateSession, 5 * 60 * 1000);
 
     // Listen for localStorage changes to sync across tabs (session management only)
     const handleStorageChange = (e) => {
@@ -175,7 +234,7 @@ export const AuthProvider = ({ children }) => {
         if (e.newValue) {
           try {
             const sessionData = JSON.parse(e.newValue);
-            if (sessionData.user && isMounted) {
+            if (sessionData.user?._id && isMounted) {
               setUser(sessionData.user);
               setIsAuthenticated(true);
             }
