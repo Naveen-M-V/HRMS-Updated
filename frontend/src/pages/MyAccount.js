@@ -184,20 +184,11 @@ export default function MyAccount() {
               if (loading || !user) {
                 return;
               }
-              
-              console.log('Debug - Edit Profile Click:', {
-                user,
-                profile,
-                userRole: user.role
-              });
-              
-              // For admin users, show a simple alert for now and navigate to edit profile
-              if (user.role === 'admin') {
-                // Navigate to edit profile - the ProfileContext should handle admin data
-                navigate('/editprofile');
+              if (user._id) {
+                navigate(`/editprofile/${user._id}`);
               } else {
-                // For regular users
-                navigate('/editprofile');
+                alert('Cannot edit profile: User ID not found. Please try logging in again.');
+                navigate('/login');
               }
             }}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
