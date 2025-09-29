@@ -9,7 +9,7 @@ const aliasMap = {
   'poling - overhead copper dropwiring (ladder)': 'Poling - Overhead Copper dropwiring (LADDER)',
   'poling - overhead copper jointing (ladder)': 'Poling - Overhead Copper Jointing (LADDER)',
   'fttp l2c step 2': 'FTTP L2C step 2',
-  'desilting, gully sucking or manhole survey': 'Desilting, Gully sucking or Manhole surveying',
+  'desilting, gully sucking or manhole survey': 'Desilting, Gully sucking or Manhole survey',
   'supply and install - fibre cable installation': 'Supply and Install - Fibre Cable installation',
   'copper jointing ug': 'Copper Jointing UG',
   'copper first look ug': 'Copper First Look UG',
@@ -43,7 +43,7 @@ export function resolveJobRoleKey(inputName) {
 
   // - Normalize trailing 'survey' -> 'surveying'
   if (lower.endsWith(' survey')) {
-    const surveyNorm = name.slice(0, -' survey'.length) + ' surveying';
+    const surveyNorm = name.slice(0, -' survey'.length) + ' survey';
     if (keys.includes(surveyNorm)) return surveyNorm;
   }
 

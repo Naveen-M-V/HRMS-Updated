@@ -273,14 +273,13 @@ This will also delete ${certificateCount} associated certificate(s). This action
                   >
                     <EyeIcon className="h-4 w-4" />
                   </Link>
-                  <button
-                    onClick={() => navigate(`/profiles/edit/${p._id}`)}
+                  <Link
+                    onClick={`/profiles/edit/${p._id}`}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile"
-                    disabled={loading}
                   >
                     <PencilIcon className="h-4 w-4" />
-                  </button>
+                  </Link>
                   <button
                     onClick={() => handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`)}
                     className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"

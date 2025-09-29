@@ -70,7 +70,7 @@ const jobRoles = [
   "Frame and Cover Carriageway",
   "DSLAM Construction",
   "PCP Construction",
-  "Desilting, Gully sucking or Manhole surveying",
+  "Desilting, Gully sucking or Manhole survey",
   "Narrow Trenching",
   "Labourer",
   "Trial Hole Excavation",

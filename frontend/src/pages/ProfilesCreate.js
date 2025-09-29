@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
+import SearchableDropdown from "../components/SearchableDropdown";
 
 export default function ProfilesCreate() {
   const [formData, setFormData] = useState({
@@ -108,7 +109,7 @@ export default function ProfilesCreate() {
     "Frame and Cover Carriageway",
     "DSLAM Construction",
     "PCP Construction",
-    "Desilting, Gully sucking or Manhole surveying",
+    "Desilting, Gully sucking or Manhole survey",
     "Narrow Trenching",
     "Labourer",
     "Trial Hole Excavation",
@@ -217,16 +218,20 @@ export default function ProfilesCreate() {
       const isSelected = currentJobRoles.includes(jobRole);
       
       if (isSelected) {
-        // Remove job role
+        // Remove job role and also update jobTitle
+        const updatedRoles = currentJobRoles.filter(role => role !== jobRole);
         return {
           ...prev,
-          jobRole: currentJobRoles.filter(role => role !== jobRole)
+          jobRole: updatedRoles,
+          jobTitle: updatedRoles // Keep jobTitle in sync with jobRole
         };
       } else {
-        // Add job role
+        // Add job role and also update jobTitle
+        const updatedRoles = [...currentJobRoles, jobRole];
         return {
           ...prev,
-          jobRole: [...currentJobRoles, jobRole]
+          jobRole: updatedRoles,
+          jobTitle: updatedRoles // Keep jobTitle in sync with jobRole
         };
       }
     });
@@ -387,29 +392,55 @@ export default function ProfilesCreate() {
                   Loading job roles...
                 </div>
               ) : (
-                <select
-                  name="jobRole"
-                  value={formData.jobRole[0] || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData(prev => ({
-                      ...prev,
-                      jobRole: value ? [value] : []
-                    }));
-                  }}
-                  className="mt-1 block w-full border rounded p-2"
-                  required
-                >
-                  <option value="" disabled>-- Select a job role --</option>
-                  {jobRoles.map((role) => (
-                    <option key={role._id} value={role.name}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <SearchableDropdown
+                    name="jobRole"
+                    value={formData.jobRole}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (!formData.jobRole.includes(value)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          jobRole: [...prev.jobRole, value]
+                        }));
+                      }
+                    }}
+                    options={jobRoles.map(role => ({ name: role.name, _id: role._id }))}
+                    placeholder="Type to search job roles..."
+                    className="w-full mb-2"
+                    isMultiSelect={true}
+                  />
+                  {formData.jobRole.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-xs text-gray-500 mb-1">Selected ({formData.jobRole.length}):</div>
+                      <div className="flex flex-wrap gap-1">
+                        {formData.jobRole.map((role) => (
+                          <span
+                            key={role}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"
+                          >
+                            {role}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  jobRole: prev.jobRole.filter(r => r !== role)
+                                }));
+                              }}
+                              className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-emerald-400 hover:bg-emerald-200 hover:text-emerald-600 focus:outline-none"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                {jobRoles.length > 0 ? `${jobRoles.length} job roles available` : 'No job roles available'}. Select one for this profile.
+                {jobRoles.length > 0 ? `${jobRoles.length} job roles available` : 'No job roles available'}. You can select multiple roles.
               </p>
             </div>
             <div>
