@@ -2255,47 +2255,18 @@ app.put('/api/admin/update-profile', authenticateSession, async (req, res) => {
       return res.status(404).json({ message: 'Admin user not found' });
     }
 
-    // Also upsert into Profile collection so Profiles page reflects admin changes
-    try {
-      const profileUpdate = {
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        email: updatedUser.email,
-        mobile: updatedUser.mobile,
-        bio: updatedUser.bio,
-        jobTitle: updatedUser.jobTitle,
-        department: updatedUser.department,
-        company: updatedUser.company,
-        staffType: updatedUser.staffType || 'Admin',
-        dateOfBirth: updatedUser.dateOfBirth,
-        nationality: updatedUser.nationality,
-        gender: updatedUser.gender,
-        location: updatedUser.location,
-        address: updatedUser.address,
-        emergencyContact: updatedUser.emergencyContact,
-        profilePicture: updatedUser.profilePicture,
-        isActive: true,
-        updatedAt: new Date()
-      };
-
-      await Profile.findOneAndUpdate(
-        { email: updatedUser.email },
-        profileUpdate,
-        { new: true, upsert: true }
-      );
-    } catch (syncErr) {
-      console.error('Failed to sync admin to Profile collection:', syncErr);
-      // Do not fail the admin update if profile sync fails
-    }
-
-    return res.json({
+    res.json({
       success: true,
       message: 'Admin profile updated successfully',
       user: updatedUser
     });
+
   } catch (error) {
     console.error('Error updating admin profile:', error);
-    return res.status(500).json({ message: 'Failed to update admin profile', error: error.message });
+    res.status(500).json({ 
+      message: 'Failed to update admin profile', 
+      error: error.message 
+    });
   }
 });
 
