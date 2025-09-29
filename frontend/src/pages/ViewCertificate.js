@@ -87,8 +87,21 @@ export default function ViewCertificate() {
 
       alert("Certificate file updated successfully!");
     } catch (error) {
-      console.error("Failed to upload certificate file:", error);
-      alert("Failed to upload certificate file. " + (error.message || "Please try again."));
+      // Enhanced error logging
+      console.error("Failed to upload certificate file:");
+      console.dir(error);
+
+      // Build user-friendly error message
+      let errorMessage = "Failed to upload certificate file. ";
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage += error.response.data.message;
+      } else if (error.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += "Please try again.";
+      }
+
+      alert(errorMessage);
     } finally {
       setUploading(false);
     }
