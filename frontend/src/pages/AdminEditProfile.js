@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useProfiles } from "../context/ProfileContext";
 import { API_BASE_URL, getImageUrl } from "../utils/config";
 
 export default function AdminEditProfile() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [profile, setProfile] = useState({});
   const [formData, setFormData] = useState({
     firstName: "",

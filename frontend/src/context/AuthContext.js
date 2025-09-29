@@ -148,13 +148,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const handleInvalidSession = useCallback(() => {
-    console.log("Invalid session. Clearing user data.");
-    sessionStorage.clearSession();
-    setUser(null);
-    setIsAuthenticated(false);
-  }, []);
-
   const checkExistingSession = useCallback(async () => {
     try {
       const sessionData = sessionStorage.getUserSession();
@@ -193,7 +186,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Error checking session:', error);
       // Don't clear session on network errors, only on auth errors
     }
-  }, [handleInvalidSession]);
+  }, []);
 
   // Check for existing session on app start
   useEffect(() => {
@@ -261,11 +254,9 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('storage', handleStorageChange);
     return () => {
       isMounted = false;
-      if (sessionCheckInterval) clearInterval(sessionCheckInterval);
       window.removeEventListener('storage', handleStorageChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, checkExistingSession, handleInvalidSession]);
+  }, [user, checkExistingSession]);
 
 
   const login = async (email, password, rememberMe = false) => {
@@ -310,7 +301,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
 
     try {
-      await axios.post(`${API_BASE_URL}/api/auth/signup`, userData, {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData, {
         timeout: 10000,
         withCredentials: true
       });
@@ -342,7 +333,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // handleInvalidSession defined above with useCallback
+  const handleInvalidSession = () => {
+    console.log("Invalid session. Clearing user data.");
+    sessionStorage.clearSession();
+    setUser(null);
+    setIsAuthenticated(false);
+  };
 
   const updateUser = (updatedUserData) => {
     const newUserData = { ...user, ...updatedUserData };
