@@ -16,16 +16,10 @@ export default function MyAccount() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
 
-  // Clear any cached errors on component mount
-  useEffect(() => {
-    setError(null);
-  }, []);
-
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
       const token = localStorage.getItem('auth_token');
-
       if (!token || !user) {
         setLoading(false);
         setError('Authentication required. Please login again.');
@@ -50,7 +44,6 @@ export default function MyAccount() {
       try {
         setLoading(true);
         const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-
         const response = await fetch(`${apiUrl}/api/my-profile`, {
           credentials: 'include',
           headers: {
