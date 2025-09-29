@@ -23,6 +23,9 @@ const MONGODB_URI = config.database.uri;
 // Middleware
 app.use(cookieParser());
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Session middleware configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || JWT_SECRET,
@@ -369,7 +372,22 @@ const certificateNameSchema = new mongoose.Schema({
 const CertificateName = mongoose.model('CertificateName', certificateNameSchema);
 
 // Multer configuration for file uploads with 10MB limit
-const storage = multer.memoryStorage(); // Store in memory for database storage
+// Configure multer for file storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads');
+    // Create uploads directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate a unique filename
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
 const upload = multer({ 
   storage: storage,
@@ -892,15 +910,15 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
   try {
     const certificateData = { ...req.body };
     
-    // Handle file upload if present - store in database
+    // Handle file upload if present
     if (req.file) {
       // Check file size (10MB limit already enforced by multer)
       if (req.file.size > 10 * 1024 * 1024) {
         return res.status(400).json({ message: 'File size exceeds 10MB limit' });
       }
       
-      certificateData.certificateFile = req.file.originalname;
-      certificateData.fileData = req.file.buffer; // Store file data in database
+      // Store the file path instead of the file data
+      certificateData.certificateFile = '/uploads/' + req.file.filename;
       certificateData.fileSize = req.file.size;
       certificateData.mimeType = req.file.mimetype;
     }
