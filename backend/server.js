@@ -2233,48 +2233,6 @@ app.put('/api/admin/update-profile', authenticateSession, async (req, res) => {
   }
 });
 
-// Admin profile picture upload endpoint
-app.post('/api/admin/upload-picture', authenticateSession, upload.single('profilePicture'), async (req, res) => {
-  try {
-    // Check if user is admin
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    // Update admin user with profile picture path
-    const updatedUser = await User.findOneAndUpdate(
-      { email: req.user.email },
-      {
-        profilePicture: `/uploads/${req.file.filename}`,
-        updatedAt: new Date()
-      },
-      { new: true, select: '-password -__v' }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: 'Admin user not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Profile picture updated successfully',
-      profilePicture: updatedUser.profilePicture,
-      user: updatedUser
-    });
-
-  } catch (error) {
-    console.error('Error uploading admin profile picture:', error);
-    res.status(500).json({ 
-      message: 'Failed to upload profile picture', 
-      error: error.message 
-    });
-  }
-});
-
 // Create new user endpoint (Admin only)
 app.post('/api/users/create', authenticateSession, async (req, res) => {
   try {
