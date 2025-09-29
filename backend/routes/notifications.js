@@ -35,11 +35,10 @@ let notifications = [
 // Get unread notification count
 router.get('/unread-count', (req, res) => {
   try {
-    // Validate session and user ID
-    if (!req.session?.user?.userId) {
-      console.error("Invalid session data. Session:", req.session);
-      console.error("Cookies:", req.cookies);
-      return res.status(400).json({ error: 'User ID is required' });
+    // Check if user is authenticated (from JWT middleware)
+    if (!req.user || !req.user._id) {
+      console.error("User not authenticated. User:", req.user);
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     // Ensure notifications is an array
@@ -48,15 +47,16 @@ router.get('/unread-count', (req, res) => {
       return res.status(500).json({ error: 'Internal server error' });
     }
 
-    // Filter unread notifications
+    // Filter unread notifications for the authenticated user
+    const userId = req.user._id.toString();
     const unreadCount = notifications.filter(n => 
-      !n.isRead && (n.userId === 'all' || n.userId === req.session.user.userId)
+      !n.isRead && (n.userId === 'all' || n.userId === userId)
     ).length;
 
     res.json({ count: unreadCount });
   } catch (error) {
     console.error("Error fetching notification count:", error);
-    console.error("Session data:", req.session);
+    console.error("User data:", req.user);
     console.error("Notifications data:", notifications);
     res.status(500).json({ error: 'Failed to fetch notification count' });
   }
@@ -65,9 +65,15 @@ router.get('/unread-count', (req, res) => {
 // Get all notifications for user
 router.get('/', (req, res) => {
   try {
-    // In a real app, filter by user ID from session
+    // Check if user is authenticated (from JWT middleware)
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Filter notifications for the authenticated user
+    const userId = req.user._id.toString();
     const userNotifications = notifications
-      .filter(n => n.userId === 'all' || n.userId === req.session?.user?.userId)
+      .filter(n => n.userId === 'all' || n.userId === userId)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     res.json({ notifications: userNotifications });

@@ -1,8 +1,21 @@
 // API Configuration utility
-export const API_BASE_URL = 'https://talentshield.co.uk/api';
+const getApiUrl = () => {
+  // In development, use localhost URL
+  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  // In production or when API_BASE_URL is relative, use relative path
+  if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) {
+    return '';
+  }
+  // Fallback to localhost for development, production URL for production
+  return process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
+};
+
+export const API_BASE_URL = `${getApiUrl()}/api`;
 
 // Remove '/api' from base URL to get server URL for file uploads
-export const SERVER_BASE_URL = 'https://talentshield.co.uk';
+export const SERVER_BASE_URL = getApiUrl();
 
 // Helper function to get full image URL (works for PDFs and other files too)
 export const getImageUrl = (imagePath) => {

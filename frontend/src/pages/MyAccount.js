@@ -85,7 +85,19 @@ export default function MyAccount() {
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
-        setError(err.message);
+        
+        // Handle specific error cases
+        if (err.message.includes('Authentication required') || err.message.includes('401')) {
+          setError('Please login again to view your profile.');
+          setTimeout(() => {
+            logout();
+            navigate('/login');
+          }, 2000);
+        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          setError('Unable to connect to server. Please check your connection.');
+        } else {
+          setError(err.message);
+        }
         
         // For admin users, fallback to user data from auth context
         if (user && user.role === 'admin') {
