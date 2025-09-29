@@ -6,7 +6,7 @@ import { useCertificates } from "../context/CertificateContext";
 export default function ViewCertificate() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { certificates, deleteCertificate, updateCertificateWithFile } = useCertificates();
+  const { certificates, deleteCertificate, updateCertificateWithFile, uploadCertificateFile } = useCertificates();
   const [certificate, setCertificate] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -70,42 +70,14 @@ export default function ViewCertificate() {
       alert("Please select a file first.");
       return;
     }
-
     const certificateId = certificate?.id || certificate?._id;
     if (!certificateId) {
       alert("Certificate ID not found. Please refresh the page and try again.");
       return;
     }
-
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("certificateFile", selectedFile);
-
-      console.log("Uploading file:", selectedFile.name);
-      console.log("Certificate ID:", certificateId);
-      console.log("File size:", (selectedFile.size / 1024 / 1024).toFixed(2) + "MB");
-
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}/api/certificates/${certificateId}/upload`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-          },
-          body: formData,
-          credentials: "include",
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          message: "Unknown error",
-        }));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-
-      const updatedCertificate = await response.json();
+      const updatedCertificate = await uploadCertificateFile(certificateId, selectedFile);
       setCertificate(updatedCertificate);
       setSelectedFile(null);
 
@@ -116,17 +88,7 @@ export default function ViewCertificate() {
       alert("Certificate file updated successfully!");
     } catch (error) {
       console.error("Failed to upload certificate file:", error);
-
-      let errorMessage = "Failed to upload certificate file. ";
-      if (error.message.includes("404")) {
-        errorMessage += "Certificate not found. Please refresh the page and try again.";
-      } else if (error.message.includes("403") || error.message.includes("401")) {
-        errorMessage += "Authentication failed. Please log in again.";
-      } else {
-        errorMessage += error.message || "Please try again.";
-      }
-
-      alert(errorMessage);
+      alert("Failed to upload certificate file. " + (error.message || "Please try again."));
     } finally {
       setUploading(false);
     }
