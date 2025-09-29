@@ -13,8 +13,6 @@ export default function MyAccount() {
   const [savingImage, setSavingImage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({});
 
   // Clear any cached errors on component mount
   useEffect(() => {
@@ -183,8 +181,8 @@ export default function MyAccount() {
     }
   };
 
-  // Handle edit mode toggle
-  const handleEditToggle = () => {
+  // Handle edit navigation
+  const handleEditProfile = () => {
     // Check if we have a valid token and user
     const token = localStorage.getItem('auth_token');
     if (!token || !user) {
@@ -202,91 +200,10 @@ export default function MyAccount() {
       return;
     }
 
-    if (!isEditing) {
-      // Entering edit mode - populate form with current profile data
-      setEditForm({
-        firstName: profile.firstName || user.firstName || '',
-        lastName: profile.lastName || user.lastName || '',
-        email: profile.email || user.email || '',
-        mobile: profile.mobile || user.mobile || '',
-        bio: profile.bio || user.bio || ''
-      });
-    }
-    setIsEditing(!isEditing);
+    // Navigate to the comprehensive edit page
+    navigate('/admin/edit-profile');
   };
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Handle save profile changes
-  const handleSaveProfile = async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (!token || !user) {
-        throw new Error('Authentication required. Please login again.');
-      }
-
-      // Validate that we have the required user data for admin
-      if (user.role === 'admin' && !user.email) {
-        throw new Error('User session invalid. Please login again.');
-      }
-
-      // Validate form data
-      if (!editForm.firstName || !editForm.lastName || !editForm.email) {
-        throw new Error('First name, last name, and email are required.');
-      }
-      
-      setLoading(true);
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-      
-      const response = await fetch(`${apiUrl}/api/admin/update-profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(editForm)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update profile');
-      }
-
-      const data = await response.json();
-      
-      // Update profile state with new data
-      setProfile(prev => ({
-        ...prev,
-        ...editForm,
-        fullName: `${editForm.firstName} ${editForm.lastName}`.trim()
-      }));
-      
-      setIsEditing(false);
-      alert('Profile updated successfully!');
-      
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      
-      // Handle specific error cases
-      if (error.message.includes('Authentication required') || error.message.includes('User session invalid')) {
-        logout();
-        navigate('/login');
-      } else {
-        alert('Failed to update profile: ' + error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle logout
   const handleLogout = async () => {
@@ -333,10 +250,10 @@ export default function MyAccount() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <div className="flex gap-3">
           <button
-            onClick={handleEditToggle}
+            onClick={handleEditProfile}
             disabled={loading || !user}
             className="text-sm border px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            title={loading ? 'Loading your profile...' : !user ? 'Please log in to edit your profile' : (isEditing ? 'Cancel editing' : 'Edit your profile')}
+            title={loading ? 'Loading your profile...' : !user ? 'Please log in to edit your profile' : 'Edit your profile'}
           >
             {loading ? (
               <>
@@ -349,24 +266,12 @@ export default function MyAccount() {
             ) : (
               <>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isEditing ? "M6 18L18 6M6 6l12 12" : "M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"} />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
-                {isEditing ? 'Cancel' : 'Edit Profile'}
+                Edit Profile
               </>
             )}
           </button>
-          {isEditing && (
-            <button
-              onClick={handleSaveProfile}
-              disabled={loading}
-              className="text-sm border px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Save Changes
-            </button>
-          )}
           <button
             onClick={handleLogout}
             disabled={authLoading}
@@ -464,112 +369,126 @@ export default function MyAccount() {
 
             {/* Name + Role */}
             <div className="flex-1">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={editForm.firstName || ''}
-                        onChange={handleInputChange}
-                        className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={editForm.lastName || ''}
-                        onChange={handleInputChange}
-                        className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={editForm.email || ''}
-                      onChange={handleInputChange}
-                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
-                    <input
-                      type="tel"
-                      name="mobile"
-                      value={editForm.mobile || ''}
-                      onChange={handleInputChange}
-                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                    <textarea
-                      name="bio"
-                      value={editForm.bio || ''}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Tell us about yourself..."
-                    />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <h2 className="text-xl font-semibold">
-                    {profile.firstName ? `${profile.firstName} ${profile.lastName || ''}` : 'Loading...'}
-                  </h2>
-                  <p className="text-gray-600">{profile.jobTitle || 'No job title specified'}</p>
-                  <p className="text-green-600 text-sm mt-1">
-                    {profile.company || 'No company specified'} • {profile.staffType || 'Admin'} Staff
-                  </p>
+              <h2 className="text-xl font-semibold">
+                {profile.firstName ? `${profile.firstName} ${profile.lastName || ''}` : 'Loading...'}
+              </h2>
+              <p className="text-gray-600">{profile.jobTitle || 'Administrator'}</p>
+              <p className="text-green-600 text-sm mt-1">
+                {profile.company || 'Talent Shield'} • {profile.staffType || 'Admin'} Staff
+              </p>
 
-                  {/* Bio */}
-                  <div className="mt-6">
-                    <p className="text-gray-500 text-sm font-medium">Bio</p>
-                    <p className="text-sm">{profile.bio || "No bio information available"}</p>
-                  </div>
-                </>
-              )}
+              {/* Bio */}
+              <div className="mt-6">
+                <p className="text-gray-500 text-sm font-medium">Bio</p>
+                <p className="text-sm">{profile.bio || "No bio information available"}</p>
+              </div>
             </div>
 
             {/* Details Section */}
-            <div className="text-sm space-y-4 w-full md:w-1/3">
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">Email</span>
-                <span>{profile.email || "Not provided"}</span>
+            <div className="text-sm space-y-4 w-full md:w-1/2">
+              {/* Personal Information */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-1">Personal Information</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Email</span>
+                    <span className="text-right">{profile.email || "Not provided"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Mobile</span>
+                    <span className="text-right">{profile.mobile || "Not provided"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Date of Birth</span>
+                    <span className="text-right">{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-GB') : "Not provided"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Gender</span>
+                    <span className="text-right">{profile.gender || "Not specified"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Nationality</span>
+                    <span className="text-right">{profile.nationality || "Not specified"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Location</span>
+                    <span className="text-right">{profile.location || "Not specified"}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">Mobile</span>
-                <span className="text-gray-500">{profile.mobile || "Not provided"}</span>
+              {/* Professional Information */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-1">Professional Information</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Department</span>
+                    <span className="text-right">{profile.department || "Not specified"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Staff Type</span>
+                    <span className="text-right">{profile.staffType || "Admin"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Company</span>
+                    <span className="text-right">{profile.company || "Talent Shield"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium text-gray-700">Role</span>
+                    <span className="text-right text-green-600 font-medium">Administrator</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">D.O.B.</span>
-                <span>{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-GB') : "Not provided"}</span>
-              </div>
+              {/* Address Information */}
+              {(profile.address?.line1 || profile.address?.city || profile.address?.country) && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-1">Address</h3>
+                  <div className="space-y-2">
+                    {profile.address?.line1 && (
+                      <div className="text-gray-700">{profile.address.line1}</div>
+                    )}
+                    {profile.address?.line2 && (
+                      <div className="text-gray-700">{profile.address.line2}</div>
+                    )}
+                    {(profile.address?.city || profile.address?.postCode) && (
+                      <div className="text-gray-700">
+                        {profile.address?.city}{profile.address?.city && profile.address?.postCode && ', '}{profile.address?.postCode}
+                      </div>
+                    )}
+                    {profile.address?.country && (
+                      <div className="text-gray-700">{profile.address.country}</div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">Department</span>
-                <span>{profile.department || "Not specified"}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">Staff Type</span>
-                <span>{profile.staffType || "Not specified"}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="font-medium text-gray-700">Address</span>
-                <span>{profile.address?.country || "Not provided"}</span>
-              </div>
+              {/* Emergency Contact */}
+              {(profile.emergencyContact?.name || profile.emergencyContact?.phone) && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-800 mb-3 border-b border-gray-200 pb-1">Emergency Contact</h3>
+                  <div className="space-y-3">
+                    {profile.emergencyContact?.name && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700">Name</span>
+                        <span className="text-right">{profile.emergencyContact.name}</span>
+                      </div>
+                    )}
+                    {profile.emergencyContact?.relationship && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700">Relationship</span>
+                        <span className="text-right">{profile.emergencyContact.relationship}</span>
+                      </div>
+                    )}
+                    {profile.emergencyContact?.phone && (
+                      <div className="flex justify-between">
+                        <span className="font-medium text-gray-700">Phone</span>
+                        <span className="text-right">{profile.emergencyContact.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

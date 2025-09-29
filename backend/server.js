@@ -2193,24 +2193,64 @@ app.put('/api/admin/update-profile', authenticateSession, async (req, res) => {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
-    const { firstName, lastName, email, mobile, bio } = req.body;
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      mobile, 
+      bio,
+      jobTitle,
+      department,
+      company,
+      staffType,
+      dateOfBirth,
+      nationality,
+      gender,
+      location,
+      address,
+      emergencyContact
+    } = req.body;
 
     // Validate required fields
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ message: 'First name, last name, and email are required' });
     }
 
+    // Prepare update object with all fields
+    const updateData = {
+      firstName,
+      lastName,
+      email,
+      mobile,
+      bio,
+      jobTitle,
+      department,
+      company,
+      staffType,
+      nationality,
+      gender,
+      location,
+      updatedAt: new Date()
+    };
+
+    // Handle date of birth conversion
+    if (dateOfBirth) {
+      updateData.dateOfBirth = new Date(dateOfBirth);
+    }
+
+    // Handle nested objects
+    if (address) {
+      updateData.address = address;
+    }
+
+    if (emergencyContact) {
+      updateData.emergencyContact = emergencyContact;
+    }
+
     // Update admin user in User collection
     const updatedUser = await User.findOneAndUpdate(
       { email: req.user.email },
-      {
-        firstName,
-        lastName,
-        email,
-        mobile,
-        bio,
-        updatedAt: new Date()
-      },
+      updateData,
       { new: true, select: '-password -__v' }
     );
 
