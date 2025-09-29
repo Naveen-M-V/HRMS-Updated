@@ -19,13 +19,8 @@ export default function MyAccount() {
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!user?.email || !user?._id) {
+      if (!user?.email) {
         setLoading(false);
-        setError('User session not found. Please login again.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 2000);
         return;
       }
       
@@ -144,14 +139,6 @@ export default function MyAccount() {
 
   // Handle edit mode toggle
   const handleEditToggle = () => {
-    // Check if we have a valid user session
-    if (!user?._id) {
-      alert('Session expired. Please login again.');
-      logout();
-      navigate('/login');
-      return;
-    }
-
     if (!isEditing) {
       // Entering edit mode - populate form with current profile data
       setEditForm({
@@ -177,26 +164,17 @@ export default function MyAccount() {
   // Handle save profile changes
   const handleSaveProfile = async () => {
     try {
-      if (!user?._id) {
-        throw new Error('User ID not found. Try logging in again');
-      }
-      
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
       
-      const response = await fetch(`${apiUrl}/api/profiles/${user._id}`, {
+      const response = await fetch('/api/admin/update-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
-        body: JSON.stringify({
-          ...editForm,
-          userId: user._id
-        })
+        body: JSON.stringify(editForm)
       });
 
       if (!response.ok) {
