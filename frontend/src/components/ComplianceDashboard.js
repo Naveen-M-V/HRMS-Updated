@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCertificates } from '../context/CertificateContext';
 import ComplianceInsights from './ComplianceInsights';
+import AdminCompletionBar from './AdminCompletionBar';
 
 const ComplianceDashboard = () => {
   const {
@@ -97,6 +98,9 @@ const ComplianceDashboard = () => {
 
       {/* Compliance Insights Section */}
       <ComplianceInsights />
+
+      {/* Admin Details Completion Bar */}
+      <AdminCompletionBar />
 
       {/* Main Section with Tasks and Action Buttons */}
       <div className="flex gap-10 mb-6">

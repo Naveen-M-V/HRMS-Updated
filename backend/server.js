@@ -2141,9 +2141,37 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
         return res.status(404).json({ message: 'Admin profile not found' });
       }
 
+      // Try to merge with Profile collection details if available
+      let profileExtras = {};
+      try {
+        const prof = await Profile.findOne({ email: req.user.email })
+          .select('-profilePictureData -profilePictureSize -profilePictureMimeType -__v')
+          .lean();
+        if (prof) {
+          profileExtras = {
+            mobile: prof.mobile,
+            bio: prof.bio,
+            jobTitle: prof.jobTitle,
+            department: prof.department,
+            company: prof.company,
+            staffType: prof.staffType,
+            dateOfBirth: prof.dateOfBirth,
+            nationality: prof.nationality,
+            gender: prof.gender,
+            location: prof.location,
+            address: prof.address,
+            emergencyContact: prof.emergencyContact,
+            profilePicture: prof.profilePicture
+          };
+        }
+      } catch (mergeErr) {
+        console.warn('Admin merge with Profile failed:', mergeErr?.message || mergeErr);
+      }
+
       // Include additional admin-specific data if needed
       const adminData = {
         ...user,
+        ...profileExtras,
         isAdmin: true,
         permissions: ['all']
       };
@@ -2164,6 +2192,71 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Update admin profile details (persist in Profile collection)
+app.put('/api/admin/update-profile', authenticateSession, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const {
+      firstName,
+      lastName,
+      email,
+      mobile,
+      bio,
+      jobTitle,
+      department,
+      company,
+      staffType,
+      dateOfBirth,
+      nationality,
+      gender,
+      location,
+      address,
+      emergencyContact
+    } = req.body;
+
+    // Basic validation
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ message: 'First name, last name, and email are required' });
+    }
+
+    // Upsert into Profile collection keyed by admin email
+    const update = {
+      firstName,
+      lastName,
+      email,
+      mobile: mobile ?? '',
+      bio: bio ?? '',
+      jobTitle: jobTitle ?? '',
+      department: department ?? '',
+      company: company ?? '',
+      staffType: staffType ?? 'Admin',
+      nationality: nationality ?? '',
+      gender: gender ?? '',
+      location: location ?? '',
+      address: address ?? {},
+      emergencyContact: emergencyContact ?? {},
+      updatedAt: new Date()
+    };
+    if (dateOfBirth) {
+      update.dateOfBirth = new Date(dateOfBirth);
+    }
+
+    const updatedProfile = await Profile.findOneAndUpdate(
+      { email },
+      update,
+      { new: true, upsert: true }
+    );
+
+    return res.json({ success: true, message: 'Admin profile updated successfully', profile: updatedProfile });
+  } catch (error) {
+    console.error('Error updating admin profile:', error);
+    return res.status(500).json({ message: 'Failed to update admin profile', error: error.message });
   }
 });
 
