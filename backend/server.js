@@ -9,7 +9,6 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 // Load environment configuration
 const envConfig = require('./config/environment');
@@ -21,12 +20,10 @@ const JWT_SECRET = config.jwt.secret;
 const MONGODB_URI = config.database.uri;
 
 // Middleware
+// Trust the first proxy (e.g., Nginx) so secure cookies work in production
+app.set('trust proxy', 1);
 app.use(cookieParser());
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Session middleware configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || JWT_SECRET,
   resave: false,
