@@ -19,9 +19,10 @@ export default function MyAccount() {
   // Fetch user profile data
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!user?.email || !user?._id) {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
         setLoading(false);
-        setError('User session not found. Please login again.');
+        setError('Authentication required. Please login again.');
         setTimeout(() => {
           logout();
           navigate('/login');
@@ -59,25 +60,17 @@ export default function MyAccount() {
         const profileData = data;
         console.log('Profile data loaded:', profileData);
         
-        // If we have a valid profile data
+        // Set profile data
         if (profileData) {
           setProfile({
-            ...user,
             ...profileData,
-            fullName: `${profileData.firstName || user.firstName || ''} ${profileData.lastName || user.lastName || ''}`.trim(),
-            jobTitle: Array.isArray(profileData.jobTitle) ? profileData.jobTitle.join(', ') : profileData.jobTitle || user.jobTitle,
-            address: profileData.address || user.address || {},
-            emergencyContact: profileData.emergencyContact || user.emergencyContact || {},
+            fullName: `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim(),
+            jobTitle: Array.isArray(profileData.jobTitle) ? profileData.jobTitle.join(', ') : profileData.jobTitle || '',
+            address: profileData.address || {},
+            emergencyContact: profileData.emergencyContact || {},
           });
         } else {
-          // If we don't have profile data, use user data
-          setProfile({
-            ...user,
-            fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-            jobTitle: user.jobTitle || '',
-            address: user.address || {},
-            emergencyContact: user.emergencyContact || {},
-          });
+          throw new Error('No profile data received from server');
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -105,21 +98,10 @@ export default function MyAccount() {
     // Check for user authentication
     const token = localStorage.getItem('auth_token');
     if (!token) {
-      alert('Authentication token not found. Please login again.');
+      alert('Authentication required. Please login again.');
       logout();
       navigate('/login');
       return;
-    }
-
-    if (!user?._id) {
-      // Try to get user from local storage as backup
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (!storedUser?._id) {
-        alert('User session not found. Please login again.');
-        logout();
-        navigate('/login');
-        return;
-      }
     }
 
     // Validate file type and size
@@ -169,9 +151,10 @@ export default function MyAccount() {
 
   // Handle edit mode toggle
   const handleEditToggle = () => {
-    // Check if we have a valid user session
-    if (!user?._id) {
-      alert('Session expired. Please login again.');
+    // Check if we have a valid token
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      alert('Authentication required. Please login again.');
       logout();
       navigate('/login');
       return;
@@ -204,15 +187,7 @@ export default function MyAccount() {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        throw new Error('Authentication token not found. Please login again.');
-      }
-      
-      if (!user?._id) {
-        // Try to get user from local storage as backup
-        const storedUser = JSON.parse(localStorage.getItem('user'));
-        if (!storedUser?._id) {
-          throw new Error('User ID not found. Try logging in again');
-        }
+        throw new Error('Authentication required. Please login again.');
       }
       
       setLoading(true);
