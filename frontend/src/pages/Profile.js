@@ -26,8 +26,6 @@ export default function Profile() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [userProfile, setUserProfile] = useState({});
   const [error, setError] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({});
   const fileInputRef = useRef(null);
 
   // Fetch current user's profile data
@@ -108,70 +106,6 @@ export default function Profile() {
       month: '2-digit',
       year: 'numeric'
     });
-  };
-
-  // Handle edit mode toggle
-  const handleEditToggle = () => {
-    if (!isEditing) {
-      // Entering edit mode - populate form with current profile data
-      setEditForm({
-        firstName: userProfile.firstName || '',
-        lastName: userProfile.lastName || '',
-        email: userProfile.email || '',
-        mobile: userProfile.mobile || '',
-        bio: userProfile.bio || ''
-      });
-    }
-    setIsEditing(!isEditing);
-  };
-
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Handle save profile changes
-  const handleSaveProfile = async () => {
-    try {
-      setProfileLoading(true);
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await fetch('/api/admin/update-profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        body: JSON.stringify(editForm)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update profile');
-      }
-
-      const data = await response.json();
-      
-      // Update profile state with new data
-      setUserProfile(prev => ({
-        ...prev,
-        ...editForm
-      }));
-      
-      setIsEditing(false);
-      alert('Profile updated successfully!');
-      
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile: ' + error.message);
-    } finally {
-      setProfileLoading(false);
-    }
   };
 
   const tabs = [
@@ -255,101 +189,24 @@ export default function Profile() {
               {/* Basic Info */}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <div className="flex-1 mr-4">
-                    {isEditing ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                            <input
-                              type="text"
-                              name="firstName"
-                              value={editForm.firstName || ''}
-                              onChange={handleInputChange}
-                              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                            <input
-                              type="text"
-                              name="lastName"
-                              value={editForm.lastName || ''}
-                              onChange={handleInputChange}
-                              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                          <input
-                            type="email"
-                            name="email"
-                            value={editForm.email || ''}
-                            onChange={handleInputChange}
-                            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
-                          <input
-                            type="tel"
-                            name="mobile"
-                            value={editForm.mobile || ''}
-                            onChange={handleInputChange}
-                            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                          <textarea
-                            name="bio"
-                            value={editForm.bio || ''}
-                            onChange={handleInputChange}
-                            rows={3}
-                            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            placeholder="Tell us about yourself..."
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
-                          {userProfile?.firstName || user?.firstName || 'User'} {userProfile?.lastName || user?.lastName || ''}
-                        </h1>
-                        <p className="text-lg text-gray-600 mt-1">
-                          {Array.isArray(userProfile?.jobTitle) 
-                            ? userProfile.jobTitle.join(', ') 
-                            : (userProfile?.jobTitle || 'No job title specified')
-                          }
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {userProfile?.company || 'No company specified'} • {userProfile?.staffType || 'Admin'} Staff
-                        </p>
-                      </div>
-                    )}
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900">
+                      {userProfile?.firstName || user?.firstName || 'User'} {userProfile?.lastName || user?.lastName || ''}
+                    </h1>
+                    <p className="text-lg text-gray-600 mt-1">
+                      {Array.isArray(userProfile?.jobTitle) 
+                        ? userProfile.jobTitle.join(', ') 
+                        : (userProfile?.jobTitle || 'No job title specified')
+                      }
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {userProfile?.company || 'No company specified'} • {userProfile?.staffType || 'Staff'} Staff
+                    </p>
                   </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleEditToggle}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                      {isEditing ? 'Cancel' : 'Edit Profile'}
-                    </button>
-                    {isEditing && (
-                      <button 
-                        onClick={handleSaveProfile}
-                        disabled={profileLoading}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Save Changes
-                      </button>
-                    )}
-                  </div>
+                  <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+                    <PencilIcon className="h-4 w-4" />
+                    Edit Profile
+                  </button>
                 </div>
 
                 {/* Quick Stats */}
