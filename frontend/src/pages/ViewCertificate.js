@@ -6,21 +6,29 @@ import { useCertificates } from "../context/CertificateContext";
 export default function ViewCertificate() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { certificates, deleteCertificate, updateCertificateWithFile, uploadCertificateFile } = useCertificates();
+  const {
+    certificates,
+    deleteCertificate,
+    updateCertificateWithFile,
+    uploadCertificateFile,
+  } = useCertificates();
+
   const [certificate, setCertificate] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const cert = certificates.find(
-      (c) => (c.id || c._id) === id || (c.id || c._id) === parseInt(id)
+      (c) => (c.id && c.id.toString() === id) || (c._id && c._id.toString() === id) || c.id === parseInt(id)
     );
     if (cert) setCertificate(cert);
   }, [id, certificates]);
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-GB", {
+    const d = new Date(date);
+    if (isNaN(d)) return date; // If date is already a formatted string like "01/01/2024"
+    return d.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -28,14 +36,15 @@ export default function ViewCertificate() {
   };
 
   const handleDeleteCertificate = async () => {
+    if (!certificate) return;
     if (
       window.confirm(
-        `Are you sure you want to delete the certificate "${certificate.certificate}"? This action cannot be undone.`
+        `Are you sure you want to delete the certificate "${certificate.certificate || certificate.certificateName || ''}"? This action cannot be undone.`
       )
     ) {
       try {
         await deleteCertificate(certificate.id || certificate._id);
-        navigate("/certificates");
+        navigate("/reporting/certificates");
       } catch (error) {
         console.error("Failed to delete certificate:", error);
         alert("Failed to delete certificate. Please try again.");
@@ -77,8 +86,9 @@ export default function ViewCertificate() {
     }
     setUploading(true);
     try {
+      // uploadCertificateFile will create FormData and send it
       const updatedCertificate = await uploadCertificateFile(certificateId, selectedFile);
-      setCertificate(updatedCertificate);
+      if (updatedCertificate) setCertificate(updatedCertificate);
       setSelectedFile(null);
 
       // Reset file input
@@ -87,11 +97,7 @@ export default function ViewCertificate() {
 
       alert("Certificate file updated successfully!");
     } catch (error) {
-      // Enhanced error logging
-      console.error("Failed to upload certificate file:");
-      console.dir(error);
-
-      // Build user-friendly error message
+      console.error("Failed to upload certificate file:", error);
       let errorMessage = "Failed to upload certificate file. ";
       if (error.response && error.response.data && error.response.data.message) {
         errorMessage += error.response.data.message;
@@ -100,7 +106,6 @@ export default function ViewCertificate() {
       } else {
         errorMessage += "Please try again.";
       }
-
       alert(errorMessage);
     } finally {
       setUploading(false);
@@ -108,6 +113,7 @@ export default function ViewCertificate() {
   };
 
   const handleDeleteFile = async () => {
+    if (!certificate) return;
     if (
       window.confirm(
         "Are you sure you want to delete the certificate file? This action cannot be undone."
@@ -116,13 +122,14 @@ export default function ViewCertificate() {
       setUploading(true);
       try {
         const formData = new FormData();
-        formData.append("certificateFile", ""); // Empty to remove file
+        // Use same key as upload: 'certificateFile' with empty string to instruct backend to remove
+        formData.append("certificateFile", "");
 
         const updatedCertificate = await updateCertificateWithFile(
           certificate.id || certificate._id,
           formData
         );
-        setCertificate(updatedCertificate);
+        if (updatedCertificate) setCertificate(updatedCertificate);
         alert("Certificate file deleted successfully!");
       } catch (error) {
         console.error("Failed to delete certificate file:", error);
@@ -195,13 +202,15 @@ export default function ViewCertificate() {
         {/* Left Column - Certificate Details */}
         <div className="col-span-8">
           <div className="bg-white rounded-lg border p-6">
-            <h2 className="text-xl font-semibold mb-6 text-gray-800">{certificate.certificate}</h2>
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">
+              {certificate.certificate || certificate.certificateName}
+            </h2>
 
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Certificate:</span>
-                  <span className="font-medium">{certificate.certificate}</span>
+                  <span className="font-medium">{certificate.certificate || certificate.certificateName}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -228,12 +237,12 @@ export default function ViewCertificate() {
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Issue Date:</span>
-                  <span className="font-medium">{certificate.issueDate}</span>
+                  <span className="font-medium">{formatDate(certificate.issueDate)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Expiry Date:</span>
-                  <span className="font-medium">{certificate.expiryDate}</span>
+                  <span className="font-medium">{formatDate(certificate.expiryDate)}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -321,7 +330,7 @@ export default function ViewCertificate() {
                       certificate.certificate?.replace(/[^a-zA-Z0-9]/g, "_")}
                   </p>
                   <p className="text-xs text-gray-500 mb-4">
-                    Added: {formatDate(certificate.createdOn)} 14:37
+                    Added: {formatDate(certificate.createdOn)}
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
                     <a
