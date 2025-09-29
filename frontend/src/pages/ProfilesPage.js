@@ -68,41 +68,65 @@ export default function ProfilesPage() {
 
   // Handle profile deletion
   const handleDeleteProfile = useCallback(async (profileId, profileName) => {
-    // Check how many certificates are associated with this profile
-    const profile = profiles.find(p => p._id === profileId);
-    const certificateCount = await fetch(`${getApiUrl()}/api/profiles/${profileId}/stats`)
-      .then(res => res.json())
-      .then(data => data.certificates?.total || 0)
-      .catch(() => 0);
+    if (loading) return; // Prevent multiple deletion attempts
 
-    const confirmMessage = certificateCount > 0
-      ? `Are you sure you want to delete the profile for ${profileName}?
-
-This will also delete ${certificateCount} associated certificate(s). This action cannot be undone.`
-      : `Are you sure you want to delete the profile for ${profileName}? This action cannot be undone.`;
-
-    if (window.confirm(confirmMessage)) {
+    try {
       setLoading(true);
-      try {
-        const response = await deleteProfile(profileId);
-
-        // Show detailed success message
-        const certCount = response.details?.certificatesDeleted || certificateCount;
-        if (certCount > 0) {
-          alert(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
-        } else {
-          alert('Profile deleted successfully!');
-        }
-
-        console.log(`Profile ${profileName} deleted successfully`);
-      } catch (error) {
-        console.error('Error deleting profile:', error);
-        alert('Failed to delete profile. Please try again.');
-      } finally {
-        setLoading(false);
+      // Check how many certificates are associated with this profile
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Authentication token not found');
       }
+
+      const statsResponse = await fetch(`https://talentshield.co.uk/api/profiles/${profileId}/stats`, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+      });
+
+      if (!statsResponse.ok) {
+        throw new Error('Failed to fetch profile statistics');
+      }
+
+      const statsData = await statsResponse.json();
+      const certificateCount = statsData.certificates?.total || 0;
+
+      const confirmMessage = certificateCount > 0
+        ? `Are you sure you want to delete the profile for ${profileName}?\n\nThis will also delete ${certificateCount} associated certificate(s). This action cannot be undone.`
+        : `Are you sure you want to delete the profile for ${profileName}? This action cannot be undone.`;
+
+      if (window.confirm(confirmMessage)) {
+        try {
+          const response = await deleteProfile(profileId);
+
+          if (response && response.success) {
+            // Show detailed success message
+            const certCount = response.details?.certificatesDeleted || certificateCount;
+            if (certCount > 0) {
+              alert(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
+            } else {
+              alert('Profile deleted successfully!');
+            }
+
+            // Refresh the profiles list
+            await fetchProfiles(true);
+          } else {
+            throw new Error('Failed to delete profile: Unknown error occurred');
+          }
+        } catch (error) {
+          console.error('Error deleting profile:', error);
+          alert(error.message || 'Failed to delete profile. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error in delete operation:', error);
+      alert(error.message || 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }, [deleteProfile, profiles]);
+  }, [deleteProfile, fetchProfiles, loading]);
 
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {

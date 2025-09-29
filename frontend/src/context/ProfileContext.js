@@ -95,10 +95,16 @@ export const ProfileProvider = ({ children }) => {
   const deleteProfile = async (profileId) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${profileId}`, {
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+      
+      const response = await fetch(`https://talentshield.co.uk/api/profiles/${profileId}`, {
         method: 'DELETE',
         headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` })
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include'
       });
