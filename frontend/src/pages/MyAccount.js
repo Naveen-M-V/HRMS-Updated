@@ -99,27 +99,7 @@ export default function MyAccount() {
   // Handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-
-    // Check for user authentication
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      alert('Authentication token not found. Please login again.');
-      logout();
-      navigate('/login');
-      return;
-    }
-
-    if (!user?._id) {
-      // Try to get user from local storage as backup
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (!storedUser?._id) {
-        alert('User session not found. Please login again.');
-        logout();
-        navigate('/login');
-        return;
-      }
-    }
+    if (!file || !user?._id) return;
 
     // Validate file type and size
     const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
@@ -197,20 +177,12 @@ export default function MyAccount() {
   // Handle save profile changes
   const handleSaveProfile = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Authentication token not found. Please login again.');
-      }
-      
       if (!user?._id) {
-        // Try to get user from local storage as backup
-        const storedUser = JSON.parse(localStorage.getItem('user'));
-        if (!storedUser?._id) {
-          throw new Error('User ID not found. Try logging in again');
-        }
+        throw new Error('User ID not found. Try logging in again');
       }
       
       setLoading(true);
+      const token = localStorage.getItem('auth_token');
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
       
       const response = await fetch(`${apiUrl}/api/profiles/${user._id}`, {
