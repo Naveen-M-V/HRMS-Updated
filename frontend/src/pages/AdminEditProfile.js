@@ -1,11 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getImageUrl } from "../utils/config";
+<<<<<<< HEAD
+import { API_BASE_URL, getImageUrl } from "../utils/config";
 
 export default function AdminEditProfile() {
   const navigate = useNavigate();
   const { user } = useAuth();
+=======
+import { getImageUrl } from "../utils/config";
+
+export default function AdminEditProfile() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  
+>>>>>>> parent of 59050a20 (AdminCompletionBar, ComplianceDashboard, Sidebar, AdminDetailsModal, AdminEditprofile, MYAccount, ProfileCompleteness, server, notifications)
   const [profile, setProfile] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
