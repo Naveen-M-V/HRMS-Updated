@@ -78,35 +78,46 @@ export default function ViewCertificate() {
     try {
       const formData = new FormData();
       formData.append('certificateFile', selectedFile);
-      formData.append('certificateId', certificateId);
 
       console.log('Uploading file:', selectedFile.name);
       console.log('Certificate ID:', certificateId);
       console.log('File size:', (selectedFile.size / 1024 / 1024).toFixed(2) + 'MB');
 
-      const updatedCertificate = await updateCertificateWithFile(certificateId, formData);
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/certificates/${certificateId}/upload`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      const updatedCertificate = await response.json();
       setCertificate(updatedCertificate);
       setSelectedFile(null);
-      
+
       // Reset file input
       const fileInput = document.getElementById('certificateFileInput');
       if (fileInput) fileInput.value = '';
-      
+
       alert('Certificate file updated successfully!');
     } catch (error) {
       console.error('Failed to upload certificate file:', error);
-      
+
       let errorMessage = 'Failed to upload certificate file. ';
-      if (error.response?.status === 404) {
+      if (error.message.includes('404')) {
         errorMessage += 'Certificate not found. Please refresh the page and try again.';
-      } else if (error.response?.data?.message) {
-        errorMessage += error.response.data.message;
-      } else if (error.message) {
-        errorMessage += error.message;
+      } else if (error.message.includes('403') || error.message.includes('401')) {
+        errorMessage += 'Authentication failed. Please log in again.';
       } else {
-        errorMessage += 'Please try again.';
+        errorMessage += error.message || 'Please try again.';
       }
-      
+
       alert(errorMessage);
     } finally {
       setUploading(false);
@@ -321,7 +332,7 @@ export default function ViewCertificate() {
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
                     <a 
-                      href={`http://localhost:5000/api/certificates/${certificate.id || certificate._id}/file`}
+                      href={`${process.env.REACT_APP_API_BASE_URL}/api/certificates/${certificate.id || certificate._id}/file`}
                       download={`${certificate.certificate?.replace(/[^a-zA-Z0-9]/g, '_')}`}
                       target="_blank" 
                       rel="noopener noreferrer"

@@ -118,6 +118,7 @@ export default function AdminDetailsModal() {
       const ct = resp.headers.get('content-type') || '';
       const data = ct.includes('application/json') ? await resp.json() : {};
       if (!resp.ok) throw new Error(data.message || 'Failed to save');
+      alert('Admin details saved successfully!');
       navigate('/dashboard');
     } catch (e) {
       setError(e.message);

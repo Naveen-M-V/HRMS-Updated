@@ -74,18 +74,18 @@ export default function ProfilesPage() {
       .then(res => res.json())
       .then(data => data.certificates?.total || 0)
       .catch(() => 0);
-    
-    const confirmMessage = certificateCount > 0 
-      ? `Are you sure you want to delete the profile for ${profileName}? 
+
+    const confirmMessage = certificateCount > 0
+      ? `Are you sure you want to delete the profile for ${profileName}?
 
 This will also delete ${certificateCount} associated certificate(s). This action cannot be undone.`
       : `Are you sure you want to delete the profile for ${profileName}? This action cannot be undone.`;
-    
+
     if (window.confirm(confirmMessage)) {
       setLoading(true);
       try {
         const response = await deleteProfile(profileId);
-        
+
         // Show detailed success message
         const certCount = response.details?.certificatesDeleted || certificateCount;
         if (certCount > 0) {
@@ -93,7 +93,7 @@ This will also delete ${certificateCount} associated certificate(s). This action
         } else {
           alert('Profile deleted successfully!');
         }
-        
+
         console.log(`Profile ${profileName} deleted successfully`);
       } catch (error) {
         console.error('Error deleting profile:', error);

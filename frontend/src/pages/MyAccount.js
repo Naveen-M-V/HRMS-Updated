@@ -7,7 +7,7 @@ import { getImageUrl } from "../utils/config";
 export default function MyAccount() {
   const navigate = useNavigate();
   const { user, logout, loading: authLoading } = useAuth();
-  const { uploadProfilePicture } = useProfiles();
+  const { uploadProfilePicture, getProfileById } = useProfiles();
 
   const [profile, setProfile] = useState({});
   const [savingImage, setSavingImage] = useState(false);
@@ -108,23 +108,16 @@ export default function MyAccount() {
 
     try {
       setSavingImage(true);
-      
-      const formData = new FormData();
-      formData.append('profilePicture', file);
 
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await fetch(`${apiUrl}/api/profiles/${user._id}/picture`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
+      // Use the context's uploadProfilePicture function
+      await uploadProfilePicture(user._id, file);
 
-      if (!response.ok) {
-        throw new Error('Failed to upload profile picture');
+      // Refresh profile data to show the updated picture
+      const updatedProfile = getProfileById(user._id);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
       }
 
-      const data = await response.json();
-      setProfile(prev => ({ ...prev, profilePicture: data.profilePicture }));
       alert("Profile picture updated successfully!");
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
@@ -185,7 +178,7 @@ export default function MyAccount() {
                 return;
               }
               if (user._id) {
-                navigate(`/editprofile/${user._id}`);
+                navigate('/dashboard/admin-details');
               } else {
                 alert('Cannot edit profile: User ID not found. Please try logging in again.');
                 navigate('/login');
