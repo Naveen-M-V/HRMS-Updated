@@ -99,18 +99,7 @@ export default function AdminEditProfile() {
         });
       } catch (err) {
         console.error('Error fetching admin profile:', err);
-        
-        // Handle specific error cases
-        if (err.message.includes('Authentication required') || err.message.includes('401')) {
-          setError('Please login again to edit your profile.');
-          setTimeout(() => {
-            navigate('/login');
-          }, 2000);
-        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-          setError('Unable to connect to server. Please check your connection and try again.');
-        } else {
-          setError('Failed to load profile data: ' + err.message);
-        }
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -276,19 +265,8 @@ export default function AdminEditProfile() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6 flex items-center">
-          <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <strong>Error:</strong> {error}
-            <button 
-              onClick={() => setError(null)}
-              className="ml-4 text-red-600 hover:text-red-800 underline"
-            >
-              Dismiss
-            </button>
-          </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+          {error}
         </div>
       )}
 

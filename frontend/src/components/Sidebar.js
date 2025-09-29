@@ -34,8 +34,7 @@ export default function Sidebar({ isOpen }) {
           return;
         }
 
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-        const response = await fetch(`${apiUrl}/api/notifications/unread-count`, {
+        const response = await fetch('https://talentshield.co.uk/api/notifications/unread-count', {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${token}`,

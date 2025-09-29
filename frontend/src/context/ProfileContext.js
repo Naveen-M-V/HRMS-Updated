@@ -49,15 +49,16 @@ export const ProfileProvider = ({ children }) => {
         throw new Error('Authentication token not found');
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await fetch(`https://talentshield.co.uk${endpoint}`, {
         credentials: 'include',
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
+          'Cache-Control': 'no-cache',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -134,8 +135,7 @@ export const ProfileProvider = ({ children }) => {
         throw new Error('Authentication token not found');
       }
 
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await fetch(`${apiUrl}/api/profiles`, {
+      const response = await fetch('https://talentshield.co.uk/api/profiles', {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
