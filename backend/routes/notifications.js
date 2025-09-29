@@ -36,8 +36,9 @@ let notifications = [
 router.get('/unread-count', (req, res) => {
   try {
     // Check if user is authenticated (from JWT middleware)
-    if (!req.user || !req.user._id) {
-      console.error("User not authenticated. User:", req.user);
+    const userIdentifier = req.user?._id || req.user?.userId;
+    if (!req.user || !userIdentifier) {
+      console.error("User not authenticated or missing identifier. User:", req.user);
       return res.status(401).json({ error: 'Authentication required' });
     }
 
@@ -48,7 +49,7 @@ router.get('/unread-count', (req, res) => {
     }
 
     // Filter unread notifications for the authenticated user
-    const userId = req.user._id.toString();
+    const userId = String(userIdentifier);
     const unreadCount = notifications.filter(n => 
       !n.isRead && (n.userId === 'all' || n.userId === userId)
     ).length;
