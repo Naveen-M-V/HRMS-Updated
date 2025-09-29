@@ -15,7 +15,6 @@ const Clients = lazy(() => import("./pages/Clients"));
 const ProfilesPage = lazy(() => import("./pages/ProfilesPage"));
 const CertificatesPage = lazy(() => import("./pages/CertificatePage"));
 const MyAccount = lazy(() => import("./pages/MyAccount"));
-const AdminEditProfile = lazy(() => import("./pages/AdminEditProfile"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const ProfilesCreate = lazy(() => import("./pages/ProfilesCreate"));
 const CreateCertificate = lazy(() => import("./pages/CreateCertificate"));
@@ -186,8 +185,6 @@ function App() {
                               <Route path="/" element={<Dashboard />} />
                               <Route path="/dashboard" element={<Dashboard />} />
                               <Route path="/myaccount/profiles" element={<MyAccount />} />
-                              <Route path="/my-account" element={<MyAccount />} />
-                              <Route path="/admin/edit-profile" element={<AdminEditProfile />} />
                               <Route path="/myaccount/notifications" element={<Notifications />} />
                               <Route path="/clients" element={<Clients />} />
                               <Route path="/profiles" element={<ProfilesPage />} />
