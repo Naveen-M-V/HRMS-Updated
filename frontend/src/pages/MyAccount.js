@@ -35,7 +35,8 @@ export default function MyAccount() {
         if (!token) {
           throw new Error('Authentication required');
         }
-        const response = await fetch('https://talentshield.co.uk/api/my-profile', {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+        const response = await fetch(`${apiUrl}/api/my-profile`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -140,8 +141,12 @@ export default function MyAccount() {
       formData.append('profilePicture', file);
 
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const response = await fetch(`${apiUrl}/api/profiles/${user._id}/picture`, {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${apiUrl}/api/admin/upload-picture`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         credentials: 'include',
         body: formData
       });
@@ -213,7 +218,7 @@ export default function MyAccount() {
       setLoading(true);
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
       
-      const response = await fetch(`${apiUrl}/api/profiles/${user._id}`, {
+      const response = await fetch(`${apiUrl}/api/admin/update-profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -221,10 +226,7 @@ export default function MyAccount() {
           'Accept': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({
-          ...editForm,
-          userId: user._id
-        })
+        body: JSON.stringify(editForm)
       });
 
       if (!response.ok) {
