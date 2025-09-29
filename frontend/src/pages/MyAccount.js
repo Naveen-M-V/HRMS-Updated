@@ -20,9 +20,20 @@ export default function MyAccount() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       const token = localStorage.getItem('auth_token');
-      if (!token) {
+      if (!token || !user) {
         setLoading(false);
         setError('Authentication required. Please login again.');
+        setTimeout(() => {
+          logout();
+          navigate('/login');
+        }, 2000);
+        return;
+      }
+
+      // For admin users, validate we have necessary user data
+      if (user.role === 'admin' && !user.email) {
+        setLoading(false);
+        setError('User session invalid. Please login again.');
         setTimeout(() => {
           logout();
           navigate('/login');
@@ -32,10 +43,6 @@ export default function MyAccount() {
       
       try {
         setLoading(true);
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          throw new Error('Authentication required');
-        }
         const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
         const response = await fetch(`${apiUrl}/api/my-profile`, {
           credentials: 'include',
@@ -75,20 +82,26 @@ export default function MyAccount() {
       } catch (err) {
         console.error('Error fetching profile:', err);
         setError(err.message);
-        // Set profile with user data even if fetch fails
-        setProfile({
-          ...user,
-          fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-        });
+        
+        // For admin users, fallback to user data from auth context
+        if (user && user.role === 'admin') {
+          setProfile({
+            ...user,
+            fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            jobTitle: user.jobTitle || 'Administrator',
+            address: user.address || {},
+            emergencyContact: user.emergencyContact || {},
+          });
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
+    if (user && user.email) {
       fetchUserProfile();
     }
-  }, [user]);
+  }, [user, logout, navigate]);
 
   // Handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
@@ -97,8 +110,16 @@ export default function MyAccount() {
 
     // Check for user authentication
     const token = localStorage.getItem('auth_token');
-    if (!token) {
+    if (!token || !user) {
       alert('Authentication required. Please login again.');
+      logout();
+      navigate('/login');
+      return;
+    }
+
+    // Validate that we have the required user data for admin
+    if (user.role === 'admin' && !user.email) {
+      alert('User session invalid. Please login again.');
       logout();
       navigate('/login');
       return;
@@ -123,7 +144,6 @@ export default function MyAccount() {
       formData.append('profilePicture', file);
 
       const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${apiUrl}/api/admin/upload-picture`, {
         method: 'POST',
         headers: {
@@ -134,7 +154,8 @@ export default function MyAccount() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload profile picture');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upload profile picture');
       }
 
       const data = await response.json();
@@ -142,7 +163,14 @@ export default function MyAccount() {
       alert("Profile picture updated successfully!");
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
-      alert("Failed to upload profile picture. Please try again.");
+      
+      // Handle specific error cases
+      if (err.message.includes('Authentication required') || err.message.includes('User session invalid')) {
+        logout();
+        navigate('/login');
+      } else {
+        alert("Failed to upload profile picture: " + err.message);
+      }
     } finally {
       setSavingImage(false);
       e.target.value = "";
@@ -151,10 +179,18 @@ export default function MyAccount() {
 
   // Handle edit mode toggle
   const handleEditToggle = () => {
-    // Check if we have a valid token
+    // Check if we have a valid token and user
     const token = localStorage.getItem('auth_token');
-    if (!token) {
+    if (!token || !user) {
       alert('Authentication required. Please login again.');
+      logout();
+      navigate('/login');
+      return;
+    }
+
+    // For admin users, ensure we have the necessary user data
+    if (user.role === 'admin' && !user.email) {
+      alert('User session invalid. Please login again.');
       logout();
       navigate('/login');
       return;
@@ -163,11 +199,11 @@ export default function MyAccount() {
     if (!isEditing) {
       // Entering edit mode - populate form with current profile data
       setEditForm({
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        email: profile.email || '',
-        mobile: profile.mobile || '',
-        bio: profile.bio || ''
+        firstName: profile.firstName || user.firstName || '',
+        lastName: profile.lastName || user.lastName || '',
+        email: profile.email || user.email || '',
+        mobile: profile.mobile || user.mobile || '',
+        bio: profile.bio || user.bio || ''
       });
     }
     setIsEditing(!isEditing);
@@ -186,8 +222,18 @@ export default function MyAccount() {
   const handleSaveProfile = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      if (!token) {
+      if (!token || !user) {
         throw new Error('Authentication required. Please login again.');
+      }
+
+      // Validate that we have the required user data for admin
+      if (user.role === 'admin' && !user.email) {
+        throw new Error('User session invalid. Please login again.');
+      }
+
+      // Validate form data
+      if (!editForm.firstName || !editForm.lastName || !editForm.email) {
+        throw new Error('First name, last name, and email are required.');
       }
       
       setLoading(true);
@@ -214,7 +260,8 @@ export default function MyAccount() {
       // Update profile state with new data
       setProfile(prev => ({
         ...prev,
-        ...editForm
+        ...editForm,
+        fullName: `${editForm.firstName} ${editForm.lastName}`.trim()
       }));
       
       setIsEditing(false);
@@ -222,7 +269,14 @@ export default function MyAccount() {
       
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile: ' + error.message);
+      
+      // Handle specific error cases
+      if (error.message.includes('Authentication required') || error.message.includes('User session invalid')) {
+        logout();
+        navigate('/login');
+      } else {
+        alert('Failed to update profile: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
