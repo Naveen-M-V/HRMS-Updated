@@ -10,7 +10,8 @@ const SearchableDropdown = ({
   className = "",
   name,
   required = false,
-  disabled = false
+  disabled = false,
+  isMultiSelect = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,11 +20,11 @@ const SearchableDropdown = ({
   const inputRef = useRef(null);
 
   useEffect(() => {
-    // Initialize search term with current value
-    if (value && typeof value === 'string') {
+    // Initialize search term with current value for single select
+    if (!isMultiSelect && value && typeof value === 'string') {
       setSearchTerm(value);
     }
-  }, [value]);
+  }, [value, isMultiSelect]);
 
   useEffect(() => {
     // Filter options based on search term
@@ -73,8 +74,12 @@ const SearchableDropdown = ({
   };
 
   const handleOptionSelect = (option) => {
-    setSearchTerm(option.name);
-    setIsOpen(false);
+    if (!isMultiSelect) {
+      setSearchTerm(option.name);
+      setIsOpen(false);
+    } else {
+      setSearchTerm(''); // Clear search term for multi-select
+    }
     
     if (onChange) {
       onChange({

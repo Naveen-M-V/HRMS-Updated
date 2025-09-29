@@ -482,8 +482,17 @@ export default function EditProfile() {
                 <label className="block text-sm text-gray-600 mb-2">Job Roles</label>
                 <SearchableDropdown
                   name="jobRole"
-                  value=""
-                  onChange={() => {}} // Not used for multi-select
+                  value={formData.jobTitle}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (!formData.jobTitle.includes(value)) {
+                      // Add new job title
+                      setFormData(prev => ({
+                        ...prev,
+                        jobTitle: [...prev.jobTitle, value]
+                      }));
+                    }
+                  }}
                   options={jobRoles}
                   placeholder="Type to search job roles or add new..."
                   onSearch={handleJobRoleSearch}

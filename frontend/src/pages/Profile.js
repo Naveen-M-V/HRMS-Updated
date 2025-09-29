@@ -68,9 +68,8 @@ export default function Profile() {
 
   // Generate consistent VTID
   const generateVTID = useCallback((profile) => {
-    if (profile.skillkoId) return profile.skillkoId;
     if (profile.vtid) return profile.vtid;
-    if (profile.vtrxId) return profile.vtrxId;
+    
     
     // Generate consistent ID based on profile data
     const firstName = profile.firstName || '';
