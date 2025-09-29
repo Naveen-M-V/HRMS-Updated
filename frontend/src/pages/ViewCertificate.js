@@ -321,10 +321,8 @@ export default function ViewCertificate() {
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
                     <a 
-                      href={certificate.certificateFile?.startsWith('/uploads/') 
-                        ? `https://talentshield.co.uk${certificate.certificateFile}`
-                        : `https://talentshield.co.uk/api/certificates/${certificate.id || certificate._id}/file`
-                      }
+                      href={`http://localhost:5000/api/certificates/${certificate.id || certificate._id}/file`}
+                      download={`${certificate.certificate?.replace(/[^a-zA-Z0-9]/g, '_')}`}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"

@@ -170,7 +170,7 @@ const handleDeleteCertificate = async (certId) => {
               Add Certificate
             </button>
             <button
-              onClick={() => navigate(`/dashboard/EditUserProfile/${profile._id || profile.id}`)}
+              onClick={() => navigate("/dashboard/EditUserProfile")}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
               <PencilIcon className="h-5 w-5" />
@@ -508,13 +508,22 @@ const handleDeleteCertificate = async (certId) => {
                             <td className="p-2 border flex items-center gap-2">
                               {cert.certificateFile ? (
                                 <a
-                                  href={cert.certificateFile?.startsWith('/uploads/') 
-                                    ? `https://talentshield.co.uk${cert.certificateFile}`
-                                    : `${process.env.REACT_APP_API_BASE_URL}/certificates/${cert.id || cert._id}/file`
-                                  }
+                                  href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${
+                                    cert.id || cert._id
+                                  }/file`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800"
+                                  className="inline-flex items-center px-2 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
+                                  onClick={() =>
+                                    console.log(
+                                      "🔗 Opening certificate:",
+                                      cert.certificate,
+                                      "File URL:",
+                                      `${process.env.REACT_APP_API_BASE_URL}/certificates/${
+                                        cert.id || cert._id
+                                      }/file`
+                                    )
+                                  }
                                   title="View Certificate"
                                 >
                                   <EyeIcon className="h-4 w-4" />

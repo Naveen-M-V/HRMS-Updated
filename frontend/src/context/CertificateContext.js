@@ -81,8 +81,8 @@ export const CertificateProvider = ({ children }) => {
     try {
       const formData = new FormData();
       formData.append('certificateFile', file);
-      const response = await axios.put(
-        `${API_BASE_URL}/api/certificates/${certificateId}/upload`,
+      const response = await axios.post(
+        `${API_BASE_URL}/certificates/${certificateId}/file`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
