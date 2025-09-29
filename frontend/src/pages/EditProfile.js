@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
@@ -9,54 +8,17 @@ import SearchableDropdown from "../components/SearchableDropdown";
 
 export default function EditProfile() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { userProfile, updateUserProfile } = useProfiles();
-  const [adminProfile, setAdminProfile] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   
   // State for job roles and job levels
   const [jobRoles, setJobRoles] = useState([]);
   const [jobLevels, setJobLevels] = useState([]);
 
-  // Fetch admin profile data
-  const fetchAdminProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch('/api/my-profile', {
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch profile: ${response.status}`);
-      }
-      
-      const profileData = await response.json();
-      console.log('Admin profile loaded:', profileData);
-      setAdminProfile(profileData);
-      
-    } catch (error) {
-      console.error('Error fetching admin profile:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load job roles, job levels, and profile data on component mount
+  // Load job roles and job levels on component mount
   useEffect(() => {
     fetchJobRoles();
     fetchJobLevels();
-    
-    // For admin users, fetch admin profile data
-    if (user?.role === 'admin') {
-      fetchAdminProfile();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+  }, []);
 
   const getApiUrl = () => {
     // In development, use localhost URL
@@ -188,81 +150,76 @@ export default function EditProfile() {
     }
   };
 
-  // Determine which profile to use based on user role
-  const currentProfile = user?.role === 'admin' ? adminProfile : userProfile;
-
   const [formData, setFormData] = useState({
-    username: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    dob: '',
-    gender: '',
-    company: '',
-    jobTitle: [],
-    staffType: '',
-    mobile: '',
-    nationality: '',
-    poc: '',
-    circetUIN: '',
-    circetSCID: '',
-    morrisonsIDNumber: '',
-    morrisonsUIN: '',
-    nopsID: '',
-    status: '',
-    otherInfo: '',
-    bio: '',
-    language: 'English',
+    username: userProfile.email,
+    firstName: userProfile.firstName,
+    lastName: userProfile.lastName,
+    email: userProfile.email,
+    dob: userProfile.dateOfBirth,
+    gender: userProfile.gender,
+    company: userProfile.company,
+    jobTitle: Array.isArray(userProfile.jobTitle) ? userProfile.jobTitle : (userProfile.jobTitle ? [userProfile.jobTitle] : []),
+    staffType: userProfile.staffType,
+    mobile: userProfile.mobile,
+    nationality: userProfile.nationality,
+    poc: userProfile.poc,
+    circetUIN: userProfile.circetUIN,
+    circetSCID: userProfile.circetSCID,
+    morrisonsIDNumber: userProfile.morrisonsIDNumber,
+    morrisonsUIN: userProfile.morrisonsUIN,
+    nopsID: userProfile.nopsID,
+    status: userProfile.status,
+    otherInfo: userProfile.otherInformation,
+    bio: userProfile.bio,
+    language: userProfile.language,
     // Address fields
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    postCode: '',
-    country: 'Poland',
+    addressLine1: userProfile.address?.line1 || '',
+    addressLine2: userProfile.address?.line2 || '',
+    city: userProfile.address?.city || '',
+    postCode: userProfile.address?.postCode || '',
+    country: userProfile.address?.country || 'Poland',
     // Emergency contact
-    emergencyName: '',
-    emergencyRelationship: '',
-    emergencyPhone: '',
+    emergencyName: userProfile.emergencyContact?.name || '',
+    emergencyRelationship: userProfile.emergencyContact?.relationship || '',
+    emergencyPhone: userProfile.emergencyContact?.phone || '',
   });
 
-  // Update form data when profile changes
+  // Update form data when userProfile changes (especially email)
   useEffect(() => {
-    if (currentProfile && Object.keys(currentProfile).length > 0) {
-      setFormData({
-        username: currentProfile.email || '',
-        firstName: currentProfile.firstName || '',
-        lastName: currentProfile.lastName || '',
-        email: currentProfile.email || '',
-        dob: currentProfile.dateOfBirth || '',
-        gender: currentProfile.gender || '',
-        company: currentProfile.company || '',
-        jobTitle: Array.isArray(currentProfile.jobTitle) ? currentProfile.jobTitle : (currentProfile.jobTitle ? [currentProfile.jobTitle] : []),
-        staffType: currentProfile.staffType || (user?.role === 'admin' ? 'Admin' : 'Staff'),
-        mobile: currentProfile.mobile || '',
-        nationality: currentProfile.nationality || '',
-        poc: currentProfile.poc || '',
-        circetUIN: currentProfile.circetUIN || '',
-        circetSCID: currentProfile.circetSCID || '',
-        morrisonsIDNumber: currentProfile.morrisonsIDNumber || '',
-        morrisonsUIN: currentProfile.morrisonsUIN || '',
-        nopsID: currentProfile.nopsID || '',
-        status: currentProfile.status || '',
-        otherInfo: currentProfile.otherInformation || '',
-        bio: currentProfile.bio || '',
-        language: currentProfile.language || 'English',
-        // Address fields
-        addressLine1: currentProfile.address?.line1 || '',
-        addressLine2: currentProfile.address?.line2 || '',
-        city: currentProfile.address?.city || '',
-        postCode: currentProfile.address?.postCode || '',
-        country: currentProfile.address?.country || 'Poland',
-        // Emergency contact
-        emergencyName: currentProfile.emergencyContact?.name || '',
-        emergencyRelationship: currentProfile.emergencyContact?.relationship || '',
-        emergencyPhone: currentProfile.emergencyContact?.phone || '',
-      });
-    }
-  }, [currentProfile, user]);
+    setFormData({
+      username: userProfile.email,
+      firstName: userProfile.firstName,
+      lastName: userProfile.lastName,
+      email: userProfile.email,
+      dob: userProfile.dateOfBirth,
+      gender: userProfile.gender,
+      company: userProfile.company,
+      jobTitle: Array.isArray(userProfile.jobTitle) ? userProfile.jobTitle : (userProfile.jobTitle ? [userProfile.jobTitle] : []),
+      staffType: userProfile.staffType,
+      mobile: userProfile.mobile,
+      nationality: userProfile.nationality,
+      poc: userProfile.poc,
+      circetUIN: userProfile.circetUIN,
+      circetSCID: userProfile.circetSCID,
+      morrisonsIDNumber: userProfile.morrisonsIDNumber,
+      morrisonsUIN: userProfile.morrisonsUIN,
+      nopsID: userProfile.nopsID,
+      status: userProfile.status,
+      otherInfo: userProfile.otherInformation,
+      bio: userProfile.bio,
+      language: userProfile.language,
+      // Address fields
+      addressLine1: userProfile.address?.line1 || '',
+      addressLine2: userProfile.address?.line2 || '',
+      city: userProfile.address?.city || '',
+      postCode: userProfile.address?.postCode || '',
+      country: userProfile.address?.country || 'Poland',
+      // Emergency contact
+      emergencyName: userProfile.emergencyContact?.name || '',
+      emergencyRelationship: userProfile.emergencyContact?.relationship || '',
+      emergencyPhone: userProfile.emergencyContact?.phone || '',
+    });
+  }, [userProfile]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -294,76 +251,39 @@ export default function EditProfile() {
     e.preventDefault();
     
     try {
-      // For admin users, use the admin-specific API endpoint
-      if (user?.role === 'admin') {
-        const adminUpdateData = {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          mobile: formData.mobile,
-          bio: formData.bio
-        };
-        
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/api/admin/update-profile', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          credentials: 'include',
-          body: JSON.stringify(adminUpdateData)
-        });
+      // Transform form data to match API expectations
+      const profileData = {
+        ...formData,
+        // Handle job roles/titles properly
+        jobRole: formData.jobTitle,
+        // Convert date strings to proper format
+        dateOfBirth: formData.dob ? new Date(formData.dob).toISOString() : null,
+        // Ensure nested objects are properly structured
+        address: {
+          line1: formData.addressLine1,
+          line2: formData.addressLine2,
+          city: formData.city,
+          postCode: formData.postCode,
+          country: formData.country
+        },
+        emergencyContact: {
+          name: formData.emergencyName,
+          relationship: formData.emergencyRelationship,
+          phone: formData.emergencyPhone
+        },
+        // Ensure other fields are properly named
+        otherInformation: formData.otherInfo
+      };
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to update admin profile');
-        }
-
-        const data = await response.json();
-        
-        // Update the admin profile state
-        setAdminProfile(prev => ({
-          ...prev,
-          ...adminUpdateData
-        }));
-        
-        alert("Admin profile updated successfully!");
-        navigate("/myaccount/profiles");
-        
+      const result = await updateUserProfile(profileData);
+      
+      if (result.success) {
+        // Show success message
+        alert("Profile updated successfully!");
+        // Navigate back to MyAccount page
+        navigate("/myaccount");
       } else {
-        // For regular users, use the existing profile update logic
-        const profileData = {
-          ...formData,
-          // Handle job roles/titles properly
-          jobRole: formData.jobTitle,
-          // Convert date strings to proper format
-          dateOfBirth: formData.dob ? new Date(formData.dob).toISOString() : null,
-          // Ensure nested objects are properly structured
-          address: {
-            line1: formData.addressLine1,
-            line2: formData.addressLine2,
-            city: formData.city,
-            postCode: formData.postCode,
-            country: formData.country
-          },
-          emergencyContact: {
-            name: formData.emergencyName,
-            relationship: formData.emergencyRelationship,
-            phone: formData.emergencyPhone
-          },
-          // Ensure other fields are properly named
-          otherInformation: formData.otherInfo
-        };
-
-        const result = await updateUserProfile(profileData);
-        
-        if (result.success) {
-          alert("Profile updated successfully!");
-          navigate("/myaccount");
-        } else {
-          alert(result.error || "Failed to save profile changes. Please try again.");
-        }
+        alert(result.error || "Failed to save profile changes. Please try again.");
       }
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -376,52 +296,10 @@ export default function EditProfile() {
     navigate("/myaccount/profiles");
   };
 
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="p-8 bg-gray-50 min-h-screen">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your profile...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="p-8 bg-gray-50 min-h-screen">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-          <h3 className="text-red-800 font-medium mb-2">Error Loading Profile</h3>
-          <p className="text-red-600 mb-4">{error}</p>
-          <div className="space-x-2">
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-            >
-              Retry
-            </button>
-            <button 
-              onClick={() => navigate('/myaccount/profiles')}
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-            >
-              Back to Profile
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       {/* Header */}
-      <h1 className="text-2xl font-semibold mb-2">
-        {user?.role === 'admin' ? 'Edit Admin Profile' : 'My Profile'}
-      </h1>
+      <h1 className="text-2xl font-semibold mb-2">My Profile</h1>
       <p className="text-sm text-gray-500 mb-6">
         <Link to="/" className="hover:underline hover:text-green-600">
             Home
@@ -436,9 +314,7 @@ export default function EditProfile() {
         </p>
       {/* Card */}
       <div className="bg-white rounded border shadow p-6">
-        <h2 className="text-lg font-medium mb-6">
-          {user?.role === 'admin' ? 'Edit Admin Profile' : 'Edit My Profile'}
-        </h2>
+        <h2 className="text-lg font-medium mb-6">Edit My Profile</h2>
 
         <form onSubmit={handleSave} className="space-y-6">
           {/* Personal Information Section */}
