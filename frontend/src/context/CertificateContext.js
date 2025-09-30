@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 
 const CertificateContext = createContext();
@@ -17,65 +10,79 @@ export const useCertificates = () => {
   return context;
 };
 
-const parseExpiryDate = (expiryDateStr) => {
-  if (!expiryDateStr) return null;
-  const [day, month, year] = expiryDateStr.split("/");
-  return new Date(year, month - 1, day);
-};
-
 export const CertificateProvider = ({ children }) => {
   const [certificates, setCertificates] = useState([]);
   const [loadingCount, setLoadingCount] = useState(0);
-  const loading = loadingCount > 0;
   const [error, setError] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [filters, setFilters] = useState({
+    category: "",
+    status: "",
+    provider: "",
+    search: "",
+  });
+
+  const loading = loadingCount > 0;
 
   const incrementLoading = () => setLoadingCount((count) => count + 1);
   const decrementLoading = () => setLoadingCount((count) => Math.max(count - 1, 0));
 
-  const fetchCertificates = useCallback(async (page = 1, limit = 50) => {
+  // Enhanced fetchCertificates with pagination and filtering
+  const fetchCertificates = useCallback(async (page = 1, limit = 20, append = false) => {
     incrementLoading();
     try {
       const response = await axios.get(`${API_BASE_URL}/certificates`, {
         params: {
           page,
-          limit
+          limit,
+          ...filters,
         },
-        headers: { 
-          "Cache-Control": "max-age=300",
-          "If-None-Match": localStorage.getItem('certificatesEtag')
-        },
+        withCredentials: true,
       });
       
-      // Update cache if data has changed
-      if (response.headers.etag) {
-        localStorage.setItem('certificatesEtag', response.headers.etag);
-        localStorage.setItem('certificatesCache', JSON.stringify(response.data));
-      }
-
-      if (!Array.isArray(response.data)) {
+      const { data, total, hasMore } = response.data;
+      
+      if (!Array.isArray(data)) {
         setCertificates([]);
         setError("Invalid data format received from API");
         return;
       }
-      setCertificates(response.data);
+
+      setCertificates(prev => append ? [...prev, ...data] : data);
+      setTotalCount(total);
+      setHasMore(hasMore);
+      setCurrentPage(page);
       setError(null);
     } catch (error) {
-      if (error.response?.status === 304) {
-        // Use cached data if available
-        const cachedData = localStorage.getItem('certificatesCache');
-        if (cachedData) {
-          setCertificates(JSON.parse(cachedData));
-          setError(null);
-          return;
-        }
-      }
       setError("Failed to fetch certificates");
-      setCertificates([]);
+      if (!append) {
+        setCertificates([]);
+      }
+      console.error("Error fetching certificates:", error);
     } finally {
       decrementLoading();
     }
+  }, [filters]);
+
+  // Load more certificates for infinite scrolling
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loading) return;
+    await fetchCertificates(currentPage + 1, 20, true);
+  }, [currentPage, hasMore, loading, fetchCertificates]);
+
+  // Update filters and reset pagination
+  const updateFilters = useCallback((newFilters) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters
+    }));
+    setCurrentPage(1);
+    setHasMore(true);
   }, []);
 
+  // Add new certificate with proper error handling
   const addCertificate = useCallback(async (newCertificate) => {
     incrementLoading();
     try {
@@ -89,163 +96,155 @@ export const CertificateProvider = ({ children }) => {
           formData.append(key, val);
         }
       });
-      const response = await axios.post(`${API_BASE_URL}/certificates`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setCertificates((prev) => [response.data, ...prev]);
+      
+      const response = await axios.post(
+        `${API_BASE_URL}/certificates`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          withCredentials: true,
+        }
+      );
+
+      setCertificates(prev => [response.data, ...prev]);
       setError(null);
       return response.data;
     } catch (err) {
-      setError("Failed to add certificate");
-      console.error(err);
-      throw err;
+      const errorMessage = err.response?.data?.message || "Failed to add certificate";
+      setError(errorMessage);
+      throw new Error(errorMessage);
     } finally {
       decrementLoading();
     }
   }, []);
 
-  // Updated uploadCertificateFile to use PUT and matching URL
-  const uploadCertificateFile = useCallback(async (certificateId, file) => {
+  // Updated uploadCertificateFile to handle retries
+  const uploadCertificateFile = useCallback(async (certificateId, file, retries = 3) => {
     if (!certificateId || !file) throw new Error("certificateId and file are required");
     incrementLoading();
-    try {
-      const formData = new FormData();
-      formData.append("certificateFile", file);
-      const response = await axios.put(
-        `${API_BASE_URL}/certificates/${certificateId}/upload`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+    
+    const attemptUpload = async (attempt) => {
+      try {
+        const formData = new FormData();
+        formData.append("certificateFile", file);
+        
+        const response = await axios.put(
+          `${API_BASE_URL}/certificates/${certificateId}/upload`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+            withCredentials: true,
+            timeout: 30000, // 30 second timeout
+          }
+        );
 
-      if (response && response.data) {
-        setCertificates((prev) =>
-          prev.map((c) => (c._id === certificateId || c.id === certificateId ? response.data : c))
+        setCertificates(prev =>
+          prev.map(c => c._id === certificateId ? response.data : c)
         );
-      } else {
-        setCertificates((prev) =>
-          prev.map((c) =>
-            c._id === certificateId || c.id === certificateId ? { ...c, certificateFile: true } : c
-          )
-        );
+        
+        setError(null);
+        return response.data;
+      } catch (err) {
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          return attemptUpload(attempt + 1);
+        }
+        throw err;
       }
-      setError(null);
-      return response?.data;
+    };
+
+    try {
+      return await attemptUpload(1);
     } catch (err) {
       setError("Failed to upload certificate file");
-      console.error(err);
       throw err;
     } finally {
       decrementLoading();
     }
   }, []);
 
-  // Delete a certificate
+  // Delete certificate with optimistic update
   const deleteCertificate = useCallback(async (certificateId) => {
     if (!certificateId) throw new Error("certificateId is required");
-    incrementLoading();
+    
+    // Optimistically remove from UI
+    const previousCertificates = certificates;
+    setCertificates(prev => prev.filter(c => c._id !== certificateId));
+
     try {
-      await axios.delete(`${API_BASE_URL}/certificates/${certificateId}`);
-      setCertificates((prev) =>
-        prev.filter((c) => c._id !== certificateId && c.id !== certificateId)
-      );
+      await axios.delete(`${API_BASE_URL}/certificates/${certificateId}`, {
+        withCredentials: true
+      });
       setError(null);
     } catch (err) {
+      // Revert on failure
+      setCertificates(previousCertificates);
       setError("Failed to delete certificate");
-      console.error(err);
       throw err;
-    } finally {
-      decrementLoading();
     }
-  }, []);
-
-  // Other helper functions...
-
-  const getActiveCertificatesCount = useCallback(() => {
-    if (!Array.isArray(certificates)) {
-      console.error("Expected an array of certificates but got:", certificates);
-      return 0;
-    }
-    return certificates.filter(
-      (cert) => cert.active === "Yes" || cert.status === "Active"
-    ).length;
   }, [certificates]);
 
-  const getExpiringCertificates = useCallback(
-    (days = 30) => {
-      if (!Array.isArray(certificates)) return [];
-      const today = new Date();
-      const futureDate = new Date();
-      futureDate.setDate(today.getDate() + days);
-      return certificates.filter((cert) => {
-        const expiryDate = parseExpiryDate(cert.expiryDate);
-        return expiryDate && expiryDate >= today && expiryDate <= futureDate;
-      });
-    },
-    [certificates]
-  );
+  // Statistics and helper functions
+  const statistics = useMemo(() => {
+    const stats = {
+      total: certificates.length,
+      active: 0,
+      expired: 0,
+      expiringSoon: 0,
+      byCategory: {},
+      byProvider: {}
+    };
 
-  const getExpiredCertificates = useCallback(() => {
-    if (!Array.isArray(certificates)) return [];
-    const today = new Date();
-    return certificates.filter((cert) => {
-      const expiryDate = parseExpiryDate(cert.expiryDate);
-      return expiryDate && expiryDate < today;
+    certificates.forEach(cert => {
+      // Count by status
+      if (cert.status === 'active') stats.active++;
+      if (cert.status === 'expired') stats.expired++;
+      
+      // Count by category
+      if (cert.category) {
+        stats.byCategory[cert.category] = (stats.byCategory[cert.category] || 0) + 1;
+      }
+      
+      // Count by provider
+      if (cert.provider) {
+        stats.byProvider[cert.provider] = (stats.byProvider[cert.provider] || 0) + 1;
+      }
+
+      // Check for expiring soon
+      const expiryDate = cert.expiryDate ? new Date(cert.expiryDate) : null;
+      if (expiryDate) {
+        const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+        if (daysUntilExpiry > 0 && daysUntilExpiry <= 30) {
+          stats.expiringSoon++;
+        }
+      }
     });
+
+    return stats;
   }, [certificates]);
 
-  const getCertificatesByCategory = useCallback(() => {
-    const counts = {};
-    for (const cert of certificates) {
-      const category = cert.category || "Other";
-      counts[category] = (counts[category] || 0) + 1;
-    }
-    return counts;
-  }, [certificates]);
+  const contextValue = {
+    certificates,
+    loading,
+    error,
+    totalCount,
+    hasMore,
+    currentPage,
+    filters,
+    statistics,
+    fetchCertificates,
+    loadMore,
+    updateFilters,
+    addCertificate,
+    uploadCertificateFile,
+    deleteCertificate,
+  };
 
-  const getCertificatesByJobRole = useCallback(() => {
-    const counts = {};
-    for (const cert of certificates) {
-      const jobRole = cert.jobRole || "Unspecified";
-      counts[jobRole] = (counts[jobRole] || 0) + 1;
-    }
-    return counts;
-  }, [certificates]);
-
-  const value = useMemo(
-    () => ({
-      certificates,
-      loading,
-      error,
-      fetchCertificates,
-      addCertificate,
-      uploadCertificateFile,
-      deleteCertificate,
-      getCertificateById: (id) => certificates.find((cert) => cert._id === id || cert.id === id),
-      getActiveCertificatesCount,
-      getExpiringCertificates,
-      getExpiredCertificates,
-      getCertificatesByCategory,
-      getCertificatesByJobRole,
-    }),
-    [
-      certificates,
-      loading,
-      error,
-      fetchCertificates,
-      addCertificate,
-      uploadCertificateFile,
-      deleteCertificate,
-      getActiveCertificatesCount,
-      getExpiringCertificates,
-      getExpiredCertificates,
-      getCertificatesByCategory,
-      getCertificatesByJobRole,
-    ]
+  return (
+    <CertificateContext.Provider value={contextValue}>
+      {children}
+    </CertificateContext.Provider>
   );
-
-  useEffect(() => {
-    fetchCertificates();
-  }, [fetchCertificates]);
-
-  return <CertificateContext.Provider value={value}>{children}</CertificateContext.Provider>;
 };
+
+export default CertificateContext;

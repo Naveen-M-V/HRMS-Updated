@@ -3,28 +3,14 @@ import { useCertificates } from '../context/CertificateContext';
 
 const ComplianceInsights = () => {
   const {
-    certificates,
     loading,
-    getExpiringCertificates,
-    getExpiredCertificates
+    statistics
   } = useCertificates();
 
-  const [insights, setInsights] = useState({
-    expiringCount: 0,
-    outstandingCount: 0
-  });
-
-  useEffect(() => {
-    if (certificates.length > 0) {
-      const expiring = getExpiringCertificates(10); // Next 90 days
-      const expired = getExpiredCertificates();
-      
-      setInsights({
-        expiringCount: expiring.length,
-        outstandingCount: expired.length
-      });
-    }
-  }, [certificates, getExpiringCertificates, getExpiredCertificates]);
+  const insights = {
+    expiringCount: statistics.expiringSoon,
+    outstandingCount: statistics.expired
+  };
 
   if (loading) {
     return (

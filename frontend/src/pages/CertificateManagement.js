@@ -3,6 +3,8 @@ import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
 import { 
   AcademicCapIcon, 
   PlusIcon, 
@@ -19,38 +21,48 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function CertificateManagement() {
-  const { certificates, deleteCertificate } = useCertificates();
+  const { 
+    certificates, 
+    deleteCertificate, 
+    hasMore, 
+    loadMore, 
+    loading, 
+    filters, 
+    updateFilters 
+  } = useCertificates();
   const { profiles } = useProfiles();
   const navigate = useNavigate();
   
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState("");
+  // Setup infinite scroll with intersection observer
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    delay: 100,
+  });
+
+  // Load more certificates when the observer target is in view
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      loadMore();
+    }
+  }, [inView, hasMore, loading, loadMore]);
+  
+  // Component state
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
 
-  // Get filter options
+  // Get filter options from context
   const filterOptions = useMemo(() => {
     const categories = [...new Set(certificates.map(c => c.category).filter(Boolean))].sort();
-    const statuses = [...new Set(certificates.map(c => c.status).filter(Boolean))].sort();
+    const statuses = ['Pending', 'Approved', 'Rejected', 'Expired'];
     const providers = [...new Set(certificates.map(c => c.provider).filter(Boolean))].sort();
     
     return { categories, statuses, providers };
   }, [certificates]);
 
-  // Filter certificates
-  const filteredCertificates = useMemo(() => {
-    return certificates.filter((cert) => {
-      const matchesSearch = cert.certificate.toLowerCase().includes(search.toLowerCase()) ||
-                           cert.profileName.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = !selectedCategory || cert.category === selectedCategory;
-      const matchesStatus = !selectedStatus || cert.status === selectedStatus;
-      const matchesProvider = !selectedProvider || cert.provider === selectedProvider;
-      
-      return matchesSearch && matchesCategory && matchesStatus && matchesProvider;
-    });
-  }, [certificates, search, selectedCategory, selectedStatus, selectedProvider]);
+  // Handle filter changes
+  const handleFilterChange = (type, value) => {
+    updateFilters({ [type]: value });
+  };
 
   // Get certificate status color
   const getStatusColor = (status) => {
@@ -91,6 +103,10 @@ export default function CertificateManagement() {
     return expiry <= thirtyDaysFromNow && expiry >= today;
   };
 
+  const handleSearch = (value) => {
+    handleFilterChange('search', value);
+  };
+
   const handleDeleteCertificate = async (certificateId, certificateName) => {
     if (window.confirm(`Are you sure you want to delete "${certificateName}"? This action cannot be undone.`)) {
       try {
@@ -103,10 +119,12 @@ export default function CertificateManagement() {
   };
 
   const clearFilters = () => {
-    setSearch("");
-    setSelectedCategory("");
-    setSelectedStatus("");
-    setSelectedProvider("");
+    updateFilters({
+      search: '',
+      category: '',
+      status: '',
+      provider: ''
+    });
   };
 
   return (
@@ -171,8 +189,8 @@ export default function CertificateManagement() {
                   <input
                     type="text"
                     placeholder="Search certificates or profiles..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    value={filters.search || ''}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
@@ -215,8 +233,8 @@ export default function CertificateManagement() {
               <div className="border-t pt-4">
                 <div className="grid grid-cols-4 gap-4">
                   <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    value={filters.category || ''}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
                     className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">All Categories</option>
@@ -226,8 +244,8 @@ export default function CertificateManagement() {
                   </select>
 
                   <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    value={filters.status || ''}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
                     className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">All Statuses</option>
@@ -237,8 +255,8 @@ export default function CertificateManagement() {
                   </select>
 
                   <select
-                    value={selectedProvider}
-                    onChange={(e) => setSelectedProvider(e.target.value)}
+                    value={filters.provider || ''}
+                    onChange={(e) => handleFilterChange('provider', e.target.value)}
                     className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   >
                     <option value="">All Providers</option>
@@ -261,14 +279,14 @@ export default function CertificateManagement() {
 
         {/* Content */}
         <div className="bg-white rounded-lg shadow-sm border">
-          {filteredCertificates.length === 0 ? (
+          {certificates.length === 0 ? (
             <div className="text-center py-12">
               <AcademicCapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No certificates found</h3>
               <p className="text-gray-600 mb-4">
-                {search || selectedCategory || selectedStatus || selectedProvider
-                  ? 'Try adjusting your search or filters'
-                  : 'Get started by adding your first certificate'
+                {filters.search || filters.category || filters.status || filters.provider
+                  ? 'No matching certificates found. Try adjusting your filters.'
+                  : 'Get started by adding your first certificate.'
                 }
               </p>
               <button
@@ -282,7 +300,7 @@ export default function CertificateManagement() {
           ) : viewMode === 'grid' ? (
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCertificates.map((cert) => (
+                {certificates.map((cert) => (
                   <div key={cert.id || cert._id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
@@ -343,6 +361,18 @@ export default function CertificateManagement() {
                   </div>
                 ))}
               </div>
+              </div>
+              {/* Loading indicator */}
+              {loading && (
+                <div className="py-4 flex justify-center">
+                  <div className="animate-pulse flex space-x-4">
+                    <div className="h-6 w-6 bg-emerald-200 rounded-full"></div>
+                    <div className="h-6 w-24 bg-emerald-200 rounded"></div>
+                  </div>
+                </div>
+              )}
+              {/* Intersection observer target */}
+              <div ref={ref} className="h-4 w-full"></div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -359,7 +389,7 @@ export default function CertificateManagement() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredCertificates.map((cert) => (
+                  {certificates.map((cert) => (
                     <tr key={cert.id || cert._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -415,6 +445,17 @@ export default function CertificateManagement() {
                   ))}
                 </tbody>
               </table>
+              {/* Loading indicator */}
+              {loading && (
+                <div className="py-4 flex justify-center">
+                  <div className="animate-pulse flex space-x-4">
+                    <div className="h-6 w-6 bg-emerald-200 rounded-full"></div>
+                    <div className="h-6 w-24 bg-emerald-200 rounded"></div>
+                  </div>
+                </div>
+              )}
+              {/* Intersection observer target */}
+              <div ref={ref} className="h-4 w-full"></div>
             </div>
           )}
         </div>
