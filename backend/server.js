@@ -816,13 +816,31 @@ app.get('/api/profiles/:id/stats', async (req, res) => {
   }
 });
 
+// Test endpoint to verify API is working
+app.get('/api/test', (req, res) => {
+  console.log('Test endpoint called');
+  res.json({ message: 'API is working', timestamp: new Date().toISOString() });
+});
+
 // Delete profile
 app.delete('/api/profiles/:id', async (req, res) => {
   try {
+    console.log('Delete profile endpoint called with ID:', req.params.id);
+    console.log('Request headers:', req.headers);
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log('Invalid ObjectId format:', req.params.id);
+      return res.status(400).json({ message: 'Invalid profile ID format' });
+    }
+    
     const profile = await Profile.findById(req.params.id);
     if (!profile) {
+      console.log('Profile not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Profile not found' });
     }
+    
+    console.log('Profile found:', profile.firstName, profile.lastName);
 
     // Delete all certificates associated with this profile
     const deletedCertificates = await Certificate.deleteMany({ profileId: req.params.id });
@@ -875,6 +893,7 @@ app.delete('/api/profiles/:id', async (req, res) => {
       console.error('Error creating delete notifications:', notificationError);
     }
     
+    console.log('Profile deletion completed successfully');
     res.json({ 
       message: 'Profile and associated data deleted successfully',
       details: {

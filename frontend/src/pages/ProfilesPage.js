@@ -6,7 +6,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
-  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "http://localhost:5003";
+  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://talentshield.co.uk:5003";
 };
 
 // Safely get VTID for a profile row
@@ -84,38 +84,10 @@ export default function ProfilesPage() {
       return;
     }
 
-    // Check how many certificates are associated with this profile
-    const profile = profiles.find(p => p._id === profileId);
-    console.log('Found profile:', profile);
-    
-    let certificateCount = 0;
-    try {
-      const apiUrl = getApiUrl();
-      console.log('Using API URL:', apiUrl);
-      
-      const statsResponse = await fetch(`${apiUrl}/api/profiles/${profileId}/stats`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('Stats response status:', statsResponse.status);
-      
-      if (statsResponse.ok) {
-        const data = await statsResponse.json();
-        certificateCount = data.certificates?.total || 0;
-        console.log('Certificate count:', certificateCount);
-      }
-    } catch (error) {
-      console.warn('Could not fetch certificate count:', error);
-    }
+    // Simple confirmation without fetching certificate count first
+    const confirmMessage = `Are you sure you want to delete the profile for ${profileName}?
 
-    const confirmMessage = certificateCount > 0
-      ? `Are you sure you want to delete the profile for ${profileName}?
-
-This will also delete ${certificateCount} associated certificate(s) and any user account. This action cannot be undone.`
-      : `Are you sure you want to delete the profile for ${profileName}? This will also delete any associated user account. This action cannot be undone.`;
+This will also delete any associated certificates and user account. This action cannot be undone.`;
 
     if (window.confirm(confirmMessage)) {
       console.log('User confirmed deletion');
@@ -199,12 +171,34 @@ This will also delete ${certificateCount} associated certificate(s) and any user
       {/* Header with Create Button */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-4xl font-bold">Profiles</h1>
-        <button
-          onClick={() => navigate("/dashboard/profilescreate")}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow"
-        >
-          + Create Profile
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                console.log('Testing API connection...');
+                const response = await fetch(`${getApiUrl()}/api/test`, {
+                  credentials: 'include'
+                });
+                console.log('Test response status:', response.status);
+                const data = await response.json();
+                console.log('Test response data:', data);
+                alert(`API Test: ${data.message}`);
+              } catch (error) {
+                console.error('API Test failed:', error);
+                alert(`API Test Failed: ${error.message}`);
+              }
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm"
+          >
+            Test API
+          </button>
+          <button
+            onClick={() => navigate("/dashboard/profilescreate")}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow"
+          >
+            + Create Profile
+          </button>
+        </div>
       </div>
 
       {/* Search + Rows selector */}
