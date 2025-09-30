@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL } from '../utils/config';
 import { ClipboardDocumentIcon as ClipboardIcon } from '@heroicons/react/24/outline';
 import { AcademicCapIcon } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
@@ -34,7 +35,7 @@ export default function Sidebar({ isOpen }) {
           return;
         }
 
-        const response = await fetch('https://talentshield.co.uk/api/notifications/unread-count', {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${token}`,

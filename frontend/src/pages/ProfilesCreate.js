@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import SearchableDropdown from "../components/SearchableDropdown";
+import { API_BASE_URL } from '../utils/config';
 
 export default function ProfilesCreate() {
   const [formData, setFormData] = useState({
@@ -145,7 +146,7 @@ export default function ProfilesCreate() {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('https://talentshield.co.uk/api/job-roles', {
+  const response = await fetch(`${API_BASE_URL}/api/job-roles`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -182,7 +183,7 @@ export default function ProfilesCreate() {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('https://talentshield.co.uk/api/job-levels', {
+  const response = await fetch(`${API_BASE_URL}/api/job-levels`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
