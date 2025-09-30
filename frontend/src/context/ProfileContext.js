@@ -335,40 +335,86 @@ export const ProfileProvider = ({ children }) => {
   };
 
   const uploadProfilePicture = async (id, file) => {
+    const possibleUrls = [
+      'https://talentshield.co.uk:5003',
+      'https://talentshield.co.uk',
+      'http://localhost:5003'
+    ];
+    
     setLoading(true);
+    
     try {
-      const formData = new FormData();
-      formData.append('profilePicture', file);
-
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/upload-picture`, {
-        method: 'POST',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: formData,
-        credentials: 'include'
-      });
+      console.log('UploadProfilePicture - Profile ID:', id);
+      console.log('UploadProfilePicture - File:', file.name, file.size);
+      console.log('UploadProfilePicture - Token exists:', !!token);
+      
+      let lastError = null;
+      
+      // Try each possible API URL
+      for (let i = 0; i < possibleUrls.length; i++) {
+        const apiUrl = possibleUrls[i];
+        console.log(`UploadProfilePicture - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
+        
+        try {
+          const formData = new FormData();
+          formData.append('profilePicture', file);
 
-      if (!response.ok) throw new Error(`Failed to upload profile picture: ${response.status}`);
+          const headers = {};
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
 
-      const data = await response.json();
+          const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
+            method: 'POST',
+            headers: headers,
+            body: formData,
+            credentials: 'include'
+          });
 
-      const updatedProfiles = profiles.map(profile =>
-        profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
-      );
-      setProfiles(updatedProfiles);
-      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-      localStorage.setItem('profiles_cache_time', Date.now().toString());
+          console.log('UploadProfilePicture - Response status:', response.status);
+          console.log('UploadProfilePicture - Response headers:', response.headers.get('content-type'));
 
-      return data.profilePicture;
-    } catch (err) {
+          if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const data = await response.json();
+              
+              const updatedProfiles = profiles.map(profile =>
+                profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
+              );
+              setProfiles(updatedProfiles);
+              localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+              localStorage.setItem('profiles_cache_time', Date.now().toString());
+
+              console.log(`UploadProfilePicture - Success with URL: ${apiUrl}`);
+              return data.profilePicture;
+            } else {
+              console.log(`UploadProfilePicture - Non-JSON response with URL ${apiUrl}`);
+              lastError = new Error('Server returned non-JSON response');
+              continue;
+            }
+          } else {
+            const textResponse = await response.text();
+            console.log(`UploadProfilePicture - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
+            lastError = new Error(`Server error (${response.status})`);
+            continue;
+          }
+        } catch (err) {
+          console.log(`UploadProfilePicture - Error with URL ${apiUrl}:`, err.message);
+          lastError = err;
+          continue;
+        }
+      }
+      
+      // If we get here, all URLs failed
+      console.error('UploadProfilePicture - All API URLs failed');
       setError('Failed to upload profile picture');
-      throw err;
+      throw lastError || new Error('Failed to upload profile picture - all API endpoints unreachable');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const [userProfile, setUserProfile] = useState({});
 
