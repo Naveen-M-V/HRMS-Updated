@@ -25,12 +25,20 @@ const ComplianceDashboard = () => {
   });
 
   useEffect(() => {
-    if (certificates.length > 0) {
-      setDashboardData({
-        activeCount: getActiveCertificatesCount(),
-        expiringCertificates: getExpiringCertificates(selectedTimeframe),
-        expiredCertificates: getExpiredCertificates(),
-        categoryCounts: getCertificatesByCategory(),
+    const getDashboardData = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'max-age=300'
+          }
+        });
+        const data = await response.json();
+        setDashboardData({
+          activeCount: data.activeCount,
+          expiringCertificates: data.expiringCertificates,
+          expiredCertificates: data.expiredCertificates,
+          categoryCounts: data.categoryCounts,
         jobRoleCounts: getCertificatesByJobRole()
       });
     }

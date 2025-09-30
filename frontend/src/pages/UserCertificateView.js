@@ -264,6 +264,7 @@ const UserCertificateView = () => {
                         src={getImageUrl(certificate.certificateFile)}
                         className="w-full h-96 border-0"
                         title="Certificate PDF"
+                        loading="lazy"
                         onError={(e) => {
                           e.target.style.display = 'none';
                           e.target.nextElementSibling.style.display = 'block';
