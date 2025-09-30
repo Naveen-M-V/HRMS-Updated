@@ -1,8 +1,9 @@
 // src/pages/CertificateManagement.js
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
+import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { 
   AcademicCapIcon, 
@@ -102,7 +103,6 @@ export default function CertificateManagement() {
     return expiry <= thirtyDaysFromNow && expiry >= today;
   };
 
-  // Debounced search handler to reduce API calls
   const handleSearch = (value) => {
     handleFilterChange('search', value);
   };
@@ -277,16 +277,9 @@ export default function CertificateManagement() {
           </div>
         </div>
 
-        {/* Main Content Section */}
+        {/* Content */}
         <div className="bg-white rounded-lg shadow-sm border">
-          {loading && certificates.length === 0 ? (
-            <div className="py-12 flex justify-center">
-              <div className="animate-pulse flex space-x-4">
-                <div className="h-8 w-8 bg-emerald-200 rounded-full"></div>
-                <div className="h-8 w-32 bg-emerald-200 rounded"></div>
-              </div>
-            </div>
-          ) : certificates.length === 0 ? (
+          {certificates.length === 0 ? (
             <div className="text-center py-12">
               <AcademicCapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No certificates found</h3>
@@ -297,7 +290,7 @@ export default function CertificateManagement() {
                 }
               </p>
               <button
-                onClick={() => navigate("/dashboard/createcertificate")}
+                onClick={() => navigate("/dashboard/createcertificates")}
                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
               >
                 <PlusIcon className="h-4 w-4" />
@@ -326,7 +319,7 @@ export default function CertificateManagement() {
                       </div>
                     </div>
 
-                    {/* Card Content */}
+                    {/* Content */}
                     <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{cert.certificate}</h3>
                     <p className="text-sm text-gray-600 mb-3">{cert.profileName}</p>
                     
@@ -368,6 +361,8 @@ export default function CertificateManagement() {
                   </div>
                 ))}
               </div>
+              </div>
+              {/* Loading indicator */}
               {loading && (
                 <div className="py-4 flex justify-center">
                   <div className="animate-pulse flex space-x-4">
@@ -381,11 +376,9 @@ export default function CertificateManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              {/* Table Layout */}
-              <div className="overflow-hidden">
-                <table className="min-w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -451,8 +444,8 @@ export default function CertificateManagement() {
                     </tr>
                   ))}
                 </tbody>
-                </table>
-              </div>
+              </table>
+              {/* Loading indicator */}
               {loading && (
                 <div className="py-4 flex justify-center">
                   <div className="animate-pulse flex space-x-4">
@@ -461,6 +454,7 @@ export default function CertificateManagement() {
                   </div>
                 </div>
               )}
+              {/* Intersection observer target */}
               <div ref={ref} className="h-4 w-full"></div>
             </div>
           )}
