@@ -1,30 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { API_BASE_URL as CONFIG_API_BASE_URL } from '../utils/config';
 
 const ProfileContext = createContext();
 
-const normalizeBase = (url) => {
-  if (!url) return url;
-  // Remove trailing slash
-  let normalized = url.replace(/\/+$/, '');
-  // Remove trailing '/api' segment if present
-  normalized = normalized.replace(/\/api$/i, '');
-  return normalized;
-};
-
-const getApiUrl = () => {
-  const fromEnv = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL;
-  if (fromEnv) return normalizeBase(fromEnv);
-
-  if (window.location.hostname === 'talentshield.co.uk') {
-    return normalizeBase('https://talentshield.co.uk:5003');
-  }
-
-  return normalizeBase('http://localhost:5003');
-};
-
-const API_BASE_URL = getApiUrl();
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
 export const useProfiles = () => {
   const context = useContext(ProfileContext);
@@ -69,7 +48,7 @@ export const ProfileProvider = ({ children }) => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${CONFIG_API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         credentials: 'include',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -110,71 +89,34 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
-  // ✅ Fixed deleteProfile function
   const deleteProfile = async (profileId) => {
-    const possibleUrls = [
-      'https://talentshield.co.uk:5003',
-      'https://talentshield.co.uk',
-      'http://localhost:5003'
-    ];
-
     const token = localStorage.getItem('auth_token');
-    console.log('DeleteProfile - Profile ID:', profileId);
-    console.log('DeleteProfile - Token exists:', !!token);
-
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (!token) {
+      throw new Error('Authentication token not found');
     }
 
-    let lastError = null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${profileId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+      });
 
-    for (let i = 0; i < possibleUrls.length; i++) {
-      const apiUrl = possibleUrls[i];
-      console.log(`DeleteProfile - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
-
-      try {
-        const response = await fetch(`${apiUrl}/api/profiles/${profileId}`, {
-          method: 'DELETE',
-          headers,
-          credentials: 'include'
-        });
-
-        console.log('DeleteProfile - Response status:', response.status);
-        console.log('DeleteProfile - Response headers:', response.headers.get('content-type'));
-
-        const contentType = response.headers.get('content-type');
-
-        if (response.ok) {
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            setProfiles(prev => prev.filter(p => p._id !== profileId));
-            localStorage.removeItem('profiles_cache_optimized');
-            localStorage.removeItem('profiles_cache_time');
-            console.log(`DeleteProfile - Success with URL: ${apiUrl}`);
-            return data;
-          } else {
-            setProfiles(prev => prev.filter(p => p._id !== profileId));
-            localStorage.removeItem('profiles_cache_optimized');
-            localStorage.removeItem('profiles_cache_time');
-            console.log(`DeleteProfile - Success (non-JSON) with URL: ${apiUrl}`);
-            return { message: 'Profile deleted successfully' };
-          }
-        } else {
-          const errorText = await response.text();
-          console.error(`DeleteProfile - Failed with URL ${apiUrl}, status: ${response.status}, response: ${errorText.substring(0, 200)}`);
-          lastError = new Error(`Delete failed (${response.status}): ${errorText}`);
-          continue;
-        }
-      } catch (err) {
-        console.error(`DeleteProfile - Error with URL ${apiUrl}:`, err.message);
-        lastError = err;
-        continue;
+      if (!response.ok) {
+        throw new Error(`Failed to delete profile: ${response.status}`);
       }
-    }
 
-    console.error('DeleteProfile - All API URLs failed');
-    throw lastError || new Error('Failed to delete profile - all API endpoints unreachable');
+      setProfiles(prev => prev.filter(p => p._id !== profileId));
+      localStorage.removeItem('profiles_cache_optimized');
+      localStorage.removeItem('profiles_cache_time');
+      
+      return await response.json();
+    } catch (err) {
+      console.error('Error deleting profile:', err);
+      throw err;
+    }
   };
 
   const refreshProfiles = async () => {
@@ -193,7 +135,7 @@ export const ProfileProvider = ({ children }) => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${CONFIG_API_BASE_URL}/api/profiles`, {
+      const response = await fetch(`${API_BASE_URL}/api/profiles`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',

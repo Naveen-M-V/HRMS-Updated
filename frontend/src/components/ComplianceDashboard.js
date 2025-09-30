@@ -39,9 +39,22 @@ const ComplianceDashboard = () => {
           expiringCertificates: data.expiringCertificates,
           expiredCertificates: data.expiredCertificates,
           categoryCounts: data.categoryCounts,
-        jobRoleCounts: getCertificatesByJobRole()
-      });
-    }
+          jobRoleCounts: getCertificatesByJobRole()
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Fallback to context data if API fails
+        setDashboardData({
+          activeCount: getActiveCertificatesCount(),
+          expiringCertificates: getExpiringCertificates(selectedTimeframe),
+          expiredCertificates: getExpiredCertificates(),
+          categoryCounts: getCertificatesByCategory(),
+          jobRoleCounts: getCertificatesByJobRole()
+        });
+      }
+    };
+
+    getDashboardData();
   }, [certificates, selectedTimeframe, getActiveCertificatesCount, getExpiringCertificates, getExpiredCertificates, getCertificatesByCategory, getCertificatesByJobRole]);
 
   const formatDate = (dateString) => {
