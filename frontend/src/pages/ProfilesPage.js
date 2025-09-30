@@ -6,7 +6,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
-  return process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "http://localhost:5003";
 };
 
 // Safely get VTID for a profile row
@@ -68,17 +68,44 @@ export default function ProfilesPage() {
 
   // Handle profile deletion
   const handleDeleteProfile = useCallback(async (profileId, profileName) => {
+    console.log('handleDeleteProfile called with:', { profileId, profileName });
+    
+    // Validate inputs
+    if (!profileId || !profileName) {
+      console.error('Invalid profile data:', { profileId, profileName });
+      alert('Invalid profile data. Please refresh the page and try again.');
+      return;
+    }
+
+    // Check if deleteProfile function exists
+    if (typeof deleteProfile !== 'function') {
+      console.error('deleteProfile function not available');
+      alert('Delete function not available. Please refresh the page and try again.');
+      return;
+    }
+
     // Check how many certificates are associated with this profile
     const profile = profiles.find(p => p._id === profileId);
+    console.log('Found profile:', profile);
     
     let certificateCount = 0;
     try {
-      const statsResponse = await fetch(`${getApiUrl()}/api/profiles/${profileId}/stats`, {
-        credentials: 'include'
+      const apiUrl = getApiUrl();
+      console.log('Using API URL:', apiUrl);
+      
+      const statsResponse = await fetch(`${apiUrl}/api/profiles/${profileId}/stats`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
+      
+      console.log('Stats response status:', statsResponse.status);
+      
       if (statsResponse.ok) {
         const data = await statsResponse.json();
         certificateCount = data.certificates?.total || 0;
+        console.log('Certificate count:', certificateCount);
       }
     } catch (error) {
       console.warn('Could not fetch certificate count:', error);
@@ -91,14 +118,18 @@ This will also delete ${certificateCount} associated certificate(s) and any user
       : `Are you sure you want to delete the profile for ${profileName}? This will also delete any associated user account. This action cannot be undone.`;
 
     if (window.confirm(confirmMessage)) {
+      console.log('User confirmed deletion');
       setLoading(true);
+      
       try {
+        console.log('Calling deleteProfile function...');
         const response = await deleteProfile(profileId);
+        console.log('Delete response:', response);
 
         // Show detailed success message based on backend response
         let successMessage = `Profile for ${profileName} deleted successfully!`;
         
-        if (response.details) {
+        if (response && response.details) {
           const details = [];
           if (response.details.certificatesDeleted > 0) {
             details.push(`${response.details.certificatesDeleted} certificate(s)`);
@@ -116,13 +147,18 @@ This will also delete ${certificateCount} associated certificate(s) and any user
         console.log(`Profile ${profileName} deleted successfully`, response);
         
         // Refresh the profiles list to ensure UI is updated
+        console.log('Refreshing profiles list...');
         await fetchProfiles();
+        console.log('Profiles refreshed');
+        
       } catch (error) {
         console.error('Error deleting profile:', error);
         alert(`Failed to delete profile: ${error.message || 'Please try again.'}`);
       } finally {
         setLoading(false);
       }
+    } else {
+      console.log('User cancelled deletion');
     }
   }, [deleteProfile, profiles, fetchProfiles]);
 
@@ -295,15 +331,23 @@ This will also delete ${certificateCount} associated certificate(s) and any user
                   >
                     <EyeIcon className="h-4 w-4" />
                   </Link>
-                  <Link
-                    to={`/profiles/edit/${p._id}`}
+                  <button
+                    onClick={() => {
+                      console.log('Edit clicked for profile:', p._id);
+                      console.log('Navigating to:', `/profiles/edit/${p._id}`);
+                      navigate(`/profiles/edit/${p._id}`);
+                    }}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile"
                   >
                     <PencilIcon className="h-4 w-4" />
-                  </Link>
+                  </button>
                   <button
-                    onClick={() => handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('Delete clicked for profile:', p._id, p.firstName, p.lastName);
+                      handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`);
+                    }}
                     className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
                     title="Delete Profile"
                     disabled={loading}

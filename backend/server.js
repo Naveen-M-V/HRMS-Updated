@@ -786,6 +786,36 @@ app.get('/api/profiles/:id/picture', async (req, res) => {
   }
 });
 
+// Get profile statistics (certificates count, etc.)
+app.get('/api/profiles/:id/stats', async (req, res) => {
+  try {
+    const profileId = req.params.id;
+    
+    // Count certificates associated with this profile
+    const certificateCount = await Certificate.countDocuments({ profileId: profileId });
+    
+    // Get profile basic info
+    const profile = await Profile.findById(profileId, 'firstName lastName email');
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
+    res.json({
+      profile: {
+        id: profile._id,
+        name: `${profile.firstName} ${profile.lastName}`,
+        email: profile.email
+      },
+      certificates: {
+        total: certificateCount
+      }
+    });
+  } catch (error) {
+    console.error('Error getting profile stats:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Delete profile
 app.delete('/api/profiles/:id', async (req, res) => {
   try {
