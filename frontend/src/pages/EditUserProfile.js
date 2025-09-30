@@ -5,6 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import JobRoleDropdown from '../components/JobRoleDropdown';
 
 export default function EditUserProfile() {
+  console.log('EditUserProfile component loaded');
+  
   const [activeTab, setActiveTab] = useState("Profile Details");
   const [profileLoading, setProfileLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -68,7 +70,10 @@ export default function EditUserProfile() {
   const tabs = ["Profile Details", "Employment Info", "System IDs", "Emergency Contact", "Profile Address", "Extra Information"];
 
   useEffect(() => {
+    console.log('EditUserProfile useEffect triggered with id:', id);
+    
     if (!id) {
+      console.log('No ID provided, redirecting to profiles');
       navigate('/profiles');
       return;
     }
@@ -79,17 +84,22 @@ export default function EditUserProfile() {
       try {
         // First try to get from local cache
         let profile = getProfileById(id);
+        console.log('Profile from cache:', profile);
         
         // If not in cache, fetch from backend
         if (!profile) {
           console.log('Profile not in cache, fetching from backend...');
           profile = await fetchProfileById(id);
+          console.log('Profile from backend:', profile);
         }
         
         console.log('Profile loaded:', profile);
         
         if (!profile) {
-          throw new Error('Profile not found');
+          console.error('Profile not found');
+          alert('Profile not found. Redirecting to profiles list.');
+          navigate('/profiles');
+          return;
         }
           
           // Populate form data with all fields
@@ -250,6 +260,18 @@ export default function EditUserProfile() {
       navigate(`/profiles/${id}`);
     }
   };
+
+  // Show loading state
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">

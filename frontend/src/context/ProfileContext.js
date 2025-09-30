@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 const ProfileContext = createContext();
 
 // Use API base URL from .env with a localhost fallback for dev
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5003";
+const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "http://localhost:5003";
 
 export const useProfiles = () => {
   const context = useContext(ProfileContext);
@@ -95,23 +95,55 @@ export const ProfileProvider = ({ children }) => {
   const deleteProfile = async (profileId) => {
     try {
       const token = localStorage.getItem('auth_token');
+      console.log('DeleteProfile - API URL:', API_BASE_URL);
+      console.log('DeleteProfile - Profile ID:', profileId);
+      console.log('DeleteProfile - Token exists:', !!token);
+      
       const response = await fetch(`${API_BASE_URL}/api/profiles/${profileId}`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         credentials: 'include'
       });
 
+      console.log('DeleteProfile - Response status:', response.status);
+      console.log('DeleteProfile - Response headers:', response.headers.get('content-type'));
+
       if (response.ok) {
-        const data = await response.json();
-        setProfiles(prev => prev.filter(p => p._id !== profileId));
-        localStorage.removeItem('profiles_cache_optimized');
-        localStorage.removeItem('profiles_cache_time');
-        return data;
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          setProfiles(prev => prev.filter(p => p._id !== profileId));
+          localStorage.removeItem('profiles_cache_optimized');
+          localStorage.removeItem('profiles_cache_time');
+          return data;
+        } else {
+          // If not JSON, treat as success but return basic response
+          setProfiles(prev => prev.filter(p => p._id !== profileId));
+          localStorage.removeItem('profiles_cache_optimized');
+          localStorage.removeItem('profiles_cache_time');
+          return { message: 'Profile deleted successfully' };
+        }
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete profile');
+        // Try to get error message, but handle non-JSON responses
+        let errorMessage = 'Failed to delete profile';
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } else {
+            const textResponse = await response.text();
+            console.log('DeleteProfile - Non-JSON error response:', textResponse);
+            errorMessage = `Server error (${response.status})`;
+          }
+        } catch (parseError) {
+          console.log('DeleteProfile - Error parsing response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
     } catch (err) {
       console.error('Error deleting profile:', err);
