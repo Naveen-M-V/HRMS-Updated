@@ -4,23 +4,18 @@ import { useAuth } from './AuthContext';
 const ProfileContext = createContext();
 
 // Use API base URL from .env with a localhost fallback for dev
-// Try multiple possible API endpoints
 const getApiUrl = () => {
-  // First try environment variables
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
   if (process.env.REACT_APP_API_BASE_URL) {
     return process.env.REACT_APP_API_BASE_URL;
   }
-  
-  // For production, try different possible endpoints
+
   if (window.location.hostname === 'talentshield.co.uk') {
-    // Try the direct backend port first
     return 'https://talentshield.co.uk:5003';
   }
-  
-  // Default fallback
+
   return 'http://localhost:5003';
 };
 
@@ -40,7 +35,7 @@ export const ProfileProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
-  // Fetch profiles with caching + optional pagination
+  // Fetch profiles
   const fetchProfiles = async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
     setLoading(true);
     try {
@@ -75,10 +70,8 @@ export const ProfileProvider = ({ children }) => {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        credentials: 'include'
+          'Cache-Control': 'no-cache'
+        }
       });
 
       if (response.ok) {
@@ -112,45 +105,42 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
+  // ✅ Fixed deleteProfile function
   const deleteProfile = async (profileId) => {
     const possibleUrls = [
       'https://talentshield.co.uk:5003',
       'https://talentshield.co.uk',
       'http://localhost:5003'
     ];
-    
+
     const token = localStorage.getItem('auth_token');
     console.log('DeleteProfile - Profile ID:', profileId);
     console.log('DeleteProfile - Token exists:', !!token);
-    
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    
+
+    const headers = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     let lastError = null;
-    
-    // Try each possible API URL
+
     for (let i = 0; i < possibleUrls.length; i++) {
       const apiUrl = possibleUrls[i];
       console.log(`DeleteProfile - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
-      
+
       try {
         const response = await fetch(`${apiUrl}/api/profiles/${profileId}`, {
           method: 'DELETE',
-          headers: headers,
+          headers,
           credentials: 'include'
         });
 
         console.log('DeleteProfile - Response status:', response.status);
         console.log('DeleteProfile - Response headers:', response.headers.get('content-type'));
 
+        const contentType = response.headers.get('content-type');
+
         if (response.ok) {
-          // Check if response is JSON
-          const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
             setProfiles(prev => prev.filter(p => p._id !== profileId));
@@ -159,7 +149,6 @@ export const ProfileProvider = ({ children }) => {
             console.log(`DeleteProfile - Success with URL: ${apiUrl}`);
             return data;
           } else {
-            // If not JSON, treat as success but return basic response
             setProfiles(prev => prev.filter(p => p._id !== profileId));
             localStorage.removeItem('profiles_cache_optimized');
             localStorage.removeItem('profiles_cache_time');
@@ -167,20 +156,18 @@ export const ProfileProvider = ({ children }) => {
             return { message: 'Profile deleted successfully' };
           }
         } else {
-          // This URL failed, try next one
-          const textResponse = await response.text();
-          console.log(`DeleteProfile - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
-          lastError = new Error(`Server error (${response.status})`);
+          const errorText = await response.text();
+          console.error(`DeleteProfile - Failed with URL ${apiUrl}, status: ${response.status}, response: ${errorText.substring(0, 200)}`);
+          lastError = new Error(`Delete failed (${response.status}): ${errorText}`);
           continue;
         }
       } catch (err) {
-        console.log(`DeleteProfile - Error with URL ${apiUrl}:`, err.message);
+        console.error(`DeleteProfile - Error with URL ${apiUrl}:`, err.message);
         lastError = err;
         continue;
       }
     }
-    
-    // If we get here, all URLs failed
+
     console.error('DeleteProfile - All API URLs failed');
     throw lastError || new Error('Failed to delete profile - all API endpoints unreachable');
   };
@@ -223,7 +210,6 @@ export const ProfileProvider = ({ children }) => {
       }
 
       setProfiles(prev => [data, ...prev]);
-      // Clear the cache to ensure fresh data on next fetch
       localStorage.removeItem('profiles_cache_optimized');
       localStorage.removeItem('profiles_cache_time');
 
@@ -351,7 +337,6 @@ export const ProfileProvider = ({ children }) => {
       
       let lastError = null;
       
-      // Try each possible API URL
       for (let i = 0; i < possibleUrls.length; i++) {
         const apiUrl = possibleUrls[i];
         console.log(`UploadProfilePicture - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
@@ -367,7 +352,7 @@ export const ProfileProvider = ({ children }) => {
 
           const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
             method: 'POST',
-            headers: headers,
+            headers,
             body: formData,
             credentials: 'include'
           });
@@ -407,7 +392,6 @@ export const ProfileProvider = ({ children }) => {
         }
       }
       
-      // If we get here, all URLs failed
       console.error('UploadProfilePicture - All API URLs failed');
       setError('Failed to upload profile picture');
       throw lastError || new Error('Failed to upload profile picture - all API endpoints unreachable');
