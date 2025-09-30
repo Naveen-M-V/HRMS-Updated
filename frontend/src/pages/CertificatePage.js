@@ -35,11 +35,18 @@ export default function CertificatesPage() {
     }
   };
 
-  // Filtered certificates
-  const filteredCertificates = certificates.filter((c) => {
-    const matchesSearch = c.certificate.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
-  });
+  // Memoized filtered certificates
+  const filteredCertificates = useMemo(() => {
+    if (!search) return certificates;
+    return certificates.filter((c) => 
+      c.certificate.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [certificates, search]);
+
+  // Virtual scrolling implementation
+  const visibleCertificates = useMemo(() => {
+    return filteredCertificates.slice(0, rowsPerPage);
+  }, [filteredCertificates, rowsPerPage]);
 
   return (
     <div className="relative p-6">

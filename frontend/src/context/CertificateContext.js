@@ -32,12 +32,26 @@ export const CertificateProvider = ({ children }) => {
   const incrementLoading = () => setLoadingCount((count) => count + 1);
   const decrementLoading = () => setLoadingCount((count) => Math.max(count - 1, 0));
 
-  const fetchCertificates = useCallback(async () => {
+  const fetchCertificates = useCallback(async (page = 1, limit = 50) => {
     incrementLoading();
     try {
       const response = await axios.get(`${API_BASE_URL}/certificates`, {
-        headers: { "Cache-Control": "max-age=300" },
+        params: {
+          page,
+          limit
+        },
+        headers: { 
+          "Cache-Control": "max-age=300",
+          "If-None-Match": localStorage.getItem('certificatesEtag')
+        },
       });
+      
+      // Update cache if data has changed
+      if (response.headers.etag) {
+        localStorage.setItem('certificatesEtag', response.headers.etag);
+        localStorage.setItem('certificatesCache', JSON.stringify(response.data));
+      }
+
       if (!Array.isArray(response.data)) {
         setCertificates([]);
         setError("Invalid data format received from API");
@@ -45,7 +59,16 @@ export const CertificateProvider = ({ children }) => {
       }
       setCertificates(response.data);
       setError(null);
-    } catch {
+    } catch (error) {
+      if (error.response?.status === 304) {
+        // Use cached data if available
+        const cachedData = localStorage.getItem('certificatesCache');
+        if (cachedData) {
+          setCertificates(JSON.parse(cachedData));
+          setError(null);
+          return;
+        }
+      }
       setError("Failed to fetch certificates");
       setCertificates([]);
     } finally {
