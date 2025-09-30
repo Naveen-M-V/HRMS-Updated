@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext();
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'https://talentshield.co.uk/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
 export const useProfiles = () => {
   const context = useContext(ProfileContext);

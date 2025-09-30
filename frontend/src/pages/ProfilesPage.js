@@ -307,11 +307,7 @@ This will also delete any associated certificates and user account. This action 
                     <EyeIcon className="h-4 w-4" />
                   </Link>
                   <Link
-                    to={`/profiles/edit/${p._id}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate(`/profiles/edit/${p._id}`);
-                    }}
+                    to={`/profiles/edit/${p._id}`} 
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile">                    
                     <PencilIcon className="h-4 w-4" />

@@ -82,12 +82,6 @@ export default function EditUserProfile() {
       console.log('EditUserProfile mounted with ID:', id);
       setProfileLoading(true);
       try {
-        console.log('Attempting to load profile with functions:', { getProfileById, fetchProfileById });
-        
-        if (!getProfileById || !fetchProfileById) {
-          throw new Error('Profile functions not available');
-        }
-
         // First try to get from local cache
         let profile = getProfileById(id);
         console.log('Profile from cache:', profile);
@@ -97,10 +91,6 @@ export default function EditUserProfile() {
           console.log('Profile not in cache, fetching from backend...');
           profile = await fetchProfileById(id);
           console.log('Profile from backend:', profile);
-        }
-        
-        if (!profile) {
-          throw new Error('Profile not found');
         }
         
         console.log('Profile loaded:', profile);
