@@ -14,39 +14,13 @@ export default function UserEditProfile() {
     staffType: "",
     nationality: "",
     status: "Active",
-    role: "",
-    circetUIN: "",
-    circetSCID: "",
-    nopsId: "",
-    nopsID: "",
-    language: "English",
-    dob: "",
-    dateOfBirth: "",
-    gender: "",
-    emailVerified: false,
-    mobileVerified: false,
-    insurance: "",
-    vtid: "",
-    emergencyContact: {
-      name: "",
-      relationship: "",
-      phone: "",
-    },
     address: {
       line1: "",
       line2: "",
       city: "",
       postCode: "",
       country: "",
-    },
-    jobLevel: "",
-    poc: "",
-    startDate: "",
-    bio: "",
-    morrisonsIDNumber: "",
-    morrisonsUIN: "",
-    insuranceNumber: "",
-    otherInformation: ""
+    }
   });
 
   const [loading, setLoading] = useState(true);
@@ -81,31 +55,6 @@ export default function UserEditProfile() {
           staffType: data.staffType || "",
           nationality: data.nationality || "",
           status: data.status || "Active",
-          role: data.role || "",
-          circetUIN: data.circetUIN || "",
-          circetSCID: data.circetSCID || "",
-          nopsId: data.nopsId || data.nopsID || "",
-          language: data.language || "English",
-          dob: data.dob || "",
-          dateOfBirth: data.dateOfBirth || "",
-          gender: data.gender || "",
-          emailVerified: data.emailVerified || false,
-          mobileVerified: data.mobileVerified || false,
-          insurance: data.insurance || "",
-          vtid: data.vtid || "",
-          jobLevel: data.jobLevel || "",
-          poc: data.poc || "",
-          startDate: data.startDate ? new Date(data.startDate).toISOString().split('T')[0] : "",
-          bio: data.bio || "",
-          morrisonsIDNumber: data.morrisonsIDNumber || "",
-          morrisonsUIN: data.morrisonsUIN || "",
-          insuranceNumber: data.insuranceNumber || "",
-          otherInformation: data.otherInformation || "",
-          emergencyContact: {
-            name: data.emergencyContact?.name || "",
-            relationship: data.emergencyContact?.relationship || "",
-            phone: data.emergencyContact?.phone || "",
-          },
           address: {
             line1: data.address?.line1 || "",
             line2: data.address?.line2 || "",
@@ -184,263 +133,73 @@ export default function UserEditProfile() {
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Edit Profile</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <div className="bg-white rounded-lg shadow border p-6">
-          <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">First Name</label>
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Last Name</label>
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Mobile</label>
-              <input
-                type="tel"
-                name="mobile"
-                value={formData.mobile}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Gender</label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">First Name</label>
+            <input
+              type="text"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Last Name</label>
+            <input
+              type="text"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Mobile</label>
+            <input
+              type="tel"
+              name="mobile"
+              value={formData.mobile}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Job Title</label>
+            <input
+              type="text"
+              name="jobTitle"
+              value={formData.jobTitle}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Company</label>
+            <input
+              type="text"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
           </div>
         </div>
 
-        {/* Employment Information */}
-        <div className="bg-white rounded-lg shadow border p-6">
-          <h2 className="text-lg font-semibold mb-4">Employment Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Job Title</label>
-              <input
-                type="text"
-                name="jobTitle"
-                value={formData.jobTitle}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Job Level</label>
-              <input
-                type="text"
-                name="jobLevel"
-                value={formData.jobLevel}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Company</label>
-              <input
-                type="text"
-                name="company"
-                value={formData.company}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Staff Type</label>
-              <input
-                type="text"
-                name="staffType"
-                value={formData.staffType}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Role</label>
-              <input
-                type="text"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Start Date</label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Point of Contact</label>
-              <input
-                type="text"
-                name="poc"
-                value={formData.poc}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* System IDs */}
-        <div className="bg-white rounded-lg shadow border p-6">
-          <h2 className="text-lg font-semibold mb-4">System IDs</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Circet UIN</label>
-              <input
-                type="text"
-                name="circetUIN"
-                value={formData.circetUIN}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Circet SCID</label>
-              <input
-                type="text"
-                name="circetSCID"
-                value={formData.circetSCID}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">NOPS ID</label>
-              <input
-                type="text"
-                name="nopsId"
-                value={formData.nopsId}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Morrisons ID Number</label>
-              <input
-                type="text"
-                name="morrisonsIDNumber"
-                value={formData.morrisonsIDNumber}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Morrisons UIN</label>
-              <input
-                type="text"
-                name="morrisonsUIN"
-                value={formData.morrisonsUIN}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Insurance Number</label>
-              <input
-                type="text"
-                name="insuranceNumber"
-                value={formData.insuranceNumber}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Emergency Contact */}
-        <div className="bg-white rounded-lg shadow border p-6">
-          <h2 className="text-lg font-semibold mb-4">Emergency Contact</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Name</label>
-              <input
-                type="text"
-                name="emergencyContact.name"
-                value={formData.emergencyContact.name}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Relationship</label>
-              <input
-                type="text"
-                name="emergencyContact.relationship"
-                value={formData.emergencyContact.relationship}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Phone</label>
-              <input
-                type="tel"
-                name="emergencyContact.phone"
-                value={formData.emergencyContact.phone}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Address Information */}
-        <div className="bg-white rounded-lg shadow border p-6">
+        <div className="border-t border-gray-200 pt-6">
           <h2 className="text-lg font-semibold mb-4">Address Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -490,33 +249,6 @@ export default function UserEditProfile() {
                 name="address.country"
                 value={formData.address.country}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Additional Information */}
-        <div className="bg-white rounded-lg shadow border p-6">
-          <h2 className="text-lg font-semibold mb-4">Additional Information</h2>
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Bio</label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                rows={3}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Other Information</label>
-              <textarea
-                name="otherInformation"
-                value={formData.otherInformation}
-                onChange={handleChange}
-                rows={3}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
