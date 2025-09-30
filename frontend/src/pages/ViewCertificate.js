@@ -321,17 +321,17 @@ export default function ViewCertificate() {
                     Added: {formatDate(certificate.createdOn)} 14:37
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
-                    <a
-                      href={`${process.env.REACT_APP_API_BASE_URL}/api/certificates/${
-                        certificate.id || certificate._id
-                      }/file`}
-                      download={certificate.certificate?.replace(/[^a-zA-Z0-9]/g, "_")}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      onClick={() => {
+                        const fileUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5003'}/api/certificates/${
+                          certificate.id || certificate._id
+                        }/file`;
+                        window.open(fileUrl, '_blank', 'noopener,noreferrer');
+                      }}
                       className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     >
                       View Certificate
-                    </a>
+                    </button>
                     <button
                       onClick={handleDeleteFile}
                       disabled={uploading}

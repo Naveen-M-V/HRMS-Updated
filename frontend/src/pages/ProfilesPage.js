@@ -70,39 +70,61 @@ export default function ProfilesPage() {
   const handleDeleteProfile = useCallback(async (profileId, profileName) => {
     // Check how many certificates are associated with this profile
     const profile = profiles.find(p => p._id === profileId);
-    const certificateCount = await fetch(`${getApiUrl()}/api/profiles/${profileId}/stats`)
-      .then(res => res.json())
-      .then(data => data.certificates?.total || 0)
-      .catch(() => 0);
+    
+    let certificateCount = 0;
+    try {
+      const statsResponse = await fetch(`${getApiUrl()}/api/profiles/${profileId}/stats`, {
+        credentials: 'include'
+      });
+      if (statsResponse.ok) {
+        const data = await statsResponse.json();
+        certificateCount = data.certificates?.total || 0;
+      }
+    } catch (error) {
+      console.warn('Could not fetch certificate count:', error);
+    }
 
     const confirmMessage = certificateCount > 0
       ? `Are you sure you want to delete the profile for ${profileName}?
 
-This will also delete ${certificateCount} associated certificate(s). This action cannot be undone.`
-      : `Are you sure you want to delete the profile for ${profileName}? This action cannot be undone.`;
+This will also delete ${certificateCount} associated certificate(s) and any user account. This action cannot be undone.`
+      : `Are you sure you want to delete the profile for ${profileName}? This will also delete any associated user account. This action cannot be undone.`;
 
     if (window.confirm(confirmMessage)) {
       setLoading(true);
       try {
         const response = await deleteProfile(profileId);
 
-        // Show detailed success message
-        const certCount = response.details?.certificatesDeleted || certificateCount;
-        if (certCount > 0) {
-          alert(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
-        } else {
-          alert('Profile deleted successfully!');
+        // Show detailed success message based on backend response
+        let successMessage = `Profile for ${profileName} deleted successfully!`;
+        
+        if (response.details) {
+          const details = [];
+          if (response.details.certificatesDeleted > 0) {
+            details.push(`${response.details.certificatesDeleted} certificate(s)`);
+          }
+          if (response.details.userAccountDeleted) {
+            details.push('user account');
+          }
+          
+          if (details.length > 0) {
+            successMessage += `\n\nAlso deleted: ${details.join(' and ')}`;
+          }
         }
 
-        console.log(`Profile ${profileName} deleted successfully`);
+        alert(successMessage);
+        console.log(`Profile ${profileName} deleted successfully`, response);
+        
+        // Refresh the profiles list to ensure UI is updated
+        await fetchProfiles();
       } catch (error) {
         console.error('Error deleting profile:', error);
-        alert('Failed to delete profile. Please try again.');
+        alert(`Failed to delete profile: ${error.message || 'Please try again.'}`);
       } finally {
         setLoading(false);
       }
     }
-  }, [deleteProfile, profiles]);
+  }, [deleteProfile, profiles, fetchProfiles]);
 
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {
@@ -274,7 +296,7 @@ This will also delete ${certificateCount} associated certificate(s). This action
                     <EyeIcon className="h-4 w-4" />
                   </Link>
                   <Link
-                    onClick={`/profiles/edit/${p._id}`}
+                    to={`/profiles/edit/${p._id}`}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile"
                   >

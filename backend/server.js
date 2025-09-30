@@ -794,70 +794,67 @@ app.delete('/api/profiles/:id', async (req, res) => {
       return res.status(404).json({ message: 'Profile not found' });
     }
 
-    // Find the user associated with this profile
-    const user = await User.findOne({ _id: profile.userId });
-    if (user) {
-      // Delete all certificates associated with this user's profiles
-      const userProfiles = await Profile.find({ userId: user._id });
-      const profileIds = userProfiles.map(p => p._id);
-      
-      // Delete certificates for all profiles of this user
-      const deletedCertificates = await Certificate.deleteMany({ profileId: { $in: profileIds } });
-      console.log(`Deleted ${deletedCertificates.deletedCount} certificates associated with user ${user._id}`);
+    // Delete all certificates associated with this profile
+    const deletedCertificates = await Certificate.deleteMany({ profileId: req.params.id });
+    console.log(`Deleted ${deletedCertificates.deletedCount} certificates for profile ${req.params.id}`);
 
-      // Delete the user
-      await User.findByIdAndDelete(user._id);
-      console.log(`Deleted user ${user._id}`);
+    // Find and delete the associated user account (if exists)
+    // Users are created with email matching the profile email
+    const associatedUser = await User.findOne({ 
+      email: profile.email, 
+      role: 'user',
+      createdBy: 'admin' 
+    });
+    
+    if (associatedUser) {
+      await User.findByIdAndDelete(associatedUser._id);
+      console.log(`Deleted associated user account ${associatedUser._id} for profile ${profile.email}`);
     }
 
-    // Delete the specific profile
+    // Delete the profile
     await Profile.findByIdAndDelete(req.params.id);
     console.log(`Deleted profile ${req.params.id}`);
     
-    // Create notifications for deleted certificates
+    // Create notifications for admins
     try {
-      const users = await User.find({ role: 'admin' });
-      for (const user of users) {
-        const notification = new Notification({
-          userId: user._id,
-          type: 'certificate_deleted',
-          priority: 'medium',
-          message: `All certificates for profile ${profile.firstName} ${profile.lastName} were deleted (${deletedCertificates.deletedCount} certificates)`,
-          read: false
-        });
-        await notification.save();
-      }
-    } catch (notificationError) {
-      console.error('Error creating certificate delete notifications:', notificationError);
-    }
-    
-    const deletedProfile = await Profile.findByIdAndDelete(req.params.id);
-    
-    // Create notification for profile deletion
-    try {
-      const users = await User.find({ role: 'admin' });
-      for (const user of users) {
-        const notification = new Notification({
-          userId: user._id,
+      const adminUsers = await User.find({ role: 'admin' });
+      for (const adminUser of adminUsers) {
+        // Notification for profile deletion
+        const profileNotification = new Notification({
+          userId: adminUser._id,
           type: 'profile_deleted',
           priority: 'medium',
           message: `Profile deleted: ${profile.firstName} ${profile.lastName}`,
           read: false
         });
-        await notification.save();
+        await profileNotification.save();
+
+        // Notification for certificate deletion (if any)
+        if (deletedCertificates.deletedCount > 0) {
+          const certNotification = new Notification({
+            userId: adminUser._id,
+            type: 'certificate_deleted',
+            priority: 'medium',
+            message: `${deletedCertificates.deletedCount} certificate(s) deleted with profile: ${profile.firstName} ${profile.lastName}`,
+            read: false
+          });
+          await certNotification.save();
+        }
       }
     } catch (notificationError) {
-      console.error('Error creating delete notification:', notificationError);
+      console.error('Error creating delete notifications:', notificationError);
     }
     
     res.json({ 
-      message: 'Profile and associated certificates deleted successfully',
+      message: 'Profile and associated data deleted successfully',
       details: {
         profileDeleted: true,
-        certificatesDeleted: deletedCertificates.deletedCount
+        certificatesDeleted: deletedCertificates.deletedCount,
+        userAccountDeleted: !!associatedUser
       }
     });
   } catch (error) {
+    console.error('Error deleting profile:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -1024,6 +1021,31 @@ app.get('/api/certificates/:id/file', async (req, res) => {
   } catch (error) {
     console.error('Error serving certificate file:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Serve certificate file for viewing (not downloading)
+app.get('/api/certificates/:id/file', async (req, res) => {
+  try {
+    const certificate = await Certificate.findById(req.params.id);
+    if (!certificate) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+
+    if (!certificate.fileData || !certificate.mimeType) {
+      return res.status(404).json({ message: 'Certificate file not found' });
+    }
+
+    // Set headers for inline viewing (not download)
+    res.setHeader('Content-Type', certificate.mimeType);
+    res.setHeader('Content-Disposition', 'inline'); // This makes it view instead of download
+    res.setHeader('Content-Length', certificate.fileSize || certificate.fileData.length);
+    
+    // Send the file data
+    res.send(certificate.fileData);
+  } catch (error) {
+    console.error('Error serving certificate file:', error);
+    res.status(500).json({ message: 'Error serving certificate file' });
   }
 });
 
