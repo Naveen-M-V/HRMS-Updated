@@ -730,14 +730,23 @@ app.put('/api/profiles/:id', async (req, res) => {
 // Upload profile picture
 app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), async (req, res) => {
   try {
+    console.log('Profile picture upload endpoint called');
+    console.log('Profile ID:', req.params.id);
+    console.log('File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
+    console.log('Request headers:', req.headers);
+    
     if (!req.file) {
+      console.log('No file uploaded');
       return res.status(400).json({ message: 'No file uploaded' });
     }
     
     // Check file size (10MB limit)
     if (req.file.size > 10 * 1024 * 1024) {
+      console.log('File size exceeds limit:', req.file.size);
       return res.status(400).json({ message: 'File size exceeds 10MB limit' });
     }
+    
+    console.log('File validation passed, updating profile...');
     
     const profile = await Profile.findByIdAndUpdate(
       req.params.id,
@@ -751,11 +760,14 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
     );
     
     if (!profile) {
+      console.log('Profile not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Profile not found' });
     }
     
+    console.log('Profile picture uploaded successfully');
     res.json({ profilePicture: profile.profilePicture });
   } catch (error) {
+    console.error('Error uploading profile picture:', error);
     res.status(500).json({ message: error.message });
   }
 });
