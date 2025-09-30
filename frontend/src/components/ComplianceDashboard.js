@@ -8,7 +8,11 @@ const ComplianceDashboard = () => {
   const {
     certificates,
     loading,
-    statistics
+    getActiveCertificatesCount,
+    getExpiringCertificates,
+    getExpiredCertificates,
+    getCertificatesByCategory,
+    getCertificatesByJobRole
   } = useCertificates();
 
   const [selectedTimeframe, setSelectedTimeframe] = useState(30);
@@ -17,6 +21,7 @@ const ComplianceDashboard = () => {
     expiringCertificates: [],
     expiredCertificates: [],
     categoryCounts: {},
+    jobRoleCounts: {}
   });
 
   useEffect(() => {
@@ -26,25 +31,31 @@ const ComplianceDashboard = () => {
           method: 'GET',
           headers: {
             'Cache-Control': 'max-age=300'
-          },
-          credentials: 'include'
+          }
         });
         const data = await response.json();
-        setDashboardData(data);
+        setDashboardData({
+          activeCount: data.activeCount,
+          expiringCertificates: data.expiringCertificates,
+          expiredCertificates: data.expiredCertificates,
+          categoryCounts: data.categoryCounts,
+          jobRoleCounts: getCertificatesByJobRole()
+        });
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Fallback to context data if API fails
         setDashboardData({
-          activeCount: statistics.active,
-          expiringSoon: statistics.expiringSoon,
-          expired: statistics.expired,
-          categoryCounts: statistics.byCategory,
+          activeCount: getActiveCertificatesCount(),
+          expiringCertificates: getExpiringCertificates(selectedTimeframe),
+          expiredCertificates: getExpiredCertificates(),
+          categoryCounts: getCertificatesByCategory(),
+          jobRoleCounts: getCertificatesByJobRole()
         });
       }
     };
 
     getDashboardData();
-  }, [certificates, statistics]);
+  }, [certificates, selectedTimeframe, getActiveCertificatesCount, getExpiringCertificates, getExpiredCertificates, getCertificatesByCategory, getCertificatesByJobRole]);
 
   const formatDate = (dateString) => {
     const [day, month, year] = dateString.split('/');

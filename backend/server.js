@@ -2430,7 +2430,6 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
 app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
-app.use('/api/certificates', authenticateSession, certificatesRoutes);
 
 // Email configuration using SMTP settings from .env
 const transporter = nodemailer.createTransport({

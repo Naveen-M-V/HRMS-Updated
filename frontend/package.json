@@ -16,7 +16,6 @@
     "lucide-react": "^0.542.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-intersection-observer": "^9.16.0",
     "react-router-dom": "^6.22.3",
     "react-scripts": "^5.0.1",
     "slick-carousel": "^1.8.1",
