@@ -171,34 +171,12 @@ This will also delete any associated certificates and user account. This action 
       {/* Header with Create Button */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-4xl font-bold">Profiles</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={async () => {
-              try {
-                console.log('Testing API connection...');
-                const response = await fetch(`${getApiUrl()}/api/test`, {
-                  credentials: 'include'
-                });
-                console.log('Test response status:', response.status);
-                const data = await response.json();
-                console.log('Test response data:', data);
-                alert(`API Test: ${data.message}`);
-              } catch (error) {
-                console.error('API Test failed:', error);
-                alert(`API Test Failed: ${error.message}`);
-              }
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm"
-          >
-            Test API
-          </button>
-          <button
+          {/*<button
             onClick={() => navigate("/dashboard/profilescreate")}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow"
           >
             + Create Profile
-          </button>
-        </div>
+          </button>*/}
       </div>
 
       {/* Search + Rows selector */}
@@ -327,9 +305,8 @@ This will also delete any associated certificates and user account. This action 
                   </Link>
                   <button
                     onClick={() => {
-                      console.log('Edit clicked for profile:', p._id);
-                      console.log('Navigating to:', `/profiles/edit/${p._id}`);
-                      navigate(`/profiles/edit/${p._id}`);
+                 console.log('Navigating to:', `/dashboard/profilescreate?id=${p._id}`);
+                      navigate(`/dashboard/profilescreate?id=${p._id}`);
                     }}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile"
