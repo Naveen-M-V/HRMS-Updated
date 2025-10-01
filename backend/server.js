@@ -19,7 +19,7 @@ const app = express();
 const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
 const MONGODB_URI = config.database.uri;
-
+const certificatesRouter = require('./routes/certificates');
 
 // Middleware
 app.use(cookieParser());
@@ -45,6 +45,8 @@ app.use(session({
   },
   name: 'talentshield.sid' // Custom session name
 }));
+
+app.use('/api/certificates', certificatesRouter);
 
 // CORS configuration
 app.use(cors({
