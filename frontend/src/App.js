@@ -191,8 +191,8 @@ function App() {
                               <Route path="/profiles" element={<ProfilesPage />} />
                               <Route path="/dashboard/profilescreate" element={<ProfilesCreate />} />
                               <Route path="/create-user" element={<CreateUser />} />
-                              <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
                               <Route path="/profiles/:id" element={<ProfileDetailView />} />
+                              <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
                               <Route path="/profile" element={<Profile />} />
                               <Route path="/noaccess" element={<NoAccess />} />
                               <Route path="/editprofile" element={<EditProfile />} />
