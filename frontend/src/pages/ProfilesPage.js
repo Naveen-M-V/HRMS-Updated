@@ -6,7 +6,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
-  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL 
+  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://talentshield.co.uk:5003";
 };
 
 // Safely get VTID for a profile row
@@ -325,12 +325,17 @@ This will also delete any associated certificates and user account. This action 
                   >
                     <EyeIcon className="h-4 w-4" />
                   </Link>
-                   <Link
-                    to={`/dashboard/profiles/edit/${p._id}`} 
+                  <button
+                    onClick={() => {
+                      console.log('Edit clicked for profile:', p._id);
+                      console.log('Navigating to:', `/profiles/edit/${p._id}`);
+                      navigate(`/profiles/edit/${p._id}`);
+                    }}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
-                    title="Edit Profile">                    
+                    title="Edit Profile"
+                  >
                     <PencilIcon className="h-4 w-4" />
-                  </Link>
+                  </button>
                   <button
                     onClick={(e) => {
                       e.preventDefault();

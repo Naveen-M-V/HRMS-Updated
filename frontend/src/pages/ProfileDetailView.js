@@ -170,7 +170,7 @@ const handleDeleteCertificate = async (certId) => {
               Add Certificate
             </button>
             <button
-              onClick={() => navigate(`/profiles/edit/${p._id}`)}
+              onClick={() => navigate('/profiles/edit/:id')}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
               <PencilIcon className="h-5 w-5" />
