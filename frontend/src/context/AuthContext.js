@@ -32,33 +32,39 @@ const API_BASE_URL = `${getApiUrl()}`;
 axios.defaults.withCredentials = true;
 
 export const AuthProvider = ({ children }) => {
-  // Session storage utilities - minimal local cache for UI state only
+  // Session storage utilities - only for authentication state
   const sessionStorage = {
-    // Store user session data in sessionStorage (NOT localStorage - clears on tab close)
-    setUserSession: (userData) => {
+    // Store user session data
+    setUserSession: (userData, token = null) => {
       try {
-        // Only store non-sensitive user info for UI display
-        window.sessionStorage.setItem('user_cache', JSON.stringify({
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          email: userData.email,
-          role: userData.role,
-          timestamp: Date.now()
+        localStorage.setItem('user_session', JSON.stringify({
+          user: userData,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
         }));
+        if (token) {
+          localStorage.setItem('auth_token', token);
+        }
       } catch (error) {
-        console.error('Error storing session cache:', error);
+        console.error('Error storing session:', error);
       }
     },
 
-    // Get user session data from sessionStorage
+    // Get user session data
     getUserSession: () => {
       try {
-        const sessionData = window.sessionStorage.getItem('user_cache');
+        const sessionData = localStorage.getItem('user_session');
         if (sessionData) {
-          return { user: JSON.parse(sessionData) };
+          const parsed = JSON.parse(sessionData);
+          // Check if session is expired
+          if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+            sessionStorage.clearSession();
+            return null;
+          }
+          return parsed;
         }
       } catch (error) {
-        console.error('Error reading session cache:', error);
+        console.error('Error reading session:', error);
         sessionStorage.clearSession();
       }
       return null;
@@ -67,24 +73,41 @@ export const AuthProvider = ({ children }) => {
     // Clear all session data
     clearSession: () => {
       try {
-        window.sessionStorage.removeItem('user_cache');
-        // Clear any legacy localStorage items
         localStorage.removeItem('user_session');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('session_cookie');
       } catch (error) {
         console.error('Error clearing session:', error);
       }
+    },
+
+    // Store session cookie for backend communication
+    setSessionCookie: (cookieValue) => {
+      try {
+        localStorage.setItem('session_cookie', cookieValue);
+      } catch (error) {
+        console.error('Error storing session cookie:', error);
+      }
+    },
+
+    // Get auth token
+    getAuthToken: () => {
+      try {
+        return localStorage.getItem('auth_token');
+      } catch (error) {
+        console.error('Error reading auth token:', error);
+        return null;
+      }
     }
   };
 
-  // Initialize state from session storage (UI cache only)
+  // Initialize state from session storage
   const getInitialState = () => {
     const sessionData = sessionStorage.getUserSession();
     if (sessionData && sessionData.user) {
       return {
         user: sessionData.user,
-        isAuthenticated: false // Will be validated by server
+        isAuthenticated: true
       };
     }
     return {
@@ -99,25 +122,39 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Store session cookie for session maintenance
+  const storeSessionCookie = () => {
+    const cookies = document.cookie.split(';');
+    const sessionCookie = cookies.find(cookie => cookie.trim().startsWith('talentshield.sid='));
+
+    if (sessionCookie) {
+      console.log('Session cookie captured:', sessionCookie);
+      sessionStorage.setSessionCookie(sessionCookie);
+    } else {
+      sessionStorage.clearSession();
+    }
+  };
+
   const checkExistingSession = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
-        withCredentials: true,
-        timeout: 5000
-      });
-      
-      if (response.data.isAuthenticated && response.data.user) {
-        setUser(response.data.user);
-        setIsAuthenticated(true);
-        sessionStorage.setUserSession(response.data.user);
-      } else {
-        handleInvalidSession();
+      const sessionData = sessionStorage.getUserSession();
+      if (sessionData && sessionData.user) {
+        try {
+          await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
+            withCredentials: true,
+            timeout: 5000
+          });
+          // Session is valid, no action needed
+        } catch (error) {
+          // Session invalid, clear it
+          if (error.response?.status === 403 || error.response?.status === 401) {
+            handleInvalidSession();
+          }
+        }
       }
     } catch (error) {
-      // Session invalid or expired
-      if (error.response?.status === 403 || error.response?.status === 401) {
-        handleInvalidSession();
-      }
+      console.error('Error checking session:', error);
+      // Don't clear session on network errors, only on auth errors
     }
   }, []);
 
@@ -125,15 +162,42 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let isMounted = true;
     
-    // Always validate session with server on mount
-    if (isMounted) {
+    // Only run background validation if user is not already set
+    if (!user && isMounted) {
       checkExistingSession();
     }
 
+    // Listen for localStorage changes to sync across tabs (session management only)
+    const handleStorageChange = (e) => {
+      if (!isMounted) return;
+      
+      if (e.key === 'user_session') {
+        if (e.newValue) {
+          try {
+            const sessionData = JSON.parse(e.newValue);
+            if (sessionData.user && isMounted) {
+              setUser(sessionData.user);
+              setIsAuthenticated(true);
+            }
+          } catch (error) {
+            console.error('Error parsing session storage change:', error);
+          }
+        } else {
+          // Session was removed
+          if (isMounted) {
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
     return () => {
       isMounted = false;
+      window.removeEventListener('storage', handleStorageChange);
     };
-  }, [checkExistingSession]);
+  }, [user, checkExistingSession]);
 
 
   const login = async (email, password, rememberMe = false) => {
@@ -150,16 +214,16 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true
       });
 
-      const { user: userData } = response.data;
+      const { token, user: userData } = response.data;
 
       if (!userData) {
         throw new Error('Invalid response from server');
       }
 
-      // Store minimal user data for UI (not tokens!)
-      sessionStorage.setUserSession(userData);
+      // Store session data using our session storage utility
+      sessionStorage.setUserSession(userData, token);
 
-      // Update state - auth is handled by httpOnly cookies
+      // Update state - session is automatically handled by cookies
       setUser(userData);
       setIsAuthenticated(true);
 
@@ -231,7 +295,8 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
-    updateUser
+    updateUser,
+    storeSessionCookie
   };
 
   return (

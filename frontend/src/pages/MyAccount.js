@@ -24,11 +24,16 @@ export default function MyAccount() {
       
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/my-profile`, {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          throw new Error('Authentication required');
+        }
+  const response = await fetch(`${API_BASE_URL}/api/my-profile`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           }
         });
         

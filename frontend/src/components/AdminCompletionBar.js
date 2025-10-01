@@ -14,12 +14,15 @@ export default function AdminCompletionBar() {
     let mounted = true;
     const fetchProfile = async () => {
       try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
         const apiUrl = process.env.REACT_APP_API_URL || '';
         const base = apiUrl ? apiUrl : '';
         const resp = await fetch(`${base}/api/my-profile`, {
           credentials: 'include',
           headers: {
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
           }
         });
         const ct = resp.headers.get('content-type') || '';

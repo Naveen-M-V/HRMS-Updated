@@ -29,9 +29,16 @@ export default function Sidebar({ isOpen }) {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          console.error('Authentication token not found');
+          return;
+        }
+
+  const response = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
           credentials: 'include',
           headers: {
+            'Authorization': `Bearer ${token}`,
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           }

@@ -304,34 +304,44 @@ export const ProfileProvider = ({ children }) => {
             credentials: 'include'
           });
 
-      console.log('UploadProfilePicture - Response status:', response.status);
+          console.log('UploadProfilePicture - Response status:', response.status);
+          console.log('UploadProfilePicture - Response headers:', response.headers.get('content-type'));
 
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
-          
-          const updatedProfiles = profiles.map(profile =>
-            profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
-          );
-          setProfiles(updatedProfiles);
-          localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-          localStorage.setItem('profiles_cache_time', Date.now().toString());
+          if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const data = await response.json();
+              
+              const updatedProfiles = profiles.map(profile =>
+                profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
+              );
+              setProfiles(updatedProfiles);
+              localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+              localStorage.setItem('profiles_cache_time', Date.now().toString());
 
-          console.log('UploadProfilePicture - Success');
-          return data.profilePicture;
-        } else {
-          throw new Error('Server returned non-JSON response');
+              console.log(`UploadProfilePicture - Success with URL: ${apiUrl}`);
+              return data.profilePicture;
+            } else {
+              console.log(`UploadProfilePicture - Non-JSON response with URL ${apiUrl}`);
+              lastError = new Error('Server returned non-JSON response');
+              continue;
+            }
+          } else {
+            const textResponse = await response.text();
+            console.log(`UploadProfilePicture - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
+            lastError = new Error(`Server error (${response.status})`);
+            continue;
+          }
+        } catch (err) {
+          console.log(`UploadProfilePicture - Error with URL ${apiUrl}:`, err.message);
+          lastError = err;
+          continue;
         }
-      } else {
-        const textResponse = await response.text();
-        console.log(`UploadProfilePicture - Failed, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
-        throw new Error(`Server error (${response.status})`);
       }
-    } catch (error) {
-      console.error('UploadProfilePicture - Error:', error);
+      
+      console.error('UploadProfilePicture - All API URLs failed');
       setError('Failed to upload profile picture');
-      throw error;
+      throw lastError || new Error('Failed to upload profile picture - all API endpoints unreachable');
     } finally {
       setLoading(false);
     }
