@@ -29,10 +29,16 @@ const ComplianceDashboard = () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats`, {
         method: 'GET',
+        credentials: 'include',
         headers: {
           'Cache-Control': 'max-age=300'
         }
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
+      }
+      
       const data = await response.json();
       setDashboardData({
         activeCount: data.activeCount,
@@ -43,11 +49,19 @@ const ComplianceDashboard = () => {
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      // Set empty data on error so UI doesn't hang
+      setDashboardData({
+        activeCount: 0,
+        expiringCertificates: [],
+        expiredCertificates: [],
+        categoryCounts: {},
+        jobRoleCounts: {}
+      });
     }
   };
 
-  getDashboardData(); // ✅ don't forget to call it
-}, [certificates, selectedTimeframe, getActiveCertificatesCount, getExpiringCertificates, getExpiredCertificates, getCertificatesByCategory, getCertificatesByJobRole]);
+  getDashboardData();
+}, [selectedTimeframe]);
 
 
   const formatDate = (dateString) => {
