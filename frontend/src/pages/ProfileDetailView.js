@@ -508,7 +508,7 @@ const handleDeleteCertificate = async (certId) => {
                             <td className="p-2 border flex items-center gap-2">
                               {cert.certificateFile ? (
                                 <a
-                                  href={`${process.env.REACT_APP_API_URL || 'http://localhost:5003'}/api/certificates/${
+                                  href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${
                                     cert.id || cert._id
                                   }/file`}
                                   target="_blank"

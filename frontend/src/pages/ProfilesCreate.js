@@ -172,11 +172,17 @@ export default function ProfilesCreate() {
 
   const fetchJobLevels = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/job-levels`, {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+  const response = await fetch(`${API_BASE_URL}/api/job-levels`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       });
 
