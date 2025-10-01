@@ -177,49 +177,36 @@ const profileSchema = new mongoose.Schema({
   otherInformation: String,
 });
 
-// Auto-generate VTID as sequential number from 1000-9000
+// Auto-generate VTID as sequential number from 1000-9000 (atomic)
 profileSchema.pre('save', async function(next) {
-  if (!this.vtid) {
-    // Find the highest existing VTID
-    const lastProfile = await this.constructor.findOne({ vtid: { $exists: true } })
-      .sort({ vtid: -1 })
-      .select('vtid')
-      .lean();
-    
-    let newVtid = 1000; // Start from 1000
-    
-    if (lastProfile && lastProfile.vtid) {
-      newVtid = lastProfile.vtid + 1;
-    }
-    
-    // Ensure we don't exceed 9000
-    if (newVtid > 9000) {
-      throw new Error('VTID limit exceeded. Maximum VTID is 9000.');
-    }
-    
-    this.vtid = newVtid;
+if (!this.vtid) {
+try {
+  const newVtid = await getNextSequence('vtid', 1000);
+
+// Ensure we don't exceed 9000
+if (newVtid > 9000) {
+    throw new Error('VTID limit exceeded. Maximum VTID is 9000.');
   }
-  next();
+  
+  this.vtid = newVtid;
+} catch (error) {
+  return next(error);
+}
+}
+next();
 });
 
-// Auto-generate skillkoId as random 4-digit number
+// Auto-generate skillkoId as sequential number (atomic - changed from random to avoid collisions)
 profileSchema.pre('save', async function(next) {
-  if (!this.skillkoId) {
-    let newId;
-    let isUnique = false;
-    
-    // Generate random 4-digit number until we find a unique one
-    while (!isUnique) {
-      newId = Math.floor(Math.random() * 9000) + 1000; // Generates 1000-9999
-      const existingProfile = await this.constructor.findOne({ skillkoId: newId });
-      if (!existingProfile) {
-        isUnique = true;
-      }
-    }
-    
-    this.skillkoId = newId;
-   }
-  next();
+if (!this.skillkoId) {
+  try {
+      // Use atomic counter starting from 1000
+      this.skillkoId = await getNextSequence('skillkoId', 1000);
+    } catch (error) {
+      return next(error);
+  }
+}
+next();
 });
 
 // Add compound indexes for better query performance
@@ -628,7 +615,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       const existingUser = await User.findOne({ email: savedProfile.email });
       
       if (!existingUser) {
-        // Create new user account with VTID as password
+        // Create new user account with hashed password
         const vtid = savedProfile.vtid || Math.floor(1000 + Math.random() * 8000); // Generate VTID if not exists
         
         // Update profile with VTID if it wasn't set
@@ -637,23 +624,26 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
           await savedProfile.save();
         }
         
+        // Hash the VTID password before storing
+        const hashedPassword = await bcrypt.hash(vtid.toString(), 10);
+        
         // Create user account
         const newUser = new User({
           firstName: savedProfile.firstName,
           lastName: savedProfile.lastName,
           email: savedProfile.email,
-          password: vtid.toString(), // Store VTID as plain text for user accounts
+          password: hashedPassword, // Store hashed password
           role: 'user',
           isActive: true,
           emailVerified: true, // Auto-verify user accounts created by admin
-          createdBy: 'admin',
+          adminApprovalStatus: 'approved',
           profileId: savedProfile._id
         });
         
         await newUser.save();
         console.log('User account created for profile:', savedProfile.email);
         
-        // Send credentials email to user
+        // Send credentials email to user (send plain VTID for user to login)
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const loginUrl = `${frontendUrl}/login`;
         const userName = `${savedProfile.firstName} ${savedProfile.lastName}`;
@@ -1065,42 +1055,16 @@ app.get('/api/certificates/:id/file', async (req, res) => {
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
-    
-    if (!certificate.fileData) {
-      return res.status(404).json({ message: 'No file found for this certificate' });
-    }
-    
-    // Set appropriate headers
-    res.set({
-      'Content-Type': certificate.mimeType || 'application/octet-stream',
-      'Content-Length': certificate.fileSize,
-      'Content-Disposition': `inline; filename="${certificate.certificateFile}"`,
-      'Cache-Control': 'public, max-age=31536000' // Cache for 1 year
-    });
-    
-    res.send(certificate.fileData);
-  } catch (error) {
-    console.error('Error serving certificate file:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Serve certificate file for viewing (not downloading)
-app.get('/api/certificates/:id/file', async (req, res) => {
-  try {
-    const certificate = await Certificate.findById(req.params.id);
-    if (!certificate) {
-      return res.status(404).json({ message: 'Certificate not found' });
-    }
 
     if (!certificate.fileData || !certificate.mimeType) {
       return res.status(404).json({ message: 'Certificate file not found' });
     }
 
-    // Set headers for inline viewing (not download)
+    // Set headers for inline viewing
     res.setHeader('Content-Type', certificate.mimeType);
-    res.setHeader('Content-Disposition', 'inline'); // This makes it view instead of download
+    res.setHeader('Content-Disposition', `inline; filename="${certificate.certificateFile || 'certificate.pdf'}"`);
     res.setHeader('Content-Length', certificate.fileSize || certificate.fileData.length);
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
     
     // Send the file data
     res.send(certificate.fileData);
@@ -1889,102 +1853,9 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
 
-    // First check admin accounts
-    const admin = await User.findOne({ email: email });
-    if (admin) {
-      const isValidPassword = await bcrypt.compare(password, admin.password);
-      if (!isValidPassword) {
-        return res.status(400).json({ message: 'Invalid email or password' });
-      }
-
-      // Create session data for admin
-      const sessionUser = {
-        userId: admin._id,
-        email: admin.email,
-        role: 'admin',
-        firstName: admin.firstName,
-        lastName: admin.lastName
-      };
-
-      // Generate JWT token for admin
-      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
-
-      // Store admin in session
-      req.session.user = sessionUser;
-      return res.json({ user: sessionUser, token });
-    }
-
-    // Then check user accounts
-    const profile = await Profile.findOne({ email: email });
-    if (profile) {
-      if (password !== profile.password) {
-        return res.status(400).json({ message: 'Invalid email or password' });
-      }
-
-      if (!profile.isActive) {
-        return res.status(400).json({ message: 'User account is deactivated' });
-      }
-
-      // Create session data for user
-      const sessionUser = {
-        userId: profile._id,
-        email: profile.email,
-        role: 'user',
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        profileId: profile._id,
-        vtid: profile.vtid
-      };
-
-      // Store user in session
-      req.session.user = sessionUser;
-
-      // Force session save
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-        } else {
-          console.log('Session saved successfully for user:', sessionUser.email);
-        }
-      });
-
-      // If remember me is checked, extend session duration
-      if (rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      }
-
-      // Generate JWT token for API compatibility
-      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
-      
-      // Send response with both session and token
-      res.json({
-        user: sessionUser,
-        token
-      });
-
-      // Send login success email notification
-      try {
-        const loginTime = new Date().toLocaleString();
-        const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
-        const userName = `${profile.firstName} ${profile.lastName}`;
-        
-        await sendLoginSuccessEmail(profile.email, userName, loginTime, ipAddress);
-      } catch (emailError) {
-        console.error('Failed to send login success email:', emailError);
-        // Don't fail the login if email fails
-      }
-
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        user: sessionUser,
-        token: token,
-        redirectTo: '/user-dashboard'
-      });
-    }
-
-    // If not found in Profile collection, check User collection (admin accounts)
+    // Try to find user account first (covers both admin and regular users)
     const user = await User.findOne({ $or: [ { email: email }, { username: email } ] });
+    
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
@@ -1994,7 +1865,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
-    // Enforce email verification for all users (including admins)
+    // Enforce email verification
     if (!user.emailVerified) {
       return res.status(403).json({ 
         message: 'Email not verified. Please check your email and click the verification link to continue.',
@@ -2007,11 +1878,14 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(403).json({ message: 'Admin account pending approval by super admin.' });
     }
 
-    // Verify password for admin accounts (hashed)
+    // Verify password (all passwords are now hashed)
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
+
+    // Get additional user data from Profile if exists
+    const profile = await Profile.findOne({ email: user.email });
 
     // Create session data
     const sessionUser = {
@@ -2019,19 +1893,24 @@ app.post('/api/auth/login', async (req, res) => {
       email: user.email,
       role: user.role,
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
+      ...(profile && { profileId: profile._id, vtid: profile.vtid })
     };
 
     // Store user in session
     req.session.user = sessionUser;
 
     // Force session save
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-      } else {
-        console.log('Session saved successfully for user:', sessionUser.email);
-      }
+    await new Promise((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          reject(err);
+        } else {
+          console.log('Session saved successfully for user:', sessionUser.email);
+          resolve();
+        }
+      });
     });
 
     // If remember me is checked, extend session duration
@@ -2040,7 +1919,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // Generate JWT token for API compatibility
-    const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
 
     // Send login success email notification
     try {
@@ -2054,21 +1933,19 @@ app.post('/api/auth/login', async (req, res) => {
       // Don't fail the login if email fails
     }
 
+    // Return appropriate redirect based on role
+    const redirectTo = user.role === 'admin' ? '/dashboard' : '/user-dashboard';
+
     res.json({
       success: true,
       message: 'Login successful',
-      token, // Keep for backward compatibility
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role
-      },
-      redirectTo: '/dashboard'
+      token,
+      user: sessionUser,
+      redirectTo
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'An error occurred during login' });
   }
 });
 
@@ -2373,23 +2250,35 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
     // Generate a secure password (minimum 6 characters)
     const generatedPassword = generateSimplePassword(8);
 
-    // Create new profile
+    // Create new profile (without password field)
     const newProfile = new Profile({
       firstName,
       lastName,
       email,
-      vtid: vtid || `VT${Date.now()}`, // Generate VTID if not provided
-      password: generatedPassword, // Store plain text password for user login
       role: 'user',
       isActive: true,
-      emailVerified: true, // Auto-verify email for admin-created users
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      createdBy: req.user.email // Track who created the user
+      emailVerified: true,
+      createdOn: new Date()
     });
 
     // Save the profile
     const savedProfile = await newProfile.save();
+
+    // Create corresponding User account with hashed password
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      role: 'user',
+      isActive: true,
+      emailVerified: true,
+      adminApprovalStatus: 'approved',
+      profileId: savedProfile._id
+    });
+    
+    await newUser.save();
 
     // Send credentials email
     const loginUrl = `${process.env.FRONTEND_URL || 'https://talentshield.co.uk'}/login`;
