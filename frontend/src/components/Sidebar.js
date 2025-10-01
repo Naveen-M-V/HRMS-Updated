@@ -17,7 +17,7 @@ import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
-  const { logout, loading, user } = useAuth();
+  const { logout, loading } = useAuth();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
@@ -28,10 +28,8 @@ export default function Sidebar({ isOpen }) {
   // Fetch notification count on component mount
   useEffect(() => {
     const fetchNotificationCount = async () => {
-      if (!user?.userId) return;
-      
       try {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/${user.userId}/unread-count`, {
+        const response = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -66,7 +64,7 @@ export default function Sidebar({ isOpen }) {
     const interval = setInterval(fetchNotificationCount, 30000);
     
     return () => clearInterval(interval);
-  }, [user?.userId]);
+  }, []);
 
   // Handle logout
   const handleLogout = async () => {

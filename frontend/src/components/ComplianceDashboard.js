@@ -27,7 +27,7 @@ const ComplianceDashboard = () => {
   useEffect(() => {
     const getDashboardData = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/analytics/stats`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats`, {
           method: 'GET',
           headers: {
             'Cache-Control': 'max-age=300'
