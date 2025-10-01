@@ -24,25 +24,31 @@ const ComplianceDashboard = () => {
     jobRoleCounts: {}
   });
 
-  useEffect(() => {
-    const getDashboardData = async () => {
-      try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats`, {
-          method: 'GET',
-          headers: {
-            'Cache-Control': 'max-age=300'
-          }
-        });
-        const data = await response.json();
-        setDashboardData({
-          activeCount: data.activeCount,
-          expiringCertificates: data.expiringCertificates,
-          expiredCertificates: data.expiredCertificates,
-          categoryCounts: data.categoryCounts,
+ useEffect(() => {
+  const getDashboardData = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'max-age=300'
+        }
+      });
+      const data = await response.json();
+      setDashboardData({
+        activeCount: data.activeCount,
+        expiringCertificates: data.expiringCertificates,
+        expiredCertificates: data.expiredCertificates,
+        categoryCounts: data.categoryCounts,
         jobRoleCounts: getCertificatesByJobRole()
       });
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
     }
-  }, [certificates, selectedTimeframe, getActiveCertificatesCount, getExpiringCertificates, getExpiredCertificates, getCertificatesByCategory, getCertificatesByJobRole]);
+  };
+
+  getDashboardData(); // ✅ don't forget to call it
+}, [certificates, selectedTimeframe, getActiveCertificatesCount, getExpiringCertificates, getExpiredCertificates, getCertificatesByCategory, getCertificatesByJobRole]);
+
 
   const formatDate = (dateString) => {
     const [day, month, year] = dateString.split('/');
