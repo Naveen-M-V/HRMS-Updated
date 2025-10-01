@@ -325,7 +325,7 @@ This will also delete any associated certificates and user account. This action 
                   >
                     <EyeIcon className="h-4 w-4" />
                   </Link>
-                  <Link
+                   <Link
                     to={`/dashboard/profiles/edit/${p._id}`} 
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile">                    
