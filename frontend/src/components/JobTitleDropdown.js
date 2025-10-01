@@ -46,9 +46,7 @@ const JobTitleDropdown = ({
     }
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-titles/search?q=${encodeURIComponent(searchTerm)}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`${getApiUrl()}/api/job-titles/search?q=${encodeURIComponent(searchTerm)}`);
       if (response.ok) {
         const data = await response.json();
         setJobTitles(data);

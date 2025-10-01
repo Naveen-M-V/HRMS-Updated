@@ -84,7 +84,6 @@ export default function VerifyOTP() {
     try {
   const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

@@ -182,9 +182,7 @@ export default function CreateCertificate() {
   const handleCertificateNameSearch = async (searchTerm) => {
     try {
       const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}/api/certificate-names/search?q=${encodeURIComponent(searchTerm)}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(`${baseUrl}/api/certificate-names/search?q=${encodeURIComponent(searchTerm)}`);
       if (response.ok) {
         const data = await response.json();
         setCertificateNames(data);

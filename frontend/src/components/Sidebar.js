@@ -31,7 +31,7 @@ export default function Sidebar({ isOpen }) {
       if (!user?.userId) return;
       
       try {
-        const response = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
+        const response = await fetch(`${API_BASE_URL}/api/notifications/${user.userId}/unread-count`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
