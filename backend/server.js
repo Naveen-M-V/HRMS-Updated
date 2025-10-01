@@ -11,7 +11,6 @@ const cron = require('node-cron');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
-const rateLimit = require('express-rate-limit');
 // Load environment configuration
 const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
@@ -93,13 +92,6 @@ const validateCertificateInput = (req, res, next) => {
   
   next();
 };
-
-// Rate limiting for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per window
-  message: 'Too many login attempts, please try again later'
-});
 
 // MongoDB connection
 mongoose.connect(MONGODB_URI);
