@@ -27,7 +27,9 @@ const JobRoleCheckboxPicker = ({
   const fetchJobRoles = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-roles`);
+      const response = await fetch(`${getApiUrl()}/api/job-roles`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         console.log('Job roles fetched:', data.length, 'roles');

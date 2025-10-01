@@ -1,74 +1,60 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 
-// Mock notification data - replace with your actual notification storage
-let notifications = [
-  {
-    id: 1,
-    userId: 'all', // 'all' means for all users
-    title: 'System Maintenance',
-    message: 'Scheduled maintenance will occur tonight from 2-4 AM',
-    type: 'info',
-    isRead: false,
-    createdAt: new Date('2024-01-15T10:00:00Z')
-  },
-  {
-    id: 2,
-    userId: 'all',
-    title: 'Certificate Expiry Warning',
-    message: 'Your SSL certificate will expire in 7 days',
-    type: 'warning',
-    isRead: false,
-    createdAt: new Date('2024-01-14T15:30:00Z')
-  },
-  {
-    id: 3,
-    userId: 'all',
-    title: 'Welcome to HRMS',
-    message: 'Welcome to the new HRMS system. Please update your profile.',
-    type: 'success',
-    isRead: false,
-    createdAt: new Date('2024-01-13T09:00:00Z')
-  }
-];
+// Import Notification model (defined in server.js)
+let Notification;
+try {
+  Notification = mongoose.model('Notification');
+} catch (e) {
+  // Model not registered yet, define schema here
+  const notificationSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    type: { type: String, required: true },
+    priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'low' },
+    message: { type: String, required: true },
+    certificateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Certificate' },
+    read: { type: Boolean, default: false },
+    emailSent: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+  });
+  Notification = mongoose.model('Notification', notificationSchema);
+}
 
 // Get unread notification count
-router.get('/unread-count', (req, res) => {
+router.get('/unread-count', async (req, res) => {
   try {
-    // Validate session and user ID
-    if (!req.session?.user?.userId) {
-      console.error("Invalid session data. Session:", req.session);
-      console.error("Cookies:", req.cookies);
-      return res.status(400).json({ error: 'User ID is required' });
+    // Validate JWT user data
+    if (!req.user?.userId) {
+      console.error("Invalid user data. User:", req.user);
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Ensure notifications is an array
-    if (!Array.isArray(notifications)) {
-      console.error("Notifications data is invalid. Expected an array but got:", notifications);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+    // Count unread notifications from database
+    const count = await Notification.countDocuments({ 
+      userId: req.user.userId, 
+      read: false 
+    });
 
-    // Filter unread notifications
-    const unreadCount = notifications.filter(n => 
-      !n.isRead && (n.userId === 'all' || n.userId === req.session.user.userId)
-    ).length;
-
-    res.json({ count: unreadCount });
+    res.json({ count });
   } catch (error) {
     console.error("Error fetching notification count:", error);
-    console.error("Session data:", req.session);
-    console.error("Notifications data:", notifications);
+    console.error("User data:", req.user);
     res.status(500).json({ error: 'Failed to fetch notification count' });
   }
 });
 
 // Get all notifications for user
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    // In a real app, filter by user ID from session
-    const userNotifications = notifications
-      .filter(n => n.userId === 'all' || n.userId === req.session?.user?.userId)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (!req.user?.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Fetch notifications from database
+    const userNotifications = await Notification.find({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .limit(50);
     
     res.json({ notifications: userNotifications });
   } catch (error) {
@@ -78,17 +64,23 @@ router.get('/', (req, res) => {
 });
 
 // Mark notification as read
-router.put('/:id/read', (req, res) => {
+router.put('/:id/read', async (req, res) => {
   try {
-    const notificationId = parseInt(req.params.id);
-    const notification = notifications.find(n => n.id === notificationId);
+    if (!req.user?.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.userId },
+      { read: true },
+      { new: true }
+    );
     
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
     }
     
-    notification.isRead = true;
-    res.json({ message: 'Notification marked as read' });
+    res.json({ message: 'Notification marked as read', notification });
   } catch (error) {
     console.error('Error marking notification as read:', error);
     res.status(500).json({ error: 'Failed to mark notification as read' });
@@ -96,13 +88,16 @@ router.put('/:id/read', (req, res) => {
 });
 
 // Mark all notifications as read
-router.put('/mark-all-read', (req, res) => {
+router.put('/mark-all-read', async (req, res) => {
   try {
-    notifications.forEach(n => {
-      if (n.userId === 'all' || n.userId === req.session?.user?.userId) {
-        n.isRead = true;
-      }
-    });
+    if (!req.user?.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    await Notification.updateMany(
+      { userId: req.user.userId, read: false },
+      { read: true }
+    );
     
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {
@@ -111,22 +106,25 @@ router.put('/mark-all-read', (req, res) => {
   }
 });
 
-// Create new notification (for system use)
-router.post('/', (req, res) => {
+// Create new notification (for admin/system use)
+router.post('/', async (req, res) => {
   try {
-    const { title, message, type = 'info', userId = 'all' } = req.body;
+    if (!req.user?.userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { message, type = 'info', priority = 'low', certificateId } = req.body;
     
-    const newNotification = {
-      id: Math.max(...notifications.map(n => n.id), 0) + 1,
-      userId,
-      title,
-      message,
+    const newNotification = new Notification({
+      userId: req.user.userId,
       type,
-      isRead: false,
-      createdAt: new Date()
-    };
+      priority,
+      message,
+      certificateId,
+      read: false
+    });
     
-    notifications.push(newNotification);
+    await newNotification.save();
     res.status(201).json({ notification: newNotification });
   } catch (error) {
     console.error('Error creating notification:', error);

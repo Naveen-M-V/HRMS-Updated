@@ -112,7 +112,9 @@ export default function EditProfile() {
   const handleJobLevelSearch = async (searchTerm) => {
     try {
       const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}/api/job-levels/search?q=${encodeURIComponent(searchTerm)}`);
+      const response = await fetch(`${baseUrl}/api/job-levels/search?q=${encodeURIComponent(searchTerm)}`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setJobLevels(data);

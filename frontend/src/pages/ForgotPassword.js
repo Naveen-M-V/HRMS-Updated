@@ -56,6 +56,7 @@ const ForgotPassword = () => {
     try {
       const response = await fetch('http://localhost:5004/api/auth/reset-password', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

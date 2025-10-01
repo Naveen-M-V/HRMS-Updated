@@ -80,7 +80,9 @@ const JobRoleDropdown = ({
     }
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-roles/search?q=${encodeURIComponent(searchTerm)}`);
+      const response = await fetch(`${getApiUrl()}/api/job-roles/search?q=${encodeURIComponent(searchTerm)}`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setJobRoles(data);

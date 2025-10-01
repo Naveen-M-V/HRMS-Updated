@@ -29,6 +29,7 @@ const ComplianceDashboard = () => {
       try {
         const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/analytics/stats`, {
           method: 'GET',
+          credentials: 'include',
           headers: {
             'Cache-Control': 'max-age=300'
           }

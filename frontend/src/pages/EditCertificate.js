@@ -145,6 +145,7 @@ export default function EditCertificate() {
       const baseUrl = getApiUrl();
       const response = await fetch(`${baseUrl}/api/suppliers`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

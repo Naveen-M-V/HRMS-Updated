@@ -75,6 +75,7 @@ export default function ResetPassword() {
     try {
       const response = await fetch('http://talentshield.co.uk/api/auth/reset-password', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

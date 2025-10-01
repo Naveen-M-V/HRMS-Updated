@@ -8,8 +8,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 // Load environment configuration
@@ -21,32 +19,11 @@ const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
 const MONGODB_URI = config.database.uri;
 
+// Trust proxy for secure cookies behind nginx
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cookieParser());
-
-// Session middleware configuration
-const sessionConfig = {
-  secret: process.env.SESSION_SECRET || JWT_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: MONGODB_URI,
-    touchAfter: 24 * 3600, // Lazy session update
-    ttl: 14 * 24 * 60 * 60, // 14 days
-    autoRemove: 'native'
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true, // Prevent XSS attacks
-    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site in production
-    domain: process.env.COOKIE_DOMAIN || undefined // Set domain for cross-subdomain sharing if needed
-  },
-  name: 'talentshield.sid', // Custom session name
-  proxy: process.env.NODE_ENV === 'production' // Trust proxy in production (for HTTPS detection)
-};
-
-app.use(session(sessionConfig));
 
 // CORS configuration
 app.use(cors({
@@ -546,16 +523,30 @@ app.get('/api/auth/verify-email', async (req, res) => {
     // Get frontend URL for redirect
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     
-    // If user is admin, redirect to dashboard after verification
+    // If user is admin, create JWT and redirect to dashboard after verification
     if (user.role === 'admin') {
-      // Create session for the verified admin
-      req.session.user = {
-        id: user._id,
+      // Create JWT payload
+      const jwtPayload = {
+        userId: user._id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role
       };
+      
+      // Generate JWT token (24 hours)
+      const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: '24h' });
+      
+      // Set httpOnly cookie with JWT
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        domain: process.env.COOKIE_DOMAIN || undefined
+      };
+      
+      res.cookie('auth_token', token, cookieOptions);
       
       // Redirect to admin dashboard
       return res.redirect(`${frontendUrl}/dashboard?verified=true`);
@@ -1452,61 +1443,9 @@ app.post('/api/certificate-names/initialize', async (req, res) => {
 });
 
 // Notification Routes
+// NOTE: Unprotected duplicate routes removed - see protected routes starting at line 2500+
 
-// Get all notifications for a user
-app.get('/api/notifications/:userId', async (req, res) => {
-  try {
-    const notifications = await Notification.find({ userId: req.params.userId })
-      .sort({ createdAt: -1 })
-      .limit(50);
-    res.json(notifications);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Mark notification as read
-app.put('/api/notifications/:id/read', async (req, res) => {
-  try {
-    const notification = await Notification.findByIdAndUpdate(
-      req.params.id,
-      { read: true },
-      { new: true }
-    );
-    if (!notification) {
-      return res.status(404).json({ message: 'Notification not found' });
-    }
-    res.json(notification);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Mark all notifications as read for a user
-app.put('/api/notifications/user/:userId/read-all', async (req, res) => {
-  try {
-    await Notification.updateMany(
-      { userId: req.params.userId, read: false },
-      { read: true }
-    );
-    res.json({ message: 'All notifications marked as read' });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Get unread notification count
-app.get('/api/notifications/:userId/unread-count', async (req, res) => {
-  try {
-    const count = await Notification.countDocuments({ 
-      userId: req.params.userId, 
-      read: false 
-    });
-    res.json({ count });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// Removed duplicate unprotected route - see protected version at line 2515+
 
 // Dashboard Analytics Endpoints
 
@@ -1919,8 +1858,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     // Get additional user data from Profile if exists
     const profile = await Profile.findOne({ email: user.email });
 
-    // Create session data
-    const sessionUser = {
+    // Create JWT payload
+    const jwtPayload = {
       userId: user._id,
       email: user.email,
       role: user.role,
@@ -1929,29 +1868,20 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       ...(profile && { profileId: profile._id, vtid: profile.vtid })
     };
 
-    // Store user in session
-    req.session.user = sessionUser;
+    // Generate JWT token
+    const token = jwt.sign(jwtPayload, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
 
-    // Force session save
-    await new Promise((resolve, reject) => {
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-          reject(err);
-        } else {
-          console.log('Session saved successfully for user:', sessionUser.email);
-          resolve();
-        }
-      });
-    });
-
-    // If remember me is checked, extend session duration
-    if (rememberMe) {
-      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-    }
-
-    // Generate JWT token for API compatibility
-    const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
+    // Set httpOnly cookie with JWT
+    const cookieOptions = {
+      httpOnly: true, // Prevent XSS attacks
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'lax', // CSRF protection
+      maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000, // 30 days or 24 hours
+      domain: process.env.COOKIE_DOMAIN || undefined
+    };
+    
+    res.cookie('auth_token', token, cookieOptions);
+    console.log('JWT cookie set for user:', jwtPayload.email);
 
     // Send login success email notification
     try {
@@ -1972,7 +1902,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      user: sessionUser,
+      user: jwtPayload,
       redirectTo
     });
   } catch (error) {
@@ -1983,45 +1913,65 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
 // Logout endpoint
 app.post('/api/auth/logout', (req, res) => {
-  if (req.session) {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Could not log out' });
-      }
-      res.clearCookie('connect.sid'); // Clear session cookie
-      return res.json({ message: 'Logout successful' });
-    });
-  } else {
-    return res.json({ message: 'No active session' });
-  }
+  // Clear JWT cookie
+  res.clearCookie('auth_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    domain: process.env.COOKIE_DOMAIN || undefined
+  });
+  
+  console.log('JWT cookie cleared for logout');
+  return res.json({ message: 'Logout successful' });
 });
 
-// Session validation endpoint
+// JWT validation endpoint
 app.get('/api/auth/validate-session', (req, res) => {
-  console.log('Session validation request:', {
-    sessionExists: !!req.session,
-    sessionUser: req.session?.user ? 'exists' : 'missing',
-    sessionId: req.sessionID,
-    cookies: req.headers.cookie
-  });
-  
-  if (req.session && req.session.user) {
-    return res.json({
-      isAuthenticated: true,
-      user: {
-        id: req.session.user.userId,
-        firstName: req.session.user.firstName,
-        lastName: req.session.user.lastName,
-        email: req.session.user.email,
-        role: req.session.user.role
-      }
+  try {
+    // Check for JWT in cookie
+    const token = req.cookies['auth_token'];
+    
+    console.log('JWT validation request:', {
+      tokenExists: !!token,
+      cookies: req.headers.cookie
+    });
+    
+    if (!token) {
+      return res.status(401).json({ 
+        isAuthenticated: false, 
+        message: 'No authentication token' 
+      });
+    }
+    
+    // Verify JWT
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      return res.json({
+        isAuthenticated: true,
+        user: {
+          userId: decoded.userId,
+          firstName: decoded.firstName,
+          lastName: decoded.lastName,
+          email: decoded.email,
+          role: decoded.role,
+          profileId: decoded.profileId,
+          vtid: decoded.vtid
+        }
+      });
+    } catch (tokenError) {
+      console.error('JWT verification failed:', tokenError.message);
+      return res.status(403).json({ 
+        isAuthenticated: false, 
+        message: 'Invalid or expired token' 
+      });
+    }
+  } catch (error) {
+    console.error('Session validation error:', error);
+    return res.status(500).json({ 
+      isAuthenticated: false, 
+      message: 'Internal server error' 
     });
   }
-  
-  return res.status(401).json({ 
-    isAuthenticated: false, 
-    message: 'No active session' 
-  });
 });
 
 // Reset Password with Old Password Verification
@@ -2078,28 +2028,35 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-// Session-based authentication middleware
-const authenticateSession = async (req, res, next) => {
+// JWT authentication middleware
+const authenticateToken = async (req, res, next) => {
   try {
-    // First check session
-    if (req.session && req.session.user) {
-      req.user = req.session.user;
-      return next();
-    }
-
-    // Then check JWT token
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
+    // First check httpOnly cookie for JWT
+    const token = req.cookies['auth_token'];
+    
+    // Fallback to Authorization header if no cookie
     if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
+      const authHeader = req.headers['authorization'];
+      const headerToken = authHeader && authHeader.split(' ')[1];
+      
+      if (!headerToken) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      // Verify header token
+      try {
+        const decoded = jwt.verify(headerToken, JWT_SECRET);
+        req.user = decoded;
+        return next();
+      } catch (tokenError) {
+        return res.status(403).json({ message: 'Invalid or expired token' });
+      }
     }
-
+    
+    // Verify JWT from cookie
     try {
-      const decoded = await jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
       req.user = decoded;
-      // Update session with token data
-      req.session.user = decoded;
       return next();
     } catch (tokenError) {
       return res.status(403).json({ message: 'Invalid or expired token' });
@@ -2110,8 +2067,8 @@ const authenticateSession = async (req, res, next) => {
   }
 };
 
-// Legacy JWT middleware for backward compatibility
-const authenticateToken = authenticateSession;
+// Alias for backward compatibility
+const authenticateSession = authenticateToken;
 
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
