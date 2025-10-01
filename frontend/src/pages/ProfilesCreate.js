@@ -141,17 +141,11 @@ export default function ProfilesCreate() {
 
   const fetchJobRoles = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-  const response = await fetch(`${API_BASE_URL}/api/job-roles`, {
+      const response = await fetch(`${API_BASE_URL}/api/job-roles`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         }
       });
 

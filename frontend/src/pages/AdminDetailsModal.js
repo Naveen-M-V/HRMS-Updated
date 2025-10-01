@@ -99,8 +99,6 @@ export default function AdminDetailsModal() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
     try {
       setSaving(true);
       const apiUrl = process.env.REACT_APP_API_URL || '';
@@ -110,8 +108,7 @@ export default function AdminDetailsModal() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Accept': 'application/json'
         },
         body: JSON.stringify(formData)
       });

@@ -24,7 +24,7 @@ const MONGODB_URI = config.database.uri;
 app.use(cookieParser());
 
 // Session middleware configuration
-app.use(session({
+const sessionConfig = {
   secret: process.env.SESSION_SECRET || JWT_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -36,14 +36,16 @@ app.use(session({
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    httpOnly: true,
+    httpOnly: true, // Prevent XSS attacks
     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
-    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
-    // Remove domain restriction to allow same-origin cookies
-    domain: undefined
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-site in production
+    domain: process.env.COOKIE_DOMAIN || undefined // Set domain for cross-subdomain sharing if needed
   },
-  name: 'talentshield.sid' // Custom session name
-}));
+  name: 'talentshield.sid', // Custom session name
+  proxy: process.env.NODE_ENV === 'production' // Trust proxy in production (for HTTPS detection)
+};
+
+app.use(session(sessionConfig));
 
 // CORS configuration
 app.use(cors({
@@ -736,6 +738,17 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
       return res.status(400).json({ message: 'File size exceeds 10MB limit' });
     }
     
+    // Validate file type using magic bytes (prevents MIME spoofing)
+    const actualFileType = validateFileType(req.file.buffer, ['jpeg', 'png']);
+    if (!actualFileType) {
+      return res.status(400).json({ message: 'Invalid file type. Only JPEG and PNG images are allowed.' });
+    }
+    
+    // Warn if MIME type doesn't match actual file type
+    if (actualFileType !== req.file.mimetype) {
+      console.warn(`Profile picture MIME type mismatch: declared ${req.file.mimetype}, actual ${actualFileType}`);
+    }
+    
     console.log('File validation passed, updating profile...');
     
     const profile = await Profile.findByIdAndUpdate(
@@ -744,7 +757,7 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
         profilePicture: `/api/profiles/${req.params.id}/picture`,
         profilePictureData: req.file.buffer,
         profilePictureSize: req.file.size,
-        profilePictureMimeType: req.file.mimetype
+        profilePictureMimeType: actualFileType // Use validated type
       },
       { new: true }
     );
@@ -1012,15 +1025,26 @@ app.put('/api/certificates/:id/upload', upload.single('certificateFile'), async 
     
     // If file is uploaded, store in database
     if (req.file) {
-      // Check file size (10MB limit already enforced by multer)
+      // Check file size
       if (req.file.size > 10 * 1024 * 1024) {
         return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+      }
+      
+      // Validate file type using magic bytes
+      const actualFileType = validateFileType(req.file.buffer, ['pdf']);
+      if (!actualFileType) {
+        return res.status(400).json({ message: 'Invalid file type. Only PDF files are allowed for certificates.' });
+      }
+      
+      // Warn if MIME type doesn't match
+      if (actualFileType !== req.file.mimetype) {
+        console.warn(`MIME type mismatch: declared ${req.file.mimetype}, actual ${actualFileType}`);
       }
       
       updateData.certificateFile = req.file.originalname;
       updateData.fileData = req.file.buffer; // Store file data in database
       updateData.fileSize = req.file.size;
-      updateData.mimeType = req.file.mimetype;
+      updateData.mimeType = actualFileType; // Use validated MIME type
       console.log('File uploaded successfully:', req.file.originalname);
     } else {
       console.log('No file received in request');
@@ -1849,7 +1873,7 @@ const jobLevelsRoutes = require('./routes/jobLevels');
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
 
