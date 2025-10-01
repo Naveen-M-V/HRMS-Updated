@@ -305,8 +305,9 @@ This will also delete any associated certificates and user account. This action 
                   </Link>
                   <button
                     onClick={() => {
-                 console.log('Navigating to:', `/dashboard/profilescreate?id=${p._id}`);
-                      navigate(`/dashboard/profilescreate?id=${p._id}`);
+                      console.log('Edit clicked for profile:', p._id);
+                      console.log('Navigating to:', `/profiles/edit/${p._id}`);
+                      navigate(`/profiles/edit/${p._id}`);
                     }}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile"
