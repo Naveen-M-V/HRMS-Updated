@@ -29,18 +29,12 @@ export default function AdminDetailsModal() {
     let mounted = true;
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
         const apiUrl = process.env.REACT_APP_API_URL || '';
         const base = apiUrl ? apiUrl : '';
         const resp = await fetch(`${base}/api/my-profile`, {
           credentials: 'include',
           headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Accept': 'application/json'
           }
         });
         const ct = resp.headers.get('content-type') || '';

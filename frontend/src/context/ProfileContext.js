@@ -43,15 +43,9 @@ export const ProfileProvider = ({ children }) => {
         ? `/api/profiles/paginated?page=${page}&limit=${limit}`
         : `/api/profiles`;
 
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         credentials: 'include',
         headers: { 
-          'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache'
@@ -90,17 +84,9 @@ export const ProfileProvider = ({ children }) => {
   };
 
   const deleteProfile = async (profileId) => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      throw new Error('Authentication token not found');
-    }
-
     try {
       const response = await fetch(`${API_BASE_URL}/api/profiles/${profileId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         credentials: 'include'
       });
 
@@ -130,17 +116,11 @@ export const ProfileProvider = ({ children }) => {
   const addProfile = async (newProfile) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
       const response = await fetch(`${API_BASE_URL}/api/profiles`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify(newProfile),
@@ -252,12 +232,8 @@ export const ProfileProvider = ({ children }) => {
 
   const fetchCompleteProfileById = async (id) => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/complete`, { 
-        credentials: 'include',
-        headers: {
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        }
+        credentials: 'include'
       });
       if (response.ok) return await response.json();
       throw new Error(`Failed to fetch complete profile: ${response.status}`);
@@ -268,41 +244,20 @@ export const ProfileProvider = ({ children }) => {
   };
 
   const uploadProfilePicture = async (id, file) => {
-    const possibleUrls = [
-      'https://talentshield.co.uk:5003',
-      'https://talentshield.co.uk',
-      'http://localhost:5003'
-    ];
-    
     setLoading(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
       console.log('UploadProfilePicture - Profile ID:', id);
       console.log('UploadProfilePicture - File:', file.name, file.size);
-      console.log('UploadProfilePicture - Token exists:', !!token);
       
-      let lastError = null;
-      
-      for (let i = 0; i < possibleUrls.length; i++) {
-        const apiUrl = possibleUrls[i];
-        console.log(`UploadProfilePicture - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
-        
-        try {
-          const formData = new FormData();
-          formData.append('profilePicture', file);
+      const formData = new FormData();
+      formData.append('profilePicture', file);
 
-          const headers = {};
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-
-          const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
-            method: 'POST',
-            headers,
-            body: formData,
-            credentials: 'include'
-          });
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/upload-picture`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
 
       console.log('UploadProfilePicture - Response status:', response.status);
 
@@ -394,12 +349,10 @@ export const ProfileProvider = ({ children }) => {
         }
       };
 
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/profiles/${user._id}`, {
         method: 'PUT',
         headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(updatedData),
         credentials: 'include'
