@@ -1,27 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { API_BASE_URL as CONFIG_API_BASE_URL } from '../utils/config';
 
 const ProfileContext = createContext();
 
-const normalizeBase = (url) => {
-  if (!url) return url;
-  // Remove trailing slash
-  let normalized = url.replace(/\/+$/, '');
-  // Remove trailing '/api' segment if present
-  normalized = normalized.replace(/\/api$/i, '');
-  return normalized;
-};
-
+// Use API base URL from .env with a localhost fallback for dev
 const getApiUrl = () => {
-  const fromEnv = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL;
-  if (fromEnv) return normalizeBase(fromEnv);
-
-  if (window.location.hostname === 'talentshield.co.uk') {
-    return normalizeBase('https://talentshield.co.uk:5003');
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  if (process.env.REACT_APP_API_BASE_URL) {
+    return process.env.REACT_APP_API_BASE_URL;
   }
 
-  return normalizeBase('http://localhost:5003');
+  if (window.location.hostname === 'talentshield.co.uk') {
+    return 'https://talentshield.co.uk:5003';
+  }
+
+  return 'http://localhost:5003';
 };
 
 const API_BASE_URL = getApiUrl();
@@ -69,7 +64,7 @@ export const ProfileProvider = ({ children }) => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${CONFIG_API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`https://talentshield.co.uk${endpoint}`, {
         credentials: 'include',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -193,7 +188,7 @@ export const ProfileProvider = ({ children }) => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${CONFIG_API_BASE_URL}/api/profiles`, {
+      const response = await fetch('https://talentshield.co.uk/api/profiles', {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { API_BASE_URL } from '../utils/config';
 
 export default function VerifyOTP() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -82,7 +81,7 @@ export default function VerifyOTP() {
     setError("");
 
     try {
-  const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+      const response = await fetch('http://talentshield.co.uk/api/auth/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +113,7 @@ export default function VerifyOTP() {
     setError("");
 
     try {
-  const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+      const response = await fetch('http://talentshield.co.uk/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

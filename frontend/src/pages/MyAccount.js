@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
-import { getImageUrl, API_BASE_URL } from "../utils/config";
+import { getImageUrl } from "../utils/config";
 
 export default function MyAccount() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export default function MyAccount() {
         if (!token) {
           throw new Error('Authentication required');
         }
-  const response = await fetch(`${API_BASE_URL}/api/my-profile`, {
+        const response = await fetch('https://talentshield.co.uk/api/my-profile', {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',

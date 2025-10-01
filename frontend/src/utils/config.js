@@ -1,16 +1,8 @@
 // API Configuration utility
-// Normalized API base (no trailing '/api' or trailing slash)
-const normalizeBase = (url) => {
-  if (!url) return url;
-  let normalized = url.replace(/\/+$/, '');
-  normalized = normalized.replace(/\/api$/i, '');
-  return normalized;
-};
+export const API_BASE_URL = 'https://talentshield.co.uk/api';
 
-export const API_BASE_URL = normalizeBase(process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'https://talentshield.co.uk/api');
-
-// Derive server base (remove any '/api' segment)
-export const SERVER_BASE_URL = normalizeBase(process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || 'https://talentshield.co.uk');
+// Remove '/api' from base URL to get server URL for file uploads
+export const SERVER_BASE_URL = 'https://talentshield.co.uk';
 
 // Helper function to get full image URL (works for PDFs and other files too)
 export const getImageUrl = (imagePath) => {

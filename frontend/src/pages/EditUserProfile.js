@@ -27,7 +27,7 @@ export default function EditUserProfile() {
     status: "",
     poc: "",
     startDate: "",
-
+    
     // Emergency Contact
     emergencyContact: {
       name: "",
