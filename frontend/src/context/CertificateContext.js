@@ -28,17 +28,27 @@ export const CertificateProvider = ({ children }) => {
   const [loadingCount, setLoadingCount] = useState(0);
   const loading = loadingCount > 0;
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    category: '',
+    provider: ''
+  });
 
   const incrementLoading = () => setLoadingCount((count) => count + 1);
   const decrementLoading = () => setLoadingCount((count) => Math.max(count - 1, 0));
 
-  const fetchCertificates = useCallback(async (page = 1, limit = 50) => {
+  // Optimized: Efficiently fetch certificates with backend-side filtering and paging
+  const fetchCertificates = useCallback(async (currentPage = 1, limit = 30) => {
     incrementLoading();
     try {
       const response = await axios.get(`${API_BASE_URL}/certificates`, {
         params: {
-          page,
-          limit
+          page: currentPage,
+          limit,
+          ...filters,
         },
         headers: { 
           "Cache-Control": "max-age=300",
@@ -46,22 +56,20 @@ export const CertificateProvider = ({ children }) => {
         },
       });
       
-      // Update cache if data has changed
+      // Use cache if data unchanged
       if (response.headers.etag) {
         localStorage.setItem('certificatesEtag', response.headers.etag);
-        localStorage.setItem('certificatesCache', JSON.stringify(response.data));
+        localStorage.setItem('certificatesCache', JSON.stringify(response.data.certificates || response.data));
       }
-
-      if (!Array.isArray(response.data)) {
-        setCertificates([]);
-        setError("Invalid data format received from API");
-        return;
-      }
-      setCertificates(response.data);
+      // Supports both format: {certificates:Array,...} and Array
+      const certs = Array.isArray(response.data)
+        ? response.data
+        : response.data.certificates || [];
+      setCertificates(certs);
+      setHasMore(response.data.hasMore ?? false);
       setError(null);
     } catch (error) {
       if (error.response?.status === 304) {
-        // Use cached data if available
         const cachedData = localStorage.getItem('certificatesCache');
         if (cachedData) {
           setCertificates(JSON.parse(cachedData));
@@ -74,8 +82,9 @@ export const CertificateProvider = ({ children }) => {
     } finally {
       decrementLoading();
     }
-  }, []);
+  }, [filters]);
 
+  // Add certificate: append without destructive overwrite, so newly created certs persist
   const addCertificate = useCallback(async (newCertificate) => {
     incrementLoading();
     try {
@@ -104,7 +113,7 @@ export const CertificateProvider = ({ children }) => {
     }
   }, []);
 
-  // Updated uploadCertificateFile to use PUT and matching URL
+  // Upload a certificate file: update context and persist file details
   const uploadCertificateFile = useCallback(async (certificateId, file) => {
     if (!certificateId || !file) throw new Error("certificateId and file are required");
     incrementLoading();
@@ -139,7 +148,7 @@ export const CertificateProvider = ({ children }) => {
     }
   }, []);
 
-  // Delete a certificate
+  // Delete certificate with error handling
   const deleteCertificate = useCallback(async (certificateId) => {
     if (!certificateId) throw new Error("certificateId is required");
     incrementLoading();
@@ -158,8 +167,7 @@ export const CertificateProvider = ({ children }) => {
     }
   }, []);
 
-  // Other helper functions...
-
+  // Helper: count active
   const getActiveCertificatesCount = useCallback(() => {
     if (!Array.isArray(certificates)) {
       console.error("Expected an array of certificates but got:", certificates);
@@ -170,6 +178,7 @@ export const CertificateProvider = ({ children }) => {
     ).length;
   }, [certificates]);
 
+  // Helper: Get certificates expiring within X days
   const getExpiringCertificates = useCallback(
     (days = 30) => {
       if (!Array.isArray(certificates)) return [];
@@ -184,6 +193,7 @@ export const CertificateProvider = ({ children }) => {
     [certificates]
   );
 
+  // Helper: Get expired
   const getExpiredCertificates = useCallback(() => {
     if (!Array.isArray(certificates)) return [];
     const today = new Date();
@@ -193,6 +203,7 @@ export const CertificateProvider = ({ children }) => {
     });
   }, [certificates]);
 
+  // Helper: By category
   const getCertificatesByCategory = useCallback(() => {
     const counts = {};
     for (const cert of certificates) {
@@ -202,6 +213,7 @@ export const CertificateProvider = ({ children }) => {
     return counts;
   }, [certificates]);
 
+  // Helper: By jobRole
   const getCertificatesByJobRole = useCallback(() => {
     const counts = {};
     for (const cert of certificates) {
@@ -211,6 +223,13 @@ export const CertificateProvider = ({ children }) => {
     return counts;
   }, [certificates]);
 
+  // Helper: Find by id
+  const getCertificateById = useCallback(
+    (id) => certificates.find((cert) => cert._id === id || cert.id === id),
+    [certificates]
+  );
+
+  // Memoized context value
   const value = useMemo(
     () => ({
       certificates,
@@ -220,12 +239,17 @@ export const CertificateProvider = ({ children }) => {
       addCertificate,
       uploadCertificateFile,
       deleteCertificate,
-      getCertificateById: (id) => certificates.find((cert) => cert._id === id || cert.id === id),
+      getCertificateById,
       getActiveCertificatesCount,
       getExpiringCertificates,
       getExpiredCertificates,
       getCertificatesByCategory,
       getCertificatesByJobRole,
+      setFilters,
+      filters,
+      hasMore,
+      page,
+      setPage,
     }),
     [
       certificates,
@@ -235,17 +259,24 @@ export const CertificateProvider = ({ children }) => {
       addCertificate,
       uploadCertificateFile,
       deleteCertificate,
+      getCertificateById,
       getActiveCertificatesCount,
       getExpiringCertificates,
       getExpiredCertificates,
       getCertificatesByCategory,
       getCertificatesByJobRole,
+      filters,
+      setFilters,
+      hasMore,
+      page,
+      setPage,
     ]
   );
 
+  // Fetch at mount and whenever filters change
   useEffect(() => {
-    fetchCertificates();
-  }, [fetchCertificates]);
+    fetchCertificates(page, 30);
+  }, [fetchCertificates, filters, page]);
 
   return <CertificateContext.Provider value={value}>{children}</CertificateContext.Provider>;
 };

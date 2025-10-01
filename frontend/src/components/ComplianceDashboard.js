@@ -25,39 +25,27 @@ const ComplianceDashboard = () => {
   });
 
   useEffect(() => {
-    const getDashboardData = async () => {
-      try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats`, {
-          method: 'GET',
-          headers: {
-            'Cache-Control': 'max-age=300'
-          }
-        });
-        const data = await response.json();
-        setDashboardData({
-          activeCount: data.activeCount,
-          expiringCertificates: data.expiringCertificates,
-          expiredCertificates: data.expiredCertificates,
-          categoryCounts: data.categoryCounts,
-          jobRoleCounts: getCertificatesByJobRole()
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Fallback to context data if API fails
-        setDashboardData({
-          activeCount: getActiveCertificatesCount(),
-          expiringCertificates: getExpiringCertificates(selectedTimeframe),
-          expiredCertificates: getExpiredCertificates(),
-          categoryCounts: getCertificatesByCategory(),
-          jobRoleCounts: getCertificatesByJobRole()
-        });
-      }
-    };
-
-    getDashboardData();
-  }, [certificates, selectedTimeframe, getActiveCertificatesCount, getExpiringCertificates, getExpiredCertificates, getCertificatesByCategory, getCertificatesByJobRole]);
+    // Fetch fresh certificates and dashboard stats here if you want,
+    // but main certificate data is from context already
+    setDashboardData({
+      activeCount: getActiveCertificatesCount(),
+      expiringCertificates: getExpiringCertificates(selectedTimeframe),
+      expiredCertificates: getExpiredCertificates(),
+      categoryCounts: getCertificatesByCategory(),
+      jobRoleCounts: getCertificatesByJobRole()
+    });
+  }, [
+    certificates,
+    selectedTimeframe,
+    getActiveCertificatesCount,
+    getExpiringCertificates,
+    getExpiredCertificates,
+    getCertificatesByCategory,
+    getCertificatesByJobRole
+  ]);
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const [day, month, year] = dateString.split('/');
     const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('en-GB', {
@@ -68,6 +56,7 @@ const ComplianceDashboard = () => {
   };
 
   const getDaysUntilExpiry = (expiryDate) => {
+    if (!expiryDate) return null;
     const [day, month, year] = expiryDate.split('/');
     const expiry = new Date(year, month - 1, day);
     const today = new Date();
@@ -77,6 +66,7 @@ const ComplianceDashboard = () => {
   };
 
   const getExpiryStatusColor = (daysUntilExpiry) => {
+    if (daysUntilExpiry === null) return 'text-gray-500 bg-gray-100';
     if (daysUntilExpiry < 0) return 'text-red-600 bg-red-50';
     if (daysUntilExpiry <= 7) return 'text-red-600 bg-red-50';
     if (daysUntilExpiry <= 30) return 'text-yellow-600 bg-yellow-50';
@@ -123,14 +113,11 @@ const ComplianceDashboard = () => {
       {/* Admin Details Completion Bar */}
       <AdminCompletionBar />
 
-      {/* Main Section with Tasks and Action Buttons */}
+      {/* Main Section */}
       <div className="flex gap-10 mb-6">
-        {/* Task Card */}
         <div className="w-3/4 bg-white shadow-md rounded p-10 text-center">
-          {dashboardData.expiringCertificates.length > 0 || dashboardData.expiredCertificates.length > 0 ? (
+          {(dashboardData.expiringCertificates.length > 0 || dashboardData.expiredCertificates.length > 0) ? (
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Immediate Tasks</h3>
-              
               {dashboardData.expiredCertificates.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                   <div className="flex items-center mb-2">
@@ -140,8 +127,8 @@ const ComplianceDashboard = () => {
                     <h4 className="text-red-800 font-medium">Expired Certificates ({dashboardData.expiredCertificates.length})</h4>
                   </div>
                   <div className="text-sm text-red-700">
-                    {dashboardData.expiredCertificates.slice(0, 3).map((cert, index) => (
-                      <div key={cert.id} className="mb-1">
+                    {dashboardData.expiredCertificates.slice(0, 3).map(cert => (
+                      <div key={cert.id || cert._id} className="mb-1">
                         • {cert.certificate} - {cert.profileName}
                       </div>
                     ))}
@@ -163,10 +150,10 @@ const ComplianceDashboard = () => {
                     <h4 className="text-yellow-800 font-medium">Expiring Soon ({dashboardData.expiringCertificates.length})</h4>
                   </div>
                   <div className="text-sm text-yellow-700">
-                    {dashboardData.expiringCertificates.slice(0, 3).map((cert, index) => {
+                    {dashboardData.expiringCertificates.slice(0, 3).map(cert => {
                       const daysUntilExpiry = getDaysUntilExpiry(cert.expiryDate);
                       return (
-                        <div key={cert.id} className="mb-1">
+                        <div key={cert.id || cert._id} className="mb-1">
                           • {cert.certificate} - {cert.profileName} ({daysUntilExpiry} days)
                         </div>
                       );
@@ -187,21 +174,13 @@ const ComplianceDashboard = () => {
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-col gap-4 w-52">
-          <Link
-            to="/dashboard/profilescreate"
-            className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center"
-          >
+          <Link to="/dashboard/profilescreate" className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center">
             Create Profile
           </Link>
-          <Link 
-            to="/dashboard/createcertificate"
-            className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center"
-          >
+          <Link to="/dashboard/createcertificate" className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center">
             Add Certificates
           </Link>
-          
         </div>
       </div>
 
@@ -278,10 +257,10 @@ const ComplianceDashboard = () => {
               <p className="text-gray-500 text-center py-4">No certificates expiring in the selected timeframe</p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {dashboardData.expiringCertificates.map((cert) => {
+                {dashboardData.expiringCertificates.map(cert => {
                   const daysUntilExpiry = getDaysUntilExpiry(cert.expiryDate);
                   return (
-                    <div key={cert.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div key={cert.id || cert._id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{cert.certificate}</p>
                         <p className="text-sm text-gray-600">{cert.profileName}</p>
@@ -289,8 +268,8 @@ const ComplianceDashboard = () => {
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-900">{formatDate(cert.expiryDate)}</p>
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getExpiryStatusColor(daysUntilExpiry)}`}>
-                          {daysUntilExpiry === 0 ? 'Today' : 
-                           daysUntilExpiry === 1 ? '1 day' : 
+                          {daysUntilExpiry === 0 ? 'Today' :
+                           daysUntilExpiry === 1 ? '1 day' :
                            `${daysUntilExpiry} days`}
                         </span>
                       </div>
@@ -332,7 +311,6 @@ const ComplianceDashboard = () => {
         </div>
       </div>
 
-      {/* Expired Certificates (if any) */}
       {dashboardData.expiredCertificates.length > 0 && (
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200 bg-red-50">
@@ -342,10 +320,10 @@ const ComplianceDashboard = () => {
           </div>
           <div className="p-6">
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {dashboardData.expiredCertificates.map((cert) => {
+              {dashboardData.expiredCertificates.map(cert => {
                 const daysOverdue = Math.abs(getDaysUntilExpiry(cert.expiryDate));
                 return (
-                  <div key={cert.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
+                  <div key={cert.id || cert._id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{cert.certificate}</p>
                       <p className="text-sm text-gray-600">{cert.profileName}</p>
