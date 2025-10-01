@@ -1,11 +1,11 @@
 // src/pages/CertificateManagement.js
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
-import {
-  AcademicCapIcon,
-  PlusIcon,
+import { 
+  AcademicCapIcon, 
+  PlusIcon, 
   MagnifyingGlassIcon,
   FunnelIcon,
   EyeIcon,
@@ -19,34 +19,23 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function CertificateManagement() {
-  const { certificates, deleteCertificate, fetchCertificates, setFilters, filters } = useCertificates();
+  const { certificates, deleteCertificate } = useCertificates();
   const { profiles } = useProfiles();
   const navigate = useNavigate();
-
-  const [search, setSearch] = useState(filters.search || "");
-  const [selectedCategory, setSelectedCategory] = useState(filters.category || "");
-  const [selectedStatus, setSelectedStatus] = useState(filters.status || "");
-  const [selectedProvider, setSelectedProvider] = useState(filters.provider || "");
+  
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState("");
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
-
-  // Sync filters in context and refetch whenever filter controls change
-  useEffect(() => {
-    setFilters({
-      search,
-      status: selectedStatus,
-      category: selectedCategory,
-      provider: selectedProvider
-    });
-    fetchCertificates(1, 30);
-    // eslint-disable-next-line
-  }, [search, selectedCategory, selectedStatus, selectedProvider, setFilters]);
 
   // Get filter options
   const filterOptions = useMemo(() => {
     const categories = [...new Set(certificates.map(c => c.category).filter(Boolean))].sort();
     const statuses = [...new Set(certificates.map(c => c.status).filter(Boolean))].sort();
     const providers = [...new Set(certificates.map(c => c.provider).filter(Boolean))].sort();
+    
     return { categories, statuses, providers };
   }, [certificates]);
 
@@ -54,10 +43,11 @@ export default function CertificateManagement() {
   const filteredCertificates = useMemo(() => {
     return certificates.filter((cert) => {
       const matchesSearch = cert.certificate.toLowerCase().includes(search.toLowerCase()) ||
-        cert.profileName.toLowerCase().includes(search.toLowerCase());
+                           cert.profileName.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = !selectedCategory || cert.category === selectedCategory;
       const matchesStatus = !selectedStatus || cert.status === selectedStatus;
       const matchesProvider = !selectedProvider || cert.provider === selectedProvider;
+      
       return matchesSearch && matchesCategory && matchesStatus && matchesProvider;
     });
   }, [certificates, search, selectedCategory, selectedStatus, selectedProvider]);
@@ -186,6 +176,7 @@ export default function CertificateManagement() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
+
                 {/* Filter Toggle */}
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -197,6 +188,7 @@ export default function CertificateManagement() {
                   Filters
                 </button>
               </div>
+
               {/* View Mode Toggle */}
               <div className="flex items-center gap-2 border rounded-lg p-1">
                 <button
@@ -217,6 +209,7 @@ export default function CertificateManagement() {
                 </button>
               </div>
             </div>
+
             {/* Filter Options */}
             {showFilters && (
               <div className="border-t pt-4">
@@ -311,7 +304,7 @@ export default function CertificateManagement() {
                     {/* Content */}
                     <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{cert.certificate}</h3>
                     <p className="text-sm text-gray-600 mb-3">{cert.profileName}</p>
-
+                    
                     <div className="space-y-2 text-sm text-gray-500 mb-4">
                       <div className="flex items-center gap-2">
                         <BuildingOfficeIcon className="h-4 w-4" />
@@ -322,6 +315,7 @@ export default function CertificateManagement() {
                         Expires: {cert.expiryDate}
                       </div>
                     </div>
+
                     {/* Actions */}
                     <div className="flex items-center gap-2 pt-4 border-t">
                       <Link

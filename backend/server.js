@@ -1,4 +1,4 @@
-
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
@@ -19,7 +19,6 @@ const app = express();
 const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
 const MONGODB_URI = config.database.uri;
-const certificatesRouter = require('./routes/certificates');
 
 // Middleware
 app.use(cookieParser());
@@ -45,8 +44,6 @@ app.use(session({
   },
   name: 'talentshield.sid' // Custom session name
 }));
-
-app.use('/api/certificates', certificatesRouter);
 
 // CORS configuration
 app.use(cors({
@@ -927,40 +924,11 @@ app.delete('/api/profiles/:id', async (req, res) => {
 
 // Get all certificates
 app.get('/api/certificates', async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
-  
-  const filter = {};
-  if (req.query.search) {
-    filter.$or = [
-      { certificate: new RegExp(req.query.search, 'i') },
-      { profileName: new RegExp(req.query.search, 'i') }
-    ];
-  }
-  if (req.query.status) filter.status = req.query.status;
-  if (req.query.category) filter.category = req.query.category;
-  if (req.query.provider) filter.provider = req.query.provider;
-
   try {
-    const [certificates, total] = await Promise.all([
-      Certificate.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
-      Certificate.countDocuments(filter)
-    ]);
-    
-    res.set({
-      'Cache-Control': 'public, max-age=300',
-      'ETag': require('crypto').createHash('md5').update(JSON.stringify(certificates)).digest('hex')
-    });
-    
-    res.json({
-      certificates,
-      page,
-      totalPages: Math.ceil(total / limit),
-      hasMore: page * limit < total
-    });
+    const certificates = await Certificate.find().sort({ createdOn: -1 });
+    res.json(certificates);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch certificates' });
+    res.status(500).json({ message: error.message });
   }
 });
 
