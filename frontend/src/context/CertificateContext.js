@@ -9,22 +9,7 @@ import React, {
 import axios from "axios";
 
 const CertificateContext = createContext();
-
-// Standardized API base URL (same logic as AuthContext)
-const getApiUrl = () => {
-  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) {
-    return '';
-  }
-  return process.env.REACT_APP_API_URL || 'http://localhost:5003';
-};
-
-const API_BASE_URL = getApiUrl();
-
-// Configure axios defaults for credentials
-axios.defaults.withCredentials = true;
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 export const useCertificates = () => {
   const context = useContext(CertificateContext);
@@ -50,7 +35,7 @@ export const CertificateProvider = ({ children }) => {
   const fetchCertificates = useCallback(async (page = 1, limit = 50) => {
     incrementLoading();
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/certificates`, {
+      const response = await axios.get(`${API_BASE_URL}/certificates`, {
         params: {
           page,
           limit
@@ -59,7 +44,6 @@ export const CertificateProvider = ({ children }) => {
           "Cache-Control": "max-age=300",
           "If-None-Match": localStorage.getItem('certificatesEtag')
         },
-        withCredentials: true
       });
       
       // Update cache if data has changed
@@ -105,9 +89,8 @@ export const CertificateProvider = ({ children }) => {
           formData.append(key, val);
         }
       });
-      const response = await axios.post(`${API_BASE_URL}/api/certificates`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/certificates`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        withCredentials: true
       });
       setCertificates((prev) => [response.data, ...prev]);
       setError(null);
@@ -129,12 +112,9 @@ export const CertificateProvider = ({ children }) => {
       const formData = new FormData();
       formData.append("certificateFile", file);
       const response = await axios.put(
-        `${API_BASE_URL}/api/certificates/${certificateId}/upload`,
+        `${API_BASE_URL}/certificates/${certificateId}/upload`,
         formData,
-        { 
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
       if (response && response.data) {
@@ -164,9 +144,7 @@ export const CertificateProvider = ({ children }) => {
     if (!certificateId) throw new Error("certificateId is required");
     incrementLoading();
     try {
-      await axios.delete(`${API_BASE_URL}/api/certificates/${certificateId}`, {
-        withCredentials: true
-      });
+      await axios.delete(`${API_BASE_URL}/certificates/${certificateId}`);
       setCertificates((prev) =>
         prev.filter((c) => c._id !== certificateId && c.id !== certificateId)
       );
