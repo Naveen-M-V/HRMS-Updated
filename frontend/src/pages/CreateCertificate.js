@@ -7,6 +7,7 @@ import SearchableDropdown from "../components/SearchableDropdown";
 
 export default function CreateCertificate() {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { addCertificate } = useCertificates();
   const { profiles, loading: profilesLoading, error: profilesError } = useProfiles();
 
@@ -89,8 +90,8 @@ export default function CreateCertificate() {
 
   // Pre-fill profile if passed from ProfileDetailView
   useEffect(() => {
-    if (location.state?.profileId && availableProfiles.length > 0) {
-      const prefilledProfile = availableProfiles.find(p => p._id === location.state.profileId);
+    if (routerLocation.state?.profileId && availableProfiles.length > 0) {
+      const prefilledProfile = availableProfiles.find(p => p._id === routerLocation.state.profileId);
       if (prefilledProfile) {
         setForm(prev => ({ ...prev, profileId: prefilledProfile._id }));
         setSelectedProfile(prefilledProfile);
@@ -111,7 +112,7 @@ export default function CreateCertificate() {
         }
       }
     }
-  }, [location.state, availableProfiles]);
+  }, [routerLocation.state, availableProfiles]);
 
   const getApiUrl = () => {
     // In development, use localhost URL
