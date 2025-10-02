@@ -303,6 +303,7 @@ export default function CertificateManagement() {
 
                     {/* Content */}
                     <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{cert.certificate}</h3>
+                    <p className="text-sm text-gray-600 mb-1">VTID: {cert.profileId?.vtid || 'N/A'}</p>
                     <p className="text-sm text-gray-600 mb-3">{cert.profileName}</p>
                     
                     <div className="space-y-2 text-sm text-gray-500 mb-4">
@@ -370,6 +371,7 @@ export default function CertificateManagement() {
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{cert.profileId?.vtid || 'N/A'}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">{cert.profileName}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{cert.category}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{cert.provider}</td>

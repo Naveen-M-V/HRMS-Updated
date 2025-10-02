@@ -301,7 +301,11 @@ export default function ViewCertificate() {
             {certificate.profileName && (
               <div className="mt-6 pt-4 border-t">
                 <h3 className="font-medium text-gray-800 mb-2">Profile Information</h3>
-                <div className="text-sm">
+                <div className="text-sm space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">VTID:</span>
+                    <span className="font-medium">{certificate.profileId?.vtid || 'N/A'}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Profile Name:</span>
                     <span className="font-medium">{certificate.profileName}</span>

@@ -82,7 +82,7 @@ export default function CertificatesPage() {
                 className="hover:bg-gray-50 cursor-pointer"
                 onClick={() => setSelectedCertificate(c)}
               >
-                <td className="border px-2 py-1">{c.id || c._id}</td>
+                <td className="border px-2 py-1">{c.profileId?.vtid || 'N/A'}</td>
                 <td className="border px-2 py-1">{c.certificate}</td>
                 <td className="border px-2 py-1">{c.category}</td>
                 <td className="border px-2 py-1">{c.jobRole || "N/A"}</td>
