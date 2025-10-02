@@ -1511,7 +1511,84 @@ app.get('/api/notifications/:userId/unread-count', async (req, res) => {
   }
 });
 
+// Helper function to parse expiry dates (supports DD/MM/YYYY and ISO formats)
+function parseExpiryDate(dateString) {
+  if (!dateString) return null;
+  
+  try {
+    // Check if it's in DD/MM/YYYY format
+    if (typeof dateString === 'string' && dateString.includes('/')) {
+      const parts = dateString.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Months are 0-indexed
+        const year = parseInt(parts[2]);
+        return new Date(year, month, day);
+      }
+    }
+    
+    // Otherwise try to parse as ISO or other format
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? null : date;
+  } catch (error) {
+    console.error('Error parsing date:', dateString, error);
+    return null;
+  }
+}
+
 // Dashboard Analytics Endpoints
+
+// Get dashboard statistics (comprehensive endpoint for frontend)
+app.get('/api/certificates/dashboard-stats', async (req, res) => {
+  try {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    
+    // Get all certificates with profile population
+    const allCertificates = await Certificate.find().populate('profileId', 'vtid firstName lastName');
+    
+    let activeCount = 0;
+    let expiringCertificates = [];
+    let expiredCertificates = [];
+    let categoryCounts = {};
+    
+    allCertificates.forEach(cert => {
+      // Count active certificates
+      if (cert.active === 'Yes' && cert.status === 'Approved') {
+        activeCount++;
+      }
+      
+      // Count by category
+      if (cert.category) {
+        categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
+      }
+      
+      // Check expiry status
+      if (cert.expiryDate) {
+        const expiryDate = parseExpiryDate(cert.expiryDate);
+        
+        if (expiryDate) {
+          if (expiryDate < today) {
+            expiredCertificates.push(cert);
+          } else if (expiryDate <= thirtyDaysFromNow) {
+            expiringCertificates.push(cert);
+          }
+        }
+      }
+    });
+    
+    res.json({
+      activeCount,
+      expiringCertificates: expiringCertificates.slice(0, 10), // Limit to 10 for performance
+      expiredCertificates: expiredCertificates.slice(0, 10), // Limit to 10 for performance
+      categoryCounts
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // Get certificate statistics for dashboard
 app.get('/api/certificates/analytics/stats', async (req, res) => {

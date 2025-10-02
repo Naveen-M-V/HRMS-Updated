@@ -58,7 +58,7 @@ export default function CreateCertificate() {
   const isLoading = profilesLoading || localLoading;
 
   const [form, setForm] = useState({
-    profile: "",
+    profileId: "",
     certificateName: "",
     account: "",
     description: "",
@@ -225,8 +225,8 @@ export default function CreateCertificate() {
     setForm({ ...form, [name]: value });
 
     // Handle profile selection change
-    if (name === 'profile') {
-      const profile = availableProfiles.find(p => `${p.firstName} ${p.lastName}` === value);
+    if (name === 'profileId') {
+      const profile = availableProfiles.find(p => p._id === value);
       setSelectedProfile(profile);
       
       // Get suggested certificates based on job role
@@ -270,7 +270,7 @@ export default function CreateCertificate() {
     e.preventDefault();
     
     // Validate required fields
-    if (!form.profile) {
+    if (!form.profileId) {
       alert('Please select a profile');
       return;
     }
@@ -280,18 +280,32 @@ export default function CreateCertificate() {
       return;
     }
     
+    // Helper to safely convert dates to ISO
+    const toIsoDate = (dateStr) => {
+      if (!dateStr) return null;
+      try {
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date.toISOString();
+      } catch {
+        return null;
+      }
+    };
+    
     // Transform form data to match certificate structure
     const newCertificate = {
       // Required fields for backend validation
       certificate: form.certificateName || "New Certificate",
       category: "Other",
       
+      // CRITICAL: Link to profile via profileId
+      profileId: selectedProfile?._id,
+      profileName: selectedProfile ? `${selectedProfile.firstName} ${selectedProfile.lastName}` : "Unknown Profile",
+      
       // Other fields
       description: form.description || "",
       account: form.account || "",
-      issueDate: new Date(form.issueDate).toLocaleDateString('en-GB'),
-      expiryDate: new Date(form.expiryDate).toLocaleDateString('en-GB'),
-      profileName: form.profile || "Unknown Profile",
+      issueDate: toIsoDate(form.issueDate),
+      expiryDate: toIsoDate(form.expiryDate),
       provider: form.supplier || "SKILLS PROVIDER",
       fileRequired: form.fileRequired === "True" ? "Yes" : "No",
       status: form.approvalStatus || "Approved",
@@ -302,7 +316,6 @@ export default function CreateCertificate() {
       
       supplier: form.supplier || "",
       totalCost: form.totalCost || "0.00",
-      certificateFile: form.certificateFile ? form.certificateFile.name : null,
       fileData: form.certificateFile
     };
 
@@ -393,24 +406,24 @@ export default function CreateCertificate() {
             {/* Profile */}
            {/* Profile Selection */}
           <div>
-            <label className="block font-medium mb-1">Profile <span className="text-red-500">*</span></label>
-            <select
-              name="profile"
-              value={form.profile}
-              onChange={handleChange}
-              className="w-full border rounded-lg p-2"
-              required
-            >
-              <option value="">Select a profile...</option>
-              {availableProfiles.map((profile) => (
-                <option key={profile._id} value={`${profile.firstName} ${profile.lastName}`}>
-                  {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobRole) 
-                    ? profile.jobRole.join(', ') 
-                    : (profile.jobRole || 'N/A')
-                  }
-                </option>
-              ))}
-            </select>
+          <label className="block font-medium mb-1">Profile <span className="text-red-500">*</span></label>
+          <select
+          name="profileId"
+          value={form.profileId}
+          onChange={handleChange}
+          className="w-full border rounded-lg p-2"
+          required
+          >
+          <option value="">Select a profile...</option>
+          {availableProfiles.map((profile) => (
+          <option key={profile._id} value={profile._id}>
+          {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobRole) 
+          ? profile.jobRole.join(', ') 
+          : (profile.jobRole || 'N/A')
+          }
+          </option>
+          ))}
+          </select>
             {selectedProfile && (
               <p className="text-sm text-gray-600 mt-1">
                 Job Role: <strong>{Array.isArray(selectedProfile.jobRole) 
