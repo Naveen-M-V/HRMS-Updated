@@ -1502,30 +1502,7 @@ app.get('/api/notifications/:userId/unread-count', async (req, res) => {
   }
 });
 
-// Helper function to parse expiry dates (supports DD/MM/YYYY and ISO formats)
-function parseExpiryDate(dateString) {
-  if (!dateString) return null;
-  
-  try {
-    // Check if it's in DD/MM/YYYY format
-    if (typeof dateString === 'string' && dateString.includes('/')) {
-      const parts = dateString.split('/');
-      if (parts.length === 3) {
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1; // Months are 0-indexed
-        const year = parseInt(parts[2]);
-        return new Date(year, month, day);
-      }
-    }
-    
-    // Otherwise try to parse as ISO or other format
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? null : date;
-  } catch (error) {
-    console.error('Error parsing date:', dateString, error);
-    return null;
-  }
-}
+// Remove duplicate function declaration as it's already defined elsewhere
 
 // Dashboard Analytics Endpoints
 
