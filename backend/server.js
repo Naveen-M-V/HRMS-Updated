@@ -130,7 +130,9 @@ const profileSchema = new mongoose.Schema({
   staffType: { type: String, default: 'Direct' },
   company: { type: String, default: 'VitruX Ltd' },
   jobRole: [String], // Array of job roles to support multiple selections
+  jobTitle: String, // Job title field
   jobLevel: String,
+  department: String, // Department field
   language: { type: String, default: 'English' },
   startDate: Date,
   
@@ -1108,6 +1110,39 @@ app.get('/api/certificates/:id/file', async (req, res) => {
   }
 });
 
+// Delete certificate file from database
+app.delete('/api/certificates/:id/file', async (req, res) => {
+  try {
+    console.log('Delete certificate file request for ID:', req.params.id);
+    
+    const certificate = await Certificate.findById(req.params.id);
+    if (!certificate) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+    
+    // Remove file data from certificate
+    certificate.certificateFile = null;
+    certificate.fileData = null;
+    certificate.fileSize = null;
+    certificate.mimeType = null;
+    certificate.updatedOn = new Date();
+    
+    await certificate.save();
+    
+    console.log('Certificate file deleted successfully for ID:', req.params.id);
+    
+    // Return updated certificate without binary data
+    const updatedCert = await Certificate.findById(req.params.id).select('-fileData');
+    res.json({ 
+      message: 'Certificate file deleted successfully',
+      certificate: updatedCert
+    });
+  } catch (error) {
+    console.error('Error deleting certificate file:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Serve certificate file for viewing (not downloading)
 // Delete certificate
 app.delete('/api/certificates/:id', async (req, res) => {
@@ -1856,11 +1891,29 @@ app.post('/api/auth/signup', async (req, res) => {
         const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
         const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(user.verificationToken)}`;
         const name = `${user.firstName} ${user.lastName}`.trim();
-        await sendVerificationEmail(user.email, verifyUrl, name);
-        console.log(`Verification email sent to ${user.email}`);
+        
+        console.log('Attempting to send verification email to:', user.email);
+        console.log('Email config:', {
+          host: process.env.EMAIL_HOST,
+          port: process.env.EMAIL_PORT,
+          user: process.env.EMAIL_USER ? 'configured' : 'missing',
+          pass: process.env.EMAIL_PASS ? 'configured' : 'missing'
+        });
+        
+        const result = await sendVerificationEmail(user.email, verifyUrl, name);
+        if (result.success) {
+          console.log(`✓ Verification email sent to ${user.email}`);
+        } else {
+          console.error(`✗ Verification email failed:`, result.error);
+        }
       }
     } catch (e) {
       console.error('Failed to send verification email:', e);
+      console.error('Error details:', {
+        message: e.message,
+        code: e.code,
+        stack: e.stack
+      });
     }
 
     // If admin role, send approval request to super admin
@@ -1870,11 +1923,21 @@ app.post('/api/auth/signup', async (req, res) => {
         const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
         const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
         const name = `${user.firstName} ${user.lastName}`.trim();
-        await sendAdminApprovalRequestEmail(superAdminEmail, name, user.email, approveUrl);
-        console.log(`Admin approval request sent to ${superAdminEmail}`);
+        
+        console.log('Attempting to send admin approval email to:', superAdminEmail);
+        const result = await sendAdminApprovalRequestEmail(superAdminEmail, name, user.email, approveUrl);
+        if (result.success) {
+          console.log(`✓ Admin approval request sent to ${superAdminEmail}`);
+        } else {
+          console.error(`✗ Admin approval email failed:`, result.error);
+        }
       }
     } catch (e) {
       console.error('Failed to send admin approval email:', e);
+      console.error('Error details:', {
+        message: e.message,
+        code: e.code
+      });
     }
 
     res.status(201).json({ 
@@ -1903,10 +1966,18 @@ const jobLevelsRoutes = require('./routes/jobLevels');
 
 app.post('/api/auth/login', async (req, res) => {
   try {
+    console.log('Login request received:', {
+      hasIdentifier: !!req.body.identifier,
+      hasEmail: !!req.body.email,
+      hasPassword: !!req.body.password,
+      body: { ...req.body, password: req.body.password ? '[REDACTED]' : undefined }
+    });
+    
     const { identifier, email, password, rememberMe } = req.body;
     const loginIdentifier = identifier || email;
 
     if (!loginIdentifier || !password) {
+      console.log('Login validation failed:', { loginIdentifier, hasPassword: !!password });
       return res.status(400).json({ message: 'Email/username and password are required' });
     }
 
@@ -2268,8 +2339,8 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
           profileExtras = {
             mobile: prof.mobile,
             bio: prof.bio,
-            jobTitle: prof.jobTitle,
-            department: prof.department,
+            jobTitle: prof.jobTitle || '',
+            department: prof.department || '',
             company: prof.company,
             staffType: prof.staffType,
             dateOfBirth: prof.dateOfBirth,

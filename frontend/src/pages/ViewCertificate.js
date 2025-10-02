@@ -112,18 +112,37 @@ export default function ViewCertificate() {
     ) {
       setUploading(true);
       try {
-        const formData = new FormData();
-        formData.append("certificateFile", ""); // Empty to remove file
+        const certificateId = certificate.id || certificate._id;
+        const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003';
+        
+        const response = await fetch(`${apiUrl}/api/certificates/${certificateId}/file`, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
 
-        const updatedCertificate = await updateCertificateWithFile(
-          certificate.id || certificate._id,
-          formData
-        );
-        setCertificate(updatedCertificate);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to delete file');
+        }
+
+        const data = await response.json();
+        
+        // Update the certificate state to remove file data
+        setCertificate(prev => ({
+          ...prev,
+          certificateFile: null,
+          fileData: null,
+          fileSize: null,
+          mimeType: null
+        }));
+        
         alert("Certificate file deleted successfully!");
       } catch (error) {
         console.error("Failed to delete certificate file:", error);
-        alert("Failed to delete certificate file. Please try again.");
+        alert("Failed to delete certificate file: " + (error.message || "Please try again."));
       } finally {
         setUploading(false);
       }
