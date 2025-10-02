@@ -949,6 +949,21 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
   try {
     const certificateData = { ...req.body };
     
+    // Validate profileId if provided
+    if (certificateData.profileId) {
+      if (!mongoose.Types.ObjectId.isValid(certificateData.profileId)) {
+        return res.status(400).json({ message: 'Invalid profileId format' });
+      }
+      
+      const profile = await Profile.findById(certificateData.profileId);
+      if (!profile) {
+        return res.status(404).json({ message: 'Profile not found' });
+      }
+      
+      // Auto-set profileName from profile
+      certificateData.profileName = `${profile.firstName} ${profile.lastName}`;
+    }
+    
     // Handle file upload if present - store in database
     if (req.file) {
       // Check file size (10MB limit already enforced by multer)
@@ -1085,30 +1100,6 @@ app.get('/api/certificates/:id/file', async (req, res) => {
 });
 
 // Serve certificate file for viewing (not downloading)
-app.get('/api/certificates/:id/file', async (req, res) => {
-  try {
-    const certificate = await Certificate.findById(req.params.id);
-    if (!certificate) {
-      return res.status(404).json({ message: 'Certificate not found' });
-    }
-
-    if (!certificate.fileData || !certificate.mimeType) {
-      return res.status(404).json({ message: 'Certificate file not found' });
-    }
-
-    // Set headers for inline viewing (not download)
-    res.setHeader('Content-Type', certificate.mimeType);
-    res.setHeader('Content-Disposition', 'inline'); // This makes it view instead of download
-    res.setHeader('Content-Length', certificate.fileSize || certificate.fileData.length);
-    
-    // Send the file data
-    res.send(certificate.fileData);
-  } catch (error) {
-    console.error('Error serving certificate file:', error);
-    res.status(500).json({ message: 'Error serving certificate file' });
-  }
-});
-
 // Delete certificate
 app.delete('/api/certificates/:id', async (req, res) => {
   try {
@@ -1772,39 +1763,6 @@ app.get('/api/profiles/:profileId/certificates', async (req, res) => {
 });
 
 // Get profile stats (certificates count, etc.)
-app.get('/api/profiles/:id/stats', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const totalCertificates = await Certificate.countDocuments({ profileId: id });
-    const activeCertificates = await Certificate.countDocuments({ 
-      profileId: id, 
-      active: 'Yes', 
-      status: 'Approved' 
-    });
-    
-    const profile = await Profile.findById(id);
-    if (!profile) {
-      return res.status(404).json({ message: 'Profile not found' });
-    }
-    
-    res.json({
-      profile: {
-        id: profile._id,
-        name: `${profile.firstName} ${profile.lastName}`,
-        jobTitle: profile.jobTitle,
-        company: profile.company
-      },
-      certificates: {
-        total: totalCertificates,
-        active: activeCertificates
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
 // Get profile by email (for user login)
 app.get('/api/profiles/by-email/:email', async (req, res) => {
   try {
