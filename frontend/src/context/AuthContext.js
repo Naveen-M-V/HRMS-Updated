@@ -122,17 +122,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Store session cookie for session maintenance
+  // Note: Session cookies are httpOnly and managed by the server
+  // This function is deprecated and should not be used
   const storeSessionCookie = () => {
-    const cookies = document.cookie.split(';');
-    const sessionCookie = cookies.find(cookie => cookie.trim().startsWith('talentshield.sid='));
-
-    if (sessionCookie) {
-      console.log('Session cookie captured:', sessionCookie);
-      sessionStorage.setSessionCookie(sessionCookie);
-    } else {
-      sessionStorage.clearSession();
-    }
+    console.warn('storeSessionCookie is deprecated - session cookies are httpOnly');
   };
 
   const checkExistingSession = useCallback(async () => {
@@ -147,7 +140,7 @@ export const AuthProvider = ({ children }) => {
           // Session is valid, no action needed
         } catch (error) {
           // Session invalid, clear it
-          if (error.response?.status === 403 || error.response?.status === 401) {
+          if (error.response?.status === 403 || error.response?.status === 401 || error.response?.status === 404) {
             handleInvalidSession();
           }
         }
