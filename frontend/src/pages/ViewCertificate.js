@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
+import { buildApiUrl } from "../utils/apiConfig";
 
 export default function ViewCertificate() {
   const { id } = useParams();
@@ -113,13 +114,16 @@ export default function ViewCertificate() {
       setUploading(true);
       try {
         const certificateId = certificate.id || certificate._id;
-        const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003';
+        const deleteUrl = buildApiUrl(`/certificates/${certificateId}/file`);
         
-        const response = await fetch(`${apiUrl}/api/certificates/${certificateId}/file`, {
+        console.log('Deleting certificate file from:', deleteUrl);
+        
+        const response = await fetch(deleteUrl, {
           method: 'DELETE',
           credentials: 'include',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
           }
         });
 

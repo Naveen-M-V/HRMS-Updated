@@ -343,7 +343,7 @@ export default function ProfilesCreate() {
                   className="mt-1 block w-full border rounded p-2"
                   required
                 >
-                  <option value="">Select job level...</option>
+                  <option value="">Select job level</option>
                   {jobLevels.map((level) => (
                     <option key={level._id} value={level.name}>
                       {level.name}

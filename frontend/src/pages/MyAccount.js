@@ -95,33 +95,40 @@ export default function MyAccount() {
     if (!file || !user?._id) return;
 
     // Validate file type and size
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
       alert('Please upload a valid image file (JPEG, PNG, or GIF)');
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('File size should be less than 5MB');
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit (matching backend)
+      alert('File size should be less than 10MB');
       return;
     }
 
     try {
       setSavingImage(true);
+      console.log('Uploading profile picture for user:', user._id);
 
       // Use the context's uploadProfilePicture function
-      await uploadProfilePicture(user._id, file);
+      const profilePicturePath = await uploadProfilePicture(user._id, file);
+      console.log('Profile picture uploaded:', profilePicturePath);
 
-      // Refresh profile data to show the updated picture
-      const updatedProfile = getProfileById(user._id);
-      if (updatedProfile) {
-        setProfile(updatedProfile);
-      }
+      // Update local profile state with new picture URL
+      setProfile(prev => ({
+        ...prev,
+        profilePicture: profilePicturePath || `/api/profiles/${user._id}/picture`
+      }));
 
       alert("Profile picture updated successfully!");
+      
+      // Force page refresh after 500ms to show new image
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
-      alert("Failed to upload profile picture. Please try again.");
+      alert("Failed to upload profile picture: " + (err.message || "Please try again."));
     } finally {
       setSavingImage(false);
       e.target.value = "";

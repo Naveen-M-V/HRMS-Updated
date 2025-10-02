@@ -7,6 +7,7 @@ import React, {
   useMemo,
 } from "react";
 import axios from "axios";
+import { buildApiUrl } from "../utils/apiConfig";
 
 const CertificateContext = createContext();
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -35,7 +36,8 @@ export const CertificateProvider = ({ children }) => {
   const fetchCertificates = useCallback(async (page = 1, limit = 50) => {
     incrementLoading();
     try {
-      const response = await axios.get(`${API_BASE_URL}/certificates`, {
+      const url = buildApiUrl('/certificates');
+      const response = await axios.get(url, {
         params: {
           page,
           limit
@@ -89,7 +91,8 @@ export const CertificateProvider = ({ children }) => {
           formData.append(key, val);
         }
       });
-      const response = await axios.post(`${API_BASE_URL}/certificates`, formData, {
+      const url = buildApiUrl('/certificates');
+      const response = await axios.post(url, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setCertificates((prev) => [response.data, ...prev]);
@@ -111,8 +114,9 @@ export const CertificateProvider = ({ children }) => {
     try {
       const formData = new FormData();
       formData.append("certificateFile", file);
+      const url = buildApiUrl(`/certificates/${certificateId}/upload`);
       const response = await axios.put(
-        `${API_BASE_URL}/certificates/${certificateId}/upload`,
+        url,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -144,14 +148,17 @@ export const CertificateProvider = ({ children }) => {
     if (!certificateId) throw new Error("certificateId is required");
     incrementLoading();
     try {
-      await axios.delete(`${API_BASE_URL}/certificates/${certificateId}`);
+      const url = buildApiUrl(`/certificates/${certificateId}`);
+      console.log('Deleting certificate:', url);
+      await axios.delete(url);
       setCertificates((prev) =>
         prev.filter((c) => c._id !== certificateId && c.id !== certificateId)
       );
       setError(null);
+      console.log('Certificate deleted successfully');
     } catch (err) {
       setError("Failed to delete certificate");
-      console.error(err);
+      console.error('Delete certificate error:', err);
       throw err;
     } finally {
       decrementLoading();

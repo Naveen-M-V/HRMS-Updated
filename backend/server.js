@@ -534,40 +534,63 @@ app.get('/api/profiles/:id', async (req, res) => {
 app.get('/api/auth/verify-email', async (req, res) => {
   try {
     const { token } = req.query;
-    if (!token) return res.status(400).send('Missing token');
+    console.log('Email verification request received');
+    
+    if (!token) {
+      console.log('Verification failed: Missing token');
+      return res.status(400).send('Missing verification token');
+    }
 
     let payload;
     try {
       payload = jwt.verify(token, JWT_SECRET);
+      console.log('Token verified successfully for email:', payload.email);
     } catch (e) {
-      return res.status(400).send('Invalid or expired token');
+      console.log('Token verification failed:', e.message);
+      return res.status(400).send('Invalid or expired verification token');
     }
 
-    const user = await User.findOne({ email: payload.email, verificationToken: token });
-    if (!user) return res.status(404).send('User not found');
+    // First try to find user with matching email and token
+    let user = await User.findOne({ email: payload.email, verificationToken: token });
+    
+    // If not found with exact token match, try just by email
+    if (!user) {
+      console.log('User not found with exact token match, trying by email only...');
+      user = await User.findOne({ email: payload.email });
+      
+      if (!user) {
+        console.log('User not found at all for email:', payload.email);
+        return res.status(404).send('User not found. The verification link may have expired or the account may have been deleted.');
+      }
+      
+      // Check if already verified
+      if (user.emailVerified) {
+        console.log('User email already verified:', payload.email);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?verified=true&message=already_verified`);
+      }
+      
+      // Token doesn't match but user exists - could be expired or wrong token
+      console.log('Token mismatch for user. Stored token:', user.verificationToken ? 'exists' : 'missing');
+    }
 
+    // Mark as verified
     user.emailVerified = true;
     user.verificationToken = undefined;
     await user.save();
+    
+    console.log('Email verified successfully for:', user.email);
 
     // Get frontend URL for redirect
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     
-    // If user is admin, redirect to dashboard after verification
+    // If user is admin, redirect to login (they still need approval)
     if (user.role === 'admin') {
-      // Create session for the verified admin
-      req.session.user = {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role
-      };
-      
-      // Redirect to admin dashboard
-      return res.redirect(`${frontendUrl}/dashboard?verified=true`);
+      console.log('Admin user verified, redirecting to login (still needs approval)');
+      return res.redirect(`${frontendUrl}/login?verified=true&message=pending_approval`);
     } else {
       // For regular users, redirect to login with success message
+      console.log('Regular user verified, redirecting to login');
       return res.redirect(`${frontendUrl}/login?verified=true`);
     }
   } catch (error) {
@@ -1876,14 +1899,23 @@ app.post('/api/auth/signup', async (req, res) => {
 
     if (requireEmailVerification) {
       user.verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '48h' });
+      console.log('Verification token generated for:', email);
     }
 
     if (role === 'admin') {
       user.adminApprovalStatus = 'pending';
       user.adminApprovalToken = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+      console.log('Admin approval token generated for:', email);
     }
 
     await user.save();
+    console.log('User saved to database:', {
+      email: user.email,
+      role: user.role,
+      emailVerified: user.emailVerified,
+      hasVerificationToken: !!user.verificationToken,
+      adminApprovalStatus: user.adminApprovalStatus
+    });
 
     // Send verification email if required
     try {
