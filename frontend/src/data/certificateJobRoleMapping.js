@@ -16,7 +16,8 @@ export const jobRoleCertifications = {
     ]
 },
   "Heavy Cabling UG": {
-    Mandatory:["MT003",
+    Mandatory:[
+    "MT003",
     "SA002",
     "K009",
     "K008",
@@ -110,7 +111,7 @@ export const jobRoleCertifications = {
     ]
   },
   "Ribbon Fibre Jointing":{ 
-    Madatory: [
+    Mandatory: [
     "MT003",
     "SA002",
     "SA005",
@@ -227,10 +228,10 @@ export const jobRoleCertifications = {
     Mandatory: [
     "MT003",
     "SA020",
-    "SA007",
-    "Equivalent",
+    "SA007 Or Equivalent",
     "N029",
-    "SA005"], Alternative: [
+    "SA005"], 
+    Alternative: [
       "A16"
     ]
   },
@@ -339,8 +340,7 @@ export const jobRoleCertifications = {
   "PTO": {
     Mandatory: [
     "MT003",
-    "SA002",
-    "SA006",
+    "SA002 Or SA006",
     "N011",
     "N035",
     "NRSWA Certificate O1",
@@ -363,11 +363,10 @@ export const jobRoleCertifications = {
     "O003",
     "O004",
     "O005",
-    "O006",
     "NRSWA Certificate LA",
-    "NRSWA Certificate O1",
-    "NRSWA Certificate O2",
-    "NRSWA Certificate O3",
+    "NRSWA Certificate 01",
+    "NRSWA Certificate 02",
+    "NRSWA Certificate 03",
     "SA023 or Equivalent",
     "SA051C or Equivalent",
     "O008",
@@ -468,15 +467,13 @@ Alternative: [
     Mandatory:[
     "MT003",
     "SA001A",
-    "0009",
     "SA005",
     "SA002",
-    "SA006",
     "O009",
     "NRSWA Certificate LA",
-    "NRSWA Certificate O1",
-    "NRSWA Certificate O2",
-    "NRSWA Certificate O3",
+    "NRSWA Certificate 01",
+    "NRSWA Certificate 02",
+    "NRSWA Certificate 03",
     "SA023 or Equivalent",
     "SA051C or Equivalent",
     "O008",
@@ -485,7 +482,7 @@ Alternative: [
   Alternative:[
     "SA009",
     "SA001",
-    "SA009"
+    "SA006"
   ]},
   "Pole recovery": {
     Mandatory:[
@@ -494,11 +491,11 @@ Alternative: [
     "SA002",
     "SA006",
     "SA021",
-    "0005",
+    "O005",
     "NRSWA Certificate LA",
-    "NRSWA Certificate O1",
-    "NRSWA Certificate O2",
-    "NRSWA Certificate O3",
+    "NRSWA Certificate 01",
+    "NRSWA Certificate 02",
+    "NRSWA Certificate 03",
     "SA023 or Equivalent",
     "SA051C or Equivalent",
     "SA005"
@@ -511,22 +508,18 @@ Alternative: [
   "Pole Survey (AAP)": {
     Mandatory:[
     "MT003",
-    "SA001A",
-    "0005",
-    "NRSWA Certificate LA",
-    "SA023 or Equivalent",
     "SA002",
+    "S013",
     "NRSWA Certificate O1",
-    "SA051c or Equivalent",
-    "SA021",
-    "NRSWA Certificate O2",
-    "SA005",
-    "NRSWA Certificate O3"  
+    "SA015c Or Equivalent" ,
+    "SA001",
+    "S017",
+    "SA005"
   ],
   Alternative:[
     "SA009",
     "SA006",
-    "A14 or Equivalent"
+    "SA001A"
   ]},
   "Aerial cabling (Ladder)": {
     Mandatory:[
@@ -554,7 +547,6 @@ Alternative: [
     "K004",
     "SA005",
     "SA024",
-    "SA001"
   ],
   Alternative:[
     "SA009",
@@ -860,9 +852,9 @@ Alternative: [
     "SA006",
     "Q024 (FCCW1)",
     "NRSWA Certificate LA",
-    "NRSWA Certificate O1",
-    "NRSWA Certificate O2",
-    "NRSWA Certificate O3",
+    "NRSWA Certificate 01",
+    "NRSWA Certificate 02",
+    "NRSWA Certificate 03",
     "Q035(SEC1)"
   ],
   Alternative:[
@@ -906,7 +898,6 @@ Alternative: [
     Mandatory:[
     "MT003",
     "SA002",
-    "0",
     "NRSWA Certificate O1"
   ],
   Alternative:[
@@ -938,7 +929,6 @@ Alternative: [
     Mandatory:[
     "MT003",
     "SA006",
-    "0",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
@@ -974,11 +964,9 @@ Alternative: [
     Mandatory:[
     "MT003",
     "SA020",
-    
     "N031 (ODF)",
     "N004 (OCR)",
     "J010 (OFF OR OFR)",
-    "OFR)",
     "J008",
     "SA005"
   ],
@@ -1088,13 +1076,13 @@ Alternative: [
     "F005",
     "F017",
     "NRSWA Certificate O1"
-  ], Alternative: []},
+  ]},
   "PCP Maintenance": {
     Mandatory:[
     "MT003",
     "NRSWA Certificate O1",
     "G39"
-  ], Alternative: []},
+  ]},
   "Heavy cable recovery": {
     Mandatory:[
     "MT003",
@@ -1144,7 +1132,7 @@ Alternative: [
     Mandatory:[
     "MT003",
     "SA006"
-  ], Alternative: []},
+  ]},
   "Ancillary Wiring or LLU Cabling": {
     Mandatory:[
     "MT003",
@@ -1152,7 +1140,7 @@ Alternative: [
     "SA007 or Equivalent",
     "SA051C or Equivalent",
     "SA026"
-  ], Alternative: []},
+  ]},
   "Auxillary Overhead": {
     Mandatory:[
     "MT003",
@@ -1256,56 +1244,22 @@ export const getCertificatesForJobRole = (jobRole) => {
   const mapping = jobRoleCertifications[jobRole];
   if (!mapping) return { mandatory: [], alternative: [] };
 
-  const mandatoryCerts = (mapping.Mandatory || []).map(cert => ({
-    code: cert,
-    description: allCertificates[cert] || cert,
-    category: 'Mandatory'
-  }));
-
-  const alternativeCerts = (mapping.Alternative || []).map(cert => ({
-    code: cert,
-    description: allCertificates[cert] || cert,
-    category: 'Alternative'
-  }));
-
   return {
-    mandatory: mandatoryCerts,
-    alternative: alternativeCerts
+    mandatory: mapping.map(cert => ({
+      code: cert,
+      description: allCertificates[cert] || cert,
+      category: 'Mandatory'
+    })),
+    alternative: []
   };
 };
 
-// Helper function to get certificates for multiple job roles
-export const getCertificatesForMultipleJobRoles = (jobRoles) => {
-  if (!Array.isArray(jobRoles) || jobRoles.length === 0) {
-    return { mandatory: [], alternative: [] };
-  }
-
-  const allMandatory = new Map();
-  const allAlternative = new Map();
-
-  jobRoles.forEach(jobRole => {
-    const certs = getCertificatesForJobRole(jobRole);
-    
-    certs.mandatory.forEach(cert => {
-      if (!allMandatory.has(cert.code)) {
-        allMandatory.set(cert.code, cert);
-      }
-    });
-
-    certs.alternative.forEach(cert => {
-      if (!allAlternative.has(cert.code)) {
-        allAlternative.set(cert.code, cert);
-      }
-    });
-  });
-
-  return {
-    mandatory: Array.from(allMandatory.values()),
-    alternative: Array.from(allAlternative.values())
-  };
+// Helper function to determine certificate category
+const getCertificateCategory = (cert, mapping) => {
+  return 'Mandatory';
 };
 
-// Get all unique job roles (returns exactly 93 hardcoded roles)
+// Get all unique job roles
 export const getAllJobRoles = () => {
   return Object.keys(jobRoleCertifications);
 };
