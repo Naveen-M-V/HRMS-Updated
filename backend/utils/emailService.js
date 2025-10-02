@@ -285,6 +285,97 @@ const testEmailConfiguration = async () => {
   }
 };
 
+// Send credentials to admin who created the user
+const sendAdminNewUserCredentialsEmail = async (adminEmail, newUserName, newUserEmail, newUserPassword, loginUrl) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: adminEmail,
+      subject: 'New User Created - Credentials',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #3b82f6; color: white; padding: 20px; text-align: center;">
+            <h1>New User Created Successfully</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>Hello Admin,</p>
+            <p>You have successfully created a new user account in the Talent Shield HRMS system.</p>
+            
+            <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #3b82f6;">
+              <h3 style="margin-top:0;color:#3b82f6;">New User Details</h3>
+              <p><strong>Name:</strong> ${newUserName}</p>
+              <p><strong>Email:</strong> ${newUserEmail}</p>
+              <p><strong>Temporary Password:</strong> <span style="background:#f3f4f6;padding:8px 12px;border-radius:4px;font-family:monospace;font-size:16px;font-weight:bold;color:#1f2937;">${newUserPassword}</span></p>
+            </div>
+            
+            <div style="background-color:#fef3c7;padding:15px;border-radius:6px;margin:20px 0;">
+              <p style="margin:0;color:#92400e;"><strong>Important:</strong> Please share these credentials securely with the new user. They can change their password after their first login.</p>
+            </div>
+            
+            <div style="text-align:center; margin: 24px 0;">
+              <a href="${loginUrl}" style="background:#3b82f6;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;">View System</a>
+            </div>
+            
+            <p>Best regards,<br>Talent Shield HRMS Team</p>
+          </div>
+        </div>
+      `
+    };
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Admin new user credentials email sent:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending admin new user credentials email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Send welcome email to newly created user
+const sendWelcomeEmailToNewUser = async (userEmail, userName, loginUrl) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: userEmail,
+      subject: 'Welcome to Talent Shield HRMS',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #10b981; color: white; padding: 20px; text-align: center;">
+            <h1>Welcome to Talent Shield HRMS</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>Hello <strong>${userName}</strong>,</p>
+            <p>Your account has been created in the Talent Shield HRMS system by your administrator.</p>
+            
+            <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
+              <h3 style="margin-top:0;color:#10b981;">What's Next?</h3>
+              <p>Your administrator will provide you with your login credentials shortly. Once you receive them, you can access the system using the link below.</p>
+            </div>
+            
+            <div style="text-align:center; margin: 24px 0;">
+              <a href="${loginUrl}" style="background:#10b981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;">Go to Login Page</a>
+            </div>
+            
+            <div style="background-color:#dbeafe;padding:15px;border-radius:6px;margin:20px 0;">
+              <p style="margin:0;color:#1e40af;"><strong>Security Tip:</strong> When you receive your credentials, please change your password immediately after your first login.</p>
+            </div>
+            
+            <p>If you have any questions, please contact your system administrator.</p>
+            <p>Best regards,<br>Talent Shield HRMS Team</p>
+          </div>
+        </div>
+      `
+    };
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Welcome email sent to new user:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending welcome email to new user:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendLoginSuccessEmail,
   sendCertificateExpiryEmail,
@@ -292,5 +383,7 @@ module.exports = {
   testEmailConfiguration,
   sendVerificationEmail,
   sendAdminApprovalRequestEmail,
-  sendUserCredentialsEmail
+  sendUserCredentialsEmail,
+  sendAdminNewUserCredentialsEmail,
+  sendWelcomeEmailToNewUser
 };

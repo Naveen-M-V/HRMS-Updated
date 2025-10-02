@@ -14,6 +14,10 @@ const cookieParser = require('cookie-parser');
 // Load environment configuration
 const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
+// Load utilities
+const { generateSimplePassword } = require('./utils/passwordGenerator');
+const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail, sendUserCredentialsEmail, sendAdminNewUserCredentialsEmail, sendWelcomeEmailToNewUser } = require('./utils/emailService');
+const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 
 const app = express();
 const PORT = config.server.port;
@@ -922,7 +926,10 @@ app.delete('/api/profiles/:id', async (req, res) => {
 // Get all certificates
 app.get('/api/certificates', async (req, res) => {
   try {
-    const certificates = await Certificate.find().sort({ createdOn: -1 }).populate('profileId', 'vtid firstName lastName');
+    const certificates = await Certificate.find()
+      .select('-fileData')
+      .sort({ createdOn: -1 })
+      .populate('profileId', 'vtid firstName lastName');
     res.json(certificates);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -932,7 +939,9 @@ app.get('/api/certificates', async (req, res) => {
 // Get certificate by ID
 app.get('/api/certificates/:id', async (req, res) => {
   try {
-    const certificate = await Certificate.findById(req.params.id).populate('profileId', 'vtid firstName lastName');
+    const certificate = await Certificate.findById(req.params.id)
+      .select('-fileData')
+      .populate('profileId', 'vtid firstName lastName');
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
@@ -1001,17 +1010,19 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
   }
 });
 
-// Update certificate
+// Update certificate (without file)
 app.put('/api/certificates/:id', async (req, res) => {
   try {
+    const updateData = { 
+      ...req.body,
+      updatedOn: new Date()
+    };
+    
     const certificate = await Certificate.findByIdAndUpdate(
       req.params.id,
-      { 
-        ...req.body,
-        updatedOn: new Date()
-      },
+      updateData,
       { new: true }
-    );
+    ).select('-fileData');
     
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
@@ -1846,6 +1857,7 @@ app.post('/api/auth/signup', async (req, res) => {
         const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(user.verificationToken)}`;
         const name = `${user.firstName} ${user.lastName}`.trim();
         await sendVerificationEmail(user.email, verifyUrl, name);
+        console.log(`Verification email sent to ${user.email}`);
       }
     } catch (e) {
       console.error('Failed to send verification email:', e);
@@ -1854,15 +1866,12 @@ app.post('/api/auth/signup', async (req, res) => {
     // If admin role, send approval request to super admin
     try {
       if (role === 'admin' && user.adminApprovalToken) {
-        const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
-        if (superAdminEmail) {
-          const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `http://localhost:${PORT}`;
-          const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
-          const name = `${user.firstName} ${user.lastName}`.trim();
-          await sendAdminApprovalRequestEmail(superAdminEmail, name, user.email, approveUrl);
-        } else {
-          console.warn('SUPER_ADMIN_EMAIL not configured; cannot send admin approval email');
-        }
+        const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@talentshield.com';
+        const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
+        const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
+        const name = `${user.firstName} ${user.lastName}`.trim();
+        await sendAdminApprovalRequestEmail(superAdminEmail, name, user.email, approveUrl);
+        console.log(`Admin approval request sent to ${superAdminEmail}`);
       }
     } catch (e) {
       console.error('Failed to send admin approval email:', e);
@@ -1882,8 +1891,6 @@ app.post('/api/auth/signup', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail, sendUserCredentialsEmail } = require('./utils/emailService');
-const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 
 // Import notification routes
 const notificationRoutes = require('./routes/notifications');
@@ -2026,9 +2033,12 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Enforce admin approval only in production
-    if (process.env.NODE_ENV === 'production' && user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
-      return res.status(403).json({ message: 'Admin account pending approval by super admin.' });
+    // Enforce admin approval for all admin users
+    if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
+      return res.status(403).json({ 
+        message: 'Your admin account is pending approval. Please wait for the super admin to approve your account.',
+        requiresApproval: true
+      });
     }
 
     // Verify password for admin accounts (hashed)
@@ -2415,22 +2425,37 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
     // Save the profile
     const savedProfile = await newProfile.save();
 
-    // Send credentials email
     const loginUrl = `${process.env.FRONTEND_URL || 'https://talentshield.co.uk'}/login`;
     const userName = `${firstName} ${lastName}`;
     
+    // Send credentials to the admin who created the user
     try {
-      await sendUserCredentialsEmail(email, userName, generatedPassword, loginUrl);
-      console.log(`Credentials email sent to ${email}`);
+      await sendAdminNewUserCredentialsEmail(
+        req.user.email, 
+        userName, 
+        email, 
+        generatedPassword, 
+        loginUrl
+      );
+      console.log(`Credentials email sent to admin: ${req.user.email}`);
     } catch (emailError) {
-      console.error('Failed to send credentials email:', emailError);
+      console.error('Failed to send credentials email to admin:', emailError);
+      // Don't fail the user creation if email fails
+    }
+
+    // Send welcome email to the newly created user
+    try {
+      await sendWelcomeEmailToNewUser(email, userName, loginUrl);
+      console.log(`Welcome email sent to new user: ${email}`);
+    } catch (emailError) {
+      console.error('Failed to send welcome email to new user:', emailError);
       // Don't fail the user creation if email fails
     }
 
     // Return success response (without password for security)
     res.status(201).json({
       success: true,
-      message: 'User created successfully and credentials sent via email',
+      message: 'User created successfully. Credentials sent to your email.',
       user: {
         id: savedProfile._id,
         firstName: savedProfile.firstName,
