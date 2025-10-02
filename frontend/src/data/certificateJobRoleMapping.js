@@ -16,8 +16,7 @@ export const jobRoleCertifications = {
     ]
 },
   "Heavy Cabling UG": {
-    Mandatory:[
-    "MT003",
+    Mandatory:["MT003",
     "SA002",
     "K009",
     "K008",
@@ -230,8 +229,7 @@ export const jobRoleCertifications = {
     "SA020",
     "SA007 Or Equivalent",
     "N029",
-    "SA005"], 
-    Alternative: [
+    "SA005"], Alternative: [
       "A16"
     ]
   },
@@ -521,6 +519,7 @@ Alternative: [
     "SA006",
     "SA001A"
   ]},
+
   "Aerial cabling (Ladder)": {
     Mandatory:[
     "MT003",
@@ -1076,13 +1075,13 @@ Alternative: [
     "F005",
     "F017",
     "NRSWA Certificate O1"
-  ]},
+  ], Alternative: []},
   "PCP Maintenance": {
     Mandatory:[
     "MT003",
     "NRSWA Certificate O1",
     "G39"
-  ]},
+  ], Alternative: []},
   "Heavy cable recovery": {
     Mandatory:[
     "MT003",
@@ -1132,7 +1131,7 @@ Alternative: [
     Mandatory:[
     "MT003",
     "SA006"
-  ]},
+  ], Alternative: []},
   "Ancillary Wiring or LLU Cabling": {
     Mandatory:[
     "MT003",
@@ -1140,7 +1139,7 @@ Alternative: [
     "SA007 or Equivalent",
     "SA051C or Equivalent",
     "SA026"
-  ]},
+  ], Alternative: []},
   "Auxillary Overhead": {
     Mandatory:[
     "MT003",
@@ -1244,22 +1243,56 @@ export const getCertificatesForJobRole = (jobRole) => {
   const mapping = jobRoleCertifications[jobRole];
   if (!mapping) return { mandatory: [], alternative: [] };
 
+  const mandatoryCerts = (mapping.Mandatory || []).map(cert => ({
+    code: cert,
+    description: allCertificates[cert] || cert,
+    category: 'Mandatory'
+  }));
+
+  const alternativeCerts = (mapping.Alternative || []).map(cert => ({
+    code: cert,
+    description: allCertificates[cert] || cert,
+    category: 'Alternative'
+  }));
+
   return {
-    mandatory: mapping.map(cert => ({
-      code: cert,
-      description: allCertificates[cert] || cert,
-      category: 'Mandatory'
-    })),
-    alternative: []
+    mandatory: mandatoryCerts,
+    alternative: alternativeCerts
   };
 };
 
-// Helper function to determine certificate category
-const getCertificateCategory = (cert, mapping) => {
-  return 'Mandatory';
+// Helper function to get certificates for multiple job roles
+export const getCertificatesForMultipleJobRoles = (jobRoles) => {
+  if (!Array.isArray(jobRoles) || jobRoles.length === 0) {
+    return { mandatory: [], alternative: [] };
+  }
+
+  const allMandatory = new Map();
+  const allAlternative = new Map();
+
+  jobRoles.forEach(jobRole => {
+    const certs = getCertificatesForJobRole(jobRole);
+    
+    certs.mandatory.forEach(cert => {
+      if (!allMandatory.has(cert.code)) {
+        allMandatory.set(cert.code, cert);
+      }
+    });
+
+    certs.alternative.forEach(cert => {
+      if (!allAlternative.has(cert.code)) {
+        allAlternative.set(cert.code, cert);
+      }
+    });
+  });
+
+  return {
+    mandatory: Array.from(allMandatory.values()),
+    alternative: Array.from(allAlternative.values())
+  };
 };
 
-// Get all unique job roles
+// Get all unique job roles (returns exactly 93 hardcoded roles)
 export const getAllJobRoles = () => {
   return Object.keys(jobRoleCertifications);
 };
