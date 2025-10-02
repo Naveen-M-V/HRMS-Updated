@@ -61,11 +61,7 @@ export default function EditUserProfile() {
   const [loading, setLoading] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
   const { fetchProfileById, updateProfile, deleteProfile } = useProfiles();
-  
-  // Check if user is editing their own profile
-  const isOwnProfile = user?._id === id;
 
   const tabs = ["Profile Details", "Employment Info", "System IDs", "Emergency Contact", "Profile Address", "Extra Information"];
 
@@ -146,7 +142,8 @@ export default function EditUserProfile() {
     }
 
     loadProfile();
-  }, [id, fetchProfileById, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleChange = (e, section = null) => {
     const { name, value } = e.target;
@@ -197,20 +194,10 @@ export default function EditUserProfile() {
       };
       
       console.log('Submitting profile update:', profileData);
-      const updatedProfile = await updateProfile(id, profileData);
-      
-      // If user is editing their own profile, update the auth context
-      if (isOwnProfile && updatedProfile) {
-        updateUser(updatedProfile);
-      }
+      await updateProfile(id, profileData);
       
       alert('Profile updated successfully!');
-      // Navigate back to appropriate page based on context
-      if (isOwnProfile) {
-        navigate('/myaccount/profiles');
-      } else {
-        navigate(`/profiles/${id}`);
-      }
+      navigate(`/profiles/${id}`);
     } catch (error) {
       console.error("Failed to update profile:", error);
       alert('Failed to update profile. Please try again.');
@@ -244,12 +231,7 @@ export default function EditUserProfile() {
   };
 
   const handleCancel = () => {
-    // Navigate back to appropriate page based on context
-    if (isOwnProfile) {
-      navigate('/myaccount/profiles');
-    } else {
-      navigate(`/profiles/${id}`);
-    }
+    navigate(`/profiles/${id}`);
   };
 
   // Show loading state
@@ -268,7 +250,7 @@ export default function EditUserProfile() {
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
       <div className="w-1/4 bg-white shadow p-4">
-        <h2 className="font-semibold mb-4">{isOwnProfile ? 'Edit My Profile' : 'Edit Profile'}</h2>
+        <h2 className="font-semibold mb-4">Edit Profile</h2>
         <ul className="space-y-2">
           {tabs.map((tab) => (
             <li
@@ -764,17 +746,15 @@ export default function EditUserProfile() {
           </div>
         </form>
 
-        {!isOwnProfile && (
-          <div className="mt-6">
-            <button
-              onClick={handleDelete}
-              className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 disabled:opacity-50"
-              disabled={loading}
-            >
-              {loading ? "Deleting..." : "Delete Profile"}
-            </button>
-          </div>
-        )}
+        <div className="mt-6">
+          <button
+            onClick={handleDelete}
+            className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? "Deleting..." : "Delete Profile"}
+          </button>
+        </div>
       </div>
     </div>
   );
