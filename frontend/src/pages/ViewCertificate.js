@@ -148,13 +148,13 @@ export default function ViewCertificate() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">View Certificate</h1>
-        <div className="flex gap-2">
+        {/*<div className="flex gap-2">
           <Link
             to="/reporting/certificates"
             className="px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
           >
             View certificate list
-          </Link>
+          </Link>*/}
           <button
             onClick={() => {
               if (certificate.profileName) {
@@ -185,7 +185,6 @@ export default function ViewCertificate() {
           >
             Delete certificate
           </button>
-        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
@@ -398,7 +397,7 @@ export default function ViewCertificate() {
 
       <div className="mt-6">
         <Link
-          to="/reporting/certificates"
+          to="/certificates"
           className="inline-flex items-center px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
         >
           ← Back to Certificates

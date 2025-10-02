@@ -14,7 +14,6 @@ export default function AdminDetailsModal() {
     mobile: '',
     bio: '',
     jobTitle: '',
-    department: '',
     company: '',
     staffType: 'Admin',
     dateOfBirth: '',

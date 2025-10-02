@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { getAllJobRoles } from '../data/certificateJobRoleMapping';
 
 const MultiJobRoleSelector = ({ value = [], onChange, name = "jobRole" }) => {
   const [jobRoles, setJobRoles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRoles, setSelectedRoles] = useState([]);
 
-  const getApiUrl = () => {
-    if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_API_URL) {
-      return process.env.REACT_APP_API_URL;
-    }
-    return process.env.REACT_APP_API_URL || 'http://localhost:5000';
-  };
-
   useEffect(() => {
-    fetchJobRoles();
+    loadJobRoles();
   }, []);
 
   useEffect(() => {
@@ -28,15 +22,25 @@ const MultiJobRoleSelector = ({ value = [], onChange, name = "jobRole" }) => {
     }
   }, [value]);
 
-  const fetchJobRoles = async () => {
+  const loadJobRoles = () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-roles`);
-      if (response.ok) {
-        const data = await response.json();
-        setJobRoles(data);
-      }
+      // Get the 93 hardcoded job roles from the mapping file
+      const hardcodedRoles = getAllJobRoles();
+      
+      // Convert to the format expected by the component
+      const formattedRoles = hardcodedRoles.map(roleName => ({
+        name: roleName,
+        _id: roleName,
+        isActive: true
+      }));
+      
+      // Sort roles alphabetically by name
+      const sortedRoles = formattedRoles.sort((a, b) => a.name.localeCompare(b.name));
+      
+      setJobRoles(sortedRoles);
     } catch (error) {
-      console.error('Error fetching job roles:', error);
+      console.error('Error loading job roles:', error);
+      setJobRoles([]);
     }
   };
 

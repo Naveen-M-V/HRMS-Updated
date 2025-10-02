@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
-import { getCertificatesForJobRole, getAllJobRoles, allCertificates } from "../data/certificateJobRoleMapping";
+import { getCertificatesForMultipleJobRoles, getAllJobRoles, allCertificates } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
 
 export default function CreateCertificate() {
@@ -17,7 +17,8 @@ export default function CreateCertificate() {
   console.log('CreateCertificate - error:', profilesError);
 
   // State for certificate suggestions based on job role
-  const [suggestedCertificates, setSuggestedCertificates] = useState([]);
+  const [suggestedCertificates, setSuggestedCertificates] = useState({ mandatory: [], alternative: [] });
+  const [profileJobRoles, setProfileJobRoles] = useState([]);
   const [pageError, setPageError] = useState(null);
   const [localProfiles, setLocalProfiles] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
@@ -232,16 +233,23 @@ export default function CreateCertificate() {
       const profile = availableProfiles.find(p => p._id === value);
       setSelectedProfile(profile);
       
-      // Get suggested certificates based on job role
-      if (profile && profile.jobRole && profile.jobRole.length > 0) {
-        const jobRole = Array.isArray(profile.jobRole) ? profile.jobRole[0] : profile.jobRole;
-        const certificates = getCertificatesForJobRole(jobRole);
-        const certList = (certificates.mandatory || []).map(cert => 
-          typeof cert === 'string' ? cert : cert.code || cert.description || cert
-        );
-        setSuggestedCertificates(certList);
+      // Get job roles from profile
+      let jobRoles = [];
+      if (profile && profile.jobRole) {
+        jobRoles = Array.isArray(profile.jobRole) ? profile.jobRole : [profile.jobRole];
+        jobRoles = jobRoles.filter(Boolean); // Remove empty values
+      }
+      setProfileJobRoles(jobRoles);
+      
+      // Get suggested certificates based on ALL job roles
+      if (jobRoles.length > 0) {
+        const certificates = getCertificatesForMultipleJobRoles(jobRoles);
+        setSuggestedCertificates({
+          mandatory: certificates.mandatory || [],
+          alternative: certificates.alternative || []
+        });
       } else {
-        setSuggestedCertificates([]);
+        setSuggestedCertificates({ mandatory: [], alternative: [] });
       }
       
       // Reset certificate selection when profile changes
@@ -440,19 +448,62 @@ export default function CreateCertificate() {
             )}
           </div>
 
-          {/* Suggested Certificates */}
-          {suggestedCertificates.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-800 mb-2">Suggested Certificates for {selectedProfile?.jobRole?.[0] || selectedProfile?.jobRole}</h3>
+          {/* Display Job Roles */}
+          {profileJobRoles.length > 0 && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <p className="text-sm font-medium text-gray-700">
+                Selected User's Job Roles: 
+                <span className="ml-2 text-green-700">{profileJobRoles.join(', ')}</span>
+              </p>
+            </div>
+          )}
+
+          {/* Suggested Certificates - Mandatory */}
+          {suggestedCertificates.mandatory.length > 0 && (
+            <div className="bg-red-50 border border-red-300 rounded-lg p-4">
+              <h3 className="font-medium text-red-800 mb-3 flex items-center">
+                <span className="bg-red-600 text-white px-2 py-1 rounded text-xs mr-2">MANDATORY</span>
+                Required Certificates ({suggestedCertificates.mandatory.length})
+              </h3>
               <div className="grid grid-cols-2 gap-2">
-                {suggestedCertificates.map((cert, index) => (
+                {suggestedCertificates.mandatory.map((cert, index) => (
                   <button
-                    key={index}
+                    key={`mandatory-${index}`}
                     type="button"
-                    onClick={() => setForm(prev => ({ ...prev, certificateName: cert }))}
-                    className="text-left p-2 bg-white border border-blue-300 rounded hover:bg-blue-100 text-sm"
+                    onClick={() => setForm(prev => ({ ...prev, certificateName: cert.code || cert }))}
+                    className="text-left p-2 bg-white border border-red-300 rounded hover:bg-red-100 text-sm"
+                    title={cert.description || cert.code || cert}
                   >
-                    {cert}
+                    <div className="font-medium">{cert.code || cert}</div>
+                    {cert.description && (
+                      <div className="text-xs text-gray-600 truncate">{cert.description}</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Suggested Certificates - Alternative */}
+          {suggestedCertificates.alternative.length > 0 && (
+            <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
+              <h3 className="font-medium text-blue-800 mb-3 flex items-center">
+                <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs mr-2">ALTERNATIVE</span>
+                Optional Certificates ({suggestedCertificates.alternative.length})
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {suggestedCertificates.alternative.map((cert, index) => (
+                  <button
+                    key={`alternative-${index}`}
+                    type="button"
+                    onClick={() => setForm(prev => ({ ...prev, certificateName: cert.code || cert }))}
+                    className="text-left p-2 bg-white border border-blue-300 rounded hover:bg-blue-100 text-sm"
+                    title={cert.description || cert.code || cert}
+                  >
+                    <div className="font-medium">{cert.code || cert}</div>
+                    {cert.description && (
+                      <div className="text-xs text-gray-600 truncate">{cert.description}</div>
+                    )}
                   </button>
                 ))}
               </div>

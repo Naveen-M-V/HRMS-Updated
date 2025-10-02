@@ -2,343 +2,363 @@
 // Updated with comprehensive job role certificate requirements
 
 export const jobRoleCertifications = {
-  "Spine Survey": [
-    "MT003",
+  "Spine Survey": {
+    Mandatory: ["MT003",
     "SA002",
-    "SA006",
-    "SA001",
-    "SA001A",
-    "SA009",
+    "SA005",
+    "K008",
+    "SA051C or Equivalent",
     "S013",
     "S018",
-    "NRSWA Certificate O1",
-    "SA051C or Equivalent",
-    "K008",
-    "SA005"
-  ],
-  "Heavy Cabling UG": [
-    "MT003",
+    "NRSWA Certificate O1"],
+    Alternative: [
+    "SA006","SA001A","SA009"
+    ]
+},
+  "Heavy Cabling UG": {
+    Madatory:["MT003",
     "SA002",
-    "SA006",
+    "K009",
     "K008",
-    "K006",
     "NRSWA Certificate O1",
     "SA003",
-    "K009",
-    "SA005"
-  ],
-  "Cable Blowing": [
-    "MT003",
+    "SA005",
+    "K006"],
+    Alternative:[
+    "SA006"
+    ]
+},
+  "Cable Blowing": {
+    Mandatory: ["MT003",
     "SA002",
-    "SA006",
     "K009",
     "NRSWA Certificate O1"
   ],
-  "Overblow": [
+  Alternative: ["SA006"]
+},
+  "Overblow": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
     "N033",
-    "NRSWA Certificate O1"
-  ],
-  "Fibre Jointing (Ladder)": [
-    "MT003",
-    "SA051C or Equivalent",
+    "NRSWA Certificate O1"],
+    Alternative: [
+      "SA006"
+    ]
+  },
+  "Fibre Jointing (Ladder)": {
+    Mandatory: ["MT003",
+    "SA051C or Equivalent","SA051C",
     "SA001",
-    "SA009",
-    "SA002",
-    "SA006",
-    "N023",
-    "NRSWA Certificate O1",
-    "K008",
     "N020",
-    "SA005"
-  ],
-  "Fibre Jointing (MEWP)": [
+    "SA002",
+    ,"K008","SA005",
+    "N023",
+    "NRSWA Certificate O1"],
+    Alternative: [
+    "SA009","SA006"
+    ]
+  },
+  "Fibre Jointing (MEWP)": {
+    Mandatory:[
     "MT003",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
     "SA002",
-    "SA006",
-    "N023",
-    "NRSWA Certificate O1",
-    "K008",
     "N020",
-    "SA005"
-  ],
-  "Fibre Light Loss Testing (Ladder)": [
+    "N023","K008","SA005",
+    "NRSWA Certificate O1"],
+    Alternative: [
+      "SA001","SA009","SA006"
+    ]
+  },
+  "Fibre Light Loss Testing (Ladder)": {
+    Mandatory:[
     "MT003",
     "SA051C or Equivalent",
     "SA001",
-    "SA009",
     "SA002",
-    "SA006",
     "N039",
-    "NRSWA Certificate O1"
-  ],
-  "Fibre Light Loss Testing (MEWP)": [
+    "NRSWA Certificate O1"],
+    Alternative:[
+      "SA009","SA006"
+    ]
+    },
+  "Fibre Light Loss Testing (MEWP)": {
+    Mandatory:[
     "MT003",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
     "SA002",
-    "SA006",
     "N039",
     "NRSWA Certificate O1"
   ],
-  "Fibre Jointing - UG only": [
+    Alternative: [
+      "SA001","SA009","SA006"
+    ]
+},
+  "Fibre Jointing - UG only": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
-    "N026",
-    "N023",
-    "NRSWA Certificate O1",
-    "K008",
-    "N020",
-    "SA005"
-  ],
-  "Ribbon Fibre Jointing": [
+    "N026","N020",
+    "K008","SA005",
+    "NRSWA Certificate O1"],
+    Alternative:
+    [
+    "N023","SA006"
+    ]
+  },
+  "Ribbon Fibre Jointing":{ 
+    Madatory: [
     "MT003",
     "SA002",
-    "SA006",
+    "SA005",
     "N034",
-    "NRSWA Certificate O1",
-    "SA005"
-  ],
-  "OFN Fibre Cabling - UG": [
+    "NRSWA Certificate O1"],
+    Alternative: ["SA006"]
+  },
+  "OFN Fibre Cabling - UG": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
     "K008",
-    "N028",
-    "NRSWA Certificate O1",
-    "SA003",
-    "SA005"
-  ],
-  "OFN Fibre Cabling - OH (Ladder)": [
+    "N028","SA003","SA005",
+    "NRSWA Certificate O1"],
+    Alternative:[
+      "SA006"
+    ]
+    },
+  "OFN Fibre Cabling - OH (Ladder)": {
+    Mandatory:[
     "MT003",
     "SA051C or Equivalent",
-    "SA001",
-    "SA009",
-    "N027",
-    "NRSWA Certificate O1",
-    "J005",
-    "SA008",
-    "SA005",
-    "SA024"
-  ],
-  "OFN Fibre Cabling - OH (MEWP)": [
-    "MT003",
+    "SA001","SA008",
+    "J005","SA005",
+    "N027","SA024",
+    "NRSWA Certificate O1"],
+    Alternative:[
+      "SA009"
+    ]
+  },
+  "OFN Fibre Cabling - OH (MEWP)": {
+    Mandatory: ["MT003",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
-    "N027",
-    "NRSWA Certificate O1",
-    "J005",
+    "SA005",
     "SA008",
+    "N027","J005","SA024",
+    "NRSWA Certificate O1"],
+    Alternative: [
+    "SA009","SA001"
+    ]
+  },
+  "Rod and Rope": {
+    Mandatory: ["MT003",
+    "SA002","SA003",
     "SA005",
-    "SA024"
-  ],
-  "Rod and Rope": [
-    "MT003",
-    "SA002",
-    "SA006",
     "K008",
-    "NRSWA Certificate O1",
-    "SA003",
-    "SA005"
-  ],
-  "FTTP Access Survey": [
-    "MT003",
+    "NRSWA Certificate O1"],
+    Alternative: [
+      "SA006"
+    ]
+  },
+  "FTTP Access Survey - 2": {
+   Mandatory:[ "MT003",
     "SA002",
-    "SA006",
-    "SA001",
-    "SA001A",
-    "SA009",
-    "S011",
-    "S013",
-    "NRSWA Certificate O1",
-    "SA051C or Equivalent",
     "K008",
-    "SA005",
-    "S017"
-  ],
-  "FTTP Quality Checks": [
-    "MT003",
-    "SA002",
-    "SA006",
-    "SA001",
-    "SA001A",
-    "SA009",
-    "M023",
-    "NRSWA Certificate O1",
+    "SA001","SA005",
     "SA051C or Equivalent",
-    "M022",
+     "S011 & S013","S017",
+    "NRSWA Certificate O1"],
+    Alternative: [
+    "SA001A",
+    "SA006",
+    "SA009"
+    ]
+  },
+  "FTTP Quality Checks - 2": {
+    Mandatory: ["MT003",
+    "SA002",
     "M006",
-    "SA005"
-  ],
-  "MDU Survey": [
-    "MT003",
+    "SA001",
+    "M022",
+    "SA005",
+    "M023","SA051C or Equivalent",
+    "NRSWA Certificate O1"],
+    Alternative: [
+    "SA001A","SA009",
+    "SA006"
+    ]
+  },
+  "MDU Survey": {
+   Mandatory: [ "MT003",
     "SA002",
-    "SA006",
-    "SA020",
-    "A16",
-    "SA020A",
-    "SA007",
-    "Equivalent",
-    "S012",
-    "S013",
+    "K008","S012 & S013",
+    "SA020","SA005",
     "NRSWA Certificate O1",
-    "K008",
-    "SA005"
-  ],
-  "MDU Quality Checks": [
+    
+    "SA007 & Equivalent"], Alternative: [
+    "SA020A","A16","SA006"
+    ]
+  },
+  "MDU Quality Checks": {
+    Mandatory: [
     "MT003",
     "SA002",
-    "SA006",
-    "SA007",
-    "Equivalent",
+    "SA007 & Equivalent",
     "M029",
     "NRSWA Certificate O1",
-    "SA005"
-  ],
-  "MDU L2C": [
+    "SA005"],
+    Alternative: [
+      "SA006"
+    ]
+  },
+  "MDU L2C": {
+    Mandatory: [
     "MT003",
     "SA020",
-    "A16",
-    "SA007",
-    "Equivalent",
+    "SA007 & Equivalent",
     "N030",
-    "SA051C or Equivalent"
-  ],
-  "Internal MDU Build": [
+    "SA051C or Equivalent"],
+    Alternative: ["A16"]
+  },
+  "Internal MDU Build": {
+    Mandatory: [
     "MT003",
     "SA020",
-    "A16",
     "SA007",
     "Equivalent",
     "N029",
-    "SA005"
-  ],
-  "FTTP L2C Home Install": [
+    "SA005"], Alternative: [
+      "A16"
+    ]
+  },
+  "FTTP L2C Home Install": {
+    Mandatory: [
     "MT003",
     "SA020",
-    "A16",
     "N038",
-    "SA051C or Equivalent"
-  ],
-  "FTTP L2C step 1 (Ladder)": [
-    "MT003",
+    "SA051C or Equivalent"],
+    Alternative: [
+      "A16"
+    ]
+  },
+  "FTTP L2C step 1 (Ladder)": {
+    Mandatory: ["MT003",  
     "SA002",
-    "SA006",
     "SA051C or Equivalent",
     "SA001",
-    "SA009",
     "N022",
     "NRSWA Certificate O1",
     "K008",
     "N10",
-    "SA005"
-  ],
-  "FTTP L2C step 1 (MEWP)": [
+    "SA005"],
+    Alternative: ["SA006","SA009"]
+  },
+  "FTTP L2C step 1 (MEWP)": {
+    Mandatory: [
     "MT003",
     "SA002",
-    "SA006",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
     "N022",
     "NRSWA Certificate O1",
     "K008",
     "N10",
-    "SA005"
-  ],
-  "FTTP L2C step 1 - OH only (Ladder)": [
+    "SA005"],
+    Alternative: ["SA001","SA009","SA006"
+    ]},
+  "FTTP L2C step 1 - OH only (Ladder)": {
+    Mandatory: [
     "MT003",
     "SA051C or Equivalent",
-    "SA001",
-    "SA009",
     "N043",
-    "NRSWA Certificate O1"
-  ],
-  "FTTP L2C step 1 - OH only (MEWP)": [
+    "NRSWA Certificate O1"],
+    Alternative: [ "SA001",
+    "SA009"]
+  },
+  "FTTP L2C step 1 - OH only (MEWP)": {
+    Mandatory: [
     "MT003",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
     "N043",
-    "NRSWA Certificate O1"
-  ],
-  "FTTP L2C repair (Ladder)": [
+    "NRSWA Certificate O1"],
+    Alternative: [
+    "SA001",
+    "SA009"
+    ]
+  },
+  "FTTP L2C repair (Ladder)": {
+    Mandatory : [
     "MT003",
     "SA002",
-    "SA006",
     "SA051C or Equivalent",
     "SA001",
-    "SA009",
     "N011",
-    "NRSWA Certificate O1"
-  ],
-  "FTTP L2C repair (MEWP)": [
+    "NRSWA Certificate O1"],
+    Alternative: ["SA006","SA009"]
+  },
+  "FTTP L2C repair (MEWP)": {
+    Mandatory: [
     "MT003",
     "SA002",
-    "SA006",
     "IPAF 1B or Equivalent",
     "SA001A",
+    "N011",
+    "NRSWA Certificate O1"],
+    Alternative: [
     "SA001",
     "SA009",
-    "N011",
-    "NRSWA Certificate O1"
-  ],
-  "FTTP L2C Step 2": [
+    "SA006"
+    ]
+  },
+  "FTTP L2C Step 2": {
+    Mandatory: [
     "MT003",
     "SA020",
-    "A16",
     "N037",
-    "SA051C or Equivalent"
-  ],
-  "Optical Test Head Installation - Viavi": [
+    "SA051C or Equivalent"],
+    Alternative: ["A16"]
+  },
+  "Optical Test Head Installation - Viavi": {
+    Mandatory: [
     "MT003",
     "SA020",
-    "A16",
-    "N036"
-  ],
-  "Optical Test Head Installation - Exfo": [
+    "N036"],
+    Alternative: ["A16"]
+  },
+  "Optical Test Head Installation - Exfo": {
+    Mandatory: [
     "MT003",
     "SA020",
-    "A16",
-    "N041"
-  ],
-  "PTO": [
+    "N041"],
+    Alternative: ["A16"]
+  },
+  "PTO": {
+    Mandatory: [
     "MT003",
     "SA002",
     "SA006",
     "N011",
     "N035",
     "NRSWA Certificate O1",
-    "N039"
-  ],
-  "Supervisor": [
+    "N039"],
+    Alternative: []
+  },
+  "Supervisor - 2": {
+    Mandatory: [
     "MT003",
-    "NRSWA Card Certificate S1",
-    "As Above for each Job Role"
-  ],
-  "Poling - PEU Operative": [
+    "NRSWA Card Certificate S1"]
+    , Alternative: []
+  },
+  "Poling - PEU Operative": {
+    Mandatory: [
     "MT003",
     "SA001A",
-    "SA001",
-    "SA009",
     "SA002",
-    "SA006",
     "SA021",
-    "A14",
-    "Equivalent",
     "O002",
     "O003",
     "O004",
@@ -351,90 +371,105 @@ export const jobRoleCertifications = {
     "SA023 or Equivalent",
     "SA051C or Equivalent",
     "O008",
-    "SA005"
-  ],
-  "Poling - Overhead Copper dropwiring (Ladder)": [
+    "SA005"],
+    Alternative: [
+      "SA009","SA006","A14 or Equivalent"
+    ]
+  },
+  "Poling - Overhead Copper dropwiring (Ladder)": {
+    Mandatory:[
     "MT003",
     "SA051C or Equivalent",
-    "SA001",
-    "SA009",
+    "SA001A",
     "E001",
     "NRSWA Certificate O1",
     "SA023 or Equivalent",
-    "K003",
-    "K004",
+    "K003 + K004",
     "O008",
-    "SA008",
+    "SDA008",
     "SA005",
     "SA024"
   ],
-  "Poling - Overhead Copper dropwiring (MEWP)": [
+Alternative: [
+  "SA009"
+]},
+  "Poling - Overhead Copper dropwiring (MEWP)": {
+    Mandatory:[
     "MT003",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
     "E001",
     "NRSWA Certificate O1",
     "SA023 or Equivalent",
-    "K003",
-    "K004",
-    "O008",
-    "SA008",
+    "K003 + K004",
+    "0008",
+    "SDA008",
     "SA005",
     "SA024"
   ],
-  "Poling - Overhead Copper Jointing (Ladder)": [
+  Alternative:[
+    "SA009",
+    "SA001"
+  ]},
+  "Poling - Overhead Copper Jointing (Ladder)": {
+    Mandatory:[
     "MT003",
     "SA051C or Equivalent",
     "SA001",
-    "SA009",
     "F020",
     "NRSWA Certificate O1",
     "SA023 or Equivalent",
-    "K003",
-    "K004",
-    "O008",
-    "SA008",
+    "K003 + K004",
+    "0008",
+    "SDA008",
     "SA005",
     "SA024"
   ],
-  "Poling - Overhead Copper Jointing (MEWP)": [
+  Alternative:[
+    "SA009"
+  ]},
+  "Poling - Overhead Copper Jointing (MEWP)": {
+  Mandatory:[
     "MT003",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
     "F020",
     "NRSWA Certificate O1",
     "SA023 or Equivalent",
-    "K003",
-    "K004",
-    "O008",
-    "SA008",
+    "K003 + K004",
+    "0008",
+    "SDA008",
     "SA005",
     "SA024"
   ],
-  "MEWP Operator": [
+  Alternative:[
+    "SA009",
+    "SA001"
+  ]},
+  "MEWP Operator": {
+    Mandatory:[
     "MT003",
     "SA001A",
-    "SA001",
-    "SA009",
+    "0",
     "IPAF 1B or Equivalent",
     "NRSWA Certificate O1",
-    "SA051C or Equivalent",
-    "1a",
-    "3a",
-    "3b or Equivalent",
+    "SA051c or Equivalent",
+    "1a or Equivalent",
+    "3a & 3b or Equivalent",
     "SA008",
     "SA005",
     "SA023"
   ],
-  "Manual poling (provision and recovery)": [
+  Alternative:[
+    "SA009",
+    "SA001"
+  ]},
+  "Manual poling (provision and recovery)": {
+    Mandatory:[
     "MT003",
     "SA001A",
-    "SA001",
-    "SA009",
+    "0009",
+    "SA005",
     "SA002",
     "SA006",
     "O009",
@@ -447,17 +482,19 @@ export const jobRoleCertifications = {
     "O008",
     "SA005"
   ],
-  "Pole recovery": [
+  Alternative:[
+    "SA009",
+    "SA001",
+    "SA009"
+  ]},
+  "Pole recovery": {
+    Mandatory:[
     "MT003",
     "SA001A",
-    "SA001",
-    "SA009",
     "SA002",
     "SA006",
     "SA021",
-    "A14",
-    "Equivalent",
-    "O005",
+    "0005",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
@@ -466,69 +503,94 @@ export const jobRoleCertifications = {
     "SA051C or Equivalent",
     "SA005"
   ],
-  "Pole Survey (AAP)": [
-    "MT003",
-    "SA002",
+  Alternative:[
+    "SA009",
     "SA006",
-    "SA001",
+    "A14 or Equivalent"
+  ]},
+  "Pole Survey (AAP)": {
+    Mandatory:[
+    "MT003",
     "SA001A",
-    "SA009",
-    "S013",
-    "S017",
+    "0005",
+    "NRSWA Certificate LA",
+    "SA023 or Equivalent",
+    "SA002",
     "NRSWA Certificate O1",
-    "SA051C or Equivalent",
-    "SA005"
+    "SA051c or Equivalent",
+    "SA021",
+    "NRSWA Certificate O2",
+    "SA005",
+    "NRSWA Certificate O3"  
   ],
-  "Aerial cabling (Ladder)": [
+  Alternative:[
+    "SA009",
+    "SA006",
+    "A14 or Equivalent"
+  ]},
+  "Aerial cabling (Ladder)": {
+    Mandatory:[
     "MT003",
     "SA051C or Equivalent",
-    "SA001",
-    "SA009",
     "K003",
-    "K004",
     "NRSWA Certificate O1",
     "SA008",
+    "K004",
     "SA005",
     "SA024"
   ],
-  "Aerial cabling (MEWP)": [
+  Alternative:[
+    "SA009",
+    "SA001"
+  ]},
+  "Aerial cabling (MEWP)": {
+    Mandatory:[
     "MT003",
     "IPAF 1B or Equivalent",
-    "SA001A",
-    "SA001",
-    "SA009",
     "K003",
-    "K004",
     "NRSWA Certificate O1",
     "SA008",
+    "SA001A",
+    "K004",
     "SA005",
-    "SA024"
+    "SA024",
+    "SA001"
   ],
-  "Poling Labourer": [
+  Alternative:[
+    "SA009",
+    "SA001"
+  ]},
+  "Poling Labourer": {
+    Mandatory:[
     "MT003",
     "SA001A",
+    "0003",
+    "NRSWA Certificate O1",
+    "SA002",],
+    Alternative:[
     "SA001",
     "SA009",
-    "SA002",
-    "SA006",
-    "O003",
-    "NRSWA Certificate O1"
-  ],
-  "Blockages": [
+    "SA006"
+  ]},
+  "Blockages": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q020(DB1)",
-    "K008",
+    "Q020(DB1)",
     "NRSWA Certificate LA",
-    "NRSWA Certificate O1",
+    "K003",
+    "NRSWA Certificate 01",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
-  ],
-  "Chambers Modular": [
+    ],
+    Alternative:[
+    "G01"
+  ]},
+  "Chambers Modular": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q013(BB1M)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
@@ -536,40 +598,52 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "Q035(SEC1)"
   ],
-  "Chambers Concrete": [
+  Alternative:[
+    "G01",
+  ]},
+  "Chambers Concrete": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q012(BB1C)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Chambers Concrete advanced": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Chambers Concrete advanced": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q014(BB2C)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Carriageway Chambers": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Carriageway Chambers": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q015(BB3C)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Chambers Brick": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Chambers Brick": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q011(BB1B)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
@@ -577,36 +651,45 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "Q035(SEC1)"
   ],
-  "Manhole build": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Manhole build":{
+  Mandatory:[
     "MT003",
     "SA006",
     "EUSR Category 3",
     "EUSR Category 4",
     "EUSR Category 5",
-    "Level 2 Award Excavation support systems",
     "Q029(MH1)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Manhole Reroof": [
+  Alternative:[
+    "Level 2 Award Excavation support systems"
+  ]},
+  "Manhole Reroof": {
+    Mandatory:[
     "MT003",
     "SA006",
     "EUSR Category 3",
     "EUSR Category 4",
     "EUSR Category 5",
-    "Level 2 Award Excavation support systems",
     "Q031",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Duct Laying Basic": [
+  Alternative:[
+    "Level 2 Award Excavation support systems"
+  ]},
+  "Duct Laying Basic": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q021(DL1)",
     "Q019(CD1)",
     "NRSWA Certificate LA",
@@ -615,10 +698,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "Q036(SLEW1)"
   ],
-  "Duct Laying Intermediate": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Duct Laying Intermediate": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q021(DL1)",
     "Q022(DL2)",
     "Q019(CD1)",
@@ -628,10 +714,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "Q037(SLEW2)"
   ],
-  "Duct Laying Advanced": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Duct Laying Advanced": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q021(DL1)",
     "Q022(DL2)",
     "Q023 (DL3)",
@@ -642,10 +731,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "Q038(SLEW3)"
   ],
-  "Duct Slew Basic": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Duct Slew Basic": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q036(SLEW1)",
     "K008",
     "NRSWA Certificate LA",
@@ -653,10 +745,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Duct Slew Intermediate": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Duct Slew Intermediate": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q036(SLEW1)",
     "Q037(SLEW2)",
     "K008",
@@ -665,10 +760,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Duct Slew Advanced": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Duct Slew Advanced": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q036(SLEW1)",
     "Q037(SLEW2)",
     "Q038(SLEW3)",
@@ -678,20 +776,26 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Mole ploughing": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Mole ploughing": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q030(MP1)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Maintenance Excavation": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Maintenance Excavation": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q028(ME1)",
     "K008",
     "NRSWA Certificate LA",
@@ -699,10 +803,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Reinstatement Operative - Footway": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Reinstatement Operative - Footway": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
@@ -713,10 +820,13 @@ export const jobRoleCertifications = {
     "Certificate O6",
     "Certificate O7"
   ],
-  "Reinstatement Operative - Carriageway": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Reinstatement Operative - Carriageway": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
@@ -727,10 +837,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O8",
     "Certificate O5"
   ],
-  "Frame and Cover footway": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Frame and Cover footway": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q025(FCFW1)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
@@ -738,10 +851,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "Q035(SEC1)"
   ],
-  "Frame and Cover Carriageway": [
+  Alternative:[
+    "GO1",
+  ]},
+  "Frame and Cover Carriageway": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q024 (FCCW1)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
@@ -749,12 +865,15 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "Q035(SEC1)"
   ],
-  "DSLAM Construction": [
+  Alternative:[
+    "GO1"
+  ]},
+  "DSLAM Construction":{
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "SA018",
-    "Q016(CB2)",
+    "Q016(CB2) & Q017(CB3)",
     "Q017(CB3)",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
@@ -762,10 +881,13 @@ export const jobRoleCertifications = {
     "NRSWA Certificate O3",
     "N025"
   ],
-  "PCP Construction": [
+  Alternative:[
+    "GO1"
+  ]},
+  "PCP Construction": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "SA018",
     "Q018 (CCC1)",
     "NRSWA Certificate LA",
@@ -777,72 +899,98 @@ export const jobRoleCertifications = {
     "SA004",
     "SA005"
   ],
-  "Desilting, Gully sucking or Manhole survey": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Desilting, Gully sucking or Manhole survey": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
+    "0",
     "NRSWA Certificate O1"
   ],
-  "Narrow Trenching": [
+  Alternative:[
+    "SA006",
+  ]},
+  "Narrow Trenching": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "Q039",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Labourer": [
+  Alternative:[
+    "G01",
+  ]},
+  "Labourer": {
+  Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
     "NRSWA Certificate O1"
   ],
-  "Trial Hole Excavation": [
+  Alternative:[
+    "GO1"
+  ]},
+  "Trial Hole Excavation": {
+    Mandatory:[
     "MT003",
     "SA006",
-    "GO1",
+    "0",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "FTTC Commissioning": [
+  Alternative:[
+    "GO1",
+  ]},
+  "FTTC Commissioning": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
     "N005",
     "NRSWA Certificate O1",
     "N024",
     "SA005"
   ],
-  "Copper Frames": [
+  Alternative:[
+    "SA006"
+  ]},
+  "Copper Frames": {
+    Mandatory:[
     "MT003",
     "SA020",
-    "A16",
     "H001",
     "H004",
     "SA005"
   ],
-  "Fibre Frames - Accredited for correct frame type": [
+  Alternative:[
+    "A16"
+  ]},
+  "Fibre Frames - Accredited for correct frame type": {
+    Mandatory:[
     "MT003",
     "SA020",
-    "A16",
+    
     "N031 (ODF)",
     "N004 (OCR)",
-    "J010 (OFF",
+    "J010 (OFF OR OFR)",
     "OFR)",
     "J008",
     "SA005"
   ],
-  "CAL/OMI (Ladder)": [
+  Alternative:[
+    "A16"
+  ]},
+  "CAL/OMI (Ladder)": {
+    Mandatory:[
     "MT003",
     "SA051C or Equivalent",
     "SA001",
-    "SA009",
     "SA020",
-    "A16",
     "C004",
     "E001",
     "F005",
@@ -854,14 +1002,16 @@ export const jobRoleCertifications = {
     "SA005",
     "SA024"
   ],
-  "CAL/OMI (MEWP)": [
+  Alternative:[
+    "SA009",
+    "A16"
+  ]},
+  "CAL/OMI (MEWP)": {
+    Mandatory:[
     "MT003",
     "IPAF 1B or Equivalent",
     "SA001A",
-    "SA001",
-    "SA009",
     "SA020",
-    "A16",
     "C004",
     "E001",
     "F005",
@@ -873,157 +1023,199 @@ export const jobRoleCertifications = {
     "SA005",
     "SA024"
   ],
-  "Copper Jointing UG": [
+  Alternative:[
+    "SA001",
+    "SA009",
+    "A16"
+  ]},
+  "Copper Jointing UG": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
     "F020",
     "NRSWA Certificate O1"
   ],
-  "Copper First Look UG": [
+  Alternative:[
+    "SA006"
+  ]},
+  "Copper First Look UG": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
     "F023",
     "F020",
     "NRSWA Certificate O1"
   ],
-  "FTTC MI (LADDER)": [
+  Alternative:[
+    "SA006"
+  ]},
+  "FTTC MI (LADDER)": {
+    Mandatory:[
     "MT003",
     "SA051C or Equivalent",
-    "SA001",
-    "SA009",
-    "SA020",
-    "A16",
     "F005",
-    "F017",
-    "NRSWA Certificate O1",
+    "NRSWA Certificate 01",
     "N006",
-    "SA005"
+    "SA001",
+    "F017",
+    "SA005",
+    "SA020"
   ],
-  "FTTC MI (MEWP)": [
+  Alternative:[
+    "SA009",
+    "A16"
+  ]},
+  "FTTC MI (MEWP)": {
+    Mandatory:[
     "MT003",
     "IPAF 1B or Equivalent",
-    "SA001A",
-    "SA001",
-    "SA009",
-    "SA020",
-    "A16",
     "F005",
-    "F017",
     "NRSWA Certificate O1",
     "N006",
+    "SA001A",
+    "SA020",
+    "F017",
     "SA005"
   ],
-  "FTTC SI": [
+  Alternative:[
+    "SA001",
+    "SA009",
+    "A16"
+  ]},
+  "FTTC SI": {
+    Mandatory:[
     "MT003",
     "F005",
     "F017",
     "NRSWA Certificate O1"
-  ],
-  "PCP Maintenance": [
+  ], Alternative: []},
+  "PCP Maintenance": {
+    Mandatory:[
     "MT003",
     "NRSWA Certificate O1",
     "G39"
-  ],
-  "Heavy cable recovery": [
+  ], Alternative: []},
+  "Heavy cable recovery": {
+    Mandatory:[
     "MT003",
     "SA002",
-    "SA006",
     "K010",
     "NRSWA Certificate O1"
   ],
-  "Supply and Install Engineer": [
+  Alternative:[
+    "SA006"
+  ]},
+  "Supply and Install Engineer": {
+    Mandatory:[
     "MT003",
     "SA020",
-    "A16",
-    "MT003",
     "SA005",
     "SA007",
     "UKATA"
   ],
-  "Supply and Install - Fibre Cable installation": [
+  Alternative:[
+    "A16"
+  ]},
+  "Supply and Install - Fibre Cable installation": {
+    Mandatory:[
     "MT003",
     "SA020",
-    "A16",
     "J008",
     "SA005",
     "SA007",
     "UKATA"
   ],
-  "Supply and Install - Mobile installation": [
+  Alternative:[
+    "A16"
+  ]},
+  "Supply and Install - Mobile installation": {
+    Mandatory:[
     "MT003",
     "SA020",
-    "A16",
     "NRSWA Certificate O1",
     "SA005",
-    "SA007",
-    "Equivalent",
-    "SA026",
-    "Equivalent"
+    "SA007 or Equivalent",
+    "SA026 or Equivalent"
   ],
-  "Supply and Install - Civils": [
+  Alternative:[
+    "A16"
+  ]},
+  "Supply and Install - Civils": {
+    Mandatory:[
     "MT003",
-    "SA006",
-    "MT003"
-  ],
-  "Ancillary Wiring or LLU Cabling": [
+    "SA006"
+  ], Alternative: []},
+  "Ancillary Wiring or LLU Cabling": {
+    Mandatory:[
     "MT003",
     "SA020",
-    "SA007",
-    "Equivalent",
-    "SA051C",
-    "Equivalent",
-    "SA026"
-  ],
-  "Auxillary Overhead": [
-    "MT003",
+    "SA007 or Equivalent",
     "SA051C or Equivalent",
-    "SA001",
-    "SA009",
+    "SA026"
+  ], Alternative: []},
+  "Auxillary Overhead": {
+    Mandatory:[
+    "MT003",
+    "SA006",
     "NRSWA Certificate O1"
   ],
-  "DSLAM Power Meter": [
+  Alternative:[
+    "G01"
+  ]},
+  "DSLAM Power Meter": {
+    Mandatory:[
     "MT003",
-    "MOCOPA",
+    "SA006",
     "NRSWA Certificate O1"
   ],
-  "DSLAM - Power (RCD)": [
+  Alternative:[
+    "G01"
+  ]},
+  "DSLAM - Power (RCD)": {
+    Mandatory:[
     "MT003",
-    "Emergency first Aid",
-    "C",
-    "G Part 1,2",
-    "3",
-    "Equivalent",
-    "18th edition",
-    "C",
-    "G 2391 - 51",
-    "Equivalent",
+    "SA006",
+    "C & G Part 1,2 & 3 or Equivalent",
+    "18TH EDITION",
+    "C & G 2391 - 51 OR EQUIVALENT",
     "NRSWA Certificate O1"
   ],
-  "DSLAM Battery Replacement or Rotation": [
+  Alternative:[
+    "G01"
+  ]},
+  "DSLAM Battery Replacement or Rotation": {
+    Mandatory:[
     "MT003",
-    "Emergency first Aid",
+    "SA006",
     "Ace Telecoms Battery installation course, A350",
     "NRSWA Certificate O1",
     "SA005"
   ],
-  "Conductive Concrete": [
+  Alternative:[
+    "G01"
+  ]},
+  "Conductive Concrete": {
+    Mandatory:[
     "MT003",
-    "SA018",
     "SA006",
     "NRSWA Certificate LA",
     "NRSWA Certificate O1",
     "NRSWA Certificate O2",
     "NRSWA Certificate O3"
   ],
-  "Equipotential Bonding": [
+  Alternative:[
+    "G01"
+  ]},
+  "Equipotential Bonding": {
+    Mandatory:[
     "MT003",
-    "SA002",
     "SA006",
     "K008",
     "NRSWA Certificate O1"
-  ]
+  ],
+  Alternative:[
+    "G01"
+  ]},
 };
 
 // Keep the old export for backward compatibility
@@ -1064,22 +1256,56 @@ export const getCertificatesForJobRole = (jobRole) => {
   const mapping = jobRoleCertifications[jobRole];
   if (!mapping) return { mandatory: [], alternative: [] };
 
+  const mandatoryCerts = (mapping.Mandatory || []).map(cert => ({
+    code: cert,
+    description: allCertificates[cert] || cert,
+    category: 'Mandatory'
+  }));
+
+  const alternativeCerts = (mapping.Alternative || []).map(cert => ({
+    code: cert,
+    description: allCertificates[cert] || cert,
+    category: 'Alternative'
+  }));
+
   return {
-    mandatory: mapping.map(cert => ({
-      code: cert,
-      description: allCertificates[cert] || cert,
-      category: 'Mandatory'
-    })),
-    alternative: []
+    mandatory: mandatoryCerts,
+    alternative: alternativeCerts
   };
 };
 
-// Helper function to determine certificate category
-const getCertificateCategory = (cert, mapping) => {
-  return 'Mandatory';
+// Helper function to get certificates for multiple job roles
+export const getCertificatesForMultipleJobRoles = (jobRoles) => {
+  if (!Array.isArray(jobRoles) || jobRoles.length === 0) {
+    return { mandatory: [], alternative: [] };
+  }
+
+  const allMandatory = new Map();
+  const allAlternative = new Map();
+
+  jobRoles.forEach(jobRole => {
+    const certs = getCertificatesForJobRole(jobRole);
+    
+    certs.mandatory.forEach(cert => {
+      if (!allMandatory.has(cert.code)) {
+        allMandatory.set(cert.code, cert);
+      }
+    });
+
+    certs.alternative.forEach(cert => {
+      if (!allAlternative.has(cert.code)) {
+        allAlternative.set(cert.code, cert);
+      }
+    });
+  });
+
+  return {
+    mandatory: Array.from(allMandatory.values()),
+    alternative: Array.from(allAlternative.values())
+  };
 };
 
-// Get all unique job roles
+// Get all unique job roles (returns exactly 93 hardcoded roles)
 export const getAllJobRoles = () => {
   return Object.keys(jobRoleCertifications);
 };

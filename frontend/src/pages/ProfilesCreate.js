@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import SearchableDropdown from "../components/SearchableDropdown";
+import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 
 export default function ProfilesCreate() {
   const [formData, setFormData] = useState({
@@ -40,35 +41,25 @@ export default function ProfilesCreate() {
     fetchJobLevels();
   }, []);
 
-  // List of approved job roles
+  // Use hardcoded job roles from certificateJobRoleMapping (93 roles)
   const fetchJobRoles = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      const response = await fetch('https://talentshield.co.uk/api/job-roles', {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch job roles: ${response.status}`);
-      }
-
-      const data = await response.json();
+      // Get the 93 hardcoded job roles from the mapping file
+      const hardcodedRoles = getAllJobRoles();
+      
+      // Convert to the format expected by the component
+      const formattedRoles = hardcodedRoles.map(roleName => ({
+        name: roleName,
+        _id: roleName, // Use role name as ID since we're not using database
+        isActive: true
+      }));
       
       // Sort roles alphabetically by name
-      const sortedRoles = data.sort((a, b) => a.name.localeCompare(b.name));
+      const sortedRoles = formattedRoles.sort((a, b) => a.name.localeCompare(b.name));
       
       setJobRoles(sortedRoles);
     } catch (error) {
-      console.error('Error fetching job roles:', error);
+      console.error('Error loading job roles:', error);
       setJobRoles([]);
     }
   };
