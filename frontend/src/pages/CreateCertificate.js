@@ -87,6 +87,32 @@ export default function CreateCertificate() {
     initializeCertificateNames();
   }, []);
 
+  // Pre-fill profile if passed from ProfileDetailView
+  useEffect(() => {
+    if (location.state?.profileId && availableProfiles.length > 0) {
+      const prefilledProfile = availableProfiles.find(p => p._id === location.state.profileId);
+      if (prefilledProfile) {
+        setForm(prev => ({ ...prev, profileId: prefilledProfile._id }));
+        setSelectedProfile(prefilledProfile);
+        
+        let jobRoles = [];
+        if (prefilledProfile.jobRole) {
+          jobRoles = Array.isArray(prefilledProfile.jobRole) ? prefilledProfile.jobRole : [prefilledProfile.jobRole];
+          jobRoles = jobRoles.filter(Boolean);
+        }
+        setProfileJobRoles(jobRoles);
+        
+        if (jobRoles.length > 0) {
+          const certificates = getCertificatesForMultipleJobRoles(jobRoles);
+          setSuggestedCertificates({
+            mandatory: certificates.mandatory || [],
+            alternative: certificates.alternative || []
+          });
+        }
+      }
+    }
+  }, [location.state, availableProfiles]);
+
   const getApiUrl = () => {
     // In development, use localhost URL
     if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_API_URL) {

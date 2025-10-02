@@ -16,7 +16,7 @@ export const jobRoleCertifications = {
     ]
 },
   "Heavy Cabling UG": {
-    Madatory:["MT003",
+    Mandatory:["MT003",
     "SA002",
     "K009",
     "K008",

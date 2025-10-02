@@ -163,7 +163,7 @@ const handleDeleteCertificate = async (certId) => {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/dashboard/createcertificate")}
+              onClick={() => navigate("/dashboard/createcertificate", { state: { profileId: id, profile } })}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               <PlusIcon className="h-5 w-5" />

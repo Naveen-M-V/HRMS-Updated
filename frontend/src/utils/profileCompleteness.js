@@ -40,7 +40,16 @@ export function getProfileCompleteness(profile) {
 
   ALL_FIELDS.forEach(f => {
     const v = get(profile, f.path);
-    const isFilled = Array.isArray(v) ? v.length > 0 : (v !== undefined && v !== null && String(v).trim() !== '');
+    let isFilled = false;
+    
+    if (Array.isArray(v)) {
+      isFilled = v.length > 0;
+    } else if (typeof v === 'object' && v !== null) {
+      isFilled = Object.keys(v).some(key => v[key] && String(v[key]).trim() !== '');
+    } else {
+      isFilled = v !== undefined && v !== null && String(v).trim() !== '';
+    }
+    
     if (isFilled) {
       filled += 1;
     } else if (REQUIRED_FIELDS.find(r => r.path === f.path)) {

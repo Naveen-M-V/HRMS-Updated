@@ -92,7 +92,13 @@ export default function MyAccount() {
   // Handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (!file || !user?._id) return;
+    const profileId = profile?._id || user?._id;
+    
+    if (!file || !profileId) {
+      console.error('Missing file or profile ID:', { file: !!file, profileId });
+      alert('Unable to upload: Missing profile information. Please try refreshing the page.');
+      return;
+    }
 
     // Validate file type and size
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
@@ -108,16 +114,16 @@ export default function MyAccount() {
 
     try {
       setSavingImage(true);
-      console.log('Uploading profile picture for user:', user._id);
+      console.log('Uploading profile picture for profile ID:', profileId);
 
       // Use the context's uploadProfilePicture function
-      const profilePicturePath = await uploadProfilePicture(user._id, file);
+      const profilePicturePath = await uploadProfilePicture(profileId, file);
       console.log('Profile picture uploaded:', profilePicturePath);
 
       // Update local profile state with new picture URL
       setProfile(prev => ({
         ...prev,
-        profilePicture: profilePicturePath || `/api/profiles/${user._id}/picture`
+        profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`
       }));
 
       alert("Profile picture updated successfully!");
