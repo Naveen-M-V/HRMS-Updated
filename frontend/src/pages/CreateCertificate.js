@@ -127,14 +127,17 @@ export default function CreateCertificate() {
 
   const initializeCertificateNames = async () => {
     try {
-      await fetch(`${getApiUrl()}/api/certificate-names/initialize`, {
+      const response = await fetch(`${getApiUrl()}/api/certificate-names/initialize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
+      if (!response.ok) {
+        console.warn('Certificate names initialization failed, but continuing anyway');
+      }
     } catch (error) {
-      console.error('Error initializing certificate names:', error);
+      console.warn('Error initializing certificate names (non-critical):', error);
     }
   };
 
@@ -233,7 +236,10 @@ export default function CreateCertificate() {
       if (profile && profile.jobRole && profile.jobRole.length > 0) {
         const jobRole = Array.isArray(profile.jobRole) ? profile.jobRole[0] : profile.jobRole;
         const certificates = getCertificatesForJobRole(jobRole);
-        setSuggestedCertificates(certificates.mandatory || []);
+        const certList = (certificates.mandatory || []).map(cert => 
+          typeof cert === 'string' ? cert : cert.code || cert.description || cert
+        );
+        setSuggestedCertificates(certList);
       } else {
         setSuggestedCertificates([]);
       }

@@ -35,29 +35,27 @@ let notifications = [
 // Get unread notification count
 router.get('/unread-count', (req, res) => {
   try {
-    // Validate session and user ID
-    if (!req.session?.user?.userId) {
-      console.error("Invalid session data. Session:", req.session);
-      console.error("Cookies:", req.cookies);
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
     // Ensure notifications is an array
     if (!Array.isArray(notifications)) {
       console.error("Notifications data is invalid. Expected an array but got:", notifications);
       return res.status(500).json({ error: 'Internal server error' });
     }
 
-    // Filter unread notifications
+    const userId = req.session?.user?.userId;
+    
+    if (!userId) {
+      console.warn("No user session found, returning all unread notifications for 'all' users");
+      const unreadCount = notifications.filter(n => !n.isRead && n.userId === 'all').length;
+      return res.json({ count: unreadCount });
+    }
+
     const unreadCount = notifications.filter(n => 
-      !n.isRead && (n.userId === 'all' || n.userId === req.session.user.userId)
+      !n.isRead && (n.userId === 'all' || n.userId === userId)
     ).length;
 
     res.json({ count: unreadCount });
   } catch (error) {
     console.error("Error fetching notification count:", error);
-    console.error("Session data:", req.session);
-    console.error("Notifications data:", notifications);
     res.status(500).json({ error: 'Failed to fetch notification count' });
   }
 });

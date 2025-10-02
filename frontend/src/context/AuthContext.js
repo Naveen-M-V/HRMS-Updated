@@ -20,7 +20,7 @@ const getApiUrl = () => {
   }
   // In production or when API_BASE_URL is relative, use relative path
   if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) {
-    return '';
+    return process.env.REACT_APP_API_BASE_URL;
   }
   // Fallback to localhost for development
   return process.env.REACT_APP_API_URL || 'http://localhost:5003';
@@ -200,13 +200,13 @@ export const AuthProvider = ({ children }) => {
   }, [user, checkExistingSession]);
 
 
-  const login = async (email, password, rememberMe = false) => {
+  const login = async (emailOrUsername, password, rememberMe = false) => {
     setLoading(true);
     setError(null);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-        email,
+        identifier: emailOrUsername,
         password,
         rememberMe
       }, {

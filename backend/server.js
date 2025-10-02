@@ -135,8 +135,7 @@ const profileSchema = new mongoose.Schema({
   skillkoId: { type: Number, unique: true, index: true },
   externalSystemId: String,
   extThirdPartySystemId: String,
-  nopsId: String,
-  nopsID: String, 
+  nopsID: String,
   insuranceNumber: String,
   
   // Additional Employee Details
@@ -224,7 +223,7 @@ profileSchema.pre('save', async function(next) {
 // Add compound indexes for better query performance
 profileSchema.index({ firstName: 1, lastName: 1, email: 1 });
 profileSchema.index({ company: 1, createdOn: -1 });
-profileSchema.index({ skillkoId: 1, vtid: 1, vtrxId: 1 });
+profileSchema.index({ skillkoId: 1, vtid: 1 });
 
 const Profile = mongoose.model('Profile', profileSchema);
 
@@ -861,8 +860,7 @@ app.delete('/api/profiles/:id', async (req, res) => {
     // Users are created with email matching the profile email
     const associatedUser = await User.findOne({ 
       email: profile.email, 
-      role: 'user',
-      createdBy: 'admin' 
+      role: 'user'
     });
     
     if (associatedUser) {
@@ -1898,10 +1896,20 @@ const jobLevelsRoutes = require('./routes/jobLevels');
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password, rememberMe } = req.body;
+    const { identifier, email, password, rememberMe } = req.body;
+    const loginIdentifier = identifier || email;
 
-    // First check admin accounts
-    const admin = await User.findOne({ email: email });
+    if (!loginIdentifier || !password) {
+      return res.status(400).json({ message: 'Email/username and password are required' });
+    }
+
+    // First check admin accounts (by email or username)
+    const admin = await User.findOne({ 
+      $or: [
+        { email: loginIdentifier },
+        { username: loginIdentifier }
+      ]
+    });
     if (admin) {
       const isValidPassword = await bcrypt.compare(password, admin.password);
       if (!isValidPassword) {
@@ -1922,11 +1930,16 @@ app.post('/api/auth/login', async (req, res) => {
 
       // Store admin in session
       req.session.user = sessionUser;
+      
+      if (rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+      }
+      
       return res.json({ user: sessionUser, token });
     }
 
-    // Then check user accounts
-    const profile = await Profile.findOne({ email: email });
+    // Then check user accounts (profiles)
+    const profile = await Profile.findOne({ email: loginIdentifier });
     if (profile) {
       if (password !== profile.password) {
         return res.status(400).json({ message: 'Invalid email or password' });

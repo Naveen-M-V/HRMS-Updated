@@ -123,7 +123,7 @@ export default function Signup() {
 
       if (result.success) {
         alert(
-          "Admin account created successfully! Please check your email to verify your account. Once verified, you'll be automatically redirected to the admin dashboard."
+          "Admin account created successfully! Please check your email to verify your account before logging in."
         );
         navigate("/login");
       } else {
