@@ -26,6 +26,20 @@ const JobRoleDropdown = ({
     return process.env.REACT_APP_API_URL || 'http://localhost:5000';
   };
 
+  const fetchJobRoles = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/job-roles`);
+      if (response.ok) {
+        const data = await response.json();
+        setJobRoles(data);
+      } else {
+        console.error('Failed to fetch job roles:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching job roles:', error);
+    }
+  };
+
   useEffect(() => {
     if (value && typeof value === 'string') {
       setSearchTerm(value);
@@ -34,7 +48,8 @@ const JobRoleDropdown = ({
 
   useEffect(() => {
     fetchJobRoles();
-  }, [fetchJobRoles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (searchTerm) {
@@ -58,20 +73,6 @@ const JobRoleDropdown = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  const fetchJobRoles = async () => {
-    try {
-      const response = await fetch(`${getApiUrl()}/api/job-roles`);
-      if (response.ok) {
-        const data = await response.json();
-        setJobRoles(data);
-      } else {
-        console.error('Failed to fetch job roles:', response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error('Error fetching job roles:', error);
-    }
-  };
 
   const handleJobRoleSearch = async (searchTerm) => {
     if (!searchTerm.trim()) {

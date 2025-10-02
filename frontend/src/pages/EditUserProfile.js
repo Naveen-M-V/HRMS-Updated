@@ -62,7 +62,7 @@ export default function EditUserProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
-  const { getProfileById, fetchProfileById, updateProfile, deleteProfile } = useProfiles();
+  const { fetchProfileById, updateProfile, deleteProfile } = useProfiles();
   
   // Check if user is editing their own profile
   const isOwnProfile = user?._id === id;
@@ -82,19 +82,18 @@ export default function EditUserProfile() {
       console.log('EditUserProfile mounted with ID:', id);
       setProfileLoading(true);
       try {
-      console.log('Fetching profile from backend...');
+        console.log('Fetching profile from backend...');
         const profile = await fetchProfileById(id);
-        console.log('Profile from backend:', profile);
+        console.log('Profile from backend:', profile);
         
-        // If not in cache, fetch from backend
         if (!profile) {
           console.error('Profile not found');
           alert('Profile not found. Redirecting to profiles list.');
           navigate('/profiles');
           return;
         }
-          
-          // Populate form data with all fields
+        
+        // Populate form data with all fields
         setFormData({
           firstName: profile.firstName || "",
           lastName: profile.lastName || "",
@@ -134,20 +133,20 @@ export default function EditUserProfile() {
           morrisonsUIN: profile.morrisonsUIN || "",
           bio: profile.bio || "",
           otherInformation: profile.otherInformation || "",
-          });
-        } catch (error) {
-          console.error('Error loading profile:', error);
-          alert(error.message === 'Profile not found' ? 
-            'Profile not found. Redirecting to profiles page.' : 
-            'Failed to load profile. Please try again or contact support.');
-          navigate('/profiles');
-        } finally {
-          setProfileLoading(false);
-        }
-      };
+        });
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        alert(error.message === 'Profile not found' ? 
+          'Profile not found. Redirecting to profiles page.' : 
+          'Failed to load profile. Please try again or contact support.');
+        navigate('/profiles');
+      } finally {
+        setProfileLoading(false);
+      }
+    }
 
     loadProfile();
-  }, [id, getProfileById, fetchProfileById, navigate]);
+  }, [id, fetchProfileById, navigate]);
 
   const handleChange = (e, section = null) => {
     const { name, value } = e.target;
