@@ -296,7 +296,7 @@ export default function CreateCertificate() {
       fileRequired: form.fileRequired === "True" ? "Yes" : "No",
       status: form.approvalStatus || "Approved",
       cost: form.totalCost || "0.00",
-      jobRole: selectedProfile ? selectedProfile.jobTitle : "Unknown",
+      jobRole: selectedProfile && selectedProfile.jobRole ? (Array.isArray(selectedProfile.jobRole) ? selectedProfile.jobRole[0] : selectedProfile.jobRole) : "Unknown",
       approvalStatus: form.approvalStatus || "Approved",
       isInterim: form.isInterim || "False",
       
@@ -404,18 +404,18 @@ export default function CreateCertificate() {
               <option value="">Select a profile...</option>
               {availableProfiles.map((profile) => (
                 <option key={profile._id} value={`${profile.firstName} ${profile.lastName}`}>
-                  {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobTitle) 
-                    ? profile.jobTitle.join(', ') 
-                    : (profile.jobTitle || 'N/A')
+                  {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobRole) 
+                    ? profile.jobRole.join(', ') 
+                    : (profile.jobRole || 'N/A')
                   }
                 </option>
               ))}
             </select>
             {selectedProfile && (
               <p className="text-sm text-gray-600 mt-1">
-                Job Role: <strong>{Array.isArray(selectedProfile.jobTitle) 
-                  ? selectedProfile.jobTitle.join(', ') 
-                  : (selectedProfile.jobTitle || 'N/A')
+                Job Role: <strong>{Array.isArray(selectedProfile.jobRole) 
+                  ? selectedProfile.jobRole.join(', ') 
+                  : (selectedProfile.jobRole || 'N/A')
                 }</strong>
               </p>
             )}

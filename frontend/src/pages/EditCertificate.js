@@ -49,7 +49,18 @@ export default function EditCertificate() {
         if (!dateString) return "";
         
         try {
-          // Try to create a date object from the string
+          // Check if date is in DD/MM/YYYY format (common for this app)
+          if (dateString.includes('/')) {
+            const parts = dateString.split('/');
+            if (parts.length === 3) {
+              const day = parts[0].padStart(2, '0');
+              const month = parts[1].padStart(2, '0');
+              const year = parts[2];
+              return `${year}-${month}-${day}`;
+            }
+          }
+          
+          // Try to create a date object from the string (ISO format)
           const date = new Date(dateString);
           
           // Check if it's a valid date

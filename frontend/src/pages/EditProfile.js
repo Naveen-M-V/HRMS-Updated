@@ -177,7 +177,7 @@ export default function EditProfile() {
     addressLine2: userProfile.address?.line2 || '',
     city: userProfile.address?.city || '',
     postCode: userProfile.address?.postCode || '',
-    country: userProfile.address?.country || 'Poland',
+    country: userProfile.address?.country || '',
     // Emergency contact
     emergencyName: userProfile.emergencyContact?.name || '',
     emergencyRelationship: userProfile.emergencyContact?.relationship || '',
@@ -213,7 +213,7 @@ export default function EditProfile() {
       addressLine2: userProfile.address?.line2 || '',
       city: userProfile.address?.city || '',
       postCode: userProfile.address?.postCode || '',
-      country: userProfile.address?.country || 'Poland',
+      country: userProfile.address?.country || '',
       // Emergency contact
       emergencyName: userProfile.emergencyContact?.name || '',
       emergencyRelationship: userProfile.emergencyContact?.relationship || '',
@@ -709,7 +709,7 @@ export default function EditProfile() {
                 onChange={handleChange}
                 className="mt-1 w-full border rounded px-3 py-2"
               >
-                <option value="Poland">Poland</option>
+                <option value="">Poland</option>
                 <option value="United Kingdom">United Kingdom</option>
                 <option value="United States">United States</option>
                 <option value="Germany">Germany</option>

@@ -282,14 +282,8 @@ This will also delete any associated certificates and user account. This action 
               <td className="border px-2 py-1">{p.company}</td>
               <td className="border px-2 py-1">
                 {(() => {
-                  // Try jobTitle first, then jobRole as fallback
-                  const jobTitles = Array.isArray(p.jobTitle) ? p.jobTitle : (p.jobTitle ? [p.jobTitle] : []);
                   const jobRoles = Array.isArray(p.jobRole) ? p.jobRole : (p.jobRole ? [p.jobRole] : []);
-                  
-                  // Use jobTitle if available, otherwise use jobRole
-                  const displayRoles = jobTitles.length > 0 ? jobTitles : jobRoles;
-                  
-                  return displayRoles.length > 0 ? displayRoles.join(', ') : "N/A";
+                  return jobRoles.length > 0 ? jobRoles.join(', ') : "N/A";
                 })()
                 }
               </td>

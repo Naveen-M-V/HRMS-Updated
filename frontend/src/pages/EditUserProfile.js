@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
-import { useAuth } from "../context/AuthContext";
-import JobRoleDropdown from '../components/JobRoleDropdown';
+import MultiJobRoleSelector from '../components/MultiJobRoleSelector';
 
 export default function EditUserProfile() {
   console.log('EditUserProfile component loaded');
@@ -18,7 +17,7 @@ export default function EditUserProfile() {
     mobile: "",
     dateOfBirth: "",
     gender: "",
-    jobTitle: "",
+    jobRole: [],
     jobLevel: "",
     language: "English",
     company: "Vitrux Ltd",
@@ -97,7 +96,7 @@ export default function EditUserProfile() {
           mobile: profile.mobile || "",
           dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "",
           gender: profile.gender || "",
-          jobTitle: profile.jobTitle || (Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : profile.jobRole || ""),
+          jobRole: Array.isArray(profile.jobRole) ? profile.jobRole : (profile.jobRole ? [profile.jobRole] : []),
           jobLevel: profile.jobLevel || "",
           language: profile.language || "English",
           company: profile.company || "Vitrux Ltd",
@@ -172,9 +171,8 @@ export default function EditUserProfile() {
       // Transform form data to match API expectations
       const profileData = {
         ...formData,
-        // Handle job roles/titles properly
-        jobRole: formData.jobTitle ? formData.jobTitle.split(',').map(role => role.trim()) : [],
-        jobTitle: formData.jobTitle ? formData.jobTitle.split(',').map(role => role.trim()) : [],
+        // Ensure job roles are array
+        jobRole: Array.isArray(formData.jobRole) ? formData.jobRole : [],
         // Convert date strings to proper format
         dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
@@ -354,15 +352,12 @@ export default function EditUserProfile() {
                   <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
-              <div>
-                <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
-                <JobRoleDropdown
-                  id="jobTitle"
-                  name="jobTitle"
-                  value={formData.jobTitle}
+              <div className="col-span-2">
+                <label htmlFor="jobRole" className="block text-sm font-medium text-gray-700 mb-2">Job Roles (Select Multiple)</label>
+                <MultiJobRoleSelector
+                  name="jobRole"
+                  value={formData.jobRole}
                   onChange={handleChange}
-                  placeholder="Select or type to add job title"
-                  className="w-full"
                 />
               </div>
               <div>

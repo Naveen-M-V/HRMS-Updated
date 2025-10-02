@@ -126,7 +126,6 @@ const profileSchema = new mongoose.Schema({
   staffType: { type: String, default: 'Direct' },
   company: { type: String, default: 'VitruX Ltd' },
   jobRole: [String], // Array of job roles to support multiple selections
-  jobTitle: [String], // Array of job titles to support multiple selections
   jobLevel: String,
   language: { type: String, default: 'English' },
   startDate: Date,
@@ -162,7 +161,7 @@ const profileSchema = new mongoose.Schema({
     line2: String,
     city: String,
     postCode: String,
-    country: { type: String, default: 'Poland' },
+    country: { type: String, default: '' },
   },
   
   // Metadata
@@ -925,7 +924,7 @@ app.delete('/api/profiles/:id', async (req, res) => {
 // Get all certificates
 app.get('/api/certificates', async (req, res) => {
   try {
-    const certificates = await Certificate.find().sort({ createdOn: -1 });
+    const certificates = await Certificate.find().sort({ createdOn: -1 }).populate('profileId', 'vtid firstName lastName');
     res.json(certificates);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -935,7 +934,7 @@ app.get('/api/certificates', async (req, res) => {
 // Get certificate by ID
 app.get('/api/certificates/:id', async (req, res) => {
   try {
-    const certificate = await Certificate.findById(req.params.id);
+    const certificate = await Certificate.findById(req.params.id).populate('profileId', 'vtid firstName lastName');
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
