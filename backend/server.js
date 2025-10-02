@@ -2128,8 +2128,9 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
-    // Enforce email verification for all users (including admins)
-    if (!user.emailVerified) {
+    // Enforce email verification for non-admin users only
+    // Admins with approved status can skip email verification
+    if (!user.emailVerified && (user.role !== 'admin' || user.adminApprovalStatus !== 'approved')) {
       return res.status(403).json({ 
         message: 'Email not verified. Please check your email and click the verification link to continue.',
         requiresVerification: true
