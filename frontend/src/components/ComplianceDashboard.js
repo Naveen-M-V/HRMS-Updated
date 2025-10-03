@@ -31,7 +31,7 @@ const ComplianceDashboard = () => {
         method: 'GET',
         credentials: 'include',
         headers: {
-          'Cache-Control': 'max-age=300'
+          'Cache-Control': 'no-cache'
         }
       });
       
@@ -61,7 +61,7 @@ const ComplianceDashboard = () => {
   };
 
   getDashboardData();
-}, [selectedTimeframe]);
+}, [selectedTimeframe, certificates]);
 
 
   const formatDate = (dateString) => {

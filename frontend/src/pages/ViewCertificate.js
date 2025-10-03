@@ -158,8 +158,8 @@ export default function ViewCertificate() {
       <div className="p-6">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4">Certificate not found</h2>
-          <Link to="/reporting/certificates" className="text-blue-600 hover:underline">
-            Back to Certificates
+          <Link to="/certificates" className="text-blue-600 hover:underline">
+            Back to Certificate Management
           </Link>
         </div>
       </div>
@@ -171,13 +171,7 @@ export default function ViewCertificate() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">View Certificate</h1>
-        {/*<div className="flex gap-2">
-          <Link
-            to="/reporting/certificates"
-            className="px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
-          >
-            View certificate list
-          </Link>*/}
+        <div className="flex gap-2">
           <button
             onClick={() => {
               if (certificate.profileName) {

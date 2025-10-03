@@ -369,8 +369,8 @@ export default function CreateCertificate() {
     addCertificate(newCertificate)
       .then(() => {
         alert('Certificate created successfully!');
-        // Navigate to certificates page
-        navigate("/reporting/certificates");
+        // Navigate to certificate management page
+        navigate("/certificates");
       })
       .catch((error) => {
         console.error('Error creating certificate:', error);

@@ -241,16 +241,17 @@ export default function EditCertificate() {
 
     try {
       await updateCertificate(id, updatedCert);
-      navigate("/reporting/certificates");
+      alert('Changes saved successfully!');
+      navigate(`/dashboard/certificates/${id}`);
     } catch (error) {
       console.error('Failed to update certificate:', error);
-      // Still navigate back even if update fails (fallback was applied)
-      navigate("/reporting/certificates");
+      alert('Failed to save changes. Please try again.');
+      navigate(`/dashboard/certificates/${id}`);
     }
   };
 
   const handleCancel = () => {
-    navigate("/reporting/certificates");
+    navigate(`/dashboard/certificates/${id}`);
   };
 
   return (
