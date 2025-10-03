@@ -203,7 +203,7 @@ export default function ViewCertificate() {
             Delete certificate
           </button>
       </div>
-
+</div>
       <div className="grid grid-cols-12 gap-6">
         {/* Left Column - Certificate Details */}
         <div className="col-span-8">
