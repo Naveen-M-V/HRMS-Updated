@@ -4,7 +4,7 @@ const JobRoleDropdown = ({
   value,
   onChange,
   name = "jobRole",
-  placeholder = "Type to search job roles or add new...",
+  placeholder = "Type to search job roles...",
   className = "",
   required = false,
   disabled = false
@@ -157,12 +157,6 @@ const JobRoleDropdown = ({
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (
-        searchTerm &&
-        !filteredJobRoles.find(role => role.name.toLowerCase() === searchTerm.toLowerCase())
-      ) {
-        handleAddJobRole(searchTerm);
-      }
       setIsOpen(false);
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -215,48 +209,10 @@ const JobRoleDropdown = ({
                   )}
                 </div>
               ))}
-
-              {searchTerm &&
-                !filteredJobRoles.find(role => role.name.toLowerCase() === searchTerm.toLowerCase()) && (
-                  <div
-                    className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-blue-600 border-t border-gray-200"
-                    onClick={() => {
-                      handleAddJobRole(searchTerm);
-                      setIsOpen(false);
-                    }}
-                  >
-                    <span className="flex items-center">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Add "{searchTerm}"
-                    </span>
-                  </div>
-                )}
             </>
           ) : (
             <div className="px-3 py-2 text-gray-500">
-              {searchTerm ? (
-                <div>
-                  <div>No job roles found</div>
-                  <div
-                    className="mt-2 cursor-pointer text-blue-600 hover:text-blue-800"
-                    onClick={() => {
-                      handleAddJobRole(searchTerm);
-                      setIsOpen(false);
-                    }}
-                  >
-                    <span className="flex items-center">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Add "{searchTerm}"
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                "Start typing to search job roles..."
-              )}
+              {searchTerm ? "No job roles found" : "Start typing to search job roles..."}
             </div>
           )}
         </div>
