@@ -34,6 +34,18 @@ async function createSuperAdmins() {
         firstName: 'Tazeen',
         lastName: 'Syeda',
         password: 'Vitrux2025!'
+      },
+      {
+        email: 'thaya.govzig@vitruxshield.com',
+        firstName: 'Thaya',
+        lastName: 'Govzig',
+        password: 'Vitrux2025!'
+      },
+      {
+        email: 'syed.ali.asgar@vitruxshield.com',
+        firstName: 'Syed Ali',
+        lastName: 'Asgar',
+        password: 'Vitrux2025!'
       }
     ];
     

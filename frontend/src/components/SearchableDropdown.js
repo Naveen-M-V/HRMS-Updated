@@ -57,8 +57,8 @@ const SearchableDropdown = ({
     setSearchTerm(newValue);
     setIsOpen(true);
     
-    // Call onChange immediately for typing
-    if (onChange) {
+    // Only call onChange for single select mode (not multi-select)
+    if (!isMultiSelect && onChange) {
       onChange({
         target: {
           name: name,
@@ -103,12 +103,6 @@ const SearchableDropdown = ({
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (searchTerm && !filteredOptions.find(opt => opt.name.toLowerCase() === searchTerm.toLowerCase())) {
-        // Add new option if it doesn't exist
-        if (onAddNew) {
-          onAddNew(searchTerm);
-        }
-      }
       setIsOpen(false);
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -164,52 +158,10 @@ const SearchableDropdown = ({
                   )}
                 </div>
               ))}
-              
-              {/* Add new option if search term doesn't match any existing option */}
-              {searchTerm && !filteredOptions.find(opt => opt.name.toLowerCase() === searchTerm.toLowerCase()) && (
-                <div
-                  className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-blue-600 border-t border-gray-200"
-                  onClick={() => {
-                    if (onAddNew) {
-                      onAddNew(searchTerm);
-                    }
-                    setIsOpen(false);
-                  }}
-                >
-                  <span className="flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add "{searchTerm}"
-                  </span>
-                </div>
-              )}
             </>
           ) : (
             <div className="px-3 py-2 text-gray-500">
-              {searchTerm ? (
-                <div>
-                  <div>No suppliers found</div>
-                  <div
-                    className="mt-2 cursor-pointer text-blue-600 hover:text-blue-800"
-                    onClick={() => {
-                      if (onAddNew) {
-                        onAddNew(searchTerm);
-                      }
-                      setIsOpen(false);
-                    }}
-                  >
-                    <span className="flex items-center">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Add "{searchTerm}"
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                "Start typing to search suppliers..."
-              )}
+              {searchTerm ? "No options found" : "Start typing to search..."}
             </div>
           )}
         </div>
