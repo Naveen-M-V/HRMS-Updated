@@ -9,28 +9,43 @@ const Certificate = require('../models/Certificate'); // adjust path if your mod
 router.get('/dashboard-stats', async (req, res) => {
   try {
     const allCertificates = await Certificate.find();
+    
+    // Get days parameter from query, default to 30
+    const days = parseInt(req.query.days) || 30;
 
-    // Active certificates = not expired
+    // Set time to start of day for accurate comparison
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Active certificates = today is between issued date and expiry date
     const activeCertificates = allCertificates.filter(cert => {
-      const [day, month, year] = cert.expiryDate.split('/');
-      const expiry = new Date(year, month - 1, day);
-      return expiry >= today;
+      const [expDay, expMonth, expYear] = cert.expiryDate.split('/');
+      const expiry = new Date(expYear, expMonth - 1, expDay);
+      expiry.setHours(23, 59, 59, 999);
+      
+      const [issDay, issMonth, issYear] = cert.issuedDate.split('/');
+      const issued = new Date(issYear, issMonth - 1, issDay);
+      issued.setHours(0, 0, 0, 0);
+      
+      return today >= issued && today <= expiry;
     });
 
-    // Expiring certificates = expiring within next 30 days
+    // Expiring certificates = expiring within selected days (but not expired yet)
     const expiringCertificates = allCertificates.filter(cert => {
       const [day, month, year] = cert.expiryDate.split('/');
       const expiry = new Date(year, month - 1, day);
+      expiry.setHours(23, 59, 59, 999);
+      
       const diffTime = expiry - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays > 0 && diffDays <= 30;
+      return diffDays >= 0 && diffDays <= days;
     });
 
     // Expired certificates
     const expiredCertificates = allCertificates.filter(cert => {
       const [day, month, year] = cert.expiryDate.split('/');
       const expiry = new Date(year, month - 1, day);
+      expiry.setHours(23, 59, 59, 999);
       return expiry < today;
     });
 
