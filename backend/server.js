@@ -1895,7 +1895,7 @@ app.post('/api/certificates/delete-request', async (req, res) => {
     `;
     
     // Send email to admin
-    await sendNotificationEmail(adminEmail, subject, htmlContent);
+    await sendNotificationEmail(adminEmail, 'Super Admin', subject, `Certificate deletion requested by ${userName} for: ${certificateName}`, 'warning');
     
     res.json({ message: 'Delete request sent successfully' });
   } catch (error) {
@@ -1982,20 +1982,27 @@ app.post('/api/auth/signup', async (req, res) => {
       });
     }
 
-    // If admin role, send approval request to super admin
+    // If admin role, send approval request to super admin(s)
     try {
       if (role === 'admin' && user.adminApprovalToken) {
-        const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@talentshield.com';
+        const superAdminEmails = (process.env.SUPER_ADMIN_EMAIL || 'admin@talentshield.com')
+          .split(',')
+          .map(e => e.trim())
+          .filter(Boolean);
+        
         const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
         const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
         const name = `${user.firstName} ${user.lastName}`.trim();
         
-        console.log('Attempting to send admin approval email to:', superAdminEmail);
-        const result = await sendAdminApprovalRequestEmail(superAdminEmail, name, user.email, approveUrl);
-        if (result.success) {
-          console.log(`✓ Admin approval request sent to ${superAdminEmail}`);
-        } else {
-          console.error(`✗ Admin approval email failed:`, result.error);
+        console.log('Attempting to send admin approval email to:', superAdminEmails.join(', '));
+        
+        for (const saEmail of superAdminEmails) {
+          const result = await sendAdminApprovalRequestEmail(saEmail, name, user.email, approveUrl);
+          if (result.success) {
+            console.log(`✓ Admin approval request sent to ${saEmail}`);
+          } else {
+            console.error(`✗ Admin approval email failed for ${saEmail}:`, result.error);
+          }
         }
       }
     } catch (e) {
@@ -2050,8 +2057,8 @@ app.post('/api/auth/login', async (req, res) => {
     // First check admin accounts (by email or username) - ONLY role=admin
     const admin = await User.findOne({ 
       $or: [
-        { email: loginIdentifier },
-        { username: loginIdentifier }
+        { email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
+        { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }
       ],
       role: 'admin'
     });
@@ -2179,7 +2186,12 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // If not found in Profile collection, check User collection (admin accounts)
-    const user = await User.findOne({ $or: [ { email: email }, { username: email } ] });
+    const user = await User.findOne({ 
+      $or: [ 
+        { email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }, 
+        { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } } 
+      ] 
+    });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
@@ -2278,7 +2290,7 @@ app.post('/api/auth/logout', (req, res) => {
       if (err) {
         return res.status(500).json({ message: 'Could not log out' });
       }
-      res.clearCookie('connect.sid'); // Clear session cookie
+      res.clearCookie('talentshield.sid'); // Clear session cookie
       return res.json({ message: 'Logout successful' });
     });
   } else {
