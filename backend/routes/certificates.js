@@ -17,17 +17,13 @@ router.get('/dashboard-stats', async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Active certificates = today is between issued date and expiry date
+    // Active certificates = not expired (today <= expiry date)
     const activeCertificates = allCertificates.filter(cert => {
       const [expDay, expMonth, expYear] = cert.expiryDate.split('/');
       const expiry = new Date(expYear, expMonth - 1, expDay);
       expiry.setHours(23, 59, 59, 999);
       
-      const [issDay, issMonth, issYear] = cert.issuedDate.split('/');
-      const issued = new Date(issYear, issMonth - 1, issDay);
-      issued.setHours(0, 0, 0, 0);
-      
-      return today >= issued && today <= expiry;
+      return today <= expiry;
     });
 
     // Expiring certificates = expiring within selected days (but not expired yet)
