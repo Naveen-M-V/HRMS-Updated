@@ -204,11 +204,15 @@ export const CertificateProvider = ({ children }) => {
     (days = 30) => {
       if (!Array.isArray(certificates)) return [];
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
       const futureDate = new Date();
       futureDate.setDate(today.getDate() + days);
+      futureDate.setHours(23, 59, 59, 999);
       return certificates.filter((cert) => {
         const expiryDate = parseExpiryDate(cert.expiryDate);
-        return expiryDate && expiryDate >= today && expiryDate <= futureDate;
+        if (!expiryDate) return false;
+        expiryDate.setHours(23, 59, 59, 999);
+        return expiryDate >= today && expiryDate <= futureDate;
       });
     },
     [certificates]
@@ -217,9 +221,12 @@ export const CertificateProvider = ({ children }) => {
   const getExpiredCertificates = useCallback(() => {
     if (!Array.isArray(certificates)) return [];
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     return certificates.filter((cert) => {
       const expiryDate = parseExpiryDate(cert.expiryDate);
-      return expiryDate && expiryDate < today;
+      if (!expiryDate) return false;
+      expiryDate.setHours(23, 59, 59, 999);
+      return expiryDate < today;
     });
   }, [certificates]);
 

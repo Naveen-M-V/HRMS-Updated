@@ -961,6 +961,94 @@ app.get('/api/certificates', async (req, res) => {
   }
 });
 
+// Dashboard stats - MUST be before :id route
+app.get('/api/certificates/dashboard-stats', async (req, res) => {
+  try {
+    const days = Number.parseInt(req.query.days, 10) || 30;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date();
+    cutoff.setDate(today.getDate() + days);
+    cutoff.setHours(23, 59, 59, 999);
+
+    // Only pull the fields we need; exclude file blobs; lean for perf
+    const allCertificates = await Certificate.find(
+      { expiryDate: { $exists: true, $ne: null } },
+      {
+        certificate: 1,
+        expiryDate: 1,
+        profileId: 1,
+        profileName: 1,
+        category: 1,
+        active: 1,
+        status: 1,
+      }
+    )
+    .populate('profileId', 'firstName lastName')
+    .lean();
+
+    const categoryCounts = {};
+    const expiring = [];
+    const expired = [];
+    const active = [];
+
+    for (const cert of allCertificates) {
+      // Expiry date parsing
+      const expiryDate = parseExpiryDate(cert.expiryDate);
+      if (!expiryDate) continue;
+      
+      // Set to end of day for proper comparison
+      expiryDate.setHours(23, 59, 59, 999);
+
+      const base = {
+        id: cert._id?.toString?.() || cert.id,
+        certificate: cert.certificate,
+        expiryDate: cert.expiryDate,
+        profileName:
+          cert.profileName ||
+          [cert.profileId?.firstName, cert.profileId?.lastName].filter(Boolean).join(' '),
+      };
+
+      // Active = not expired (expiry date >= today)
+      if (expiryDate >= today) {
+        active.push(cert);
+        // Count categories for active certificates
+        if (cert.category) {
+          categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
+        }
+      }
+
+      // Expiring = expiring within selected days (not expired yet)
+      if (expiryDate >= today && expiryDate <= cutoff) {
+        expiring.push({ ...base, _expiry: expiryDate });
+      } else if (expiryDate < today) {
+        // Expired = expiry date is before today
+        expired.push({ ...base, _expiry: expiryDate });
+      }
+    }
+
+    const activeCount = active.length;
+
+    // Sort for better UX
+    expiring.sort((a, b) => a._expiry - b._expiry);
+    expired.sort((a, b) => a._expiry - b._expiry);
+
+    // Limit and strip helper field
+    const expiringCertificates = expiring.slice(0, 10).map(({ _expiry, ...rest }) => rest);
+    const expiredCertificates = expired.slice(0, 10).map(({ _expiry, ...rest }) => rest);
+
+    res.json({
+      activeCount,
+      expiringCertificates,
+      expiredCertificates,
+      categoryCounts,
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get certificate by ID
 app.get('/api/certificates/:id', async (req, res) => {
   try {
@@ -1569,97 +1657,7 @@ app.get('/api/notifications/:userId/unread-count', async (req, res) => {
   }
 });
 
-// Remove duplicate function declaration as it's already defined elsewhere
-
 // Dashboard Analytics Endpoints
-
-// Get dashboard statistics (comprehensive endpoint for frontend)
-app.get('/api/certificates/dashboard-stats', async (req, res) => {
-  try {
-    const days = Number.parseInt(req.query.days, 10) || 30;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const cutoff = new Date();
-    cutoff.setDate(today.getDate() + days);
-    cutoff.setHours(23, 59, 59, 999);
-
-    // Only pull the fields we need; exclude file blobs; lean for perf
-    const allCertificates = await Certificate.find(
-      { expiryDate: { $exists: true, $ne: null } },
-      {
-        certificate: 1,
-        expiryDate: 1,
-        profileId: 1,
-        profileName: 1,
-        category: 1,
-        active: 1,
-        status: 1,
-      }
-    )
-    .populate('profileId', 'firstName lastName')
-    .lean();
-
-    const categoryCounts = {};
-    const expiring = [];
-    const expired = [];
-    const active = [];
-
-    for (const cert of allCertificates) {
-      // Expiry date parsing
-      const expiryDate = parseExpiryDate(cert.expiryDate);
-      if (!expiryDate) continue;
-      
-      // Set to end of day for proper comparison
-      expiryDate.setHours(23, 59, 59, 999);
-
-      const base = {
-        id: cert._id?.toString?.() || cert.id,
-        certificate: cert.certificate,
-        expiryDate: cert.expiryDate,
-        profileName:
-          cert.profileName ||
-          [cert.profileId?.firstName, cert.profileId?.lastName].filter(Boolean).join(' '),
-      };
-
-      // Active = not expired (expiry date >= today)
-      if (expiryDate >= today) {
-        active.push(cert);
-        // Count categories for active certificates
-        if (cert.category) {
-          categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
-        }
-      }
-
-      // Expiring = expiring within selected days (not expired yet)
-      if (expiryDate >= today && expiryDate <= cutoff) {
-        expiring.push({ ...base, _expiry: expiryDate });
-      } else if (expiryDate < today) {
-        // Expired = expiry date is before today
-        expired.push({ ...base, _expiry: expiryDate });
-      }
-    }
-
-    const activeCount = active.length;
-
-    // Sort for better UX
-    expiring.sort((a, b) => a._expiry - b._expiry);
-    expired.sort((a, b) => a._expiry - b._expiry);
-
-    // Limit and strip helper field
-    const expiringCertificates = expiring.slice(0, 10).map(({ _expiry, ...rest }) => rest);
-    const expiredCertificates = expired.slice(0, 10).map(({ _expiry, ...rest }) => rest);
-
-    res.json({
-      activeCount,
-      expiringCertificates,
-      expiredCertificates,
-      categoryCounts,
-    });
-  } catch (error) {
-    console.error('Dashboard stats error:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
 
 // Get certificate statistics for dashboard
 app.get('/api/certificates/analytics/stats', async (req, res) => {
