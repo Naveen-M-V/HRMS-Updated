@@ -143,6 +143,29 @@ export const CertificateProvider = ({ children }) => {
     }
   }, []);
 
+  // Update a certificate
+  const updateCertificate = useCallback(async (certificateId, updatedData) => {
+    if (!certificateId) throw new Error("certificateId is required");
+    incrementLoading();
+    try {
+      const url = buildApiUrl(`/certificates/${certificateId}`);
+      console.log('Updating certificate:', url);
+      const response = await axios.put(url, updatedData);
+      setCertificates((prev) =>
+        prev.map((c) => (c._id === certificateId || c.id === certificateId ? response.data : c))
+      );
+      setError(null);
+      console.log('Certificate updated successfully');
+      return response.data;
+    } catch (err) {
+      setError("Failed to update certificate");
+      console.error('Update certificate error:', err);
+      throw err;
+    } finally {
+      decrementLoading();
+    }
+  }, []);
+
   // Delete a certificate
   const deleteCertificate = useCallback(async (certificateId) => {
     if (!certificateId) throw new Error("certificateId is required");
@@ -225,6 +248,7 @@ export const CertificateProvider = ({ children }) => {
       error,
       fetchCertificates,
       addCertificate,
+      updateCertificate,
       uploadCertificateFile,
       deleteCertificate,
       getCertificateById: (id) => certificates.find((cert) => cert._id === id || cert.id === id),
@@ -240,6 +264,7 @@ export const CertificateProvider = ({ children }) => {
       error,
       fetchCertificates,
       addCertificate,
+      updateCertificate,
       uploadCertificateFile,
       deleteCertificate,
       getActiveCertificatesCount,

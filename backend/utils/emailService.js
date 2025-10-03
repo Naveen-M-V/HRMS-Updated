@@ -1,10 +1,13 @@
 const nodemailer = require('nodemailer');
 
+// Get email sender address
+const getEmailFrom = () => process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
 // Create SMTP transporter
 const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT),
+    port: Number(process.env.EMAIL_PORT) || 587,
     secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
     auth: {
       user: process.env.EMAIL_USER,
@@ -21,7 +24,7 @@ const sendVerificationEmail = async (userEmail, verifyUrl, userName = 'User') =>
   try {
     const transporter = createTransporter();
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: userEmail,
       subject: 'Verify your email - HRMS',
       html: `
@@ -56,7 +59,7 @@ const sendUserCredentialsEmail = async (userEmail, userName, password, loginUrl)
   try {
     const transporter = createTransporter();
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: userEmail,
       subject: 'Welcome to Talent Shield HRMS - Your Login Credentials',
       html: `
@@ -102,7 +105,7 @@ const sendAdminApprovalRequestEmail = async (superAdminEmail, applicantName, app
   try {
     const transporter = createTransporter();
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: superAdminEmail,
       subject: 'Admin Signup Approval Request - HRMS',
       html: `
@@ -139,7 +142,7 @@ const sendLoginSuccessEmail = async (userEmail, userName, loginTime, ipAddress) 
     const transporter = createTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: userEmail,
       subject: 'Login Successful - HRMS System',
       html: `
@@ -185,7 +188,7 @@ const sendCertificateExpiryEmail = async (userEmail, userName, certificateName, 
     const urgencyText = daysUntilExpiry <= 7 ? 'URGENT' : daysUntilExpiry <= 30 ? 'WARNING' : 'NOTICE';
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: userEmail,
       subject: `${urgencyText}: Certificate Expiry Notification - ${certificateName}`,
       html: `
@@ -238,7 +241,7 @@ const sendNotificationEmail = async (userEmail, userName, subject, message, type
     };
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: userEmail,
       subject: `HRMS Notification: ${subject}`,
       html: `
@@ -290,7 +293,7 @@ const sendAdminNewUserCredentialsEmail = async (adminEmail, newUserName, newUser
   try {
     const transporter = createTransporter();
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: adminEmail,
       subject: 'New User Created - Credentials',
       html: `
@@ -336,7 +339,7 @@ const sendWelcomeEmailToNewUser = async (userEmail, userName, loginUrl) => {
   try {
     const transporter = createTransporter();
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: getEmailFrom(),
       to: userEmail,
       subject: 'Welcome to Talent Shield HRMS',
       html: `

@@ -1576,48 +1576,75 @@ app.get('/api/notifications/:userId/unread-count', async (req, res) => {
 // Get dashboard statistics (comprehensive endpoint for frontend)
 app.get('/api/certificates/dashboard-stats', async (req, res) => {
   try {
+    const days = Number.parseInt(req.query.days, 10) || 30;
     const today = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(today.getDate() + 30);
-    
-    // Get all certificates with profile population
-    const allCertificates = await Certificate.find().populate('profileId', 'vtid firstName lastName');
-    
+    const cutoff = new Date();
+    cutoff.setDate(today.getDate() + days);
+
+    // Only pull the fields we need; exclude file blobs; lean for perf
+    const allCertificates = await Certificate.find(
+      { expiryDate: { $exists: true, $ne: null } },
+      {
+        certificate: 1,
+        expiryDate: 1,
+        profileId: 1,
+        profileName: 1,
+        category: 1,
+        active: 1,
+        status: 1,
+      }
+    )
+    .populate('profileId', 'firstName lastName')
+    .lean();
+
     let activeCount = 0;
-    let expiringCertificates = [];
-    let expiredCertificates = [];
-    let categoryCounts = {};
-    
-    allCertificates.forEach(cert => {
-      // Count active certificates
+    const categoryCounts = {};
+    const expiring = [];
+    const expired = [];
+
+    for (const cert of allCertificates) {
+      // Count active & approved as "active"
       if (cert.active === 'Yes' && cert.status === 'Approved') {
         activeCount++;
-      }
-      
-      // Count by category
-      if (cert.category) {
-        categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
-      }
-      
-      // Check expiry status
-      if (cert.expiryDate) {
-        const expiryDate = parseExpiryDate(cert.expiryDate);
-        
-        if (expiryDate) {
-          if (expiryDate < today) {
-            expiredCertificates.push(cert);
-          } else if (expiryDate <= thirtyDaysFromNow) {
-            expiringCertificates.push(cert);
-          }
+        // Only count categories for active certificates for consistency
+        if (cert.category) {
+          categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
         }
       }
-    });
-    
+
+      // Expiry buckets
+      const expiryDate = parseExpiryDate(cert.expiryDate);
+      if (!expiryDate) continue;
+
+      const base = {
+        id: cert._id?.toString?.() || cert.id,
+        certificate: cert.certificate,
+        expiryDate: cert.expiryDate,
+        profileName:
+          cert.profileName ||
+          [cert.profileId?.firstName, cert.profileId?.lastName].filter(Boolean).join(' '),
+      };
+
+      if (expiryDate < today) {
+        expired.push({ ...base, _expiry: expiryDate });
+      } else if (expiryDate <= cutoff) {
+        expiring.push({ ...base, _expiry: expiryDate });
+      }
+    }
+
+    // Sort for better UX
+    expiring.sort((a, b) => a._expiry - b._expiry);
+    expired.sort((a, b) => a._expiry - b._expiry);
+
+    // Limit and strip helper field
+    const expiringCertificates = expiring.slice(0, 10).map(({ _expiry, ...rest }) => rest);
+    const expiredCertificates = expired.slice(0, 10).map(({ _expiry, ...rest }) => rest);
+
     res.json({
       activeCount,
-      expiringCertificates: expiringCertificates.slice(0, 10), // Limit to 10 for performance
-      expiredCertificates: expiredCertificates.slice(0, 10), // Limit to 10 for performance
-      categoryCounts
+      expiringCertificates,
+      expiredCertificates,
+      categoryCounts,
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
@@ -2006,19 +2033,20 @@ app.post('/api/auth/login', async (req, res) => {
     });
     
     const { identifier, email, password, rememberMe } = req.body;
-    const loginIdentifier = identifier || email;
+    const loginIdentifier = (identifier || email || '').trim().toLowerCase();
 
     if (!loginIdentifier || !password) {
       console.log('Login validation failed:', { loginIdentifier, hasPassword: !!password });
       return res.status(400).json({ message: 'Email/username and password are required' });
     }
 
-    // First check admin accounts (by email or username)
+    // First check admin accounts (by email or username) - ONLY role=admin
     const admin = await User.findOne({ 
       $or: [
         { email: loginIdentifier },
         { username: loginIdentifier }
-      ]
+      ],
+      role: 'admin'
     });
     if (admin) {
       const isValidPassword = await bcrypt.compare(password, admin.password);
@@ -2026,11 +2054,27 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(400).json({ message: 'Invalid email or password' });
       }
 
-      // Create session data for admin
+      // Enforce admin approval
+      if (admin.adminApprovalStatus !== 'approved') {
+        return res.status(403).json({ 
+          message: 'Your admin account is pending approval. Please wait for the super admin to approve your account.',
+          requiresApproval: true
+        });
+      }
+
+      // Enforce email verification
+      if (!admin.emailVerified) {
+        return res.status(403).json({ 
+          message: 'Email not verified. Please check your email and click the verification link to continue.',
+          requiresVerification: true
+        });
+      }
+
+      // Create session data for admin - use actual role from database
       const sessionUser = {
         userId: admin._id,
         email: admin.email,
-        role: 'admin',
+        role: admin.role,
         firstName: admin.firstName,
         lastName: admin.lastName
       };
@@ -2044,12 +2088,22 @@ app.post('/api/auth/login', async (req, res) => {
       if (rememberMe) {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
       }
+
+      // Send login success email notification
+      try {
+        const loginTime = new Date().toLocaleString();
+        const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+        const userName = `${admin.firstName} ${admin.lastName}`;
+        await sendLoginSuccessEmail(admin.email, userName, loginTime, ipAddress);
+      } catch (emailError) {
+        console.error('Failed to send login success email:', emailError);
+      }
       
       return res.json({ user: sessionUser, token });
     }
 
     // Then check user accounts (profiles)
-    const profile = await Profile.findOne({ email: loginIdentifier });
+    const profile = await Profile.findOne({ email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } });
     if (profile) {
       if (password !== profile.password) {
         return res.status(400).json({ message: 'Invalid email or password' });

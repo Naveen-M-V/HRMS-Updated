@@ -208,13 +208,11 @@ export default function EditCertificate() {
           console.warn('Invalid date for submission:', dateString);
           return null;
         }
-        const utcDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
-        const isoString = utcDate.toISOString();
-        console.log('Formatting date for submission:', {
-          input: dateString,
-          output: isoString
-        });
-        return isoString;
+        // Convert to DD/MM/YYYY format
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
       } catch (error) {
         console.error('Error formatting date for submission:', dateString, error);
         return null;

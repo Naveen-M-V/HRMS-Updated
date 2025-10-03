@@ -131,11 +131,21 @@ const UserCertificateCreate = () => {
     setLoading(true);
 
     try {
+      // Convert dates to DD/MM/YYYY format
+      const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
       const formDataToSend = new FormData();
       formDataToSend.append('certificate', formData.certificate);
       formDataToSend.append('category', formData.category);
-      formDataToSend.append('issueDate', formData.issueDate);
-      formDataToSend.append('expiryDate', formData.expiryDate);
+      formDataToSend.append('issueDate', formatDate(formData.issueDate));
+      formDataToSend.append('expiryDate', formatDate(formData.expiryDate));
       formDataToSend.append('provider', formData.provider);
       formDataToSend.append('cost', formData.cost);
       formDataToSend.append('profileId', userProfile._id);

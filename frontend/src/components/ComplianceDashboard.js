@@ -27,7 +27,7 @@ const ComplianceDashboard = () => {
  useEffect(() => {
   const getDashboardData = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats?days=${selectedTimeframe}`, {
         method: 'GET',
         credentials: 'include',
         headers: {

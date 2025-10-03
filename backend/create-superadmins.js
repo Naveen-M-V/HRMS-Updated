@@ -10,12 +10,15 @@ async function createSuperAdmins() {
     await client.connect();
     console.log('✅ Connected successfully');
     
-    const db = client.db('hrms');
+    // Derive DB name from MONGODB_URI
+    const dbName = new URL(process.env.MONGODB_URI).pathname.replace(/^\//, '') || 'hrms';
+    console.log(`Using database: ${dbName}`);
+    const db = client.db(dbName);
     const users = db.collection('users');
     
     const superAdmins = [
       {
-        email: 'Dean.Cumming@vitrux.co.uk',
+        email: 'dean.cumming@vitrux.co.uk',
         firstName: 'Dean',
         lastName: 'Cumming',
         password: 'Vitrux2025!'
@@ -27,7 +30,7 @@ async function createSuperAdmins() {
         password: 'Vitrux2025!'
       },
       {
-        email: 'Tazeen.Syeda@vitrux.co.uk',
+        email: 'tazeen.syeda@vitrux.co.uk',
         firstName: 'Tazeen',
         lastName: 'Syeda',
         password: 'Vitrux2025!'
@@ -35,10 +38,11 @@ async function createSuperAdmins() {
     ];
     
     for (const admin of superAdmins) {
+      const hashedPassword = await bcrypt.hash(admin.password, 10);
       const existingUser = await users.findOne({ email: admin.email });
       
       if (existingUser) {
-        console.log(`\n✅ User ${admin.email} already exists, updating to superadmin...`);
+        console.log(`\n✅ User ${admin.email} already exists, updating to superadmin and resetting password...`);
         await users.updateOne(
           { email: admin.email },
           { 
@@ -47,14 +51,16 @@ async function createSuperAdmins() {
               emailVerified: true, 
               adminApprovalStatus: 'approved',
               isActive: true,
+              password: hashedPassword,
+              firstName: admin.firstName,
+              lastName: admin.lastName,
               updatedAt: new Date()
             } 
           }
         );
-        console.log(`✅ ${admin.email} updated to superadmin`);
+        console.log(`✅ ${admin.email} updated to superadmin with new password`);
       } else {
         console.log(`\n📝 Creating superadmin account for ${admin.email}...`);
-        const hashedPassword = await bcrypt.hash(admin.password, 10);
         
         const adminUser = {
           email: admin.email,
