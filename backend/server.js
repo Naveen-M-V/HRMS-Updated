@@ -1597,22 +1597,13 @@ app.get('/api/certificates/dashboard-stats', async (req, res) => {
     .populate('profileId', 'firstName lastName')
     .lean();
 
-    let activeCount = 0;
     const categoryCounts = {};
     const expiring = [];
     const expired = [];
+    const active = [];
 
     for (const cert of allCertificates) {
-      // Count active & approved as "active"
-      if (cert.active === 'Yes' && cert.status === 'Approved') {
-        activeCount++;
-        // Only count categories for active certificates for consistency
-        if (cert.category) {
-          categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
-        }
-      }
-
-      // Expiry buckets
+      // Expiry date parsing
       const expiryDate = parseExpiryDate(cert.expiryDate);
       if (!expiryDate) continue;
 
@@ -1625,12 +1616,25 @@ app.get('/api/certificates/dashboard-stats', async (req, res) => {
           [cert.profileId?.firstName, cert.profileId?.lastName].filter(Boolean).join(' '),
       };
 
-      if (expiryDate < today) {
-        expired.push({ ...base, _expiry: expiryDate });
-      } else if (expiryDate <= cutoff) {
+      // Active = not expired (today <= expiry date)
+      if (expiryDate >= today) {
+        active.push(cert);
+        // Count categories for active certificates
+        if (cert.category) {
+          categoryCounts[cert.category] = (categoryCounts[cert.category] || 0) + 1;
+        }
+      }
+
+      // Expiring = expiring within selected days (not expired yet)
+      if (expiryDate >= today && expiryDate <= cutoff) {
         expiring.push({ ...base, _expiry: expiryDate });
+      } else if (expiryDate < today) {
+        // Expired = expiry date is before today
+        expired.push({ ...base, _expiry: expiryDate });
       }
     }
+
+    const activeCount = active.length;
 
     // Sort for better UX
     expiring.sort((a, b) => a._expiry - b._expiry);
