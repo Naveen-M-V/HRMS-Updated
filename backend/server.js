@@ -1578,8 +1578,10 @@ app.get('/api/certificates/dashboard-stats', async (req, res) => {
   try {
     const days = Number.parseInt(req.query.days, 10) || 30;
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const cutoff = new Date();
     cutoff.setDate(today.getDate() + days);
+    cutoff.setHours(23, 59, 59, 999);
 
     // Only pull the fields we need; exclude file blobs; lean for perf
     const allCertificates = await Certificate.find(
@@ -1606,6 +1608,9 @@ app.get('/api/certificates/dashboard-stats', async (req, res) => {
       // Expiry date parsing
       const expiryDate = parseExpiryDate(cert.expiryDate);
       if (!expiryDate) continue;
+      
+      // Set to end of day for proper comparison
+      expiryDate.setHours(23, 59, 59, 999);
 
       const base = {
         id: cert._id?.toString?.() || cert.id,
@@ -1616,7 +1621,7 @@ app.get('/api/certificates/dashboard-stats', async (req, res) => {
           [cert.profileId?.firstName, cert.profileId?.lastName].filter(Boolean).join(' '),
       };
 
-      // Active = not expired (today <= expiry date)
+      // Active = not expired (expiry date >= today)
       if (expiryDate >= today) {
         active.push(cert);
         // Count categories for active certificates
