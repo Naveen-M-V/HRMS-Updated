@@ -487,7 +487,6 @@ Alternative: [
     "MT003",
     "SA001A",
     "SA002",
-    "SA006",
     "SA021",
     "O005",
     "NRSWA Certificate LA",
