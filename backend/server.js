@@ -18,6 +18,7 @@ const config = envConfig.getConfig();
 const { generateSimplePassword } = require('./utils/passwordGenerator');
 const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail, sendUserCredentialsEmail, sendAdminNewUserCredentialsEmail, sendWelcomeEmailToNewUser } = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
+const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
 
 const app = express();
 const PORT = config.server.port;
@@ -101,6 +102,10 @@ mongoose.connect(MONGODB_URI);
 // Connection event handlers
 mongoose.connection.on('connected', () => {
   console.log('Connected to MongoDB');
+  
+  // Start certificate expiry monitoring schedulers
+  console.log('Starting email notification schedulers...');
+  startAllCertificateSchedulers();
 });
 
 mongoose.connection.on('error', (err) => {

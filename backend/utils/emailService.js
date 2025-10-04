@@ -379,7 +379,469 @@ const sendWelcomeEmailToNewUser = async (userEmail, userName, loginUrl) => {
   }
 };
 
+// ===== REUSABLE CORE FUNCTION =====
+// Generic sendEmail function for all email notifications
+const sendEmail = async ({ to, subject, html }) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: getEmailFrom(),
+      to,
+      subject,
+      html
+    };
+    const result = await transporter.sendMail(mailOptions);
+    console.log(`Email sent to ${to}:`, result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error(`Error sending email to ${to}:`, error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ===== PROFILE EVENT EMAILS =====
+
+// 1. Send welcome email when Profile is created
+// CALL THIS IN: Profile creation endpoint (e.g., POST /api/profiles)
+const sendProfileCreationEmail = async (profileData, userData = null) => {
+  const { email, firstName, lastName, vtid } = profileData;
+  const fullName = `${firstName} ${lastName}`;
+  const loginUrl = process.env.FRONTEND_URL || 'http://localhost:3000/login';
+
+  let credentialsSection = '';
+  if (userData && userData.email && userData.password) {
+    credentialsSection = `
+      <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
+        <h3 style="margin-top:0;color:#10b981;">Your Login Credentials</h3>
+        <p><strong>Email:</strong> ${userData.email}</p>
+        <p><strong>Password:</strong> <span style="background:#f3f4f6;padding:8px 12px;border-radius:4px;font-family:monospace;font-size:16px;font-weight:bold;color:#1f2937;">${userData.password}</span></p>
+        <p><strong>VTID:</strong> ${vtid}</p>
+      </div>
+      <div style="background-color:#fef3c7;padding:15px;border-radius:6px;margin:20px 0;">
+        <p style="margin:0;color:#92400e;"><strong>Security:</strong> Keep your password secure. Change it after your first login.</p>
+      </div>
+    `;
+  } else {
+    credentialsSection = `
+      <div style="background-color:#dbeafe;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #3b82f6;">
+        <h3 style="margin-top:0;color:#3b82f6;">Your Profile Information</h3>
+        <p><strong>VTID:</strong> ${vtid}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p style="margin-top:15px;color:#1e40af;">Your login credentials will be provided by your administrator.</p>
+      </div>
+    `;
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">Welcome to Talent Shield HRMS</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${fullName}</strong>,</p>
+        <p style="color:#6b7280;">Your profile has been successfully created in the Talent Shield HRMS system. Welcome aboard!</p>
+        
+        ${credentialsSection}
+        
+        <div style="text-align:center; margin: 30px 0;">
+          <a href="${loginUrl}" style="background:#10b981;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;font-size:16px;">Login to Your Account</a>
+        </div>
+        
+        <div style="background-color:#f3f4f6;padding:20px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#4b5563;font-size:14px;"><strong>Need help?</strong> Contact your system administrator for assistance.</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated message from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">© ${new Date().getFullYear()} Talent Shield. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: 'Welcome to Talent Shield HRMS - Profile Created',
+    html
+  });
+};
+
+// 2. Send email when Profile is updated
+// CALL THIS IN: Profile update endpoint (e.g., PUT /api/profiles/:id)
+const sendProfileUpdateEmail = async (profileData, updatedFields) => {
+  const { email, firstName, lastName, vtid } = profileData;
+  const fullName = `${firstName} ${lastName}`;
+
+  const fieldMappings = {
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    mobile: 'Mobile Number',
+    dateOfBirth: 'Date of Birth',
+    gender: 'Gender',
+    jobRole: 'Job Role',
+    jobTitle: 'Job Title',
+    jobLevel: 'Job Level',
+    department: 'Department',
+    startDate: 'Start Date',
+    status: 'Status',
+    nationality: 'Nationality',
+    emergencyContact: 'Emergency Contact',
+    address: 'Address'
+  };
+
+  let fieldsHtml = '';
+  Object.keys(updatedFields).forEach(field => {
+    const displayName = fieldMappings[field] || field;
+    let value = updatedFields[field];
+    
+    if (typeof value === 'object' && value !== null) {
+      value = JSON.stringify(value, null, 2);
+    }
+    
+    fieldsHtml += `
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">${displayName}</td>
+        <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${value}</td>
+      </tr>
+    `;
+  });
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">Profile Updated</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${fullName}</strong>,</p>
+        <p style="color:#6b7280;">Your profile information has been updated successfully.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #f59e0b;">
+          <h3 style="margin-top:0;color:#f59e0b;">Updated Fields</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            ${fieldsHtml}
+          </table>
+        </div>
+        
+        <div style="background-color:#dbeafe;padding:15px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#1e40af;"><strong>VTID:</strong> ${vtid}</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated message from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: 'Profile Updated - Talent Shield HRMS',
+    html
+  });
+};
+
+// 3. Send email when Profile is deleted
+// CALL THIS IN: Profile deletion endpoint (e.g., DELETE /api/profiles/:id)
+const sendProfileDeletionEmail = async (profileData) => {
+  const { email, firstName, lastName, vtid } = profileData;
+  const fullName = `${firstName} ${lastName}`;
+  const supportEmail = process.env.SUPPORT_EMAIL || 'support@talentshield.com';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">Profile Deleted</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${fullName}</strong>,</p>
+        <p style="color:#6b7280;">Your profile has been removed from the Talent Shield HRMS system.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #ef4444;">
+          <h3 style="margin-top:0;color:#ef4444;">Profile Details</h3>
+          <p><strong>Name:</strong> ${fullName}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>VTID:</strong> ${vtid}</p>
+          <p><strong>Deletion Date:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+        
+        <div style="background-color:#fef3c7;padding:15px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#92400e;">If this was done in error, please contact your administrator immediately at <a href="mailto:${supportEmail}" style="color:#b45309;">${supportEmail}</a></p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated message from Talent Shield HRMS</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: 'Profile Deletion Notification - Talent Shield HRMS',
+    html
+  });
+};
+
+// ===== CERTIFICATE EVENT EMAILS =====
+
+// 4. Send email when Certificate is added
+// CALL THIS IN: Certificate creation endpoint (e.g., POST /api/certificates)
+const sendCertificateAddedEmail = async (profileData, certificateData) => {
+  const { email, firstName, lastName, vtid } = profileData;
+  const { certificate, category, jobRole, expiryDate } = certificateData;
+  const fullName = `${firstName} ${lastName}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">✓ Certificate Added</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${fullName}</strong>,</p>
+        <p style="color:#6b7280;">A new certificate has been added to your profile.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
+          <h3 style="margin-top:0;color:#10b981;">Certificate Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Certificate Name</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${certificate}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Category</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${category}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Job Role</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${jobRole}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;color:#374151;font-weight:600;">Expiry Date</td>
+              <td style="padding:10px;color:#6b7280;">${expiryDate}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color:#dbeafe;padding:15px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#1e40af;"><strong>VTID:</strong> ${vtid}</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated message from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Added on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Certificate Added: ${certificate}`,
+    html
+  });
+};
+
+// 5. Send email when Certificate is deleted
+// CALL THIS IN: Certificate deletion endpoint (e.g., DELETE /api/certificates/:id)
+const sendCertificateDeletedEmail = async (profileData, certificateData) => {
+  const { email, firstName, lastName, vtid } = profileData;
+  const { certificate, category, jobRole, expiryDate } = certificateData;
+  const fullName = `${firstName} ${lastName}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">Certificate Removed</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${fullName}</strong>,</p>
+        <p style="color:#6b7280;">A certificate has been removed from your profile.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #ef4444;">
+          <h3 style="margin-top:0;color:#ef4444;">Removed Certificate Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Certificate Name</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${certificate}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Category</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${category}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Job Role</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${jobRole}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;color:#374151;font-weight:600;">Expiry Date</td>
+              <td style="padding:10px;color:#6b7280;">${expiryDate}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color:#fef3c7;padding:15px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#92400e;"><strong>Note:</strong> If this removal was done in error, please contact your administrator.</p>
+        </div>
+        
+        <div style="background-color:#dbeafe;padding:15px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#1e40af;"><strong>VTID:</strong> ${vtid}</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated message from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Removed on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Certificate Removed: ${certificate}`,
+    html
+  });
+};
+
+// 6. Send email reminder before certificate expiry
+// CALL THIS IN: Scheduled job/cron task (e.g., daily check for upcoming expirations)
+const sendCertificateExpiryReminderEmail = async (profileData, certificateData, daysUntilExpiry) => {
+  const { email, firstName, lastName, vtid } = profileData;
+  const { certificate, category, jobRole, expiryDate } = certificateData;
+  const fullName = `${firstName} ${lastName}`;
+
+  const urgencyColor = daysUntilExpiry <= 7 ? '#ef4444' : daysUntilExpiry <= 30 ? '#f59e0b' : '#3b82f6';
+  const urgencyText = daysUntilExpiry <= 7 ? 'URGENT' : daysUntilExpiry <= 30 ? 'WARNING' : 'REMINDER';
+  const urgencyIcon = daysUntilExpiry <= 7 ? '⚠️' : daysUntilExpiry <= 30 ? '⏰' : '📅';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: ${urgencyColor}; color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">${urgencyIcon} ${urgencyText}: Certificate Expiring Soon</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${fullName}</strong>,</p>
+        <p style="color:#6b7280;">Your certificate is expiring in <strong style="color:${urgencyColor};">${daysUntilExpiry} days</strong>.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid ${urgencyColor};">
+          <h3 style="margin-top:0;color:${urgencyColor};">Certificate Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Certificate Name</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${certificate}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Category</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${category}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Job Role</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${jobRole}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Expiry Date</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:${urgencyColor};font-weight:bold;">${expiryDate}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;color:#374151;font-weight:600;">Days Remaining</td>
+              <td style="padding:10px;color:${urgencyColor};font-weight:bold;font-size:18px;">${daysUntilExpiry} days</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color:#fef3c7;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #f59e0b;">
+          <p style="margin:0;color:#92400e;"><strong>⚡ Action Required:</strong> Please renew your certificate before it expires to maintain compliance and avoid any service disruption.</p>
+        </div>
+        
+        <div style="background-color:#dbeafe;padding:15px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#1e40af;"><strong>VTID:</strong> ${vtid}</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated reminder from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `${urgencyText}: Certificate Expiring in ${daysUntilExpiry} Days - ${certificate}`,
+    html
+  });
+};
+
+// 7. Send email after certificate has expired
+// CALL THIS IN: Scheduled job/cron task (e.g., daily check for expired certificates)
+const sendCertificateExpiredEmail = async (profileData, certificateData) => {
+  const { email, firstName, lastName, vtid } = profileData;
+  const { certificate, category, jobRole, expiryDate } = certificateData;
+  const fullName = `${firstName} ${lastName}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">🚨 URGENT: Certificate Expired</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${fullName}</strong>,</p>
+        <p style="color:#dc2626;font-weight:600;">Your certificate has <strong>EXPIRED</strong>. Immediate action is required.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #dc2626;">
+          <h3 style="margin-top:0;color:#dc2626;">Expired Certificate Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Certificate Name</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${certificate}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Category</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${category}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Job Role</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${jobRole}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;color:#374151;font-weight:600;">Expired On</td>
+              <td style="padding:10px;color:#dc2626;font-weight:bold;">${expiryDate}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color:#fee2e2;padding:20px;border-radius:6px;margin:20px 0;border:2px solid #dc2626;">
+          <p style="margin:0;color:#991b1b;font-weight:600;"><strong>⚠️ CRITICAL ACTION REQUIRED:</strong></p>
+          <p style="color:#7f1d1d;margin-top:10px;">This certificate has expired and you may not be compliant. Please renew it immediately to avoid:</p>
+          <ul style="color:#7f1d1d;margin:10px 0;padding-left:20px;">
+            <li>Service disruption</li>
+            <li>Compliance violations</li>
+            <li>Access restrictions</li>
+          </ul>
+          <p style="color:#7f1d1d;margin-top:10px;"><strong>Contact your administrator or training coordinator immediately.</strong></p>
+        </div>
+        
+        <div style="background-color:#dbeafe;padding:15px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#1e40af;"><strong>VTID:</strong> ${vtid}</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated alert from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `🚨 URGENT: Certificate EXPIRED - ${certificate}`,
+    html
+  });
+};
+
 module.exports = {
+  sendEmail,
   sendLoginSuccessEmail,
   sendCertificateExpiryEmail,
   sendNotificationEmail,
@@ -388,5 +850,12 @@ module.exports = {
   sendAdminApprovalRequestEmail,
   sendUserCredentialsEmail,
   sendAdminNewUserCredentialsEmail,
-  sendWelcomeEmailToNewUser
+  sendWelcomeEmailToNewUser,
+  sendProfileCreationEmail,
+  sendProfileUpdateEmail,
+  sendProfileDeletionEmail,
+  sendCertificateAddedEmail,
+  sendCertificateDeletedEmail,
+  sendCertificateExpiryReminderEmail,
+  sendCertificateExpiredEmail
 };
