@@ -27,7 +27,7 @@ export default function CertificateManagement() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("");
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+  const [viewMode, setViewMode] = useState('table'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
 
   // Get filter options

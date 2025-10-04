@@ -88,6 +88,8 @@ export default function Profile() {
         await uploadProfilePicture(userProfile._id, file);
         // Force image refresh by updating key
         setImageKey(Date.now());
+        // Refresh profile data to get updated picture
+        await fetchMyProfile();
         alert('Profile picture updated successfully!');
       } catch (error) {
         console.error("Failed to upload profile picture:", error);

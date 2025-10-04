@@ -13,6 +13,7 @@ export default function MyAccount() {
   const [savingImage, setSavingImage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [imageKey, setImageKey] = useState(Date.now());
 
   // Fetch user profile data
   useEffect(() => {
@@ -126,12 +127,10 @@ export default function MyAccount() {
         profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`
       }));
 
+      // Update image key to force refresh
+      setImageKey(Date.now());
+
       alert("Profile picture updated successfully!");
-      
-      // Force page refresh after 500ms to show new image
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
       alert("Failed to upload profile picture: " + (err.message || "Please try again."));
@@ -282,9 +281,10 @@ export default function MyAccount() {
                 )}
                 {profile.profilePicture ? (
                   <img
-                    src={`${getImageUrl(profile.profilePicture)}?t=${Date.now()}`}
+                    src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
                     alt="Profile"
                     className="w-full h-full object-cover"
+                    key={`profile-pic-${imageKey}`}
                   />
                 ) : (
                   "👤"
