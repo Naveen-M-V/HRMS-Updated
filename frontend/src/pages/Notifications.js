@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { useNotifications } from "../context/NotificationContext";
-import { Mail } from "lucide-react";
+import { Mail, Check } from "lucide-react";
 
 export default function Notifications() {
-  const { notifications, refreshNotifications } = useNotifications();
+  const { notifications, markAsRead, refreshNotifications } = useNotifications();
 
   // 👇 Track which notification is selected
   const [selected, setSelected] = useState(null);
+  
+  // Handle opening notification and marking as read
+  const handleOpenNotification = (note) => {
+    setSelected(note);
+    markAsRead(note.id);
+  };
 
   return (
     <div className="p-6">
@@ -30,17 +36,20 @@ export default function Notifications() {
               </div>
             </div>
 
-            {/* Status Button (opens modal) */}
-            <button
-              onClick={() => setSelected(note)}
-              className={`px-3 py-1 rounded text-sm shadow ${
-                note.status === "Open"
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              {note.status}
-            </button>
+            {/* Status Button (opens modal) or Tick if read */}
+            {note.read ? (
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
+                <Check className="w-4 h-4" />
+                <span>Read</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => handleOpenNotification(note)}
+                className="px-3 py-1 rounded text-sm shadow bg-green-600 text-white hover:bg-green-700"
+              >
+                Open
+              </button>
+            )}
           </div>
         ))}
       </div>

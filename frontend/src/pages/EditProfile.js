@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
+import JobLevelDropdown from "../components/JobLevelDropdown";
+import SyncfusionDatePicker from "../components/SyncfusionDatePicker";
 
 
 export default function EditProfile() {
@@ -373,12 +375,12 @@ export default function EditProfile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
               <div>
                 <label className="block text-sm text-gray-600">Date of Birth</label>
-                <input
-                  type="date"
+                <SyncfusionDatePicker
                   name="dob"
                   value={formData.dob}
                   onChange={handleChange}
-                  className="mt-1 w-full border rounded px-3 py-2"
+                  placeholder="Select date of birth"
+                  className="mt-1"
                 />
               </div>
               <div>
@@ -528,15 +530,12 @@ export default function EditProfile() {
               </div>
               <div>
                 <label className="block text-sm text-gray-600">Job Level</label>
-                <SearchableDropdown
+                <JobLevelDropdown
                   name="jobLevel"
                   value={formData.jobLevel}
                   onChange={handleChange}
-                  options={jobLevels}
                   placeholder="Type to search job levels or add new..."
-                  onSearch={handleJobLevelSearch}
-                  onAddNew={handleAddJobLevel}
-                  className="w-full"
+                  className="mt-1 w-full"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   You can type to search existing job levels or add a new one

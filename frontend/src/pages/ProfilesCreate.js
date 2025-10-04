@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
+import SyncfusionDatePicker from "../components/SyncfusionDatePicker";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 
 export default function ProfilesCreate() {
@@ -249,12 +250,12 @@ export default function ProfilesCreate() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium">Date of Birth</label>
-              <input
-                type="date"
+              <SyncfusionDatePicker
                 name="dob"
                 value={formData.dob}
                 onChange={handleChange}
-                className="mt-1 block w-full border rounded p-2"
+                placeholder="Select date of birth"
+                className="mt-1"
               />
             </div>
             <div>
@@ -304,7 +305,7 @@ export default function ProfilesCreate() {
                   {/* Checkbox grid */}
                   <div className="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50">
                     <div className="grid grid-cols-1 gap-2">
-                      {jobRoles.slice(0, 20).map((role) => (
+                      {jobRoles.map((role) => (
                         <label
                           key={role._id}
                           className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded cursor-pointer"
@@ -318,11 +319,6 @@ export default function ProfilesCreate() {
                           <span className="text-sm text-gray-700">{role.name}</span>
                         </label>
                       ))}
-                      {jobRoles.length > 20 && (
-                        <p className="text-xs text-gray-500 italic p-2">
-                          Showing first 20 of {jobRoles.length} roles. Use search to find more.
-                        </p>
-                      )}
                     </div>
                   </div>
                   
@@ -401,12 +397,12 @@ export default function ProfilesCreate() {
           {/* Start Date */}
           <div>
             <label className="block text-sm font-medium">Start Date</label>
-            <input
-              type="date"
+            <SyncfusionDatePicker
               name="startDate"
               value={formData.startDate}
               onChange={handleChange}
-              className="mt-1 block w-full border rounded p-2"
+              placeholder="Select start date"
+              className="mt-1"
             />
           </div>
 

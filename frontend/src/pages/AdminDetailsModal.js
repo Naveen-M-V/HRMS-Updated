@@ -1,6 +1,7 @@
 // src/pages/AdminDetailsModal.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SyncfusionDatePicker from '../components/SyncfusionDatePicker';
 
 export default function AdminDetailsModal() {
   const navigate = useNavigate();
@@ -169,9 +170,15 @@ export default function AdminDetailsModal() {
                   <input name="mobile" value={formData.mobile} onChange={onChange} className="w-full border rounded px-3 py-2" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                  <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={onChange} className="w-full border rounded px-3 py-2" />
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                <SyncfusionDatePicker
+                    name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={onChange}
+                  placeholder="Select date of birth"
+                  className="w-full"
+                />
+              </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                   <select name="gender" value={formData.gender} onChange={onChange} className="w-full border rounded px-3 py-2">

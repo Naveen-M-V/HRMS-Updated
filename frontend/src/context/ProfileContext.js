@@ -335,82 +335,73 @@ export const ProfileProvider = ({ children }) => {
   };
 
   const uploadProfilePicture = async (id, file) => {
-    const possibleUrls = [
-      'https://talentshield.co.uk:5003',
-      'https://talentshield.co.uk',
-      'http://localhost:5003'
-    ];
+    // Use environment API URL or fallback to relative path for production
+    const getApiUrl = () => {
+      if (process.env.REACT_APP_API_URL) {
+        return process.env.REACT_APP_API_URL;
+      }
+      // In production with nginx, use relative path
+      return '';
+    };
     
     setLoading(true);
     
     try {
       const token = localStorage.getItem('auth_token');
+      const apiUrl = getApiUrl();
+      
       console.log('UploadProfilePicture - Profile ID:', id);
       console.log('UploadProfilePicture - File:', file.name, file.size);
       console.log('UploadProfilePicture - Token exists:', !!token);
+      console.log('UploadProfilePicture - Using API URL:', apiUrl || '(relative path)');
       
-      let lastError = null;
-      
-      // Try each possible API URL
-      for (let i = 0; i < possibleUrls.length; i++) {
-        const apiUrl = possibleUrls[i];
-        console.log(`UploadProfilePicture - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
-        
-        try {
-          const formData = new FormData();
-          formData.append('profilePicture', file);
+      try {
+        const formData = new FormData();
+        formData.append('profilePicture', file);
 
-          const headers = {};
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-
-          const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
-            method: 'POST',
-            headers: headers,
-            body: formData,
-            credentials: 'include'
-          });
-
-          console.log('UploadProfilePicture - Response status:', response.status);
-          console.log('UploadProfilePicture - Response headers:', response.headers.get('content-type'));
-
-          if (response.ok) {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-              const data = await response.json();
-              
-              const updatedProfiles = profiles.map(profile =>
-                profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
-              );
-              setProfiles(updatedProfiles);
-              localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-              localStorage.setItem('profiles_cache_time', Date.now().toString());
-
-              console.log(`UploadProfilePicture - Success with URL: ${apiUrl}`);
-              return data.profilePicture;
-            } else {
-              console.log(`UploadProfilePicture - Non-JSON response with URL ${apiUrl}`);
-              lastError = new Error('Server returned non-JSON response');
-              continue;
-            }
-          } else {
-            const textResponse = await response.text();
-            console.log(`UploadProfilePicture - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
-            lastError = new Error(`Server error (${response.status})`);
-            continue;
-          }
-        } catch (err) {
-          console.log(`UploadProfilePicture - Error with URL ${apiUrl}:`, err.message);
-          lastError = err;
-          continue;
+        const headers = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
+
+        const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
+          method: 'POST',
+          headers: headers,
+          body: formData,
+          credentials: 'include'
+        });
+
+        console.log('UploadProfilePicture - Response status:', response.status);
+        console.log('UploadProfilePicture - Response headers:', response.headers.get('content-type'));
+
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            
+            const updatedProfiles = profiles.map(profile =>
+              profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
+            );
+            setProfiles(updatedProfiles);
+            localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+            localStorage.setItem('profiles_cache_time', Date.now().toString());
+
+            console.log(`UploadProfilePicture - Success with URL: ${apiUrl}`);
+            return data.profilePicture;
+          } else {
+            console.log(`UploadProfilePicture - Non-JSON response with URL ${apiUrl}`);
+            throw new Error('Server returned non-JSON response');
+          }
+        } else {
+          const textResponse = await response.text();
+          console.log(`UploadProfilePicture - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
+          throw new Error(`Server error (${response.status}): ${textResponse.substring(0, 100)}`);
+        }
+      } catch (err) {
+        console.error('UploadProfilePicture - Error:', err);
+        setError('Failed to upload profile picture: ' + err.message);
+        throw err;
       }
-      
-      // If we get here, all URLs failed
-      console.error('UploadProfilePicture - All API URLs failed');
-      setError('Failed to upload profile picture');
-      throw lastError || new Error('Failed to upload profile picture - all API endpoints unreachable');
     } finally {
       setLoading(false);
     }
