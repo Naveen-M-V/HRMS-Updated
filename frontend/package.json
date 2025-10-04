@@ -5,6 +5,10 @@
   "dependencies": {
     "@heroicons/react": "^2.1.5",
     "@syncfusion/ej2-base": "^31.1.22",
+    "@syncfusion/ej2-buttons": "^31.1.22",
+    "@syncfusion/ej2-calendars": "^31.1.22",
+    "@syncfusion/ej2-inputs": "^31.1.22",
+    "@syncfusion/ej2-popups": "^31.1.22",
     "@syncfusion/ej2-react-calendars": "^31.1.22",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",

@@ -1,5 +1,9 @@
-// Syncfusion Styles (simplified - only calendars)
-import '@syncfusion/ej2-react-calendars/styles/material.css';
+// Syncfusion DatePicker Styles
+import '@syncfusion/ej2-base/styles/tailwind.css';
+import '@syncfusion/ej2-buttons/styles/tailwind.css';
+import '@syncfusion/ej2-inputs/styles/tailwind.css';
+import '@syncfusion/ej2-popups/styles/tailwind.css';
+import '@syncfusion/ej2-react-calendars/styles/tailwind.css';
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';

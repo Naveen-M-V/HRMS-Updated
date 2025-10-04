@@ -2,25 +2,13 @@ import React from 'react';
 import { DatePickerComponent } from '@syncfusion/ej2-react-calendars';
 
 /**
- * Reusable Syncfusion DatePicker Component for HRMS
+ * Syncfusion DatePicker Component for HRMS
  * 
  * Features:
- * - DD/MM/YYYY format (matches app standard)
+ * - DD/MM/YYYY format
  * - Tailwind styling
- * - Full keyboard navigation
+ * - Keyboard navigation
  * - Responsive design
- * - Form validation support
- * 
- * @param {Object} props
- * @param {string} props.name - Input name
- * @param {string} props.value - Date value (YYYY-MM-DD format)
- * @param {Function} props.onChange - Change handler
- * @param {string} props.placeholder - Placeholder text
- * @param {boolean} props.required - Required field
- * @param {string} props.className - Additional CSS classes
- * @param {Date} props.min - Minimum selectable date
- * @param {Date} props.max - Maximum selectable date
- * @param {boolean} props.disabled - Disabled state
  */
 const SyncfusionDatePicker = ({
   name,
@@ -34,7 +22,7 @@ const SyncfusionDatePicker = ({
   disabled = false
 }) => {
   
-  // Convert YYYY-MM-DD to Date object for Syncfusion
+  // Convert YYYY-MM-DD to Date object
   const getDateValue = () => {
     if (!value) return null;
     
@@ -52,7 +40,7 @@ const SyncfusionDatePicker = ({
     return null;
   };
 
-  // Handle date change and convert back to YYYY-MM-DD for form state
+  // Handle date change - convert back to YYYY-MM-DD
   const handleChange = (args) => {
     if (args.value) {
       const date = new Date(args.value);
@@ -60,17 +48,17 @@ const SyncfusionDatePicker = ({
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       
-      // Create synthetic event to match existing onChange handlers
+      // Create synthetic event
       const syntheticEvent = {
         target: {
           name: name,
-          value: `${year}-${month}-${day}` // YYYY-MM-DD format for backend
+          value: `${year}-${month}-${day}`
         }
       };
       
       onChange(syntheticEvent);
     } else {
-      // Handle clear/empty
+      // Handle clear
       const syntheticEvent = {
         target: {
           name: name,
@@ -96,7 +84,6 @@ const SyncfusionDatePicker = ({
       max={max}
       enabled={!disabled}
       cssClass={`e-custom-datepicker ${className}`}
-      // Accessibility
       aria-label={placeholder}
       aria-required={required}
     />
