@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import SearchableDropdown from "../components/SearchableDropdown";
+import JobLevelDropdown from "../components/JobLevelDropdown";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 
 export default function ProfilesCreate() {
@@ -12,7 +13,7 @@ export default function ProfilesCreate() {
     lastName: "",
     dob: "",
     company: "",
-    jobRole: [],
+    jobTitle: [],
     jobLevel: "",
     mobile: "",
     language: "",
@@ -103,7 +104,7 @@ export default function ProfilesCreate() {
 
   const handleJobRoleChange = (jobRole) => {
     setFormData((prev) => {
-      const currentJobRoles = prev.jobRole || [];
+      const currentJobRoles = prev.jobTitle || [];
       const isSelected = currentJobRoles.includes(jobRole);
       
       if (isSelected) {
@@ -111,14 +112,14 @@ export default function ProfilesCreate() {
         const updatedRoles = currentJobRoles.filter(role => role !== jobRole);
         return {
           ...prev,
-          jobRole: updatedRoles
+          jobTitle: updatedRoles
         };
       } else {
         // Add job role
         const updatedRoles = [...currentJobRoles, jobRole];
         return {
           ...prev,
-          jobRole: updatedRoles
+          jobTitle: updatedRoles
         };
       }
     });
@@ -141,7 +142,8 @@ export default function ProfilesCreate() {
       lastName: formData.lastName.trim(),
       staffType: formData.staffType || "Direct",
       company: formData.company || "VitruX Ltd",
-      jobRole: Array.isArray(formData.jobRole) ? formData.jobRole : (formData.jobRole ? [formData.jobRole] : []),
+      jobTitle: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
+      jobRole: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []), // Keep for backward compatibility
       jobLevel: formData.jobLevel,
       email: formData.email.trim().toLowerCase(),
       mobile: formData.mobile || "",
@@ -272,35 +274,64 @@ export default function ProfilesCreate() {
           {/* Job Role & Job Level */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium">Job Roles</label>
+              <label className="block text-sm font-medium mb-2">Job Roles</label>
               {loading ? (
                 <div className="mt-1 block w-full border rounded p-2 bg-gray-50">
                   Loading job roles...
                 </div>
               ) : (
                 <>
-                  <SearchableDropdown
-                    name="jobRole"
-                    value={formData.jobRole}
+                  {/* Searchable filter input */}
+                  <input
+                    type="text"
+                    placeholder="Search job roles..."
+                    className="w-full border rounded px-3 py-2 mb-3 text-sm"
                     onChange={(e) => {
-                      const value = e.target.value;
-                      if (!formData.jobRole.includes(value)) {
-                        setFormData(prev => ({
-                          ...prev,
-                          jobRole: [...prev.jobRole, value]
-                        }));
+                      const searchTerm = e.target.value.toLowerCase();
+                      if (searchTerm) {
+                        const filtered = getAllJobRoles().filter(role =>
+                          role.toLowerCase().includes(searchTerm)
+                        );
+                        setJobRoles(filtered.map(role => ({ name: role, _id: role, isActive: true })));
+                      } else {
+                        // Reset to full list
+                        const allRoles = getAllJobRoles();
+                        setJobRoles(allRoles.map(role => ({ name: role, _id: role, isActive: true })));
                       }
                     }}
-                    options={jobRoles.map(role => ({ name: role.name, _id: role._id }))}
-                    placeholder="Type to search job roles..."
-                    className="w-full mb-2"
-                    isMultiSelect={true}
                   />
-                  {formData.jobRole.length > 0 && (
-                    <div className="mt-2">
-                      <div className="text-xs text-gray-500 mb-1">Selected ({formData.jobRole.length}):</div>
+                  
+                  {/* Checkbox grid */}
+                  <div className="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50">
+                    <div className="grid grid-cols-1 gap-2">
+                      {jobRoles.slice(0, 20).map((role) => (
+                        <label
+                          key={role._id}
+                          className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.jobTitle.includes(role.name)}
+                            onChange={() => handleJobRoleChange(role.name)}
+                            className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                          />
+                          <span className="text-sm text-gray-700">{role.name}</span>
+                        </label>
+                      ))}
+                      {jobRoles.length > 20 && (
+                        <p className="text-xs text-gray-500 italic p-2">
+                          Showing first 20 of {jobRoles.length} roles. Use search to find more.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Selected roles display */}
+                  {formData.jobTitle.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs text-gray-500 mb-1">Selected ({formData.jobTitle.length}):</div>
                       <div className="flex flex-wrap gap-1">
-                        {formData.jobRole.map((role) => (
+                        {formData.jobTitle.map((role) => (
                           <span
                             key={role}
                             className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"
@@ -308,12 +339,7 @@ export default function ProfilesCreate() {
                             {role}
                             <button
                               type="button"
-                              onClick={() => {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  jobRole: prev.jobRole.filter(r => r !== role)
-                                }));
-                              }}
+                              onClick={() => handleJobRoleChange(role)}
                               className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-emerald-400 hover:bg-emerald-200 hover:text-emerald-600 focus:outline-none"
                             >
                               ×
@@ -325,34 +351,21 @@ export default function ProfilesCreate() {
                   )}
                 </>
               )}
-              <p className="text-xs text-gray-500 mt-1">
-                {jobRoles.length > 0 ? `${jobRoles.length} job roles available` : 'No job roles available'}. You can select multiple roles.
+              <p className="text-xs text-gray-500 mt-2">
+                {jobRoles.length > 0 ? `${jobRoles.length} job roles available` : 'No job roles available'}. Select multiple roles using checkboxes.
               </p>
             </div>
             <div>
               <label className="block text-sm font-medium">Job Level</label>
-              {loading ? (
-                <div className="mt-1 block w-full border rounded p-2 bg-gray-50">
-                  Loading job levels...
-                </div>
-              ) : (
-                <select
-                  name="jobLevel"
-                  value={formData.jobLevel}
-                  onChange={handleChange}
-                  className="mt-1 block w-full border rounded p-2"
-                  required
-                >
-                  <option value="">Select job level</option>
-                  {jobLevels.map((level) => (
-                    <option key={level._id} value={level.name}>
-                      {level.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <JobLevelDropdown
+                name="jobLevel"
+                value={formData.jobLevel}
+                onChange={handleChange}
+                placeholder="Type to search job levels or add new..."
+                className="mt-1"
+              />
               <p className="text-xs text-gray-500 mt-1">
-                {jobLevels.length} job levels available. Select the appropriate level.
+                You can type to search existing job levels or add a new one
               </p>
             </div>
           </div>

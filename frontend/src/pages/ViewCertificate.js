@@ -184,14 +184,19 @@ export default function ViewCertificate() {
           >
             View profile
           </button>
-          <Link
-            to="/dashboard/createcertificate"
+          <button
+            onClick={() => navigate("/dashboard/createcertificate", { 
+              state: { 
+                profileId: certificate.profileId?._id || certificate.profileId,
+                profile: certificate.profileId 
+              } 
+            })}
             className="px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
           >
             Add another certificate
-          </Link>
+          </button>
           <Link
-            to={`/dashboard/createcertificate , { state: { profileId: id, profile } }`}
+            to={`/editcertificate/${certificate.id || certificate._id}`}
             className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
           >
             Edit certificate
