@@ -8,13 +8,13 @@ export default function ViewCertificate() {
   const { id } = useParams();
   const navigate = useNavigate();
   const {
-    Certificates,
+    certificates,
     deleteCertificate,
     updateCertificateWithFile,
     uploadCertificateFile,
   } = useCertificates();
 
-  const [Certificate, setCertificate] = useState(null);
+  const [certificate, setCertificate] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -37,15 +37,15 @@ export default function ViewCertificate() {
   const handleDeleteCertificate = async () => {
     if (
       window.confirm(
-        `Are you sure you want to delete the Certificate "${certificate.certificate}"? This action cannot be undone.`
+        `Are you sure you want to delete the certificate "${certificate.certificate}"? This action cannot be undone.`
       )
     ) {
       try {
-        await deleteCertificate(Certificate.id || certificate._id);
-        navigate("/Certificates");
+        await deleteCertificate(certificate.id || certificate._id);
+        navigate("/certificates");
       } catch (error) {
-        console.error("Failed to delete Certificate:", error);
-        alert("Failed to delete Certificate. Please try again.");
+        console.error("Failed to delete certificate:", error);
+        alert("Failed to delete certificate. Please try again.");
       }
     }
   };
@@ -77,7 +77,7 @@ export default function ViewCertificate() {
       alert("Please select a file first.");
       return;
     }
-    const certificateId = Certificate?.id || certificate?._id;
+    const certificateId = certificate?.id || certificate?._id;
     if (!certificateId) {
       alert("Certificate ID not found. Please refresh the page and try again.");
       return;
@@ -98,8 +98,8 @@ export default function ViewCertificate() {
 
       alert("Certificate file updated successfully!");
     } catch (error) {
-      console.error("Failed to upload Certificate file:", error);
-      alert("Failed to upload Certificate file. " + (error.message || "Please try again."));
+      console.error("Failed to upload certificate file:", error);
+      alert("Failed to upload certificate file. " + (error.message || "Please try again."));
     } finally {
       setUploading(false);
     }
@@ -108,15 +108,15 @@ export default function ViewCertificate() {
   const handleDeleteFile = async () => {
     if (
       window.confirm(
-        "Are you sure you want to delete the Certificate file? This action cannot be undone."
+        "Are you sure you want to delete the certificate file? This action cannot be undone."
       )
     ) {
       setUploading(true);
       try {
         const certificateId = certificate.id || certificate._id;
-        const deleteUrl = buildApiUrl(`/Certificates/${certificateId}/file`);
+        const deleteUrl = buildApiUrl(`/certificates/${certificateId}/file`);
         
-        console.log('Deleting Certificate file from:', deleteUrl);
+        console.log('Deleting certificate file from:', deleteUrl);
         
         const response = await fetch(deleteUrl, {
           method: 'DELETE',
@@ -134,7 +134,7 @@ export default function ViewCertificate() {
 
         const data = await response.json();
         
-        // Update the Certificate state to remove file data
+        // Update the certificate state to remove file data
         setCertificate(prev => ({
           ...prev,
           certificateFile: null,
@@ -145,20 +145,20 @@ export default function ViewCertificate() {
         
         alert("Certificate file deleted successfully!");
       } catch (error) {
-        console.error("Failed to delete Certificate file:", error);
-        alert("Failed to delete Certificate file: " + (error.message || "Please try again."));
+        console.error("Failed to delete certificate file:", error);
+        alert("Failed to delete certificate file: " + (error.message || "Please try again."));
       } finally {
         setUploading(false);
       }
     }
   };
 
-  if (!Certificate) {
+  if (!certificate) {
     return (
       <div className="p-6">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4">Certificate not found</h2>
-          <Link to="/Certificates" className="text-blue-600 hover:underline">
+          <Link to="/certificates" className="text-blue-600 hover:underline">
             Back to Certificate Management
           </Link>
         </div>
@@ -174,38 +174,38 @@ export default function ViewCertificate() {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              if (Certificate.profileName) {
-                navigate("/Profiles");
+              if (certificate.profileName) {
+                navigate("/profiles");
               } else {
                 alert("Profile information not available");
               }
             }}
             className="px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
           >
-            View Profile
+            View profile
           </button>
           <button
-            onClick={() => navigate("/Dashboard/createcertificate", { 
+            onClick={() => navigate("/dashboard/createcertificate", { 
               state: { 
-                profileId: Certificate.profileId?._id || certificate.profileId,
-                Profile: certificate.profileId 
+                profileId: certificate.profileId?._id || certificate.profileId,
+                profile: certificate.profileId 
               } 
             })}
             className="px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
           >
-            Add another Certificate
+            Add another certificate
           </button>
           <Link
             to={`/editcertificate/${certificate.id || certificate._id}`}
             className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
           >
-            Edit Certificate
+            Edit certificate
           </Link>
           <button
             onClick={handleDeleteCertificate}
             className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
           >
-            Delete Certificate
+            Delete certificate
           </button>
       </div>
 </div>
@@ -213,28 +213,28 @@ export default function ViewCertificate() {
         {/* Left Column - Certificate Details */}
         <div className="col-span-8">
           <div className="bg-white rounded-lg border p-6">
-            <h2 className="text-xl font-semibold mb-6 text-gray-800">{Certificate.certificate}</h2>
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">{certificate.certificate}</h2>
 
             <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Certificate:</span>
-                  <span className="font-medium">{Certificate.certificate}</span>
+                  <span className="font-medium">{certificate.certificate}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Issued:</span>
-                  <span className="font-medium">{Certificate.issueDate}</span>
+                  <span className="font-medium">{certificate.issueDate}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Created On:</span>
-                  <span className="font-medium">{formatDate(Certificate.createdOn)}</span>
+                  <span className="font-medium">{formatDate(certificate.createdOn)}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Last Updated:</span>
-                  <span className="font-medium">{formatDate(Certificate.updatedOn)}</span>
+                  <span className="font-medium">{formatDate(certificate.updatedOn)}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -246,31 +246,31 @@ export default function ViewCertificate() {
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Issue Date:</span>
-                  <span className="font-medium">{Certificate.issueDate}</span>
+                  <span className="font-medium">{certificate.issueDate}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Expiry Date:</span>
-                  <span className="font-medium">{Certificate.expiryDate}</span>
+                  <span className="font-medium">{certificate.expiryDate}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Archived:</span>
-                  <span className="font-medium">{Certificate.archived || "No"}</span>
+                  <span className="font-medium">{certificate.archived || "No"}</span>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Approval Status:</span>
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${
-                      Certificate.status === "Approved"
+                      certificate.status === "Approved"
                         ? "bg-green-100 text-green-800"
-                        : Certificate.status === "Pending"
+                        : certificate.status === "Pending"
                         ? "bg-yellow-100 text-yellow-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
-                    {Certificate.status}
+                    {certificate.status}
                   </span>
                 </div>
               </div>
@@ -279,7 +279,7 @@ export default function ViewCertificate() {
             {certificate.description && (
               <div className="mt-6 pt-4 border-t">
                 <h3 className="font-medium text-gray-800 mb-2">Description</h3>
-                <p className="text-gray-600 text-sm">{Certificate.description}</p>
+                <p className="text-gray-600 text-sm">{certificate.description}</p>
               </div>
             )}
 
@@ -288,26 +288,26 @@ export default function ViewCertificate() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Provider:</span>
-                  <span className="font-medium">{Certificate.provider || "N/A"}</span>
+                  <span className="font-medium">{certificate.provider || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Cost:</span>
-                  <span className="font-medium">£{Certificate.cost || "0.00"}</span>
+                  <span className="font-medium">£{certificate.cost || "0.00"}</span>
                 </div>
               </div>
             </div>
 
-            {Certificate.profileName && (
+            {certificate.profileName && (
               <div className="mt-6 pt-4 border-t">
                 <h3 className="font-medium text-gray-800 mb-2">Profile Information</h3>
                 <div className="text-sm space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">VTID:</span>
-                    <span className="font-medium">{Certificate.profileId?.vtid || 'N/A'}</span>
+                    <span className="font-medium">{certificate.profileId?.vtid || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Profile Name:</span>
-                    <span className="font-medium">{Certificate.profileName}</span>
+                    <span className="font-medium">{certificate.profileName}</span>
                   </div>
                 </div>
               </div>
@@ -335,21 +335,21 @@ export default function ViewCertificate() {
                 </svg>
               </div>
 
-              {Certificate.certificateFile ? (
+              {certificate.certificateFile ? (
                 <>
                   <p className="text-sm text-gray-600 mb-2">
                     Current file:{" "}
-                    {Certificate.certificateFile?.originalname ||
+                    {certificate.certificateFile?.originalname ||
                       certificate.certificate?.replace(/[^a-zA-Z0-9]/g, "_")}
                   </p>
                   <p className="text-xs text-gray-500 mb-4">
-                    Added: {formatDate(Certificate.createdOn)} 14:37
+                    Added: {formatDate(certificate.createdOn)} 14:37
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
                     <button
                       onClick={() => {
-                        const fileUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5003'}/api/Certificates/${
-                          Certificate.id || certificate._id
+                        const fileUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5003'}/api/certificates/${
+                          certificate.id || certificate._id
                         }/file`;
                         window.open(fileUrl, '_blank', 'noopener,noreferrer');
                       }}
@@ -367,7 +367,7 @@ export default function ViewCertificate() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-gray-600 mb-4">No Certificate file uploaded</p>
+                <p className="text-sm text-gray-600 mb-4">No certificate file uploaded</p>
               )}
 
               <div className="mb-4">
@@ -397,7 +397,7 @@ export default function ViewCertificate() {
                 >
                   {uploading
                     ? "Uploading..."
-                    : Certificate.certificateFile
+                    : certificate.certificateFile
                     ? "Update File"
                     : "Upload File"}
                 </button>
@@ -409,11 +409,11 @@ export default function ViewCertificate() {
               <div className="text-sm space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">File Required:</span>
-                  <span className="font-medium">{Certificate.fileRequired || "Yes"}</span>
+                  <span className="font-medium">{certificate.fileRequired || "Yes"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Active:</span>
-                  <span className="font-medium">{Certificate.Active || "Yes"}</span>
+                  <span className="font-medium">{certificate.active || "Yes"}</span>
                 </div>
               </div>
             </div>
@@ -423,7 +423,7 @@ export default function ViewCertificate() {
 
       <div className="mt-6">
         <Link
-          to="/Certificates"
+          to="/certificates"
           className="inline-flex items-center px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"
         >
           ← Back to Certificates

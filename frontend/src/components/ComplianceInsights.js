@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const ComplianceInsights = () => {
   const {
-    Certificates,
+    certificates,
     loading,
     getExpiringCertificates,
     getExpiredCertificates
@@ -22,18 +22,18 @@ const ComplianceInsights = () => {
   useEffect(() => {
     if (certificates.length > 0) {
       const expiring = getExpiringCertificates(90); // Next 90 days
-      const Expired = getExpiredCertificates();
-      const Active = certificates.filter(cert => cert.status === 'Approved' && !Expired.includes(cert));
-      const Pending = Certificates.filter(cert => cert.status === 'Pending');
+      const expired = getExpiredCertificates();
+      const active = certificates.filter(cert => cert.status === 'Approved' && !expired.includes(cert));
+      const pending = certificates.filter(cert => cert.status === 'Pending');
       
       setInsights({
-        activeCertificates: Active,
+        activeCertificates: active,
         expiringCertificates: expiring,
-        expiredCertificates: Expired,
-        pendingCertificates: Pending
+        expiredCertificates: expired,
+        pendingCertificates: pending
       });
     }
-  }, [Certificates, getExpiringCertificates, getExpiredCertificates]);
+  }, [certificates, getExpiringCertificates, getExpiredCertificates]);
 
   if (loading) {
     return (
@@ -78,7 +78,7 @@ const ComplianceInsights = () => {
             <tbody className="divide-y divide-gray-200">
               {certs.map((cert) => (
                 <tr key={cert.id || cert._id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">{cert.Certificate}</td>
+                  <td className="px-4 py-3">{cert.certificate}</td>
                   <td className="px-4 py-3">{cert.profileName || 'N/A'}</td>
                   <td className="px-4 py-3">{cert.category || 'N/A'}</td>
                   <td className="px-4 py-3">{cert.expiryDate || 'N/A'}</td>
@@ -115,9 +115,9 @@ const ComplianceInsights = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {/* Active Certificates */}
         <button
-          onClick={() => setSelectedSection(selectedSection === 'active' ? null : 'Active')}
+          onClick={() => setSelectedSection(selectedSection === 'active' ? null : 'active')}
           className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${
-            selectedSection === 'Active' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+            selectedSection === 'active' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
           }`}
         >
           <div className="text-3xl font-bold text-green-600">{insights.activeCertificates.length}</div>
@@ -137,9 +137,9 @@ const ComplianceInsights = () => {
 
         {/* Expired */}
         <button
-          onClick={() => setSelectedSection(selectedSection === 'expired' ? null : 'Expired')}
+          onClick={() => setSelectedSection(selectedSection === 'expired' ? null : 'expired')}
           className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${
-            selectedSection === 'Expired' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'
+            selectedSection === 'expired' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'
           }`}
         >
           <div className="text-3xl font-bold text-red-600">{insights.expiredCertificates.length}</div>
@@ -148,9 +148,9 @@ const ComplianceInsights = () => {
 
         {/* Pending */}
         <button
-          onClick={() => setSelectedSection(selectedSection === 'pending' ? null : 'Pending')}
+          onClick={() => setSelectedSection(selectedSection === 'pending' ? null : 'pending')}
           className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${
-            selectedSection === 'Pending' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
+            selectedSection === 'pending' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
           }`}
         >
           <div className="text-3xl font-bold text-blue-600">{insights.pendingCertificates.length}</div>
@@ -159,10 +159,10 @@ const ComplianceInsights = () => {
       </div>
 
       {/* Filtered Tables */}
-      {selectedSection === 'Active' && renderCertificatesTable(insights.activeCertificates, 'Active Certificates')}
+      {selectedSection === 'active' && renderCertificatesTable(insights.activeCertificates, 'Active Certificates')}
       {selectedSection === 'expiring' && renderCertificatesTable(insights.expiringCertificates, 'Expiring Soon')}
-      {selectedSection === 'Expired' && renderCertificatesTable(insights.expiredCertificates, 'Expired Certificates')}
-      {selectedSection === 'Pending' && renderCertificatesTable(insights.pendingCertificates, 'Pending Certificates')}
+      {selectedSection === 'expired' && renderCertificatesTable(insights.expiredCertificates, 'Expired Certificates')}
+      {selectedSection === 'pending' && renderCertificatesTable(insights.pendingCertificates, 'Pending Certificates')}
     </div>
   );
 };

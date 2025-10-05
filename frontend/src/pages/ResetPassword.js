@@ -15,15 +15,15 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const Email = location.state?.email;
+  const email = location.state?.email;
   const token = location.state?.token;
 
   // Redirect if no email or token provided
   useEffect(() => {
     if (!email || !token) {
-      navigate('/forgot-Password');
+      navigate('/forgot-password');
     }
-  }, [Email, token, navigate]);
+  }, [email, token, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +31,7 @@ export default function ResetPassword() {
       ...prev,
       [name]: value
     }));
-    // Clear error when User starts typing
+    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -44,7 +44,7 @@ export default function ResetPassword() {
     const newErrors = {};
     
     if (!formData.newPassword) {
-      newErrors.newPassword = "New Password is required";
+      newErrors.newPassword = "New password is required";
     } else if (formData.newPassword.length < 6) {
       newErrors.newPassword = "Password must be at least 6 characters";
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword)) {
@@ -52,7 +52,7 @@ export default function ResetPassword() {
     }
     
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your Password";
+      newErrors.confirmPassword = "Please confirm your password";
     } else if (formData.newPassword !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
@@ -73,13 +73,13 @@ export default function ResetPassword() {
     setMessage("");
 
     try {
-      const response = await fetch('http://talentshield.co.uk/api/auth/reset-Password', {
+      const response = await fetch('http://talentshield.co.uk/api/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          Email, 
+          email, 
           token, 
           newPassword: formData.newPassword 
         }),
@@ -88,20 +88,20 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Password reset successful! Redirecting to Login...");
+        setMessage("Password reset successful! Redirecting to login...");
         // Navigate to login page after 2 seconds
         setTimeout(() => {
-          navigate('/Login', { 
+          navigate('/login', { 
             state: { 
-              message: "Password reset successful! Please Login with your new password." 
+              message: "Password reset successful! Please login with your new password." 
             } 
           });
         }, 2000);
       } else {
-        setErrors({ general: data.message || "Failed to reset Password. Please try again." });
+        setErrors({ general: data.message || "Failed to reset password. Please try again." });
       }
     } catch (error) {
-      console.error("Reset Password error:", error);
+      console.error("Reset password error:", error);
       setErrors({ general: "An error occurred. Please try again." });
     } finally {
       setIsSubmitting(false);
@@ -128,7 +128,7 @@ export default function ResetPassword() {
             </svg>
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Reset Password</h2>
-          <p className="mt-1 text-sm text-gray-500">Create a new Password for your account</p>
+          <p className="mt-1 text-sm text-gray-500">Create a new password for your account</p>
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -137,7 +137,7 @@ export default function ResetPassword() {
             <div className="mb-6">
               <Link
                 to="/verify-otp"
-                state={{ Email }}
+                state={{ email }}
                 className="inline-flex items-center text-sm text-emerald-600 hover:text-emerald-500 transition duration-150 ease-in-out"
               >
                 <ArrowLeftIcon className="h-4 w-4 mr-2" />
@@ -187,14 +187,14 @@ export default function ResetPassword() {
                   <input
                     id="newPassword"
                     name="newPassword"
-                    type={showNewPassword ? "text" : "Password"}
+                    type={showNewPassword ? "text" : "password"}
                     value={formData.newPassword}
                     onChange={handleChange}
                     disabled={isSubmitting}
                     className={`block w-full pl-10 pr-10 py-3 border ${
                       errors.newPassword ? 'border-red-300' : 'border-gray-300'
                     } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                    placeholder="Enter new Password"
+                    placeholder="Enter new password"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                     <button
@@ -226,14 +226,14 @@ export default function ResetPassword() {
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "Password"}
+                    type={showConfirmPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     disabled={isSubmitting}
                     className={`block w-full pl-10 pr-10 py-3 border ${
                       errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                     } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm`}
-                    placeholder="Confirm new Password"
+                    placeholder="Confirm new password"
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                     <button

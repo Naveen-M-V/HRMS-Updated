@@ -5,7 +5,7 @@ const CreateUser = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    Email: '',
+    email: '',
     vtid: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +18,7 @@ const CreateUser = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when User starts typing
+    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -31,16 +31,16 @@ const CreateUser = () => {
     const newErrors = {};
     
     if (!formData.firstName.trim()) {
-      newErrors.firstName = "First Name is required";
+      newErrors.firstName = "First name is required";
     }
     
     if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last Name is required";
+      newErrors.lastName = "Last name is required";
     }
     
-    if (!formData.Email.trim()) {
+    if (!formData.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.Email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
     
@@ -73,23 +73,23 @@ const CreateUser = () => {
       if (response.ok) {
         setMessage({ 
           type: 'success', 
-          text: `User created successfully! Login credentials have been sent to ${formData.Email}` 
+          text: `User created successfully! Login credentials have been sent to ${formData.email}` 
         });
         // Reset form
         setFormData({
           firstName: '',
           lastName: '',
-          Email: '',
+          email: '',
           vtid: ''
         });
       } else {
         setMessage({ 
           type: 'error', 
-          text: data.message || 'Failed to create User' 
+          text: data.message || 'Failed to create user' 
         });
       }
     } catch (error) {
-      console.error('Error creating User:', error);
+      console.error('Error creating user:', error);
       setMessage({ 
         type: 'error', 
         text: 'An error occurred. Please try again.' 
@@ -111,10 +111,10 @@ const CreateUser = () => {
             Create New User
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Add a new User to the HRMS system
+            Add a new user to the HRMS system
           </p>
           <p className="mt-1 text-xs text-emerald-600 font-medium">
-            Login credentials will be sent via Email
+            Login credentials will be sent via email
           </p>
         </div>
 
@@ -151,7 +151,7 @@ const CreateUser = () => {
                     className={`block w-full pl-10 pr-3 py-3 border-2 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 hover:bg-white ${
                       errors.firstName ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
                     }`}
-                    placeholder="Enter First Name"
+                    placeholder="Enter first name"
                   />
                 </div>
                 {errors.firstName && (
@@ -176,7 +176,7 @@ const CreateUser = () => {
                     className={`block w-full pl-10 pr-3 py-3 border-2 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 hover:bg-white ${
                       errors.lastName ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
                     }`}
-                    placeholder="Enter Last Name"
+                    placeholder="Enter last name"
                   />
                 </div>
                 {errors.lastName && (
@@ -195,19 +195,19 @@ const CreateUser = () => {
                   <MailIcon className="h-5 w-5 text-emerald-400" />
                 </div>
                 <input
-                  id="Email"
-                  name="Email"
-                  type="Email"
+                  id="email"
+                  name="email"
+                  type="email"
                   value={formData.email}
                   onChange={handleChange}
                   className={`block w-full pl-10 pr-3 py-3 border-2 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200 hover:bg-white ${
-                    errors.Email ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
+                    errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'
                   }`}
-                  placeholder="Enter Email address"
+                  placeholder="Enter email address"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.Email}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
             </div>
 
@@ -272,7 +272,7 @@ const CreateUser = () => {
                 </h3>
                 <div className="mt-2 text-sm text-emerald-700">
                   <p>
-                    A secure Password (minimum 6 characters) will be generated and sent to the User's email address along with login instructions.
+                    A secure password (minimum 6 characters) will be generated and sent to the user's email address along with login instructions.
                   </p>
                 </div>
               </div>

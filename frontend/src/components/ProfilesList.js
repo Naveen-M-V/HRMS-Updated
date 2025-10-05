@@ -5,7 +5,7 @@ import { getCertificatesForAnyJobRole } from '../utils/jobRoleResolver';
 import JobRoleDropdown from './JobRoleDropdown';
 
 const ProfilesList = () => {
-  const { Profiles, loading, updateProfileJobRole } = useProfiles();
+  const { profiles, loading, updateProfileJobRole } = useProfiles();
   const [expandedProfile, setExpandedProfile] = useState(null);
   const [editingJobRoleId, setEditingJobRoleId] = useState(null);
 
@@ -56,12 +56,12 @@ const ProfilesList = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">All Profiles ({profiles.length})</h1>
         <div className="text-sm text-gray-600">
-          Click on any Profile to see Certificate requirements
+          Click on any profile to see certificate requirements
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Profiles.map((Profile) => {
+        {profiles.map((profile) => {
           const certCount = getCertificateCount(profile.jobTitle);
           const isExpanded = expandedProfile === profile._id;
           const isEditing = editingJobRoleId === profile._id;
@@ -70,31 +70,31 @@ const ProfilesList = () => {
             <div
               key={profile._id}
               className="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => toggleExpanded(Profile._id)}
+              onClick={() => toggleExpanded(profile._id)}
             >
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {Profile.firstName} {profile.lastName}
+                      {profile.firstName} {profile.lastName}
                     </h3>
-                    <p className="text-sm text-gray-600">{Profile.Email}</p>
-                    <p className="text-sm text-gray-500">ID: {Profile.skillkoId}</p>
+                    <p className="text-sm text-gray-600">{profile.email}</p>
+                    <p className="text-sm text-gray-500">ID: {profile.skillkoId}</p>
                   </div>
                   <div className="flex flex-col items-end">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      Profile.role === 'Manager'
+                      profile.role === 'Manager'
                         ? 'bg-purple-100 text-purple-800'
                         : 'bg-blue-100 text-blue-800'
                     }`}>
-                      {Profile.role}
+                      {profile.role}
                     </span>
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-1 ${
                       profile.isActive
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {Profile.isActive ? 'Active' : 'Inactive'}
+                      {profile.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                 </div>
@@ -105,18 +105,18 @@ const ProfilesList = () => {
                     <span className="font-medium text-gray-900">
                       {isEditing ? (
                         <JobRoleDropdown
-                          value={Profile.jobTitle}
+                          value={profile.jobTitle}
                           onChange={(event) => handleJobRoleChange(profile._id, event)}
                           className="w-56"
                         />
                       ) : (
                         <>
-                          {Profile.jobTitle}{' '}
+                          {profile.jobTitle}{' '}
                           <span
                             className="ml-2 text-xs underline text-blue-600 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingJobRoleId(Profile._id);
+                              setEditingJobRoleId(profile._id);
                             }}
                           >Change Role</span>
                         </>
@@ -125,15 +125,15 @@ const ProfilesList = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Company:</span>
-                    <span className="text-gray-900">{Profile.company}</span>
+                    <span className="text-gray-900">{profile.company}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Staff Type:</span>
-                    <span className="text-gray-900">{Profile.staffType}</span>
+                    <span className="text-gray-900">{profile.staffType}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Last Seen:</span>
-                    <span className="text-gray-900">{formatDate(Profile.lastSeen)}</span>
+                    <span className="text-gray-900">{formatDate(profile.lastSeen)}</span>
                   </div>
                 </div>
 
@@ -164,7 +164,7 @@ const ProfilesList = () => {
                   <div className="mt-4 pt-4 border-t">
                     <h4 className="font-medium text-gray-900 mb-3">Required Certificates:</h4>
                     {(() => {
-                      const certs = getCertificatesForAnyJobRole(Profile.jobTitle, getCertificatesForJobRole);
+                      const certs = getCertificatesForAnyJobRole(profile.jobTitle, getCertificatesForJobRole);
                       return (
                         <div className="space-y-3">
                           {certs.mandatory.length > 0 && (
@@ -205,9 +205,9 @@ const ProfilesList = () => {
         })}
       </div>
 
-      {Profiles.length === 0 && (
+      {profiles.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-gray-400 text-lg mb-2">No Profiles found</div>
+          <div className="text-gray-400 text-lg mb-2">No profiles found</div>
           <div className="text-gray-500 text-sm">
             Profiles will appear here when they are loaded from the backend or fallback data.
           </div>

@@ -52,12 +52,12 @@ function ProtectedRoute({ children }) {
     );
   }
   
-  return isAuthenticated ? children : <Navigate to="/Login" replace />;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
 // Admin Protected Route Component
 function AdminProtectedRoute({ children }) {
-  const { isAuthenticated, loading, User } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   
   if (loading) {
     return (
@@ -71,11 +71,11 @@ function AdminProtectedRoute({ children }) {
   }
   
   if (!isAuthenticated) {
-    return <Navigate to="/Login" replace />;
+    return <Navigate to="/login" replace />;
   }
   
-  if (User?.role !== 'Admin') {
-    return <Navigate to="/User-Dashboard" replace />;
+  if (user?.role !== 'admin') {
+    return <Navigate to="/user-dashboard" replace />;
   }
   
   return children;
@@ -97,11 +97,11 @@ function UserProtectedRoute({ children }) {
   }
   
   if (!isAuthenticated) {
-    return <Navigate to="/Login" replace />;
+    return <Navigate to="/login" replace />;
   }
   
-  if (User?.role === 'Admin') {
-    return <Navigate to="/Dashboard" replace />;
+  if (user?.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
   
   return children;
@@ -115,7 +115,7 @@ function App() {
       <Router>
         <Routes>
           {/* Authentication routes without layout */}
-          <Route path="/Login" element={
+          <Route path="/login" element={
             <ErrorBoundary>
               <Suspense fallback={
                 <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
@@ -137,7 +137,7 @@ function App() {
               </Suspense>
             </ErrorBoundary>
           } />
-          <Route path="/forgot-Password" element={
+          <Route path="/forgot-password" element={
             <ErrorBoundary>
               <Suspense fallback={
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
@@ -185,26 +185,26 @@ function App() {
                             <Routes>
                               <Route path="/" element={<Dashboard />} />
                               <Route path="/dashboard" element={<Dashboard />} />
-                              <Route path="/myaccount/Profiles" element={<MyAccount />} />
-                              <Route path="/myaccount/Notifications" element={<Notifications />} />
+                              <Route path="/myaccount/profiles" element={<MyAccount />} />
+                              <Route path="/myaccount/notifications" element={<Notifications />} />
                               <Route path="/clients" element={<Clients />} />
-                              <Route path="/Profiles" element={<ProfilesPage />} />
-                              <Route path="/Dashboard/profilescreate" element={<ProfilesCreate />} />
-                              <Route path="/create-User" element={<CreateUser />} />
-                              <Route path="/Profiles/:id" element={<ProfileDetailView />} />
-                              <Route path="/Profiles/edit/:id" element={<EditUserProfile />} />
-                              <Route path="/Profile" element={<Profile />} />
+                              <Route path="/profiles" element={<ProfilesPage />} />
+                              <Route path="/dashboard/profilescreate" element={<ProfilesCreate />} />
+                              <Route path="/create-user" element={<CreateUser />} />
+                              <Route path="/profiles/:id" element={<ProfileDetailView />} />
+                              <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
+                              <Route path="/profile" element={<Profile />} />
                               <Route path="/noaccess" element={<NoAccess />} />
                               <Route path="/editprofile" element={<EditProfile />} />
                               <Route path="/sharestaff" element={<Sharestaff/>} />
                               <Route path="/staffdetail" element={<StaffDetail/>} />
-                              <Route path="/Dashboard/createcertificate" element={<CreateCertificate />} />
-                              <Route path="/reporting/Certificates" element={<CertificatesPage />} />
-                              <Route path="/Certificates" element={<CertificateManagement />} />
+                              <Route path="/dashboard/createcertificate" element={<CreateCertificate />} />
+                              <Route path="/reporting/certificates" element={<CertificatesPage />} />
+                              <Route path="/certificates" element={<CertificateManagement />} />
                               <Route path="/editcertificate/:id" element={<EditCertificate />} />
                               <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
-                              <Route path="/reporting/Profiles" element={<ProfilesPage />} />
-                              <Route path="/Dashboard/Admin-details" element={<AdminDetailsModal />} />
+                              <Route path="/reporting/profiles" element={<ProfilesPage />} />
+                              <Route path="/dashboard/admin-details" element={<AdminDetailsModal />} />
                             </Routes>
                           </Suspense>
                         </div>

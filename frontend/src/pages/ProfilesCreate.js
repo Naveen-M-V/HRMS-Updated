@@ -9,7 +9,7 @@ import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 
 export default function ProfilesCreate() {
   const [formData, setFormData] = useState({
-    Email: "",
+    email: "",
     firstName: "",
     lastName: "",
     dob: "",
@@ -109,7 +109,7 @@ export default function ProfilesCreate() {
       const isSelected = currentJobRoles.includes(jobRole);
       
       if (isSelected) {
-        // Remove Job Role
+        // Remove job role
         const updatedRoles = currentJobRoles.filter(role => role !== jobRole);
         return {
           ...prev,
@@ -131,12 +131,12 @@ export default function ProfilesCreate() {
     e.preventDefault();
     
     // Validate required fields
-    if (!formData.firstName || !formData.lastName || !formData.Email) {
+    if (!formData.firstName || !formData.lastName || !formData.email) {
       alert('Please fill in all required fields: First Name, Last Name, and Email');
       return;
     }
 
-    // Transform form data to match Profile structure
+    // Transform form data to match profile structure
     const newProfile = {
       role: formData.jobLevel || "User",
       firstName: formData.firstName.trim(),
@@ -146,7 +146,7 @@ export default function ProfilesCreate() {
       jobTitle: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
       jobRole: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []), // Keep for backward compatibility
       jobLevel: formData.jobLevel,
-      Email: formData.email.trim().toLowerCase(),
+      email: formData.email.trim().toLowerCase(),
       mobile: formData.mobile || "",
       dob: formData.dob || null,
       dateOfBirth: formData.dob || null, // Add both formats for compatibility
@@ -165,7 +165,7 @@ export default function ProfilesCreate() {
     };
 
     try {
-      console.log('Creating Profile with data:', newProfile);
+      console.log('Creating profile with data:', newProfile);
       // Add profile to context
       const createdProfile = await addProfile(newProfile);
       console.log('Profile created successfully:', createdProfile);
@@ -174,19 +174,19 @@ export default function ProfilesCreate() {
       
       // Navigate to the newly created profile's detail page
       if (createdProfile && (createdProfile._id || createdProfile.id)) {
-        navigate(`/Profiles/${createdProfile._id || createdProfile.id}`);
+        navigate(`/profiles/${createdProfile._id || createdProfile.id}`);
       } else {
         // Fallback to profiles list
-        navigate("/reporting/Profiles");
+        navigate("/reporting/profiles");
       }
     } catch (error) {
-      console.error('Failed to Create Profile:', error);
+      console.error('Failed to create profile:', error);
       console.error('Error details:', error.response?.data || error.message);
       console.log('Profile data that failed:', newProfile);
       
       // Show more specific error message
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
-      alert(`Failed to Create Profile: ${errorMessage}`);
+      alert(`Failed to create profile: ${errorMessage}`);
     }
   };
 
@@ -208,8 +208,8 @@ export default function ProfilesCreate() {
           <div>
             <label className="block text-sm font-medium">Account Email <span className="text-red-500">*</span></label>
             <input
-              type="Email"
-              name="Email"
+              type="email"
+              name="email"
               placeholder="Account Email (required)"
               value={formData.email}
               onChange={handleChange}
@@ -253,7 +253,7 @@ export default function ProfilesCreate() {
                 name="dob"
                 value={formData.dob}
                 onChange={handleChange}
-                placeholder="Select Date of Birth"
+                placeholder="Select date of birth"
                 className="mt-1"
               />
             </div>
@@ -400,7 +400,7 @@ export default function ProfilesCreate() {
               name="startDate"
               value={formData.startDate}
               onChange={handleChange}
-              placeholder="Select Start Date"
+              placeholder="Select start date"
               className="mt-1"
             />
           </div>
@@ -545,7 +545,7 @@ export default function ProfilesCreate() {
               type="submit"
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
             >
-              Save Changes
+              Save changes
             </button>
           </div>
         </form>

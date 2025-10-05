@@ -12,14 +12,14 @@ export default function VerifyOTP() {
   const location = useLocation();
   const inputRefs = useRef([]);
   
-  const Email = location.state?.email;
+  const email = location.state?.email;
 
   // Redirect if no email provided
   useEffect(() => {
     if (!email) {
-      navigate('/forgot-Password');
+      navigate('/forgot-password');
     }
-  }, [Email, navigate]);
+  }, [email, navigate]);
 
   // Timer for resend OTP
   useEffect(() => {
@@ -86,14 +86,14 @@ export default function VerifyOTP() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ Email, otp: otpString }),
+        body: JSON.stringify({ email, otp: otpString }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Navigate to reset Password page
-        navigate('/reset-password', { state: { Email, token: data.resetToken } });
+        // Navigate to reset password page
+        navigate('/reset-password', { state: { email, token: data.resetToken } });
       } else {
         setError(data.message || "Invalid OTP. Please try again.");
       }
@@ -113,12 +113,12 @@ export default function VerifyOTP() {
     setError("");
 
     try {
-      const response = await fetch('http://talentshield.co.uk/api/auth/forgot-Password', {
+      const response = await fetch('http://talentshield.co.uk/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ Email }),
+        body: JSON.stringify({ email }),
       });
 
       if (!response.ok) {
@@ -151,7 +151,7 @@ export default function VerifyOTP() {
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Verify OTP</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Enter the 6-digit code sent to <span className="font-medium">{Email}</span>
+            Enter the 6-digit code sent to <span className="font-medium">{email}</span>
           </p>
         </div>
 
@@ -160,7 +160,7 @@ export default function VerifyOTP() {
             {/* Back Link */}
             <div className="mb-6">
               <Link
-                to="/forgot-Password"
+                to="/forgot-password"
                 className="inline-flex items-center text-sm text-emerald-600 hover:text-emerald-500 transition duration-150 ease-in-out"
               >
                 <ArrowLeftIcon className="h-4 w-4 mr-2" />

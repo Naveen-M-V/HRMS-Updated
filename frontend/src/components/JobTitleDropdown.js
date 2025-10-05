@@ -4,7 +4,7 @@ const JobTitleDropdown = ({
   value, 
   onChange, 
   name = "jobTitle",
-  placeholder = "Select or add Job Title",
+  placeholder = "Select or add job title",
   className = "",
   required = false 
 }) => {
@@ -79,7 +79,7 @@ const JobTitleDropdown = ({
           return [newJobTitleData, ...prev];
         });
 
-        // Select the new Job Title
+        // Select the new job title
         onChange({ target: { name, value: newJobTitleData.name } });
         setSearchTerm(newJobTitleData.name);
         setNewJobTitle('');
@@ -87,7 +87,7 @@ const JobTitleDropdown = ({
         setIsDropdownOpen(false);
       }
     } catch (error) {
-      console.error('Error adding Job Title:', error);
+      console.error('Error adding job title:', error);
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +183,7 @@ const JobTitleDropdown = ({
                   className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 focus:outline-none"
                   onMouseDown={() => setShowAddForm(true)}
                 >
-                  + Add "{searchTerm}" as new Job Title
+                  + Add "{searchTerm}" as new job title
                 </button>
               ) : (
                 <div className="p-3 border-t">
@@ -192,7 +192,7 @@ const JobTitleDropdown = ({
                       type="text"
                       value={newJobTitle}
                       onChange={(e) => setNewJobTitle(e.target.value)}
-                      placeholder="Enter Job Title name"
+                      placeholder="Enter job title name"
                       className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       autoFocus
                     />

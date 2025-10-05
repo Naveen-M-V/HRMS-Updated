@@ -11,7 +11,7 @@ import { EnvelopeIcon as MailIcon } from '@heroicons/react/24/outline';
 export default function Login() {
   const [formData, setFormData] = useState({
     emailOrUsername: "",
-    Password: "",
+    password: "",
     rememberMe: false
   });
   const [errors, setErrors] = useState({});
@@ -23,9 +23,9 @@ export default function Login() {
   const [verificationMessage, setVerificationMessage] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const { Login, loading, error } = useAuth();
+  const { login, loading, error } = useAuth();
   
-  // Load saved Email if "remember me" was checked and fix loading issue
+  // Load saved email if "remember me" was checked and fix loading issue
   useEffect(() => {
     let isMounted = true;
     
@@ -46,12 +46,12 @@ export default function Login() {
         const error = urlParams.get('error');
         
         if (verified === 'true') {
-          setVerificationMessage("Email verified successfully! You can now Login to access your Admin Dashboard.");
+          setVerificationMessage("Email verified successfully! You can now login to access your admin dashboard.");
         } else if (error === 'verification_failed') {
           setErrors({ general: "Email verification failed. Please try again or contact support." });
         }
       } catch (error) {
-        console.error('Error loading saved Email:', error);
+        console.error('Error loading saved email:', error);
       }
       
       // Fix loading issue by setting loading to false after component mounts
@@ -77,7 +77,7 @@ export default function Login() {
       ...prev,
       [name]: value
     }));
-    // Clear error when User starts typing
+    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -90,14 +90,14 @@ export default function Login() {
     const newErrors = {};
     
     if (!formData.emailOrUsername) {
-      newErrors.emailOrUsername = "Username or Email is required";
+      newErrors.emailOrUsername = "Username or email is required";
     } else if (formData.emailOrUsername.includes('@') && !/\S+@\S+\.\S+/.test(formData.emailOrUsername)) {
       newErrors.emailOrUsername = "Email is invalid";
     }
     
-    if (!formData.Password) {
+    if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.Password.length < 6) {
+    } else if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
     
@@ -116,7 +116,7 @@ export default function Login() {
     setErrors({});
     
     try {
-      const result = await Login(formData.emailOrUsername, formData.Password, formData.rememberMe);
+      const result = await login(formData.emailOrUsername, formData.password, formData.rememberMe);
       
       if (result.success) {
         // Handle remember me
@@ -126,15 +126,15 @@ export default function Login() {
           localStorage.removeItem('rememberedEmail');
         }
         
-        // Role-based routing using returned User role
+        // Role-based routing using returned user role
         const userRole = result.user?.role || 'user';
-        const redirectPath = userRole === 'Admin'
-          ? (location.state?.from?.pathname || "/Dashboard")
-          : "/User-Dashboard";
+        const redirectPath = userRole === 'admin'
+          ? (location.state?.from?.pathname || "/dashboard")
+          : "/user-dashboard";
         
         navigate(redirectPath, { replace: true });
       } else {
-        setErrors({ general: result.error || "Invalid Email or Password" });
+        setErrors({ general: result.error || "Invalid email or password" });
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -182,7 +182,7 @@ export default function Login() {
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-            <p className="text-gray-600">Sign in to access your HRMS Dashboard</p>
+            <p className="text-gray-600">Sign in to access your HRMS dashboard</p>
           </div>
 
           <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-fade-in-up animation-delay-200">
@@ -246,7 +246,7 @@ export default function Login() {
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
                         : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
                     } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
-                    placeholder="Enter your username or Email"
+                    placeholder="Enter your username or email"
                     aria-invalid={!!errors.emailOrUsername}
                     aria-describedby={errors.emailOrUsername ? 'emailOrUsername-error' : ''}
                   />
@@ -262,7 +262,7 @@ export default function Login() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="Password" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Password
                 </label>
                 <div className="relative">
@@ -270,21 +270,21 @@ export default function Login() {
                     <LockClosedIcon className="h-5 w-5 text-emerald-400" aria-hidden="true" />
                   </div>
                   <input
-                    id="Password"
-                    name="Password"
-                    type={showPassword ? "text" : "Password"}
-                    autoComplete="current-Password"
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     value={formData.password}
                     onChange={handleChange}
                     disabled={isSubmitting}
                     className={`block w-full pl-12 pr-12 py-3 border-2 ${
-                      errors.Password 
+                      errors.password 
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
                         : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
                     } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
-                    placeholder="Enter your Password"
+                    placeholder="Enter your password"
                     aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? 'Password-error' : ''}
+                    aria-describedby={errors.password ? 'password-error' : ''}
                   />
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
                     <button
@@ -300,12 +300,12 @@ export default function Login() {
                       )}
                     </button>
                   </div>
-                  {errors.Password && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center" id="Password-error">
+                  {errors.password && (
+                    <p className="mt-2 text-sm text-red-600 flex items-center" id="password-error">
                       <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      {errors.Password}
+                      {errors.password}
                     </p>
                   )}
                 </div>
@@ -334,10 +334,10 @@ export default function Login() {
 
                 <div className="text-sm">
                   <Link
-                    to="/forgot-Password"
+                    to="/forgot-password"
                     className="font-semibold text-emerald-600 hover:text-emerald-700 transition-colors duration-200 hover:underline"
                   >
-                    Forgot Password?
+                    Forgot password?
                   </Link>
                 </div>
               </div>

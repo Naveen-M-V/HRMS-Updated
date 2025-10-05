@@ -4,7 +4,7 @@ import { EnvelopeIcon as MailIcon } from '@heroicons/react/24/outline';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const ForgotPassword = () => {
-  const [Email, setEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,7 +19,7 @@ const ForgotPassword = () => {
     setMessage('');
     setIsSubmitting(true);
 
-    if (!Email || !oldPassword || !newPassword || !confirmPassword) {
+    if (!email || !oldPassword || !newPassword || !confirmPassword) {
       setError('Please fill in all fields');
       setIsSubmitting(false);
       return;
@@ -54,13 +54,13 @@ const ForgotPassword = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5004/api/auth/reset-Password', {
+      const response = await fetch('http://localhost:5004/api/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          Email, 
+          email, 
           oldPassword, 
           newPassword 
         }),
@@ -69,15 +69,15 @@ const ForgotPassword = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Password reset successful! Redirecting to Login...");
+        setMessage("Password reset successful! Redirecting to login...");
         setTimeout(() => {
-          navigate('/Login');
+          navigate('/login');
         }, 2000);
       } else {
-        setError(data.message || "Failed to reset Password. Please try again.");
+        setError(data.message || "Failed to reset password. Please try again.");
       }
     } catch (error) {
-      console.error("Reset Password error:", error);
+      console.error("Reset password error:", error);
       setError("An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -104,7 +104,7 @@ const ForgotPassword = () => {
             </svg>
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Reset Password</h2>
-          <p className="mt-1 text-sm text-gray-500">Enter your details to reset your Password</p>
+          <p className="mt-1 text-sm text-gray-500">Enter your details to reset your password</p>
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -112,7 +112,7 @@ const ForgotPassword = () => {
             {/* Back to Login Link */}
             <div className="mb-6">
               <Link
-                to="/Login"
+                to="/login"
                 className="inline-flex items-center text-sm text-emerald-600 hover:text-emerald-500 transition duration-150 ease-in-out"
               >
                 <ArrowLeftIcon className="h-4 w-4 mr-2" />
@@ -152,7 +152,7 @@ const ForgotPassword = () => {
               )}
               
               <div>
-                <label htmlFor="Email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -160,15 +160,15 @@ const ForgotPassword = () => {
                     <MailIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                   </div>
                   <input
-                    id="Email"
-                    name="Email"
-                    type="Email"
-                    autoComplete="Email"
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isSubmitting}
                     className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm"
-                    placeholder="Enter your registered Email"
+                    placeholder="Enter your registered email"
                   />
                 </div>
               </div>
@@ -181,13 +181,13 @@ const ForgotPassword = () => {
                   <input
                     id="oldPassword"
                     name="oldPassword"
-                    type="Password"
-                    autoComplete="current-Password"
+                    type="password"
+                    autoComplete="current-password"
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
                     disabled={isSubmitting}
                     className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm"
-                    placeholder="Enter your current Password"
+                    placeholder="Enter your current password"
                   />
                 </div>
               </div>
@@ -200,13 +200,13 @@ const ForgotPassword = () => {
                   <input
                     id="newPassword"
                     name="newPassword"
-                    type="Password"
-                    autoComplete="new-Password"
+                    type="password"
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={isSubmitting}
                     className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm"
-                    placeholder="Enter your new Password"
+                    placeholder="Enter your new password"
                   />
                 </div>
               </div>
@@ -219,13 +219,13 @@ const ForgotPassword = () => {
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="Password"
-                    autoComplete="new-Password"
+                    type="password"
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isSubmitting}
                     className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm"
-                    placeholder="Confirm your new Password"
+                    placeholder="Confirm your new password"
                   />
                 </div>
               </div>
@@ -257,8 +257,8 @@ const ForgotPassword = () => {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-500">
-                Remember your Password?{' '}
-                <Link to="/Login" className="font-medium text-emerald-600 hover:text-emerald-500">
+                Remember your password?{' '}
+                <Link to="/login" className="font-medium text-emerald-600 hover:text-emerald-500">
                   Sign in here
                 </Link>
               </p>

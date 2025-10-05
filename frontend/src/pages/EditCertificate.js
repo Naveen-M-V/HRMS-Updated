@@ -10,11 +10,11 @@ import ModernDatePicker from "../components/ModernDatePicker";
 export default function EditCertificate() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { Certificates, updateCertificate } = useCertificates();
-  const { Profiles } = useProfiles();
+  const { certificates, updateCertificate } = useCertificates();
+  const { profiles } = useProfiles();
   
   const [formData, setFormData] = useState({
-    Certificate: "",
+    certificate: "",
     description: "",
     issueDate: "",
     expiryDate: "",
@@ -42,9 +42,9 @@ export default function EditCertificate() {
   }, []);
 
   useEffect(() => {
-    const cert = Certificates.find(c => (c.id || c._id) === id || (c.id || c._id) === parseInt(id));
+    const cert = certificates.find(c => (c.id || c._id) === id || (c.id || c._id) === parseInt(id));
     if (cert) {
-      console.log('Loading Certificate data:', cert);
+      console.log('Loading certificate data:', cert);
       // Format dates to YYYY-MM-DD for date inputs
       const formatDate = (dateString) => {
         if (!dateString) return "";
@@ -88,8 +88,8 @@ export default function EditCertificate() {
       };
 
       setFormData({
-        Certificate: cert.certificate || "",
-        description: cert.description || cert.Certificate || "",
+        certificate: cert.certificate || "",
+        description: cert.description || cert.certificate || "",
         issueDate: formatDate(cert.issueDate),
         expiryDate: formatDate(cert.expiryDate),
         profileName: cert.profileName || "",
@@ -106,7 +106,7 @@ export default function EditCertificate() {
         archived: cert.archived || "Unarchived"
       });
     }
-  }, [id, Certificates]);
+  }, [id, certificates]);
 
   const getApiUrl = () => {
     // In development, use localhost URL
@@ -200,7 +200,7 @@ export default function EditCertificate() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Update Certificate with new data - mapping to certificate page fields
+    // Update certificate with new data - mapping to certificate page fields
     const formatDateForSubmit = (dateString) => {
       if (!dateString) return null;
       try {
@@ -221,14 +221,14 @@ export default function EditCertificate() {
     };
 
     const updatedCert = {
-      Certificate: formData.certificate,
+      certificate: formData.certificate,
       description: formData.description,
       issueDate: formatDateForSubmit(formData.issueDate),
       expiryDate: formatDateForSubmit(formData.expiryDate),
       profileName: formData.profileName || "N/A", // This should come from form
       provider: formData.supplier,
       fileRequired: formData.fileRequired,
-      Active: "Yes", // Default Active status
+      active: "Yes", // Default active status
       status: formData.approvalStatus,
       cost: formData.totalCost,
       // Additional fields for backend
@@ -243,16 +243,16 @@ export default function EditCertificate() {
     try {
       await updateCertificate(id, updatedCert);
       alert('Changes saved successfully!');
-      navigate(`/Dashboard/Certificates/${id}`);
+      navigate(`/dashboard/certificates/${id}`);
     } catch (error) {
-      console.error('Failed to update Certificate:', error);
-      alert('Failed to Save Changes. Please try again.');
-      navigate(`/Dashboard/Certificates/${id}`);
+      console.error('Failed to update certificate:', error);
+      alert('Failed to save changes. Please try again.');
+      navigate(`/dashboard/certificates/${id}`);
     }
   };
 
   const handleCancel = () => {
-    navigate(`/Dashboard/Certificates/${id}`);
+    navigate(`/dashboard/certificates/${id}`);
   };
 
   return (
@@ -281,7 +281,7 @@ export default function EditCertificate() {
           <div className="col-span-10">
             <input
               type="text"
-              name="Certificate"
+              name="certificate"
               value={formData.certificate}
               onChange={handleChange}
               className="w-full border rounded px-3 py-2"
@@ -311,7 +311,7 @@ export default function EditCertificate() {
               name="issueDate"
               value={formData.issueDate}
               onChange={handleChange}
-              placeholder="Select Issue Date"
+              placeholder="Select issue date"
               className="w-full"
             />
           </div>
@@ -325,7 +325,7 @@ export default function EditCertificate() {
               name="expiryDate"
               value={formData.expiryDate}
               onChange={handleChange}
-              placeholder="Select Expiry Date"
+              placeholder="Select expiry date"
               className="w-full"
             />
           </div>
@@ -340,7 +340,7 @@ export default function EditCertificate() {
               name="profileName"
               value={formData.profileName}
               onChange={handleChange}
-              placeholder="Enter Profile name"
+              placeholder="Enter profile name"
               className="w-full border rounded px-3 py-2"
             />
           </div>
@@ -426,7 +426,7 @@ export default function EditCertificate() {
               name="totalCost"
               value={formData.totalCost}
               onChange={handleChange}
-              placeholder="Enter total cost of the Certificate"
+              placeholder="Enter total cost of the certificate"
               className="w-full border rounded px-3 py-2"
             />
           </div>

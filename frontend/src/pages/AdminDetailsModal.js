@@ -11,7 +11,7 @@ export default function AdminDetailsModal() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    Email: '',
+    email: '',
     mobile: '',
     bio: '',
     jobTitle: '',
@@ -37,7 +37,7 @@ export default function AdminDetailsModal() {
         }
         const apiUrl = process.env.REACT_APP_API_URL || '';
         const base = apiUrl ? apiUrl : '';
-        const resp = await fetch(`${base}/api/my-Profile`, {
+        const resp = await fetch(`${base}/api/my-profile`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -54,7 +54,7 @@ export default function AdminDetailsModal() {
         setFormData({
           firstName: data.firstName || '',
           lastName: data.lastName || '',
-          Email: data.email || '',
+          email: data.email || '',
           mobile: data.mobile || '',
           bio: data.bio || '',
           jobTitle: Array.isArray(data.jobTitle) ? data.jobTitle.join(', ') : (data.jobTitle || ''),
@@ -106,7 +106,7 @@ export default function AdminDetailsModal() {
       setSaving(true);
       const apiUrl = process.env.REACT_APP_API_URL || '';
       const base = apiUrl ? apiUrl : '';
-      const resp = await fetch(`${base}/api/Admin/update-Profile`, {
+      const resp = await fetch(`${base}/api/admin/update-profile`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -120,7 +120,7 @@ export default function AdminDetailsModal() {
       const data = ct.includes('application/json') ? await resp.json() : {};
       if (!resp.ok) throw new Error(data.message || 'Failed to save');
       alert('Admin details saved successfully!');
-      navigate('/Dashboard');
+      navigate('/dashboard');
     } catch (e) {
       setError(e.message);
     } finally {
@@ -163,7 +163,7 @@ export default function AdminDetailsModal() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" name="Email" value={formData.email} onChange={onChange} required className="w-full border rounded px-3 py-2" />
+                  <input type="email" name="email" value={formData.email} onChange={onChange} required className="w-full border rounded px-3 py-2" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
@@ -175,7 +175,7 @@ export default function AdminDetailsModal() {
                     name="dateOfBirth"
                   value={formData.dateOfBirth}
                   onChange={onChange}
-                  placeholder="Select Date of Birth"
+                  placeholder="Select date of birth"
                   className="w-full"
                 />
               </div>

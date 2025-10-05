@@ -9,7 +9,7 @@ export default function StaffDetail() {
     1001: {
       firstname: "David",
       lastname: "Williams",
-      Email: "david.williams@vitrux.co.uk",
+      email: "david.williams@vitrux.co.uk",
       company: "VitruX Ltd",
       jobTitle: "Director",
       role: "Administrator",
@@ -18,7 +18,7 @@ export default function StaffDetail() {
     1002: {
       firstname: "John",
       lastname: "Maxwell",
-      Email: "john.maxwell@vitrux.co.uk",
+      email: "john.maxwell@vitrux.co.uk",
       company: "VitruX Ltd",
       jobTitle: "Head of Delivery",
       role: "Manager",
@@ -34,7 +34,7 @@ export default function StaffDetail() {
 
   return (
     <div className="p-6">
-      <Link to="/Dashboard/sharestaff" className="text-blue-600 underline mb-4 block">
+      <Link to="/dashboard/sharestaff" className="text-blue-600 underline mb-4 block">
         ← Back to Staff List
       </Link>
 

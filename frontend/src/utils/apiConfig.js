@@ -25,8 +25,8 @@ export const getApiBaseUrl = () => {
 
 /**
  * Build full API URL with path
- * @param {string} path - API path (e.g., '/Certificates' or 'Certificates')
- * @returns {string} Full API URL (e.g., 'https://talentshield.co.uk/api/Certificates')
+ * @param {string} path - API path (e.g., '/certificates' or 'certificates')
+ * @returns {string} Full API URL (e.g., 'https://talentshield.co.uk/api/certificates')
  */
 export const buildApiUrl = (path) => {
   const baseUrl = getApiBaseUrl();
@@ -50,7 +50,7 @@ export const buildDirectUrl = (path) => {
 };
 
 /**
- * Get image URL for Profile pictures
+ * Get image URL for profile pictures
  * @param {string} imagePath - Image path from profile.profilePicture
  * @returns {string} Full image URL
  */

@@ -18,7 +18,7 @@ export default function AdminCompletionBar() {
         if (!token) return;
         const apiUrl = process.env.REACT_APP_API_URL || '';
         const base = apiUrl ? apiUrl : '';
-        const resp = await fetch(`${base}/api/my-Profile`, {
+        const resp = await fetch(`${base}/api/my-profile`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -30,7 +30,7 @@ export default function AdminCompletionBar() {
           throw new Error('Unexpected response');
         }
         const data = await resp.json();
-        if (!resp.ok) throw new Error(data.message || 'Failed to load Profile');
+        if (!resp.ok) throw new Error(data.message || 'Failed to load profile');
         if (!mounted) return;
         const { percent, missing } = getProfileCompleteness(data);
         setPercent(percent);
@@ -46,7 +46,7 @@ export default function AdminCompletionBar() {
   }, []);
 
   const goToDetails = () => {
-    navigate('/Dashboard/Admin-details');
+    navigate('/dashboard/admin-details');
   };
 
   if (loading) {
@@ -55,7 +55,7 @@ export default function AdminCompletionBar() {
         <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
           <div className="h-3 bg-emerald-500 animate-pulse" style={{ width: '50%' }}></div>
         </div>
-        <p className="text-sm text-gray-500 mt-2">Loading Admin details completeness...</p>
+        <p className="text-sm text-gray-500 mt-2">Loading admin details completeness...</p>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function AdminCompletionBar() {
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow p-4">
-        <p className="text-sm text-red-600">Failed to load Admin details: {error}</p>
+        <p className="text-sm text-red-600">Failed to load admin details: {error}</p>
       </div>
     );
   }

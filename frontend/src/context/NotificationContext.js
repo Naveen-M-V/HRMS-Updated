@@ -14,13 +14,13 @@ export const useNotifications = () => {
 };
 
 export const NotificationProvider = ({ children }) => {
-  const [Notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { Certificates } = useCertificates();
+  const { certificates } = useCertificates();
   const { userProfile } = useProfiles();
 
-  // Generate notifications based on Certificate expiry
+  // Generate notifications based on certificate expiry
   useEffect(() => {
     if (certificates && userProfile) {
       generateNotifications();
@@ -30,7 +30,7 @@ export const NotificationProvider = ({ children }) => {
   const generateNotifications = () => {
     try {
       // Generate certificate expiry notifications
-      const expiryNotifications = getCertificateExpiryNotifications(certificates, userProfile.Email);
+      const expiryNotifications = getCertificateExpiryNotifications(certificates, userProfile.email);
       
       // Add system notifications
       const systemNotifications = [
@@ -38,7 +38,7 @@ export const NotificationProvider = ({ children }) => {
           id: "system-welcome",
           type: "system",
           priority: "low",
-          message: "Welcome to HRMS! Keep track of your Certificates and Profiles.",
+          message: "Welcome to HRMS! Keep track of your certificates and profiles.",
           title: "Welcome to HRMS",
           status: "Open",
           date: new Date().toLocaleDateString(),
@@ -47,7 +47,7 @@ export const NotificationProvider = ({ children }) => {
         }
       ];
 
-      // Combine and format all Notifications
+      // Combine and format all notifications
       const allNotifications = [...expiryNotifications, ...systemNotifications].map(notif => ({
         ...notif,
         title: notif.title || notif.message,
@@ -57,8 +57,8 @@ export const NotificationProvider = ({ children }) => {
 
       setNotifications(allNotifications);
     } catch (err) {
-      console.error('Error generating Notifications:', err);
-      setError('Failed to generate Notifications');
+      console.error('Error generating notifications:', err);
+      setError('Failed to generate notifications');
     }
   };
 

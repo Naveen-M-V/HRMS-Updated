@@ -12,11 +12,11 @@ export const calculateDaysUntilExpiry = (expiryDate) => {
 
 export const getCertificateExpiryNotifications = (certificates, userEmail) => {
   if (!Array.isArray(certificates)) {
-    console.error("Expected an array of Certificates, but got:", certificates);
+    console.error("Expected an array of certificates, but got:", certificates);
     return [];
   }
 
-  const Notifications = [];
+  const notifications = [];
   const today = new Date();
 
   certificates.forEach(cert => {
@@ -43,25 +43,25 @@ export const getCertificateExpiryNotifications = (certificates, userEmail) => {
         message = `Certificate "${cert.certificate}" expires in ${daysUntilExpiry} days`;
       }
 
-      Notifications.push({
+      notifications.push({
         id: `cert-expiry-${cert.id || cert._id}`,
         type: 'certificate_expiry',
         priority,
         message,
-        Certificate: cert,
+        certificate: cert,
         daysUntilExpiry,
         userEmail,
         createdAt: today.toISOString(),
         read: false
       });
     } else if (daysUntilExpiry <= 0) {
-      // Certificate has already Expired
-      Notifications.push({
+      // Certificate has already expired
+      notifications.push({
         id: `cert-expired-${cert.id || cert._id}`,
         type: 'certificate_expired',
         priority: 'critical',
-        message: `Certificate "${cert.certificate}" has Expired!`,
-        Certificate: cert,
+        message: `Certificate "${cert.certificate}" has expired!`,
+        certificate: cert,
         daysUntilExpiry,
         userEmail,
         createdAt: today.toISOString(),
@@ -70,31 +70,31 @@ export const getCertificateExpiryNotifications = (certificates, userEmail) => {
     }
   });
 
-  return Notifications.sort((a, b) => {
+  return notifications.sort((a, b) => {
     // Sort by priority: critical > high > medium > low
     const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
     return priorityOrder[b.priority] - priorityOrder[a.priority];
   });
 };
 
-export const generateEmailNotification = (Notification) => {
+export const generateEmailNotification = (notification) => {
   const { certificate, daysUntilExpiry, userEmail } = notification;
   
   let subject = '';
   let body = '';
   
   if (daysUntilExpiry <= 0) {
-    subject = `URGENT: Certificate "${certificate.certificate}" has Expired`;
+    subject = `URGENT: Certificate "${certificate.certificate}" has expired`;
     body = `
 Dear User,
 
-Your Certificate "${certificate.certificate}" has Expired as of ${Certificate.expiryDate}.
+Your certificate "${certificate.certificate}" has expired as of ${certificate.expiryDate}.
 
 Certificate Details:
 - Certificate Name: ${certificate.certificate}
 - Provider: ${certificate.provider || 'N/A'}
-- Expiry Date: ${Certificate.expiryDate}
-- Status: Expired
+- Expiry Date: ${certificate.expiryDate}
+- Status: EXPIRED
 
 Please renew this certificate immediately to maintain compliance.
 
@@ -106,12 +106,12 @@ HRMS Team
     body = `
 Dear User,
 
-Your Certificate "${certificate.certificate}" will expire in ${daysUntilExpiry} days.
+Your certificate "${certificate.certificate}" will expire in ${daysUntilExpiry} days.
 
 Certificate Details:
 - Certificate Name: ${certificate.certificate}
 - Provider: ${certificate.provider || 'N/A'}
-- Expiry Date: ${Certificate.expiryDate}
+- Expiry Date: ${certificate.expiryDate}
 - Days Remaining: ${daysUntilExpiry}
 
 Please take immediate action to renew this certificate.
@@ -124,12 +124,12 @@ HRMS Team
     body = `
 Dear User,
 
-This is a reminder that your Certificate "${certificate.certificate}" will expire in ${daysUntilExpiry} days.
+This is a reminder that your certificate "${certificate.certificate}" will expire in ${daysUntilExpiry} days.
 
 Certificate Details:
 - Certificate Name: ${certificate.certificate}
 - Provider: ${certificate.provider || 'N/A'}
-- Expiry Date: ${Certificate.expiryDate}
+- Expiry Date: ${certificate.expiryDate}
 - Days Remaining: ${daysUntilExpiry}
 
 Please plan to renew this certificate before it expires.

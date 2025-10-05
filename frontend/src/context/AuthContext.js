@@ -34,11 +34,11 @@ axios.defaults.withCredentials = true;
 export const AuthProvider = ({ children }) => {
   // Session storage utilities - only for authentication state
   const sessionStorage = {
-    // Store User session data
+    // Store user session data
     setUserSession: (userData, token = null) => {
       try {
         localStorage.setItem('user_session', JSON.stringify({
-          User: userData,
+          user: userData,
           timestamp: Date.now(),
           expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
         }));
@@ -50,13 +50,13 @@ export const AuthProvider = ({ children }) => {
       }
     },
 
-    // Get User session data
+    // Get user session data
     getUserSession: () => {
       try {
         const sessionData = localStorage.getItem('user_session');
         if (sessionData) {
           const parsed = JSON.parse(sessionData);
-          // Check if session is Expired
+          // Check if session is expired
           if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
             sessionStorage.clearSession();
             return null;
@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }) => {
   // Initialize state from session storage
   const getInitialState = () => {
     const sessionData = sessionStorage.getUserSession();
-    if (sessionData && sessionData.User) {
+    if (sessionData && sessionData.user) {
       return {
         user: sessionData.user,
         isAuthenticated: true
@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }) => {
   const checkExistingSession = useCallback(async () => {
     try {
       const sessionData = sessionStorage.getUserSession();
-      if (sessionData && sessionData.User) {
+      if (sessionData && sessionData.user) {
         try {
           await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
             withCredentials: true,
@@ -155,7 +155,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let isMounted = true;
     
-    // Only run background validation if User is not already set
+    // Only run background validation if user is not already set
     if (!user && isMounted) {
       checkExistingSession();
     }
@@ -168,7 +168,7 @@ export const AuthProvider = ({ children }) => {
         if (e.newValue) {
           try {
             const sessionData = JSON.parse(e.newValue);
-            if (sessionData.User && isMounted) {
+            if (sessionData.user && isMounted) {
               setUser(sessionData.user);
               setIsAuthenticated(true);
             }
@@ -190,24 +190,24 @@ export const AuthProvider = ({ children }) => {
       isMounted = false;
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [User, checkExistingSession]);
+  }, [user, checkExistingSession]);
 
 
-  const Login = async (emailOrUsername, Password, rememberMe = false) => {
+  const login = async (emailOrUsername, password, rememberMe = false) => {
     setLoading(true);
     setError(null);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         identifier: emailOrUsername,
-        Password,
+        password,
         rememberMe
       }, {
         timeout: 10000,
         withCredentials: true
       });
 
-      const { token, User: userData } = response.data;
+      const { token, user: userData } = response.data;
 
       if (!userData) {
         throw new Error('Invalid response from server');
@@ -220,7 +220,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       setIsAuthenticated(true);
 
-      return { success: true, User: userData };
+      return { success: true, user: userData };
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
@@ -250,7 +250,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const Logout = async () => {
+  const logout = async () => {
     setLoading(true);
     try {
       // Call backend logout endpoint to destroy session
@@ -268,7 +268,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const handleInvalidSession = () => {
-    console.log("Invalid session. Clearing User data.");
+    console.log("Invalid session. Clearing user data.");
     sessionStorage.clearSession();
     setUser(null);
     setIsAuthenticated(false);

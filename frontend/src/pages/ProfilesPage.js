@@ -9,17 +9,17 @@ const getApiUrl = () => {
   return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://talentshield.co.uk:5003";
 };
 
-// Safely get VTID for a Profile row
+// Safely get VTID for a profile row
 function generateVTID(profile) {
   if (!profile) return "N/A";
   // If backend has assigned a VTID, use it
-  if (Profile.vtid) return profile.vtid;
+  if (profile.vtid) return profile.vtid;
   // Otherwise, show placeholder
   return "N/A";
 }
 
 export default function ProfilesPage() {
-  const { Profiles, deleteProfile, fetchProfiles } = useProfiles();
+  const { profiles, deleteProfile, fetchProfiles } = useProfiles();
   const [search, setSearch] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedRole, setSelectedRole] = useState("");
@@ -31,8 +31,8 @@ export default function ProfilesPage() {
 
   // Get unique values for filter dropdowns
   const filterOptions = useMemo(() => {
-    if (!Array.isArray(Profiles)) {
-      console.error("Profiles data is not an array:", Profiles);
+    if (!Array.isArray(profiles)) {
+      console.error("Profiles data is not an array:", profiles);
       return { roles: [], staffTypes: [], companies: [], managers: [] };
     }
 
@@ -66,14 +66,14 @@ export default function ProfilesPage() {
     setSelectedManager("");
   }, []);
 
-  // Handle Profile deletion
+  // Handle profile deletion
   const handleDeleteProfile = useCallback(async (profileId, profileName) => {
     console.log('handleDeleteProfile called with:', { profileId, profileName });
     
     // Validate inputs
     if (!profileId || !profileName) {
-      console.error('Invalid Profile data:', { profileId, profileName });
-      alert('Invalid Profile data. Please refresh the page and try again.');
+      console.error('Invalid profile data:', { profileId, profileName });
+      alert('Invalid profile data. Please refresh the page and try again.');
       return;
     }
 
@@ -84,10 +84,10 @@ export default function ProfilesPage() {
       return;
     }
 
-    // Simple confirmation without fetching Certificate count first
-    const confirmMessage = `Are you sure you want to delete the Profile for ${profileName}?
+    // Simple confirmation without fetching certificate count first
+    const confirmMessage = `Are you sure you want to delete the profile for ${profileName}?
 
-This will also delete any associated Certificates and User account. This action cannot be undone.`;
+This will also delete any associated certificates and user account. This action cannot be undone.`;
 
     if (window.confirm(confirmMessage)) {
       console.log('User confirmed deletion');
@@ -104,10 +104,10 @@ This will also delete any associated Certificates and User account. This action 
         if (response && response.details) {
           const details = [];
           if (response.details.certificatesDeleted > 0) {
-            details.push(`${response.details.certificatesDeleted} Certificate(s)`);
+            details.push(`${response.details.certificatesDeleted} certificate(s)`);
           }
           if (response.details.userAccountDeleted) {
-            details.push('User account');
+            details.push('user account');
           }
           
           if (details.length > 0) {
@@ -118,21 +118,21 @@ This will also delete any associated Certificates and User account. This action 
         alert(successMessage);
         console.log(`Profile ${profileName} deleted successfully`, response);
         
-        // Refresh the Profiles list to ensure UI is updated
+        // Refresh the profiles list to ensure UI is updated
         console.log('Refreshing profiles list...');
         await fetchProfiles();
         console.log('Profiles refreshed');
         
       } catch (error) {
-        console.error('Error deleting Profile:', error);
-        alert(`Failed to Delete Profile: ${error.message || 'Please try again.'}`);
+        console.error('Error deleting profile:', error);
+        alert(`Failed to delete profile: ${error.message || 'Please try again.'}`);
       } finally {
         setLoading(false);
       }
     } else {
       console.log('User cancelled deletion');
     }
-  }, [deleteProfile, Profiles, fetchProfiles]);
+  }, [deleteProfile, profiles, fetchProfiles]);
 
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {
@@ -151,7 +151,7 @@ This will also delete any associated Certificates and User account. This action 
     };
   }, [fetchProfiles]);
 
-  // Filtered Profiles with memoization for performance
+  // Filtered profiles with memoization for performance
   const filteredProfiles = useMemo(() => {
     return profiles.filter((p) => {
       const matchesSearch = `${p.firstName} ${p.lastName}`
@@ -164,7 +164,7 @@ This will also delete any associated Certificates and User account. This action 
 
       return matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
     });
-  }, [Profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
+  }, [profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
 
   return (
     <div className="p-6">
@@ -172,7 +172,7 @@ This will also delete any associated Certificates and User account. This action 
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-4xl font-bold">Profiles</h1>
           {/*<button
-            onClick={() => navigate("/Dashboard/profilescreate")}
+            onClick={() => navigate("/dashboard/profilescreate")}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow"
           >
             + Create Profile
@@ -262,8 +262,8 @@ This will also delete any associated Certificates and User account. This action 
           <tr>
             <th className="border px-2 py-1">VTID</th>
             <th className="border px-2 py-1">Role</th>
-            <th className="border px-2 py-1">First Name</th>
-            <th className="border px-2 py-1">Last Name</th>
+            <th className="border px-2 py-1">First name</th>
+            <th className="border px-2 py-1">Last name</th>
             <th className="border px-2 py-1">Staff Type</th>
             <th className="border px-2 py-1">Company</th>
             <th className="border px-2 py-1">Job Title</th>
@@ -291,7 +291,7 @@ This will also delete any associated Certificates and User account. This action 
               <td className="border px-2 py-1 text-center">
                 <div className="flex items-center justify-center gap-2">
                   <Link 
-                    to={`/Profiles/${p._id}`} 
+                    to={`/profiles/${p._id}`} 
                     className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50" 
                     title="View Profile"
                   >
@@ -299,9 +299,9 @@ This will also delete any associated Certificates and User account. This action 
                   </Link>
                   <button
                     onClick={() => {
-                      console.log('Edit clicked for Profile:', p._id);
-                      console.log('Navigating to:', `/Profiles/edit/${p._id}`);
-                      navigate(`/Profiles/edit/${p._id}`);
+                      console.log('Edit clicked for profile:', p._id);
+                      console.log('Navigating to:', `/profiles/edit/${p._id}`);
+                      navigate(`/profiles/edit/${p._id}`);
                     }}
                     className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
                     title="Edit Profile"
@@ -311,7 +311,7 @@ This will also delete any associated Certificates and User account. This action 
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      console.log('Delete clicked for Profile:', p._id, p.firstName, p.lastName);
+                      console.log('Delete clicked for profile:', p._id, p.firstName, p.lastName);
                       handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`);
                     }}
                     className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"

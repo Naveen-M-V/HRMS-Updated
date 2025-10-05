@@ -4,10 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const UserDashboard = () => {
-  const { User, Logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
-  const [Certificates, setCertificates] = useState([]);
+  const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
@@ -16,8 +16,8 @@ const UserDashboard = () => {
     try {
       setLoading(true);
       
-      // Fetch User Profile by Email
-      const profileResponse = await fetch(`${API_BASE_URL}/api/Profiles/by-email/${user.email}`, {
+      // Fetch user profile by email
+      const profileResponse = await fetch(`${API_BASE_URL}/api/profiles/by-email/${user.email}`, {
         credentials: 'include'
       });
       
@@ -25,8 +25,8 @@ const UserDashboard = () => {
         const profileData = await profileResponse.json();
         setUserProfile(profileData);
         
-        // Fetch User Certificates
-        const certificatesResponse = await fetch(`${API_BASE_URL}/api/Profiles/${profileData._id}/certificates`, {
+        // Fetch user certificates
+        const certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${profileData._id}/certificates`, {
           credentials: 'include'
         });
         
@@ -36,11 +36,11 @@ const UserDashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching User data:', error);
+      console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL, user.Email]);
+  }, [API_BASE_URL, user.email]);
 
   useEffect(() => {
     if (user?.email) {
@@ -49,8 +49,8 @@ const UserDashboard = () => {
   }, [user, fetchUserData]);
 
   const handleLogout = async () => {
-    await Logout();
-    navigate('/Login');
+    await logout();
+    navigate('/login');
   };
 
   if (loading) {
@@ -58,7 +58,7 @@ const UserDashboard = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your Dashboard...</p>
+          <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -81,7 +81,7 @@ const UserDashboard = () => {
               />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">User Dashboard</h1>
-                <p className="text-sm text-gray-500">Welcome back, {User?.firstName} {user?.lastName}</p>
+                <p className="text-sm text-gray-500">Welcome back, {user?.firstName} {user?.lastName}</p>
               </div>
             </div>
             <button
@@ -107,7 +107,7 @@ const UserDashboard = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-500">Email</label>
-                  <p className="mt-1 text-sm text-gray-900">{userProfile.Email}</p>
+                  <p className="mt-1 text-sm text-gray-900">{userProfile.email}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-500">VTID</label>
@@ -139,8 +139,8 @@ const UserDashboard = () => {
             
             {certificates.length === 0 ? (
               <div className="text-center py-12">
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No Certificates found</h3>
-                <p className="mt-1 text-sm text-gray-500">Your Certificates will appear here once they are added by the Admin.</p>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No certificates found</h3>
+                <p className="mt-1 text-sm text-gray-500">Your certificates will appear here once they are added by the admin.</p>
               </div>
             ) : (
               <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
@@ -162,19 +162,19 @@ const UserDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {Certificates.map((Certificate) => (
+                    {certificates.map((certificate) => (
                       <tr key={certificate._id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {Certificate.certificate}
+                          {certificate.certificate}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {Certificate.category}
+                          {certificate.category}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {Certificate.issueDate ? new Date(certificate.issueDate).toLocaleDateString() : 'N/A'}
+                          {certificate.issueDate ? new Date(certificate.issueDate).toLocaleDateString() : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {Certificate.expiryDate ? new Date(certificate.expiryDate).toLocaleDateString() : 'N/A'}
+                          {certificate.expiryDate ? new Date(certificate.expiryDate).toLocaleDateString() : 'N/A'}
                         </td>
                       </tr>
                     ))}

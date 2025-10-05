@@ -19,12 +19,12 @@ export default function ProfileDetailView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getProfileById, uploadProfilePicture, deleteProfile } = useProfiles();
-  const { Certificates, uploadCertificateFile, deleteCertificate } = useCertificates();
+  const { certificates, uploadCertificateFile, deleteCertificate } = useCertificates();
 
   const handleEditProfile = () => {
-    navigate(`/Profiles/edit/${id}`);
+    navigate(`/profiles/edit/${id}`);
   };
-  const [Profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [showCertificates, setShowCertificates] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imageKey, setImageKey] = useState(Date.now());
@@ -47,7 +47,7 @@ const handleCertificateFileSelected = async (event) => {
     await uploadCertificateFile(uploadingCertId, file);
     alert("Certificate uploaded successfully");
   } catch (error) {
-    alert("Failed to upload Certificate. Please try again.");
+    alert("Failed to upload certificate. Please try again.");
   } finally {
     setUploading(false);
     setUploadingCertId(null);
@@ -56,12 +56,12 @@ const handleCertificateFileSelected = async (event) => {
 };
 
 const handleDeleteCertificate = async (certId) => {
-  if (!window.confirm("Are you sure you want to delete this Certificate?")) return;
+  if (!window.confirm("Are you sure you want to delete this certificate?")) return;
   try {
     await deleteCertificate(certId);
     alert("Certificate deleted successfully");
   } catch (error) {
-    alert("Failed to delete Certificate");
+    alert("Failed to delete certificate");
   }
 };
 
@@ -72,7 +72,7 @@ const handleDeleteCertificate = async (certId) => {
     }
   }, [id, getProfileById]);
 
-  // Refresh Profile data when Profiles context updates
+  // Refresh profile data when profiles context updates
   const { profiles } = useProfiles();
   useEffect(() => {
     const profileData = getProfileById(id);
@@ -97,8 +97,8 @@ const handleDeleteCertificate = async (certId) => {
         event.target.value = '';
         alert('Profile picture updated successfully!');
       } catch (error) {
-        console.error("Failed to upload Profile picture:", error);
-        alert('Failed to upload Profile picture. Please try again.');
+        console.error("Failed to upload profile picture:", error);
+        alert('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
       }
@@ -125,18 +125,18 @@ const handleDeleteCertificate = async (certId) => {
     });
   };
 
-  const userCertificates = Certificates.filter(cert =>
-    cert.profileName === `${Profile?.firstName} ${profile?.lastName}`
+  const userCertificates = certificates.filter(cert =>
+    cert.profileName === `${profile?.firstName} ${profile?.lastName}`
   );
 
   useEffect(() => {
-    console.log('📋 Profile Certificates debug:', {
-      profileName: `${Profile?.firstName} ${profile?.lastName}`,
-      totalCertificates: Certificates.length,
+    console.log('📋 Profile certificates debug:', {
+      profileName: `${profile?.firstName} ${profile?.lastName}`,
+      totalCertificates: certificates.length,
       userCertificates: userCertificates.length,
       certificatesList: userCertificates.map(cert => ({
         id: cert.id || cert._id,
-        name: cert.Certificate,
+        name: cert.certificate,
         profileName: cert.profileName,
         hasFile: !!cert.certificateFile
       }))
@@ -146,7 +146,7 @@ const handleDeleteCertificate = async (certId) => {
   if (!profile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading Profile...</div>
+        <div className="text-lg">Loading profile...</div>
       </div>
     );
   }
@@ -158,12 +158,12 @@ const handleDeleteCertificate = async (certId) => {
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold text-gray-900">
-              {Profile.firstName} {profile.lastName}
+              {profile.firstName} {profile.lastName}
             </h1>
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/Dashboard/createcertificate", { state: { profileId: id, Profile } })}
+              onClick={() => navigate("/dashboard/createcertificate", { state: { profileId: id, profile } })}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               <PlusIcon className="h-5 w-5" />
@@ -180,7 +180,7 @@ const handleDeleteCertificate = async (certId) => {
         </div>
       </div>
 
-      {/* Hidden input for Certificate file upload */}
+      {/* Hidden input for certificate file upload */}
       <input
         type="file"
         accept="application/pdf,image/*"
@@ -198,12 +198,12 @@ const handleDeleteCertificate = async (certId) => {
               <div className="text-center">
                 <div className="relative inline-block">
                   <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                    {Profile.profilePicture ? (
+                    {profile.profilePicture ? (
                       <img
                         src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
-                        alt={`${Profile.name || 'User'}`}
+                        alt={`${profile.name || 'User'}`}
                         className="w-full h-full object-cover"
-                        key={`Profile-pic-${imageKey}`}
+                        key={`profile-pic-${imageKey}`}
                         loading="lazy"
                       />
                     ) : (
@@ -230,19 +230,19 @@ const handleDeleteCertificate = async (certId) => {
               <div className="space-y-2 text-sm">
                 <div>
                   <span className="font-medium">User role:</span>
-                  <div className="text-gray-600">{Profile.staffType} Staff</div>
+                  <div className="text-gray-600">{profile.staffType} Staff</div>
                 </div>
                 <div>
                   <span className="font-medium">Company name:</span>
-                  <div className="text-gray-600">{Profile.company}</div>
+                  <div className="text-gray-600">{profile.company}</div>
                 </div>
                 <div>
                   <span className="font-medium">Created On:</span>
-                  <div className="text-gray-600">{formatDate(Profile.createdOn)}</div>
+                  <div className="text-gray-600">{formatDate(profile.createdOn)}</div>
                 </div>
                 <div>
                   <span className="font-medium">Last Seen:</span>
-                  <div className="text-gray-600">{formatDateTime(Profile.lastSeen)}</div>
+                  <div className="text-gray-600">{formatDateTime(profile.lastSeen)}</div>
                 </div>
               </div>
             </div>
@@ -253,28 +253,28 @@ const handleDeleteCertificate = async (certId) => {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-semibold">VTID:</span>
-                  <span className="font-medium">{generateVTID(Profile)}</span>
+                  <span className="font-medium">{generateVTID(profile)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">User Role:</span>
-                  <span className="font-medium">{Profile.role || "User"}</span>
+                  <span className="font-medium">{profile.role || "User"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Circet UIN:</span>
-                  <span className="font-medium">{Profile.circetUIN || "N/A"}</span>
+                  <span className="font-medium">{profile.circetUIN || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Circet SCID:</span>
-                  <span className="font-medium">{Profile.circetSCID || "N/A"}</span>
+                  <span className="font-medium">{profile.circetSCID || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">NOPS ID:</span>
-                  <span className="font-medium">{Profile.nopsId || profile.nopsID || "N/A"}</span>
+                  <span className="font-medium">{profile.nopsId || profile.nopsID || "N/A"}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Email:</span>
                   <div className="flex items-center gap-1">
-                    <span className="font-medium">{Profile.Email}</span>
+                    <span className="font-medium">{profile.email}</span>
                     {profile.emailVerified && (
                       <CheckCircleIcon className="h-4 w-4 text-green-500" />
                     )}
@@ -283,43 +283,43 @@ const handleDeleteCertificate = async (certId) => {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Mobile:</span>
                   <div className="flex items-center gap-1">
-                    <span className="font-medium">{Profile.mobile || "N/A"}</span>
-                    {Profile.mobileVerified && (
+                    <span className="font-medium">{profile.mobile || "N/A"}</span>
+                    {profile.mobileVerified && (
                       <CheckCircleIcon className="h-4 w-4 text-green-500" />
                     )}
                   </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Preferred Language:</span>
-                  <span className="font-medium">{Profile.language || "English"}</span>
+                  <span className="font-medium">{profile.language || "English"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Date of Birth:</span>
-                  <span className="font-medium">{formatDate(Profile.dob || profile.dateOfBirth)}</span>
+                  <span className="font-medium">{formatDate(profile.dob || profile.dateOfBirth)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Nationality:</span>
-                  <span className="font-medium">{Profile.nationality || "N/A"}</span>
+                  <span className="font-medium">{profile.nationality || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
-                  <span className="font-medium">{Profile.status || "N/A"}</span>
+                  <span className="font-medium">{profile.status || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">POC:</span>
-                  <span className="font-medium">{Profile.poc || "N/A"}</span>
+                  <span className="font-medium">{profile.poc || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Insurance Number:</span>
-                  <span className="font-medium">{Profile.insuranceNumber || "N/A"}</span>
+                  <span className="font-medium">{profile.insuranceNumber || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Morrisons ID:</span>
-                  <span className="font-medium">{Profile.morrisonsIDNumber || "N/A"}</span>
+                  <span className="font-medium">{profile.morrisonsIDNumber || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Morrisons UIN:</span>
-                  <span className="font-medium">{Profile.morrisonsUIN || "N/A"}</span>
+                  <span className="font-medium">{profile.morrisonsUIN || "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -334,7 +334,7 @@ const handleDeleteCertificate = async (certId) => {
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
                       {(() => {
-                        const jobRoles = Array.isArray(Profile.jobRole) ? profile.jobRole : (profile.jobRole ? [profile.jobRole] : []);
+                        const jobRoles = Array.isArray(profile.jobRole) ? profile.jobRole : (profile.jobRole ? [profile.jobRole] : []);
                         return jobRoles.length > 0 ? jobRoles.join(', ') : "N/A";
                       })()
                       }
@@ -343,7 +343,7 @@ const handleDeleteCertificate = async (certId) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Job Level:</span>
-                  <span className="font-medium">{Profile.jobLevel || "N/A"}</span>
+                  <span className="font-medium">{profile.jobLevel || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600"># of Active Certificates:</span>
@@ -351,11 +351,11 @@ const handleDeleteCertificate = async (certId) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Start Date:</span>
-                  <span className="font-medium">{formatDate(Profile.startDate)}</span>
+                  <span className="font-medium">{formatDate(profile.startDate)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Staff Type:</span>
-                  <span className="font-medium">{Profile.staffType || "N/A"}</span>
+                  <span className="font-medium">{profile.staffType || "N/A"}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Client Contracts:</span>
@@ -373,23 +373,23 @@ const handleDeleteCertificate = async (certId) => {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">External System ID:</span>
-                  <span className="font-medium">{Profile.externalSystemId || "N/A"}</span>
+                  <span className="font-medium">{profile.externalSystemId || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Third Party System ID:</span>
-                  <span className="font-medium">{Profile.extThirdPartySystemId || "N/A"}</span>
+                  <span className="font-medium">{profile.extThirdPartySystemId || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Gender:</span>
-                  <span className="font-medium">{Profile.gender || "N/A"}</span>
+                  <span className="font-medium">{profile.gender || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Bio:</span>
-                  <span className="font-medium">{Profile.bio || "N/A"}</span>
+                  <span className="font-medium">{profile.bio || "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Other Information:</span>
-                  <span className="font-medium">{Profile.otherInformation || "N/A"}</span>
+                  <span className="font-medium">{profile.otherInformation || "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -406,23 +406,23 @@ const handleDeleteCertificate = async (certId) => {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Address Line 1:</span>
-                    <span className="font-medium">{Profile.address?.line1 || "N/A"}</span>
+                    <span className="font-medium">{profile.address?.line1 || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Address Line 2:</span>
-                    <span className="font-medium">{Profile.address?.line2 || "N/A"}</span>
+                    <span className="font-medium">{profile.address?.line2 || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">City:</span>
-                    <span className="font-medium">{Profile.address?.city || "N/A"}</span>
+                    <span className="font-medium">{profile.address?.city || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Post Code:</span>
-                    <span className="font-medium">{Profile.address?.postCode || "N/A"}</span>
+                    <span className="font-medium">{profile.address?.postCode || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Country:</span>
-                    <span className="font-medium">{Profile.address?.country || "N/A"}</span>
+                    <span className="font-medium">{profile.address?.country || "N/A"}</span>
                   </div>
                 </div>
               </div>
@@ -433,15 +433,15 @@ const handleDeleteCertificate = async (certId) => {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Contact Name:</span>
-                    <span className="font-medium">{Profile.emergencyContact?.name || "N/A"}</span>
+                    <span className="font-medium">{profile.emergencyContact?.name || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Relationship:</span>
-                    <span className="font-medium">{Profile.emergencyContact?.relationship || "N/A"}</span>
+                    <span className="font-medium">{profile.emergencyContact?.relationship || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Phone Number:</span>
-                    <span className="font-medium">{Profile.emergencyContact?.phone || "N/A"}</span>
+                    <span className="font-medium">{profile.emergencyContact?.phone || "N/A"}</span>
                   </div>
                 </div>
               </div>
@@ -482,7 +482,7 @@ const handleDeleteCertificate = async (certId) => {
                       <tbody>
                         {userCertificates.map((cert) => (
                           <tr key={cert.id || cert._id} className="hover:bg-gray-50">
-                            <td className="p-2 border font-medium">{cert.Certificate}</td>
+                            <td className="p-2 border font-medium">{cert.certificate}</td>
                             <td className="p-2 border">{formatDate(cert.issueDate)}</td>
                             <td className="p-2 border">{formatDate(cert.expiryDate)}</td>
                             <td className="p-2 border">{cert.provider}</td>
@@ -502,7 +502,7 @@ const handleDeleteCertificate = async (certId) => {
                             <td className="p-2 border flex items-center gap-2">
                               {cert.certificateFile ? (
                                 <a
-                                  href={`${process.env.REACT_APP_API_BASE_URL}/Certificates/${
+                                  href={`${process.env.REACT_APP_API_BASE_URL}/certificates/${
                                     cert.id || cert._id
                                   }/file`}
                                   target="_blank"
@@ -510,10 +510,10 @@ const handleDeleteCertificate = async (certId) => {
                                   className="inline-flex items-center px-2 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors"
                                   onClick={() =>
                                     console.log(
-                                      "🔗 Opening Certificate:",
+                                      "🔗 Opening certificate:",
                                       cert.certificate,
                                       "File URL:",
-                                      `${process.env.REACT_APP_API_BASE_URL}/Certificates/${
+                                      `${process.env.REACT_APP_API_BASE_URL}/certificates/${
                                         cert.id || cert._id
                                       }/file`
                                     )
@@ -555,7 +555,7 @@ const handleDeleteCertificate = async (certId) => {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <div className="mb-2">📋 No Active Certificates found for this User.</div>
+                    <div className="mb-2">📋 No active certificates found for this user.</div>
                     <div className="text-sm">
                       Certificates will appear here once they are created and assigned to this profile.
                     </div>
