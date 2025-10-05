@@ -16,7 +16,24 @@ const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
 // Load utilities
 const { generateSimplePassword } = require('./utils/passwordGenerator');
-const { sendLoginSuccessEmail, sendCertificateExpiryEmail, sendNotificationEmail, testEmailConfiguration, sendVerificationEmail, sendAdminApprovalRequestEmail, sendUserCredentialsEmail, sendAdminNewUserCredentialsEmail, sendWelcomeEmailToNewUser } = require('./utils/emailService');
+const { 
+  sendLoginSuccessEmail, 
+  sendCertificateExpiryEmail, 
+  sendNotificationEmail, 
+  testEmailConfiguration, 
+  sendVerificationEmail, 
+  sendAdminApprovalRequestEmail, 
+  sendUserCredentialsEmail, 
+  sendAdminNewUserCredentialsEmail, 
+  sendWelcomeEmailToNewUser,
+  sendProfileCreationEmail,
+  sendProfileUpdateEmail,
+  sendProfileDeletionEmail,
+  sendCertificateAddedEmail,
+  sendCertificateDeletedEmail,
+  sendCertificateExpiryReminderEmail,
+  sendCertificateExpiredEmail
+} = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
 
@@ -847,11 +864,13 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
     
     // Send comprehensive email notifications
     try {
+      console.log('Attempting to send profile creation emails...');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const loginUrl = `${frontendUrl}/login`;
       
       // Check if a new user was created
       const wasNewUserCreated = await User.findOne({ profileId: savedProfile._id });
+      console.log('New user created:', !!wasNewUserCreated);
       
       // 1. Send profile creation email to user (with credentials if new user)
       const userCredentials = wasNewUserCreated ? {
@@ -859,13 +878,17 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         password: savedProfile.vtid.toString()
       } : null;
       
+      console.log('Calling sendProfileCreationEmail...');
       await sendProfileCreationEmail(savedProfile, userCredentials);
-      console.log('Profile creation email sent to user:', savedProfile.email);
+      console.log('✅ Profile creation email sent to user:', savedProfile.email);
       
       // 2. Send notification to all admins
       const adminUsers = await User.find({ role: 'admin' });
+      console.log(`Found ${adminUsers.length} admin users for notification`);
+      
       for (const admin of adminUsers) {
         if (userCredentials) {
+          console.log('Sending admin notification with credentials to:', admin.email);
           // Send admin notification with user credentials
           await sendAdminNewUserCredentialsEmail(
             admin.email,
@@ -875,6 +898,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
             loginUrl
           );
         } else {
+          console.log('Sending general admin notification to:', admin.email);
           // Send general admin notification
           await sendNotificationEmail(
             admin.email,
@@ -885,10 +909,11 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
           );
         }
       }
-      console.log('Admin notifications sent for profile creation');
+      console.log('✅ Admin notifications sent for profile creation');
       
     } catch (emailError) {
-      console.error('Error sending profile creation emails:', emailError);
+      console.error('❌ Error sending profile creation emails:', emailError);
+      console.error('Email error stack:', emailError.stack);
     }
     
     // Create in-app notification for profile creation
@@ -973,6 +998,7 @@ app.put('/api/profiles/:id', async (req, res) => {
     
     // Send email notifications
     try {
+      console.log('Attempting to send profile update emails...');
       // Determine what fields were updated
       const updatedFields = {};
       Object.keys(updateData).forEach(key => {
@@ -981,14 +1007,20 @@ app.put('/api/profiles/:id', async (req, res) => {
         }
       });
       
+      console.log('Updated fields:', Object.keys(updatedFields));
+      
       if (Object.keys(updatedFields).length > 0) {
         // Send update notification to user
+        console.log('Calling sendProfileUpdateEmail...');
         await sendProfileUpdateEmail(updatedProfile, updatedFields);
-        console.log('Profile update email sent to user:', updatedProfile.email);
+        console.log('✅ Profile update email sent to user:', updatedProfile.email);
         
         // Send notification to admins
         const adminUsers = await User.find({ role: 'admin' });
+        console.log(`Found ${adminUsers.length} admin users for notification`);
+        
         for (const admin of adminUsers) {
+          console.log('Sending admin update notification to:', admin.email);
           await sendNotificationEmail(
             admin.email,
             `${admin.firstName} ${admin.lastName}`,
@@ -997,11 +1029,14 @@ app.put('/api/profiles/:id', async (req, res) => {
             'info'
           );
         }
-        console.log('Admin notifications sent for profile update');
+        console.log('✅ Admin notifications sent for profile update');
+      } else {
+        console.log('⚠️ No fields were actually updated, skipping email notifications');
       }
       
     } catch (emailError) {
-      console.error('Error sending profile update emails:', emailError);
+      console.error('❌ Error sending profile update emails:', emailError);
+      console.error('Email error stack:', emailError.stack);
     }
     
     // Create in-app notification for profile update
@@ -1154,18 +1189,27 @@ app.delete('/api/profiles/:id', async (req, res) => {
     
     console.log('Profile found:', profile.firstName, profile.lastName);
 
-    // Send email notification to user BEFORE deletion
+    // Send comprehensive email notifications BEFORE deletion
     try {
-      await sendNotificationEmail(
-        profile.email,
-        `${profile.firstName} ${profile.lastName}`,
-        'Profile Deletion Notice',
-        `Your profile has been deleted from the HRMS system. If you have any questions, please contact your administrator.`,
-        'warning'
-      );
+      // Send professional profile deletion email to user
+      await sendProfileDeletionEmail(profile);
       console.log('Profile deletion email sent to user:', profile.email);
+      
+      // Send notification to all admins
+      const adminUsers = await User.find({ role: 'admin' });
+      for (const admin of adminUsers) {
+        await sendNotificationEmail(
+          admin.email,
+          `${admin.firstName} ${admin.lastName}`,
+          'Profile Deleted',
+          `Profile for ${profile.firstName} ${profile.lastName} (${profile.email}) has been deleted from the HRMS system.`,
+          'warning'
+        );
+      }
+      console.log('Admin notifications sent for profile deletion');
+      
     } catch (emailError) {
-      console.error('Error sending profile deletion email:', emailError);
+      console.error('Error sending profile deletion emails:', emailError);
     }
 
     // Delete all certificates associated with this profile
@@ -1390,15 +1434,22 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
     // Send comprehensive email notifications
     if (certificateData.profileId) {
       try {
+        console.log('Attempting to send certificate creation emails...');
         const profile = await Profile.findById(certificateData.profileId);
         if (profile) {
+          console.log('Profile found for email notification:', profile.email);
+          
           // Send notification to user
+          console.log('Calling sendCertificateAddedEmail...');
           await sendCertificateAddedEmail(profile, savedCertificate);
-          console.log('Certificate added email sent to user:', profile.email);
+          console.log('✅ Certificate added email sent to user:', profile.email);
           
           // Send notification to admins
           const adminUsers = await User.find({ role: 'admin' });
+          console.log(`Found ${adminUsers.length} admin users for notification`);
+          
           for (const admin of adminUsers) {
+            console.log('Sending admin notification to:', admin.email);
             await sendNotificationEmail(
               admin.email,
               `${admin.firstName} ${admin.lastName}`,
@@ -1407,11 +1458,16 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
               'success'
             );
           }
-          console.log('Admin notifications sent for certificate addition');
+          console.log('✅ Admin notifications sent for certificate addition');
+        } else {
+          console.log('❌ Profile not found for certificate email notification');
         }
       } catch (emailError) {
-        console.error('Error sending certificate creation emails:', emailError);
+        console.error('❌ Error sending certificate creation emails:', emailError);
+        console.error('Email error stack:', emailError.stack);
       }
+    } else {
+      console.log('⚠️ No profileId provided, skipping email notifications');
     }
     
     // Create in-app notification for certificate creation
@@ -2934,22 +2990,6 @@ const calculateDaysUntilExpiry = (expiryDate) => {
 const sendEmailNotification = async (userEmail, subject, body) => {
   try {
     const { sendEmail } = require('./utils/emailService');
-// Enhanced email service functions
-const {
-  sendProfileCreationEmail,
-  sendProfileUpdateEmail,
-  sendProfileDeletionEmail,
-  sendCertificateAddedEmail,
-  sendCertificateDeletedEmail,
-  sendCertificateExpiryReminderEmail,
-  sendCertificateExpiredEmail,
-  sendUserCredentialsEmail,
-  sendAdminNewUserCredentialsEmail,
-  sendNotificationEmail
-} = require('./utils/emailService');
-
-// Password generator utility
-const { generateSecurePassword } = require('./utils/passwordGenerator');
 
     const result = await sendEmail({
       to: userEmail,
