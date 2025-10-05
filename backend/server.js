@@ -739,7 +739,14 @@ app.get('/api/profiles/:id/complete', async (req, res) => {
 // Create new profile
 app.post('/api/profiles', validateProfileInput, async (req, res) => {
   try {
-    const profile = new Profile(req.body);
+    // Handle jobTitle array from frontend - convert to string
+    const profileData = { ...req.body };
+    if (Array.isArray(profileData.jobTitle)) {
+      // If array, take first element or join with comma
+      profileData.jobTitle = profileData.jobTitle.length > 0 ? profileData.jobTitle[0] : '';
+    }
+    
+    const profile = new Profile(profileData);
     const savedProfile = await profile.save();
     
     // Create user account for the profile
@@ -813,9 +820,15 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
 // Update profile
 app.put('/api/profiles/:id', async (req, res) => {
   try {
+    // Handle jobTitle array from frontend - convert to string
+    const updateData = { ...req.body };
+    if (Array.isArray(updateData.jobTitle)) {
+      updateData.jobTitle = updateData.jobTitle.length > 0 ? updateData.jobTitle[0] : '';
+    }
+    
     const profile = await Profile.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, lastSeen: new Date() },
+      { ...updateData, lastSeen: new Date() },
       { new: true, runValidators: true }
     );
     if (!profile) {
