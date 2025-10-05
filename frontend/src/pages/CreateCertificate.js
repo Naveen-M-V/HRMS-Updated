@@ -344,7 +344,7 @@ export default function CreateCertificate() {
     const newCertificate = {
       // Required fields for backend validation
       certificate: form.certificateName || "New Certificate",
-      category: "Other",
+      category: form.certificateName ? "Professional Development" : "Other", // Use a meaningful default category
       
       // CRITICAL: Link to profile via profileId
       profileId: selectedProfile?._id,
