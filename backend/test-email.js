@@ -7,7 +7,7 @@ const testEmail = async () => {
   console.log('EMAIL_USER:', process.env.EMAIL_USER);
   console.log('EMAIL_FROM:', process.env.EMAIL_FROM);
   
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: parseInt(process.env.EMAIL_PORT),
     secure: process.env.EMAIL_SECURE === 'true',
