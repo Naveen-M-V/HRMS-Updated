@@ -55,7 +55,16 @@ const generateSimplePassword = (length = 8) => {
   return password;
 };
 
+/**
+ * Generate a secure password for new users (12 characters)
+ * @returns {string} Generated secure password
+ */
+const generateSecurePassword = () => {
+  return generatePassword(12);
+};
+
 module.exports = {
   generatePassword,
-  generateSimplePassword
+  generateSimplePassword,
+  generateSecurePassword
 };

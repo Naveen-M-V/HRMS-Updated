@@ -113,7 +113,7 @@ const JobRoleDropdown = ({
         setIsOpen(false);
       }
     } catch (error) {
-      console.error('Error adding job role:', error);
+      console.error('Error adding Job Role:', error);
     }
   };
 

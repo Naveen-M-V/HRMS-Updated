@@ -5,7 +5,7 @@ import { useCertificates } from "../context/CertificateContext";
 import { getImageUrl } from '../utils/config';
 
 export default function CertificatesPage() {
-  const { certificates, deleteCertificate } = useCertificates();
+  const { Certificates, deleteCertificate } = useCertificates();
   const [search, setSearch] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [selectedCertificate, setSelectedCertificate] = useState(null); // 
@@ -13,12 +13,12 @@ export default function CertificatesPage() {
 
   // Get unique values for filter dropdowns
   const filterOptions = useMemo(() => {
-    const profiles = [...new Set(certificates.map(c => c.profileName).filter(Boolean))].sort();
-    const certificateNames = [...new Set(certificates.map(c => c.certificate).filter(Boolean))].sort();
+    const Profiles = [...new Set(Certificates.map(c => c.profileName).filter(Boolean))].sort();
+    const certificateNames = [...new Set(certificates.map(c => c.Certificate).filter(Boolean))].sort();
     const companies = [...new Set(certificates.map(c => c.company).filter(Boolean))].sort();
     const teams = [...new Set(certificates.map(c => c.team).filter(Boolean))].sort();
     const providers = [...new Set(certificates.map(c => c.provider).filter(Boolean))].sort();
-    const activeStatuses = [...new Set(certificates.map(c => c.active).filter(Boolean))].sort();
+    const activeStatuses = [...new Set(certificates.map(c => c.Active).filter(Boolean))].sort();
     
     return { profiles, certificateNames, companies, teams, providers, activeStatuses };
   }, [certificates]);
@@ -29,13 +29,13 @@ export default function CertificatesPage() {
         await deleteCertificate(certificateId);
         setSelectedCertificate(null); // close sidebar if open
       } catch (error) {
-        console.error('Failed to delete certificate:', error);
-        alert('Failed to delete certificate. Please try again.');
+        console.error('Failed to delete Certificate:', error);
+        alert('Failed to delete Certificate. Please try again.');
       }
     }
   };
 
-  // Memoized filtered certificates
+  // Memoized filtered Certificates
   const filteredCertificates = useMemo(() => {
     if (!search) return certificates;
     return certificates.filter((c) => 
@@ -54,7 +54,7 @@ export default function CertificatesPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-4xl font-bold">Certificates</h1>
         <button 
-          onClick={() => navigate("/dashboard/createcretificate")}
+          onClick={() => navigate("/Dashboard/createcretificate")}
           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow">
           + Create Certificate
         </button>
@@ -83,7 +83,7 @@ export default function CertificatesPage() {
                 onClick={() => setSelectedCertificate(c)}
               >
                 <td className="border px-2 py-1">{c.profileId?.vtid || 'N/A'}</td>
-                <td className="border px-2 py-1">{c.certificate}</td>
+                <td className="border px-2 py-1">{c.Certificate}</td>
                 <td className="border px-2 py-1">{c.category}</td>
                 <td className="border px-2 py-1">{c.jobRole || "N/A"}</td>
                 <td className="border px-2 py-1">{c.expiryDate}</td>
@@ -95,7 +95,7 @@ export default function CertificatesPage() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation(); // prevent sidebar opening
-                      handleDeleteCertificate(c.id || c._id, c.certificate);
+                      handleDeleteCertificate(c.id || c._id, c.Certificate);
                     }}
                     className="text-red-600 hover:text-red-800" 
                   >
@@ -119,7 +119,7 @@ export default function CertificatesPage() {
 
           {/* Sidebar content */}
           <div className="w-96 bg-white shadow-xl p-6 overflow-y-auto transition-transform transform translate-x-0">
-            <h2 className="text-2xl font-bold mb-4">{selectedCertificate.certificate}</h2>
+            <h2 className="text-2xl font-bold mb-4">{selectedCertificate.Certificate}</h2>
             <p className="text-sm text-gray-600 mb-2"><strong>Profile:</strong> {selectedCertificate.profileName}</p>
             <p className="text-sm text-gray-600 mb-2"><strong>Category:</strong> {selectedCertificate.category}</p>
             <p className="text-sm text-gray-600 mb-2"><strong>Job Role:</strong> {selectedCertificate.jobRole}</p>
@@ -150,7 +150,7 @@ export default function CertificatesPage() {
                 Edit
               </Link>
               <button 
-                onClick={() => handleDeleteCertificate(selectedCertificate.id || selectedCertificate._id, selectedCertificate.certificate)}
+                onClick={() => handleDeleteCertificate(selectedCertificate.id || selectedCertificate._id, selectedCertificate.Certificate)}
                 className="px-4 py-2 bg-red-600 text-white rounded"
               >
                 Delete

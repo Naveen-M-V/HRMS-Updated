@@ -9,7 +9,7 @@ export const handleError = (error, context = 'Unknown') => {
     // errorTrackingService.captureException(error, { context });
   }
   
-  // Return user-friendly error message
+  // Return User-friendly error message
   if (error?.response?.data?.message) {
     return error.response.data.message;
   }

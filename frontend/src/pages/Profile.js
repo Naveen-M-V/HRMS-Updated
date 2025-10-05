@@ -17,9 +17,9 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { User } = useAuth();
   const { uploadProfilePicture } = useProfiles();
-  const { certificates } = useCertificates();
+  const { Certificates } = useCertificates();
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [imageKey, setImageKey] = useState(Date.now());
@@ -28,7 +28,7 @@ export default function Profile() {
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Fetch current user's profile data
+  // Fetch current User's Profile data
   const fetchMyProfile = useCallback(async () => {
     try {
       setProfileLoading(true);
@@ -40,16 +40,16 @@ export default function Profile() {
 
       if (response.ok) {
         const profileData = await response.json();
-        console.log('My profile data loaded:', profileData);
+        console.log('My Profile data loaded:', profileData);
         setUserProfile(profileData);
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch profile');
+        throw new Error(errorData.message || 'Failed to fetch Profile');
       }
     } catch (error) {
-      console.error('Error fetching my profile:', error);
+      console.error('Error fetching my Profile:', error);
       setError(error.message);
-      // Fallback to user data from auth context
+      // Fallback to User data from auth context
     } finally {
       setProfileLoading(false);
     }
@@ -59,23 +59,23 @@ export default function Profile() {
   useEffect(() => {
     fetchMyProfile();
   }, [fetchMyProfile]);
-  // Get user's certificates (memoized for performance)
+  // Get user's Certificates (memoized for performance)
   const userCertificates = useMemo(() => {
     return certificates.filter(cert => 
-      cert.profileName === `${userProfile?.firstName || user?.firstName} ${userProfile?.lastName || user?.lastName}`
+      cert.profileName === `${userProfile?.firstName || User?.firstName} ${userProfile?.lastName || user?.lastName}`
     );
-  }, [certificates, userProfile, user]);
+  }, [Certificates, userProfile, user]);
 
   // Generate consistent VTID
-  const generateVTID = useCallback((profile) => {
+  const generateVTID = useCallback((Profile) => {
     if (profile.vtid) return profile.vtid;
     
     
     // Generate consistent ID based on profile data
     const firstName = profile.firstName || '';
-    const lastName = profile.lastName || '';
-    const company = profile.company || 'VTX';
-    const timestamp = profile.createdOn ? new Date(profile.createdOn).getTime() : Date.now();
+    const lastName = Profile.lastName || '';
+    const company = Profile.company || 'VTX';
+    const timestamp = Profile.createdOn ? new Date(profile.createdOn).getTime() : Date.now();
     
     return `${company.substring(0, 3).toUpperCase()}${firstName.substring(0, 2).toUpperCase()}${lastName.substring(0, 2).toUpperCase()}${timestamp.toString().slice(-4)}`;
   }, []);
@@ -88,12 +88,12 @@ export default function Profile() {
         await uploadProfilePicture(userProfile._id, file);
         // Force image refresh by updating key
         setImageKey(Date.now());
-        // Refresh profile data to get updated picture
+        // Refresh Profile data to get updated picture
         await fetchMyProfile();
         alert('Profile picture updated successfully!');
       } catch (error) {
-        console.error("Failed to upload profile picture:", error);
-        alert('Failed to upload profile picture. Please try again.');
+        console.error("Failed to upload Profile picture:", error);
+        alert('Failed to upload Profile picture. Please try again.');
       } finally {
         setUploading(false);
       }
@@ -111,7 +111,7 @@ export default function Profile() {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: UserCircleIcon },
-    { id: 'certificates', name: 'Certificates', icon: AcademicCapIcon },
+    { id: 'Certificates', name: 'Certificates', icon: AcademicCapIcon },
     { id: 'experience', name: 'Experience', icon: BriefcaseIcon }
   ];
 
@@ -121,7 +121,7 @@ export default function Profile() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">Loading Profile...</p>
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ export default function Profile() {
                       src={`${getImageUrl(userProfile.profilePicture)}?t=${imageKey}`}
                       alt="Profile" 
                       className="w-full h-full object-cover"
-                      key={`profile-pic-${imageKey}`}
+                      key={`Profile-pic-${imageKey}`}
                       loading="lazy"
                     />
                   ) : (
@@ -192,12 +192,12 @@ export default function Profile() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900">
-                      {userProfile?.firstName || user?.firstName || 'User'} {userProfile?.lastName || user?.lastName || ''}
+                      {userProfile?.firstName || User?.firstName || 'User'} {userProfile?.lastName || User?.lastName || ''}
                     </h1>
                     <p className="text-lg text-gray-600 mt-1">
                       {Array.isArray(userProfile?.jobTitle) 
                         ? userProfile.jobTitle.join(', ') 
-                        : (userProfile?.jobTitle || 'No job title specified')
+                        : (userProfile?.jobTitle || 'No Job Title specified')
                       }
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
@@ -267,7 +267,7 @@ export default function Profile() {
                     <EnvelopeIcon className="h-5 w-5 text-gray-400" />
                     <div>
                       <div className="text-sm text-gray-500">Email</div>
-                      <div className="font-medium">{userProfile?.email || user?.email || 'Not specified'}</div>
+                      <div className="font-medium">{userProfile?.Email || User?.email || 'Not specified'}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -404,7 +404,7 @@ export default function Profile() {
               <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">About Me</h2>
                 <div className="text-gray-600">
-                  {userProfile?.bio || 'No bio information available. Click edit profile to add your bio.'}
+                  {userProfile?.bio || 'No bio information available. Click Edit Profile to add your bio.'}
                 </div>
               </div>
 
@@ -456,7 +456,7 @@ export default function Profile() {
             </div>
           )}
 
-          {activeTab === 'certificates' && (
+          {activeTab === 'Certificates' && (
             <div className="bg-white rounded-lg shadow-sm border">
               <div className="px-6 py-4 border-b">
                 <h2 className="text-xl font-semibold text-gray-900">My Certificates</h2>
@@ -478,7 +478,7 @@ export default function Profile() {
                             {cert.status}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-gray-900 mb-2">{cert.certificate}</h3>
+                        <h3 className="font-semibold text-gray-900 mb-2">{cert.Certificate}</h3>
                         <p className="text-sm text-gray-600 mb-2">{cert.provider}</p>
                         <div className="text-xs text-gray-500 space-y-1">
                           <div>Issued: {cert.issueDate}</div>
@@ -491,8 +491,8 @@ export default function Profile() {
                 ) : (
                   <div className="text-center py-12">
                     <AcademicCapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No certificates yet</h3>
-                    <p className="text-gray-600">Start building your professional credentials by adding certificates.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Certificates yet</h3>
+                    <p className="text-gray-600">Start building your professional credentials by adding Certificates.</p>
                   </div>
                 )}
               </div>

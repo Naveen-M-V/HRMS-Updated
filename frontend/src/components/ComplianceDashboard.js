@@ -6,7 +6,7 @@ import AdminCompletionBar from './AdminCompletionBar';
 
 const ComplianceDashboard = () => {
   const {
-    certificates,
+    Certificates,
     loading,
     getActiveCertificatesCount,
     getExpiringCertificates,
@@ -27,7 +27,7 @@ const ComplianceDashboard = () => {
  useEffect(() => {
   const getDashboardData = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats?days=${selectedTimeframe}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/Dashboard-stats?days=${selectedTimeframe}`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -36,7 +36,7 @@ const ComplianceDashboard = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
+        throw new Error(`Failed to fetch Dashboard stats: ${response.status}`);
       }
       
       const data = await response.json();
@@ -48,7 +48,7 @@ const ComplianceDashboard = () => {
         jobRoleCounts: getCertificatesByJobRole()
       });
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      console.error("Error fetching Dashboard data:", error);
       // Set empty data on error so UI doesn't hang
       setDashboardData({
         activeCount: 0,
@@ -61,7 +61,7 @@ const ComplianceDashboard = () => {
   };
 
   getDashboardData();
-}, [selectedTimeframe, certificates]);
+}, [selectedTimeframe, Certificates]);
 
 
   const formatDate = (dateString) => {
@@ -149,12 +149,12 @@ const ComplianceDashboard = () => {
                   <div className="text-sm text-red-700">
                     {dashboardData.expiredCertificates.slice(0, 3).map((cert, index) => (
                       <div key={cert.id} className="mb-1">
-                        • {cert.certificate} - {cert.profileName}
+                        • {cert.Certificate} - {cert.profileName}
                       </div>
                     ))}
                     {dashboardData.expiredCertificates.length > 3 && (
                       <div className="text-red-600 font-medium">
-                        +{dashboardData.expiredCertificates.length - 3} more expired certificates
+                        +{dashboardData.expiredCertificates.length - 3} more Expired Certificates
                       </div>
                     )}
                   </div>
@@ -174,13 +174,13 @@ const ComplianceDashboard = () => {
                       const daysUntilExpiry = getDaysUntilExpiry(cert.expiryDate);
                       return (
                         <div key={cert.id} className="mb-1">
-                          • {cert.certificate} - {cert.profileName} ({daysUntilExpiry} days)
+                          • {cert.Certificate} - {cert.profileName} ({daysUntilExpiry} days)
                         </div>
                       );
                     })}
                     {dashboardData.expiringCertificates.length > 3 && (
                       <div className="text-yellow-600 font-medium">
-                        +{dashboardData.expiringCertificates.length - 3} more expiring certificates
+                        +{dashboardData.expiringCertificates.length - 3} more expiring Certificates
                       </div>
                     )}
                   </div>
@@ -197,13 +197,13 @@ const ComplianceDashboard = () => {
         {/* Action Buttons */}
         <div className="flex flex-col gap-4 w-52">
           <Link
-            to="/dashboard/profilescreate"
+            to="/Dashboard/profilescreate"
             className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center"
           >
             Create Profile
           </Link>
           <Link 
-            to="/dashboard/createcertificate"
+            to="/Dashboard/createcertificate"
             className="bg-teal-600 text-white py-2 rounded shadow hover:bg-teal-700 transition duration-200 text-center"
           >
             Add Certificates
@@ -261,7 +261,7 @@ const ComplianceDashboard = () => {
           <div className="flex items-center">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-600">Total Certificates</p>
-              <p className="text-3xl font-bold text-blue-600">{certificates.length}</p>
+              <p className="text-3xl font-bold text-blue-600">{Certificates.length}</p>
             </div>
             <div className="p-3 bg-blue-100 rounded-full">
               <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,7 +282,7 @@ const ComplianceDashboard = () => {
           </div>
           <div className="p-6">
             {dashboardData.expiringCertificates.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No certificates expiring in the selected timeframe</p>
+              <p className="text-gray-500 text-center py-4">No Certificates expiring in the selected timeframe</p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {dashboardData.expiringCertificates.map((cert) => {
@@ -290,7 +290,7 @@ const ComplianceDashboard = () => {
                   return (
                     <div key={cert.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{cert.certificate}</p>
+                        <p className="font-medium text-gray-900">{cert.Certificate}</p>
                         <p className="text-sm text-gray-600">{cert.profileName}</p>
                       </div>
                       <div className="text-right">
@@ -316,7 +316,7 @@ const ComplianceDashboard = () => {
           </div>
           <div className="p-6">
             {Object.keys(dashboardData.categoryCounts).length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No certificate data available</p>
+              <p className="text-gray-500 text-center py-4">No Certificate data available</p>
             ) : (
               <div className="space-y-3">
                 {Object.entries(dashboardData.categoryCounts).map(([category, count]) => (
@@ -354,7 +354,7 @@ const ComplianceDashboard = () => {
                 return (
                   <div key={cert.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{cert.certificate}</p>
+                      <p className="font-medium text-gray-900">{cert.Certificate}</p>
                       <p className="text-sm text-gray-600">{cert.profileName}</p>
                     </div>
                     <div className="text-right">

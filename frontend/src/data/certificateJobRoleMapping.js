@@ -1207,7 +1207,7 @@ Alternative: [
 // Keep the old export for backward compatibility
 export const jobRoleCertificateMapping = {};
 
-// All available certificates with descriptions
+// All available Certificates with descriptions
 export const allCertificates = {
   // Safety Accreditations
   "SA001": "MEWP (Mobile Elevated Work Platform) Safety Certification",
@@ -1237,7 +1237,7 @@ export const allCertificates = {
   "Fire Safety": "Fire Prevention and Emergency Response"
 };
 
-// Helper function to get all certificates for a job role
+// Helper function to get all Certificates for a Job Role
 export const getCertificatesForJobRole = (jobRole) => {
   const mapping = jobRoleCertifications[jobRole];
   if (!mapping) return { mandatory: [], alternative: [] };

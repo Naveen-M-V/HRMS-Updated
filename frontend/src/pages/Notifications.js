@@ -5,7 +5,7 @@ import { Mail, Check } from "lucide-react";
 export default function Notifications() {
   const { notifications, markAsRead, refreshNotifications } = useNotifications();
 
-  // 👇 Track which notification is selected
+  // 👇 Track which Notification is selected
   const [selected, setSelected] = useState(null);
   
   // Handle opening notification and marking as read
@@ -21,7 +21,7 @@ export default function Notifications() {
 
       {/* Notifications List */}
       <div className="space-y-4">
-        {notifications.map((note) => (
+        {Notifications.map((note) => (
           <div
             key={note.id}
             className="flex items-start justify-between bg-white shadow rounded-lg p-4 border"

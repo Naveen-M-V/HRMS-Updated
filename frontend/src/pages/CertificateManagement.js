@@ -19,8 +19,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function CertificateManagement() {
-  const { certificates, deleteCertificate } = useCertificates();
-  const { profiles } = useProfiles();
+  const { Certificates, deleteCertificate } = useCertificates();
+  const { Profiles } = useProfiles();
   const navigate = useNavigate();
   
   const [search, setSearch] = useState("");
@@ -32,7 +32,7 @@ export default function CertificateManagement() {
 
   // Get filter options
   const filterOptions = useMemo(() => {
-    const categories = [...new Set(certificates.map(c => c.category).filter(Boolean))].sort();
+    const categories = [...new Set(Certificates.map(c => c.category).filter(Boolean))].sort();
     const statuses = [...new Set(certificates.map(c => c.status).filter(Boolean))].sort();
     const providers = [...new Set(certificates.map(c => c.provider).filter(Boolean))].sort();
     
@@ -42,7 +42,7 @@ export default function CertificateManagement() {
   // Filter certificates
   const filteredCertificates = useMemo(() => {
     return certificates.filter((cert) => {
-      const matchesSearch = cert.certificate.toLowerCase().includes(search.toLowerCase()) ||
+      const matchesSearch = cert.Certificate.toLowerCase().includes(search.toLowerCase()) ||
                            cert.profileName.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = !selectedCategory || cert.category === selectedCategory;
       const matchesStatus = !selectedStatus || cert.status === selectedStatus;
@@ -55,34 +55,34 @@ export default function CertificateManagement() {
   // Get certificate status color
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'approved':
+      case 'Approved':
         return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending':
+      case 'Pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'expired':
+      case 'Expired':
         return 'bg-red-100 text-red-800 border-red-200';
-      case 'rejected':
+      case 'Rejected':
         return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  // Get certificate status icon
+  // Get Certificate status icon
   const getStatusIcon = (status) => {
     switch (status?.toLowerCase()) {
-      case 'approved':
+      case 'Approved':
         return <CheckCircleIcon className="h-4 w-4" />;
-      case 'pending':
+      case 'Pending':
         return <ClockIcon className="h-4 w-4" />;
-      case 'expired':
+      case 'Expired':
         return <ExclamationTriangleIcon className="h-4 w-4" />;
       default:
         return <ClockIcon className="h-4 w-4" />;
     }
   };
 
-  // Check if certificate is expiring soon (within 30 days)
+  // Check if Certificate is Expiring Soon (within 30 days)
   const isExpiringSoon = (expiryDate) => {
     if (!expiryDate) return false;
     const expiry = new Date(expiryDate.split('/').reverse().join('-'));
@@ -96,8 +96,8 @@ export default function CertificateManagement() {
       try {
         await deleteCertificate(certificateId);
       } catch (error) {
-        console.error('Failed to delete certificate:', error);
-        alert('Failed to delete certificate. Please try again.');
+        console.error('Failed to delete Certificate:', error);
+        alert('Failed to delete Certificate. Please try again.');
       }
     }
   };
@@ -121,10 +121,10 @@ export default function CertificateManagement() {
                   <AcademicCapIcon className="h-8 w-8 text-emerald-600" />
                   Certificate Management
                 </h1>
-                <p className="text-gray-600 mt-1">Manage and track all certificates across your organization</p>
+                <p className="text-gray-600 mt-1">Manage and track all Certificates across your organization</p>
               </div>
               <button
-                onClick={() => navigate("/dashboard/createcertificate")}
+                onClick={() => navigate("/Dashboard/createcertificate")}
                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 <PlusIcon className="h-5 w-5" />
@@ -135,24 +135,24 @@ export default function CertificateManagement() {
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4 mt-6">
               <div className="bg-emerald-50 rounded-lg p-4">
-                <div className="text-2xl font-bold text-emerald-600">{certificates.length}</div>
+                <div className="text-2xl font-bold text-emerald-600">{Certificates.length}</div>
                 <div className="text-sm text-emerald-700">Total Certificates</div>
               </div>
               <div className="bg-green-50 rounded-lg p-4">
                 <div className="text-2xl font-bold text-green-600">
-                  {certificates.filter(c => c.status === 'Approved').length}
+                  {Certificates.filter(c => c.status === 'Approved').length}
                 </div>
                 <div className="text-sm text-green-700">Approved</div>
               </div>
               <div className="bg-yellow-50 rounded-lg p-4">
                 <div className="text-2xl font-bold text-yellow-600">
-                  {certificates.filter(c => c.status === 'Pending').length}
+                  {Certificates.filter(c => c.status === 'Pending').length}
                 </div>
                 <div className="text-sm text-yellow-700">Pending</div>
               </div>
               <div className="bg-red-50 rounded-lg p-4">
                 <div className="text-2xl font-bold text-red-600">
-                  {certificates.filter(c => isExpiringSoon(c.expiryDate)).length}
+                  {Certificates.filter(c => isExpiringSoon(c.expiryDate)).length}
                 </div>
                 <div className="text-sm text-red-700">Expiring Soon</div>
               </div>
@@ -170,7 +170,7 @@ export default function CertificateManagement() {
                   <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search certificates or profiles..."
+                    placeholder="Search Certificates or Profiles..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -264,15 +264,15 @@ export default function CertificateManagement() {
           {filteredCertificates.length === 0 ? (
             <div className="text-center py-12">
               <AcademicCapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No certificates found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Certificates found</h3>
               <p className="text-gray-600 mb-4">
                 {search || selectedCategory || selectedStatus || selectedProvider
                   ? 'Try adjusting your search or filters'
-                  : 'Get started by adding your first certificate'
+                  : 'Get started by adding your first Certificate'
                 }
               </p>
               <button
-                onClick={() => navigate("/dashboard/createcertificate")}
+                onClick={() => navigate("/Dashboard/createcertificate")}
                 className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
               >
                 <PlusIcon className="h-4 w-4" />
@@ -302,7 +302,7 @@ export default function CertificateManagement() {
                     </div>
 
                     {/* Content */}
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{cert.certificate}</h3>
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{cert.Certificate}</h3>
                     <p className="text-sm text-gray-600 mb-1">VTID: {cert.profileId?.vtid || 'N/A'}</p>
                     <p className="text-sm text-gray-600 mb-3">{cert.profileName}</p>
                     
@@ -334,7 +334,7 @@ export default function CertificateManagement() {
                         Edit
                       </Link>
                       <button
-                        onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.certificate)}
+                        onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.Certificate)}
                         className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded ml-auto"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -366,7 +366,7 @@ export default function CertificateManagement() {
                         <div className="flex items-center gap-3">
                           <AcademicCapIcon className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                           <div>
-                            <div className="font-medium text-gray-900">{cert.certificate}</div>
+                            <div className="font-medium text-gray-900">{cert.Certificate}</div>
                             <div className="text-sm text-gray-500">{cert.category}</div>
                           </div>
                         </div>
@@ -405,7 +405,7 @@ export default function CertificateManagement() {
                             <PencilIcon className="h-4 w-4" />
                           </Link>
                           <button
-                            onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.certificate)}
+                            onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.Certificate)}
                             className="text-red-600 hover:text-red-800"
                             title="Delete Certificate"
                           >

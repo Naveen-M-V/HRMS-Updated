@@ -95,7 +95,7 @@ export default function EditProfile() {
       
       if (response.ok) {
         const newJobRole = await response.json();
-        console.log('New job role added:', newJobRole);
+        console.log('New Job Role added:', newJobRole);
         // Update job roles list
         fetchJobRoles();
         // Add to selected job titles
@@ -104,10 +104,10 @@ export default function EditProfile() {
           jobTitle: [...(prev.jobTitle || []), jobRoleName]
         }));
       } else {
-        console.error('Failed to add job role:', response.status, response.statusText);
+        console.error('Failed to add Job Role:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error adding job role:', error);
+      console.error('Error adding Job Role:', error);
     }
   };
 
@@ -139,21 +139,21 @@ export default function EditProfile() {
       
       if (response.ok) {
         const newJobLevel = await response.json();
-        console.log('New job level added:', newJobLevel);
+        console.log('New Job Level added:', newJobLevel);
         // Update job levels list
         fetchJobLevels();
         // Update form
         setFormData(prev => ({ ...prev, jobLevel: jobLevelName }));
       } else {
-        console.error('Failed to add job level:', response.status, response.statusText);
+        console.error('Failed to add Job Level:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error adding job level:', error);
+      console.error('Error adding Job Level:', error);
     }
   };
 
   const [formData, setFormData] = useState({
-    username: userProfile.email,
+    username: userProfile.Email,
     firstName: userProfile.firstName,
     lastName: userProfile.lastName,
     email: userProfile.email,
@@ -186,7 +186,7 @@ export default function EditProfile() {
     emergencyPhone: userProfile.emergencyContact?.phone || '',
   });
 
-  // Update form data when userProfile changes (especially email)
+  // Update form data when userProfile changes (especially Email)
   useEffect(() => {
     setFormData({
       username: userProfile.email,
@@ -234,7 +234,7 @@ export default function EditProfile() {
       const isSelected = currentJobTitles.includes(jobRole);
       
       if (isSelected) {
-        // Remove job role
+        // Remove Job Role
         return {
           ...prev,
           jobTitle: currentJobTitles.filter(title => title !== jobRole)
@@ -285,17 +285,17 @@ export default function EditProfile() {
         // Navigate back to MyAccount page
         navigate("/myaccount");
       } else {
-        alert(result.error || "Failed to save profile changes. Please try again.");
+        alert(result.error || "Failed to save Profile changes. Please try again.");
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      alert("Failed to save profile changes: " + (error.message || "Please try again."));
+      console.error('Error saving Profile:', error);
+      alert("Failed to save Profile changes: " + (error.message || "Please try again."));
     }
   };
 
   const handleCancel = () => {
     // just go back without saving
-    navigate("/myaccount/profiles");
+    navigate("/myaccount/Profiles");
   };
 
   return (
@@ -308,7 +308,7 @@ export default function EditProfile() {
             
         </Link>{" "}
         /{" "}
-        <Link to="/myaccount/profiles" className="hover:underline hover:text-green-600">
+        <Link to="/myaccount/Profiles" className="hover:underline hover:text-green-600">
             My Settings
         </Link>{" "}
         
@@ -364,7 +364,7 @@ export default function EditProfile() {
               <label className="block text-sm text-gray-600">Email</label>
               <input
                 type="email"
-                name="email"
+                name="Email"
                 value={formData.email}
                 onChange={handleChange}
                 className="mt-1 w-full border rounded px-3 py-2"
@@ -378,7 +378,7 @@ export default function EditProfile() {
                   name="dob"
                   value={formData.dob}
                   onChange={handleChange}
-                  placeholder="Select date of birth"
+                  placeholder="Select Date of Birth"
                   className="mt-1"
                 />
               </div>
@@ -487,7 +487,7 @@ export default function EditProfile() {
                   onChange={(e) => {
                     const value = e.target.value;
                     if (!formData.jobTitle.includes(value)) {
-                      // Add new job title
+                      // Add new Job Title
                       setFormData(prev => ({
                         ...prev,
                         jobTitle: [...prev.jobTitle, value]
@@ -812,7 +812,7 @@ export default function EditProfile() {
               type="submit"
               className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
             >
-              Save changes
+              Save Changes
             </button>
           </div>
         </form>

@@ -10,12 +10,12 @@ import {
 import SearchableDropdown from '../components/SearchableDropdown';
 
 const UserCertificateCreate = () => {
-  const { user } = useAuth();
+  const { User } = useAuth();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    certificate: '',
+    Certificate: '',
     category: '',
     issueDate: '',
     expiryDate: '',
@@ -28,14 +28,14 @@ const UserCertificateCreate = () => {
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
   useEffect(() => {
-    if (user?.email) {
+    if (User?.Email) {
       fetchUserProfile();
     }
   }, [user]);
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/by-email/${user.email}`, {
+      const response = await fetch(`${API_BASE_URL}/api/Profiles/by-email/${user.email}`, {
         credentials: 'include'
       });
       
@@ -44,7 +44,7 @@ const UserCertificateCreate = () => {
         setUserProfile(profileData);
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error fetching User Profile:', error);
     }
   };
 
@@ -82,7 +82,7 @@ const UserCertificateCreate = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.certificate.trim()) {
+    if (!formData.Certificate.trim()) {
       newErrors.certificate = 'Certificate name is required';
     }
     
@@ -91,7 +91,7 @@ const UserCertificateCreate = () => {
     }
     
     if (!formData.issueDate) {
-      newErrors.issueDate = 'Issue date is required';
+      newErrors.issueDate = 'Issue Date is required';
     }
     
     if (!formData.provider.trim()) {
@@ -124,7 +124,7 @@ const UserCertificateCreate = () => {
     }
 
     if (!userProfile) {
-      alert('User profile not found. Please try again.');
+      alert('User Profile not found. Please try again.');
       return;
     }
 
@@ -142,7 +142,7 @@ const UserCertificateCreate = () => {
       };
 
       const formDataToSend = new FormData();
-      formDataToSend.append('certificate', formData.certificate);
+      formDataToSend.append('Certificate', formData.certificate);
       formDataToSend.append('category', formData.category);
       formDataToSend.append('issueDate', formatDate(formData.issueDate));
       formDataToSend.append('expiryDate', formatDate(formData.expiryDate));
@@ -152,13 +152,13 @@ const UserCertificateCreate = () => {
       formDataToSend.append('profileName', `${userProfile.firstName} ${userProfile.lastName}`);
       formDataToSend.append('jobRole', Array.isArray(userProfile.jobRole) ? userProfile.jobRole.join(', ') : userProfile.jobRole || '');
       formDataToSend.append('status', 'Active');
-      formDataToSend.append('active', 'Yes');
+      formDataToSend.append('Active', 'Yes');
       
       if (formData.certificateFile) {
         formDataToSend.append('certificateFile', formData.certificateFile);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/certificates`, {
+      const response = await fetch(`${API_BASE_URL}/api/Certificates`, {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend
@@ -166,14 +166,14 @@ const UserCertificateCreate = () => {
 
       if (response.ok) {
         alert('Certificate added successfully!');
-        navigate('/user-dashboard');
+        navigate('/User-Dashboard');
       } else {
         const errorData = await response.json();
-        alert(`Failed to add certificate: ${errorData.message || 'Unknown error'}`);
+        alert(`Failed to Add Certificate: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error adding certificate:', error);
-      alert('Failed to add certificate. Please try again.');
+      console.error('Error adding Certificate:', error);
+      alert('Failed to Add Certificate. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -186,7 +186,7 @@ const UserCertificateCreate = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-6">
             <button
-              onClick={() => navigate('/user-dashboard')}
+              onClick={() => navigate('/User-Dashboard')}
               className="mr-4 p-2 text-gray-400 hover:text-gray-600"
             >
               <ArrowLeftIcon className="h-6 w-6" />
@@ -195,7 +195,7 @@ const UserCertificateCreate = () => {
               <DocumentIcon className="h-8 w-8 text-blue-600 mr-3" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Add Certificate</h1>
-                <p className="text-sm text-gray-500">Upload a new certificate to your profile</p>
+                <p className="text-sm text-gray-500">Upload a new Certificate to your Profile</p>
               </div>
             </div>
           </div>
@@ -214,12 +214,12 @@ const UserCertificateCreate = () => {
                 <SearchableDropdown
                   value={formData.certificate}
                   onChange={(value) => setFormData(prev => ({ ...prev, certificate: value }))}
-                  placeholder="Enter or search certificate name"
-                  apiEndpoint="/api/certificate-names/search"
+                  placeholder="Enter or search Certificate name"
+                  apiEndpoint="/api/Certificate-names/search"
                   className="mt-1"
                 />
-                {errors.certificate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.certificate}</p>
+                {errors.Certificate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.Certificate}</p>
                 )}
               </div>
 
@@ -357,7 +357,7 @@ const UserCertificateCreate = () => {
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
-                  onClick={() => navigate('/user-dashboard')}
+                  onClick={() => navigate('/User-Dashboard')}
                   className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Cancel

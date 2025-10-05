@@ -9,12 +9,12 @@ export default function Sharestaff() {
   const [search, setSearch] = useState("");
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const { profiles, loading } = useProfiles();
-  const { certificates } = useCertificates();
+  const { Profiles, loading } = useProfiles();
+  const { Certificates } = useCertificates();
 
   // Filter profiles based on search
   const filteredStaff = profiles.filter(
-    (profile) =>
+    (Profile) =>
       profile.firstName.toLowerCase().includes(search.toLowerCase()) ||
       profile.lastName.toLowerCase().includes(search.toLowerCase()) ||
       (profile.jobTitle && profile.jobTitle.toLowerCase().includes(search.toLowerCase())) ||
@@ -26,7 +26,7 @@ export default function Sharestaff() {
   const startIndex = (currentPage - 1) * entriesPerPage;
   const paginatedStaff = filteredStaff.slice(startIndex, startIndex + entriesPerPage);
 
-  // Get certificate count for each staff member
+  // Get Certificate count for each staff member
   const getCertificateCount = (profileName) => {
     return certificates.filter(cert => 
       cert.profileName === profileName && cert.status === 'Approved'
@@ -146,19 +146,19 @@ export default function Sharestaff() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {paginatedStaff.length > 0 ? (
-                paginatedStaff.map((profile) => {
+                paginatedStaff.map((Profile) => {
                   const fullName = `${profile.firstName} ${profile.lastName}`;
                   const certCount = getCertificateCount(fullName);
                   
                   return (
-                    <tr key={profile._id} className="hover:bg-gray-50">
+                    <tr key={Profile._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            {profile.profilePicture ? (
+                            {Profile.profilePicture ? (
                               <img 
                                 className="h-10 w-10 rounded-full object-cover" 
-                                src={getImageUrl(profile.profilePicture)}
+                                src={getImageUrl(Profile.profilePicture)}
                                 alt={fullName}
                               />
                             ) : (
@@ -169,27 +169,27 @@ export default function Sharestaff() {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{fullName}</div>
-                            <div className="text-sm text-gray-500">{profile.email}</div>
+                            <div className="text-sm text-gray-500">{Profile.Email}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {profile.company || 'N/A'}
+                        {Profile.company || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {Array.isArray(profile.jobTitle) 
+                        {Array.isArray(Profile.jobTitle) 
                           ? profile.jobTitle.join(', ') 
-                          : (profile.jobTitle || 'N/A')
+                          : (Profile.jobTitle || 'N/A')
                         }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          profile.staffType === 'Direct' ? 'bg-green-100 text-green-800' :
-                          profile.staffType === 'Contractor' ? 'bg-blue-100 text-blue-800' :
-                          profile.staffType === 'Agency' ? 'bg-yellow-100 text-yellow-800' :
+                          Profile.staffType === 'Direct' ? 'bg-green-100 text-green-800' :
+                          Profile.staffType === 'Contractor' ? 'bg-blue-100 text-blue-800' :
+                          Profile.staffType === 'Agency' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {profile.staffType || 'Direct'}
+                          {Profile.staffType || 'Direct'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -200,28 +200,28 @@ export default function Sharestaff() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          profile.status === 'Onboarded' ? 'bg-green-100 text-green-800' :
-                          profile.status === 'Onboarding' ? 'bg-yellow-100 text-yellow-800' :
-                          profile.status === 'Left' ? 'bg-red-100 text-red-800' :
+                          Profile.status === 'Onboarded' ? 'bg-green-100 text-green-800' :
+                          Profile.status === 'Onboarding' ? 'bg-yellow-100 text-yellow-800' :
+                          Profile.status === 'Left' ? 'bg-red-100 text-red-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {profile.status || 'Onboarding'}
+                          {Profile.status || 'Onboarding'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(profile.createdOn)}
+                        {formatDate(Profile.createdOn)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <Link 
-                            to={`/profiledetailview/${profile._id}`}
+                            to={`/profiledetailview/${Profile._id}`}
                             className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                           >
                             <EyeIcon className="h-4 w-4 mr-1" />
                             View
                           </Link>
                           <Link 
-                            to={`/edituserprofile/${profile._id}`}
+                            to={`/edituserprofile/${Profile._id}`}
                             className="inline-flex items-center px-3 py-1 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                           >
                             Edit

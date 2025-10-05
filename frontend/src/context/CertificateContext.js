@@ -25,7 +25,7 @@ const parseExpiryDate = (expiryDateStr) => {
 };
 
 export const CertificateProvider = ({ children }) => {
-  const [certificates, setCertificates] = useState([]);
+  const [Certificates, setCertificates] = useState([]);
   const [loadingCount, setLoadingCount] = useState(0);
   const loading = loadingCount > 0;
   const [error, setError] = useState(null);
@@ -71,7 +71,7 @@ export const CertificateProvider = ({ children }) => {
           return;
         }
       }
-      setError("Failed to fetch certificates");
+      setError("Failed to fetch Certificates");
       setCertificates([]);
     } finally {
       decrementLoading();
@@ -91,7 +91,7 @@ export const CertificateProvider = ({ children }) => {
           formData.append(key, val);
         }
       });
-      const url = buildApiUrl('/certificates');
+      const url = buildApiUrl('/Certificates');
       const response = await axios.post(url, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -99,7 +99,7 @@ export const CertificateProvider = ({ children }) => {
       setError(null);
       return response.data;
     } catch (err) {
-      setError("Failed to add certificate");
+      setError("Failed to Add Certificate");
       console.error(err);
       throw err;
     } finally {
@@ -114,7 +114,7 @@ export const CertificateProvider = ({ children }) => {
     try {
       const formData = new FormData();
       formData.append("certificateFile", file);
-      const url = buildApiUrl(`/certificates/${certificateId}/upload`);
+      const url = buildApiUrl(`/Certificates/${certificateId}/upload`);
       const response = await axios.put(
         url,
         formData,
@@ -135,7 +135,7 @@ export const CertificateProvider = ({ children }) => {
       setError(null);
       return response?.data;
     } catch (err) {
-      setError("Failed to upload certificate file");
+      setError("Failed to upload Certificate file");
       console.error(err);
       throw err;
     } finally {
@@ -148,8 +148,8 @@ export const CertificateProvider = ({ children }) => {
     if (!certificateId) throw new Error("certificateId is required");
     incrementLoading();
     try {
-      const url = buildApiUrl(`/certificates/${certificateId}`);
-      console.log('Updating certificate:', url);
+      const url = buildApiUrl(`/Certificates/${certificateId}`);
+      console.log('Updating Certificate:', url);
       const response = await axios.put(url, updatedData);
       setCertificates((prev) =>
         prev.map((c) => (c._id === certificateId || c.id === certificateId ? response.data : c))
@@ -158,8 +158,8 @@ export const CertificateProvider = ({ children }) => {
       console.log('Certificate updated successfully');
       return response.data;
     } catch (err) {
-      setError("Failed to update certificate");
-      console.error('Update certificate error:', err);
+      setError("Failed to update Certificate");
+      console.error('Update Certificate error:', err);
       throw err;
     } finally {
       decrementLoading();
@@ -171,8 +171,8 @@ export const CertificateProvider = ({ children }) => {
     if (!certificateId) throw new Error("certificateId is required");
     incrementLoading();
     try {
-      const url = buildApiUrl(`/certificates/${certificateId}`);
-      console.log('Deleting certificate:', url);
+      const url = buildApiUrl(`/Certificates/${certificateId}`);
+      console.log('Deleting Certificate:', url);
       await axios.delete(url);
       setCertificates((prev) =>
         prev.filter((c) => c._id !== certificateId && c.id !== certificateId)
@@ -180,8 +180,8 @@ export const CertificateProvider = ({ children }) => {
       setError(null);
       console.log('Certificate deleted successfully');
     } catch (err) {
-      setError("Failed to delete certificate");
-      console.error('Delete certificate error:', err);
+      setError("Failed to delete Certificate");
+      console.error('Delete Certificate error:', err);
       throw err;
     } finally {
       decrementLoading();
@@ -191,14 +191,14 @@ export const CertificateProvider = ({ children }) => {
   // Other helper functions...
 
   const getActiveCertificatesCount = useCallback(() => {
-    if (!Array.isArray(certificates)) {
-      console.error("Expected an array of certificates but got:", certificates);
+    if (!Array.isArray(Certificates)) {
+      console.error("Expected an array of certificates but got:", Certificates);
       return 0;
     }
     return certificates.filter(
-      (cert) => cert.active === "Yes" || cert.status === "Active"
+      (cert) => cert.Active === "Yes" || cert.status === "Active"
     ).length;
-  }, [certificates]);
+  }, [Certificates]);
 
   const getExpiringCertificates = useCallback(
     (days = 30) => {
@@ -237,7 +237,7 @@ export const CertificateProvider = ({ children }) => {
       counts[category] = (counts[category] || 0) + 1;
     }
     return counts;
-  }, [certificates]);
+  }, [Certificates]);
 
   const getCertificatesByJobRole = useCallback(() => {
     const counts = {};

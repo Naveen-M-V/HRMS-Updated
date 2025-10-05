@@ -14,8 +14,8 @@ import {
 const UserCertificateView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [certificate, setCertificate] = useState(null);
+  const { User } = useAuth();
+  const [Certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -28,7 +28,7 @@ const UserCertificateView = () => {
   const fetchCertificate = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/certificates/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/Certificates/${id}`, {
         credentials: 'include'
       });
 
@@ -39,37 +39,37 @@ const UserCertificateView = () => {
         setError('Certificate not found');
       }
     } catch (error) {
-      console.error('Error fetching certificate:', error);
-      setError('Failed to load certificate');
+      console.error('Error fetching Certificate:', error);
+      setError('Failed to load Certificate');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteRequest = async () => {
-    if (!window.confirm('Are you sure you want to request deletion of this certificate? This will send a request to the admin for approval.')) {
+    if (!window.confirm('Are you sure you want to request deletion of this Certificate? This will send a request to the Admin for approval.')) {
       return;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/certificates/delete-request`, {
+      const response = await fetch(`${API_BASE_URL}/api/Certificates/delete-request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify({
-          certificateId: certificate._id,
+          certificateId: Certificate._id,
           certificateName: certificate.certificate,
-          userEmail: user.email,
+          userEmail: User.Email,
           userName: `${user.firstName} ${user.lastName}`,
-          profileId: certificate.profileId
+          profileId: Certificate.profileId
         })
       });
 
       if (response.ok) {
-        alert('Delete request sent to admin successfully!');
-        navigate('/user-dashboard');
+        alert('Delete request sent to Admin successfully!');
+        navigate('/User-Dashboard');
       } else {
         alert('Failed to send delete request. Please try again.');
       }
@@ -118,7 +118,7 @@ const UserCertificateView = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading certificate...</p>
+          <p className="text-gray-600">Loading Certificate...</p>
         </div>
       </div>
     );
@@ -130,9 +130,9 @@ const UserCertificateView = () => {
         <div className="text-center">
           <DocumentIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Certificate not found</h3>
-          <p className="text-gray-500 mb-4">{error || 'The certificate you are looking for does not exist.'}</p>
+          <p className="text-gray-500 mb-4">{error || 'The Certificate you are looking for does not exist.'}</p>
           <button
-            onClick={() => navigate('/user-dashboard')}
+            onClick={() => navigate('/User-Dashboard')}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Back to Dashboard
@@ -142,7 +142,7 @@ const UserCertificateView = () => {
     );
   }
 
-  const status = getCertificateStatus(certificate.expiryDate);
+  const status = getCertificateStatus(Certificate.expiryDate);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -152,7 +152,7 @@ const UserCertificateView = () => {
           <div className="flex items-center justify-between py-6">
             <div className="flex items-center">
               <button
-                onClick={() => navigate('/user-dashboard')}
+                onClick={() => navigate('/User-Dashboard')}
                 className="mr-4 p-2 text-gray-400 hover:text-gray-600"
               >
                 <ArrowLeftIcon className="h-6 w-6" />
@@ -161,7 +161,7 @@ const UserCertificateView = () => {
                 <DocumentIcon className="h-8 w-8 text-blue-600 mr-3" />
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">Certificate Details</h1>
-                  <p className="text-sm text-gray-500">View your certificate information</p>
+                  <p className="text-sm text-gray-500">View your Certificate information</p>
                 </div>
               </div>
             </div>
@@ -182,8 +182,8 @@ const UserCertificateView = () => {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">{certificate.certificate}</h2>
-                <p className="text-sm text-gray-500 mt-1">Category: {certificate.category}</p>
+                <h2 className="text-xl font-semibold text-gray-900">{Certificate.certificate}</h2>
+                <p className="text-sm text-gray-500 mt-1">Category: {Certificate.category}</p>
               </div>
               <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${status.bgColor} ${status.color}`}>
                 {status.status}
@@ -199,7 +199,7 @@ const UserCertificateView = () => {
                   <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Provider</dt>
-                    <dd className="text-sm text-gray-900">{certificate.provider || 'Not specified'}</dd>
+                    <dd className="text-sm text-gray-900">{Certificate.provider || 'Not specified'}</dd>
                   </div>
                 </div>
 
@@ -207,7 +207,7 @@ const UserCertificateView = () => {
                   <CalendarIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Issue Date</dt>
-                    <dd className="text-sm text-gray-900">{formatDate(certificate.issueDate)}</dd>
+                    <dd className="text-sm text-gray-900">{formatDate(Certificate.issueDate)}</dd>
                   </div>
                 </div>
 
@@ -215,7 +215,7 @@ const UserCertificateView = () => {
                   <CalendarIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Expiry Date</dt>
-                    <dd className="text-sm text-gray-900">{formatDate(certificate.expiryDate)}</dd>
+                    <dd className="text-sm text-gray-900">{formatDate(Certificate.expiryDate)}</dd>
                   </div>
                 </div>
 
@@ -224,7 +224,7 @@ const UserCertificateView = () => {
                     <CurrencyPoundSterlingIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Cost</dt>
-                      <dd className="text-sm text-gray-900">{certificate.cost}</dd>
+                      <dd className="text-sm text-gray-900">{Certificate.cost}</dd>
                     </div>
                   </div>
                 )}
@@ -233,22 +233,22 @@ const UserCertificateView = () => {
               <div className="space-y-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Profile Name</dt>
-                  <dd className="text-sm text-gray-900">{certificate.profileName || 'Not specified'}</dd>
+                  <dd className="text-sm text-gray-900">{Certificate.profileName || 'Not specified'}</dd>
                 </div>
 
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Job Role</dt>
-                  <dd className="text-sm text-gray-900">{certificate.jobRole || 'Not specified'}</dd>
+                  <dd className="text-sm text-gray-900">{Certificate.jobRole || 'Not specified'}</dd>
                 </div>
 
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Status</dt>
-                  <dd className="text-sm text-gray-900">{certificate.status || 'Active'}</dd>
+                  <dd className="text-sm text-gray-900">{Certificate.status || 'Active'}</dd>
                 </div>
 
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Created On</dt>
-                  <dd className="text-sm text-gray-900">{formatDate(certificate.createdOn)}</dd>
+                  <dd className="text-sm text-gray-900">{formatDate(Certificate.createdOn)}</dd>
                 </div>
               </div>
             </div>
@@ -258,10 +258,10 @@ const UserCertificateView = () => {
               <div className="mt-8">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Certificate Document</h3>
                 <div className="border border-gray-300 rounded-lg overflow-hidden">
-                  {certificate.certificateFile.endsWith('.pdf') ? (
+                  {Certificate.certificateFile.endsWith('.pdf') ? (
                     <div className="bg-gray-50 p-4">
                       <iframe
-                        src={getImageUrl(certificate.certificateFile)}
+                        src={getImageUrl(Certificate.certificateFile)}
                         className="w-full h-96 border-0"
                         title="Certificate PDF"
                         loading="lazy"
@@ -274,7 +274,7 @@ const UserCertificateView = () => {
                         <DocumentIcon className="mx-auto h-12 w-12 text-gray-400 mb-2" />
                         <p className="text-gray-500">PDF preview not available</p>
                         <a
-                          href={getImageUrl(certificate.certificateFile)}
+                          href={getImageUrl(Certificate.certificateFile)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center mt-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
@@ -286,7 +286,7 @@ const UserCertificateView = () => {
                   ) : (
                     <div className="p-4">
                       <img
-                        src={getImageUrl(certificate.certificateFile)}
+                        src={getImageUrl(Certificate.certificateFile)}
                         alt="Certificate"
                         className="max-w-full h-auto mx-auto"
                         onError={(e) => {
@@ -298,7 +298,7 @@ const UserCertificateView = () => {
                         <DocumentIcon className="mx-auto h-12 w-12 text-gray-400 mb-2" />
                         <p className="text-gray-500">Image preview not available</p>
                         <a
-                          href={getImageUrl(certificate.certificateFile)}
+                          href={getImageUrl(Certificate.certificateFile)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center mt-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"

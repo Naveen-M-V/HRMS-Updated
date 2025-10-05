@@ -35,10 +35,10 @@ export const useProfiles = () => {
 };
 
 export const ProfileProvider = ({ children }) => {
-  const [profiles, setProfiles] = useState([]);
+  const [Profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { user } = useAuth();
+  const { User } = useAuth();
 
   // Fetch profiles with caching + optional pagination
   const fetchProfiles = async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
@@ -52,7 +52,7 @@ export const ProfileProvider = ({ children }) => {
         const cacheAge = Date.now() - parseInt(cacheTime || '0');
 
         if (cachedProfiles && cacheAge < 5 * 60 * 1000) {
-          console.log('Using cached profiles data');
+          console.log('Using cached Profiles data');
           setProfiles(JSON.parse(cachedProfiles));
           setError(null);
           setLoading(false);
@@ -61,8 +61,8 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const endpoint = usePagination
-        ? `/api/profiles/paginated?page=${page}&limit=${limit}`
-        : `/api/profiles`;
+        ? `/api/Profiles/paginated?page=${page}&limit=${limit}`
+        : `/api/Profiles`;
 
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -83,7 +83,7 @@ export const ProfileProvider = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        const profilesData = usePagination ? data.profiles : data;
+        const profilesData = usePagination ? data.Profiles : data;
 
         setProfiles(profilesData);
         setError(null);
@@ -95,11 +95,11 @@ export const ProfileProvider = ({ children }) => {
 
         return usePagination ? data : profilesData;
       } else {
-        setError(`Failed to fetch profiles: ${response.status}`);
+        setError(`Failed to fetch Profiles: ${response.status}`);
       }
     } catch (err) {
-      setError('Failed to fetch profiles');
-      console.error('Error fetching profiles:', err);
+      setError('Failed to fetch Profiles');
+      console.error('Error fetching Profiles:', err);
 
       const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
       if (cachedProfiles) {
@@ -139,7 +139,7 @@ export const ProfileProvider = ({ children }) => {
       console.log(`DeleteProfile - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
       
       try {
-        const response = await fetch(`${apiUrl}/api/profiles/${profileId}`, {
+        const response = await fetch(`${apiUrl}/api/Profiles/${profileId}`, {
           method: 'DELETE',
           headers: headers,
           credentials: 'include'
@@ -182,7 +182,7 @@ export const ProfileProvider = ({ children }) => {
     
     // If we get here, all URLs failed
     console.error('DeleteProfile - All API URLs failed');
-    throw lastError || new Error('Failed to delete profile - all API endpoints unreachable');
+    throw lastError || new Error('Failed to Delete Profile - all API endpoints unreachable');
   };
 
   const refreshProfiles = async () => {
@@ -201,7 +201,7 @@ export const ProfileProvider = ({ children }) => {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('https://talentshield.co.uk/api/profiles', {
+      const response = await fetch('https://talentshield.co.uk/api/Profiles', {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
@@ -219,7 +219,7 @@ export const ProfileProvider = ({ children }) => {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || `Failed to create profile: ${response.status}`);
+        throw new Error(data.message || `Failed to Create Profile: ${response.status}`);
       }
 
       setProfiles(prev => [data, ...prev]);
@@ -227,13 +227,13 @@ export const ProfileProvider = ({ children }) => {
       localStorage.removeItem('profiles_cache_optimized');
       localStorage.removeItem('profiles_cache_time');
 
-      const updatedProfiles = [data, ...profiles];
+      const updatedProfiles = [data, ...Profiles];
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
 
       return data;
     } catch (err) {
-      setError('Failed to create profile');
+      setError('Failed to Create Profile');
       throw err;
     } finally {
       setLoading(false);
@@ -243,36 +243,36 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = async (id, updatedProfile) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/Profiles/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedProfile),
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
+      if (!response.ok) throw new Error(`Failed to update Profile: ${response.status}`);
 
       const data = await response.json();
       setProfiles(prev => prev.map(profile => profile._id === id ? data : profile));
 
-      const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
+      const updatedProfiles = Profiles.map(profile => profile._id === id ? data : profile);
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
 
       return data;
     } catch (err) {
-      setError('Failed to update profile');
+      setError('Failed to update Profile');
       throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const getProfileById = (id) => profiles.find(profile => profile._id === id);
+  const getProfileById = (id) => Profiles.find(profile => profile._id === id);
 
   const fetchMyProfile = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/my-profile`, { 
+      const response = await fetch(`${API_BASE_URL}/api/my-Profile`, { 
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -281,36 +281,36 @@ export const ProfileProvider = ({ children }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
-        throw new Error(errorData.message || `Failed to fetch profile: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch Profile' }));
+        throw new Error(errorData.message || `Failed to fetch Profile: ${response.status}`);
       }
 
       const profile = await response.json();
       return profile;
     } catch (err) {
-      console.error('Error fetching my profile:', err);
+      console.error('Error fetching my Profile:', err);
       throw err;
     }
   };
 
   const fetchProfileById = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, { credentials: 'include' });
+      const response = await fetch(`${API_BASE_URL}/api/Profiles/${id}`, { credentials: 'include' });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
-        throw new Error(errorData.message || `Failed to fetch profile: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch Profile' }));
+        throw new Error(errorData.message || `Failed to fetch Profile: ${response.status}`);
       }
 
       const profile = await response.json().catch(() => {
         throw new Error('Invalid JSON response from server');
       });
 
-      const updatedProfiles = profiles.map(p => p._id === id ? { ...p, ...profile } : p);
+      const updatedProfiles = Profiles.map(p => p._id === id ? { ...p, ...Profile } : p);
       setProfiles(updatedProfiles);
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
-      return profile;
+      return Profile;
     } catch (err) {
       console.error('Error fetching profile:', err);
       throw err;
@@ -320,16 +320,16 @@ export const ProfileProvider = ({ children }) => {
   const fetchCompleteProfileById = async (id) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/complete`, { 
+      const response = await fetch(`${API_BASE_URL}/api/Profiles/${id}/complete`, { 
         credentials: 'include',
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` })
         }
       });
       if (response.ok) return await response.json();
-      throw new Error(`Failed to fetch complete profile: ${response.status}`);
+      throw new Error(`Failed to fetch complete Profile: ${response.status}`);
     } catch (err) {
-      console.error('Error fetching complete profile:', err);
+      console.error('Error fetching complete Profile:', err);
       throw err;
     }
   };
@@ -364,7 +364,7 @@ export const ProfileProvider = ({ children }) => {
           headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
+        const response = await fetch(`${apiUrl}/api/Profiles/${id}/upload-picture`, {
           method: 'POST',
           headers: headers,
           body: formData,
@@ -379,7 +379,7 @@ export const ProfileProvider = ({ children }) => {
           if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
             
-            const updatedProfiles = profiles.map(profile =>
+            const updatedProfiles = Profiles.map(Profile =>
               profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
             );
             setProfiles(updatedProfiles);
@@ -399,7 +399,7 @@ export const ProfileProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('UploadProfilePicture - Error:', err);
-        setError('Failed to upload profile picture: ' + err.message);
+        setError('Failed to upload Profile picture: ' + err.message);
         throw err;
       }
     } finally {
@@ -410,27 +410,27 @@ export const ProfileProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState({});
 
   useEffect(() => {
-    if (user) {
+    if (User) {
       setUserProfile({
         firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        company: user.company || '',
-        jobTitle: user.jobTitle || '',
-        mobile: user.mobile || '',
-        dateOfBirth: user.dateOfBirth || '',
-        bio: user.bio || '',
-        language: user.language || 'English',
-        address: user.address || {},
+        lastName: User.lastName || '',
+        Email: User.email || '',
+        company: User.company || '',
+        jobTitle: User.jobTitle || '',
+        mobile: User.mobile || '',
+        dateOfBirth: User.dateOfBirth || '',
+        bio: User.bio || '',
+        language: User.language || 'English',
+        address: User.address || {},
         staffType: user.staffType || 'Staff',
-        role: user.role || '',
-        skillkoId: user.skillkoId || '',
-        department: user.department || '',
-        jobLevel: user.jobLevel || '',
-        profilePicture: user.profilePicture || ''
+        role: User.role || '',
+        skillkoId: User.skillkoId || '',
+        department: User.department || '',
+        jobLevel: User.jobLevel || '',
+        profilePicture: User.profilePicture || ''
       });
     }
-  }, [user]);
+  }, [User]);
 
   const updateUserProfile = async (profileData) => {
     setLoading(true);
@@ -438,7 +438,7 @@ export const ProfileProvider = ({ children }) => {
       const updatedData = {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
-        email: profileData.email || profileData.username,
+        Email: profileData.email || profileData.username,
         mobile: profileData.mobile,
         dateOfBirth: profileData.dob,
         gender: profileData.gender,
@@ -465,7 +465,7 @@ export const ProfileProvider = ({ children }) => {
       };
 
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${user._id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/Profiles/${User._id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -475,13 +475,13 @@ export const ProfileProvider = ({ children }) => {
         credentials: 'include'
       });
 
-      if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
+      if (!response.ok) throw new Error(`Failed to update Profile: ${response.status}`);
 
       const data = await response.json();
       setUserProfile(data);
       return { success: true, data };
     } catch (err) {
-      setError('Failed to update profile: ' + err.message);
+      setError('Failed to update Profile: ' + err.message);
       return { success: false, error: err.message };
     } finally {
       setLoading(false);

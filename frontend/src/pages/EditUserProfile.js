@@ -13,7 +13,7 @@ export default function EditUserProfile() {
     // Profile Details
     firstName: "",
     lastName: "",
-    email: "",
+    Email: "",
     mobile: "",
     dateOfBirth: "",
     gender: "",
@@ -68,8 +68,8 @@ export default function EditUserProfile() {
     console.log('EditUserProfile useEffect triggered with id:', id);
     
     if (!id) {
-      console.log('No ID provided, redirecting to profiles');
-      navigate('/profiles');
+      console.log('No ID provided, redirecting to Profiles');
+      navigate('/Profiles');
       return;
     }
 
@@ -77,64 +77,64 @@ export default function EditUserProfile() {
       console.log('EditUserProfile mounted with ID:', id);
       setProfileLoading(true);
       try {
-        console.log('Fetching profile from backend...');
+        console.log('Fetching Profile from backend...');
         const profile = await fetchProfileById(id);
         console.log('Profile from backend:', profile);
         
         if (!profile) {
           console.error('Profile not found');
-          alert('Profile not found. Redirecting to profiles list.');
-          navigate('/profiles');
+          alert('Profile not found. Redirecting to Profiles list.');
+          navigate('/Profiles');
           return;
         }
         
         // Populate form data with all fields
         setFormData({
-          firstName: profile.firstName || "",
-          lastName: profile.lastName || "",
-          email: profile.email || "",
-          mobile: profile.mobile || "",
-          dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "",
-          gender: profile.gender || "",
-          jobRole: Array.isArray(profile.jobRole) ? profile.jobRole : (profile.jobRole ? [profile.jobRole] : []),
+          firstName: Profile.firstName || "",
+          lastName: Profile.lastName || "",
+          Email: Profile.email || "",
+          mobile: Profile.mobile || "",
+          dateOfBirth: Profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "",
+          gender: Profile.gender || "",
+          jobRole: Array.isArray(Profile.jobRole) ? profile.jobRole : (profile.jobRole ? [profile.jobRole] : []),
           jobLevel: profile.jobLevel || "",
-          language: profile.language || "English",
-          company: profile.company || "Vitrux Ltd",
-          staffType: profile.staffType || "",
-          nationality: profile.nationality || "",
-          status: profile.status || "",
-          poc: profile.poc || "",
-          startDate: profile.startDate ? new Date(profile.startDate).toISOString().split('T')[0] : "",
+          language: Profile.language || "English",
+          company: Profile.company || "Vitrux Ltd",
+          staffType: Profile.staffType || "",
+          nationality: Profile.nationality || "",
+          status: Profile.status || "",
+          poc: Profile.poc || "",
+          startDate: Profile.startDate ? new Date(profile.startDate).toISOString().split('T')[0] : "",
           emergencyContact: {
-            name: profile.emergencyContact?.name || "",
-            relationship: profile.emergencyContact?.relationship || "",
-            phone: profile.emergencyContact?.phone || "",
+            name: Profile.emergencyContact?.name || "",
+            relationship: Profile.emergencyContact?.relationship || "",
+            phone: Profile.emergencyContact?.phone || "",
           },
           address: {
-            line1: profile.address?.line1 || "",
-            line2: profile.address?.line2 || "",
-            city: profile.address?.city || "",
-            postCode: profile.address?.postCode || "",
-            country: profile.address?.country || "",
+            line1: Profile.address?.line1 || "",
+            line2: Profile.address?.line2 || "",
+            city: Profile.address?.city || "",
+            postCode: Profile.address?.postCode || "",
+            country: Profile.address?.country || "",
           },
-          externalSystemId: profile.externalSystemId || "",
-          extThirdPartySystemId: profile.extThirdPartySystemId || "",
-          nopsId: profile.nopsId || profile.nopsID || "",
-          nopsID: profile.nopsId || profile.nopsID || "",
-          insuranceNumber: profile.insuranceNumber || "",
-          circetUIN: profile.circetUIN || "",
-          circetSCID: profile.circetSCID || "",
-          morrisonsIDNumber: profile.morrisonsIDNumber || "",
-          morrisonsUIN: profile.morrisonsUIN || "",
-          bio: profile.bio || "",
-          otherInformation: profile.otherInformation || "",
+          externalSystemId: Profile.externalSystemId || "",
+          extThirdPartySystemId: Profile.extThirdPartySystemId || "",
+          nopsId: Profile.nopsId || profile.nopsID || "",
+          nopsID: Profile.nopsId || profile.nopsID || "",
+          insuranceNumber: Profile.insuranceNumber || "",
+          circetUIN: Profile.circetUIN || "",
+          circetSCID: Profile.circetSCID || "",
+          morrisonsIDNumber: Profile.morrisonsIDNumber || "",
+          morrisonsUIN: Profile.morrisonsUIN || "",
+          bio: Profile.bio || "",
+          otherInformation: Profile.otherInformation || "",
         });
       } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error('Error loading Profile:', error);
         alert(error.message === 'Profile not found' ? 
-          'Profile not found. Redirecting to profiles page.' : 
-          'Failed to load profile. Please try again or contact support.');
-        navigate('/profiles');
+          'Profile not found. Redirecting to Profiles page.' : 
+          'Failed to load Profile. Please try again or contact support.');
+        navigate('/Profiles');
       } finally {
         setProfileLoading(false);
       }
@@ -191,21 +191,21 @@ export default function EditUserProfile() {
         }
       };
       
-      console.log('Submitting profile update:', profileData);
+      console.log('Submitting Profile update:', profileData);
       await updateProfile(id, profileData);
       
       alert('Profile updated successfully!');
-      navigate(`/profiles/${id}`);
+      navigate(`/Profiles/${id}`);
     } catch (error) {
-      console.error("Failed to update profile:", error);
-      alert('Failed to update profile. Please try again.');
+      console.error("Failed to update Profile:", error);
+      alert('Failed to update Profile. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this profile? This will also delete ALL certificates associated with this profile. This action cannot be undone.")) {
+    if (window.confirm("Are you sure you want to delete this Profile? This will also delete ALL Certificates associated with this profile. This action cannot be undone.")) {
       setLoading(true);
       try {
         const response = await deleteProfile(id);
@@ -213,15 +213,15 @@ export default function EditUserProfile() {
         // Show detailed success message
         const certCount = response.details?.certificatesDeleted || 0;
         if (certCount > 0) {
-          alert(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
+          alert(`Profile and ${certCount} associated Certificate(s) deleted successfully!`);
         } else {
           alert('Profile deleted successfully!');
         }
         
-        navigate("/reporting/profiles");
+        navigate("/reporting/Profiles");
       } catch (error) {
-        console.error("Failed to delete profile:", error);
-        alert('Failed to delete profile. Please try again.');
+        console.error("Failed to Delete Profile:", error);
+        alert('Failed to Delete Profile. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -229,7 +229,7 @@ export default function EditUserProfile() {
   };
 
   const handleCancel = () => {
-    navigate(`/profiles/${id}`);
+    navigate(`/Profiles/${id}`);
   };
 
   // Show loading state
@@ -238,7 +238,7 @@ export default function EditUserProfile() {
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-gray-600">Loading Profile...</p>
         </div>
       </div>
     );
@@ -301,11 +301,11 @@ export default function EditUserProfile() {
                 />
               </div>
               <div className="col-span-2">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label htmlFor="Email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
                   id="email"
-                  type="email"
-                  name="email"
+                  type="Email"
+                  name="Email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Email"
@@ -736,7 +736,7 @@ export default function EditUserProfile() {
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? "Saving..." : "Save changes"}
+              {loading ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>

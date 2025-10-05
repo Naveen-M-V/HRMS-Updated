@@ -4,7 +4,7 @@ const JobLevelDropdown = ({
   value, 
   onChange, 
   name = "jobLevel",
-  placeholder = "Select or add job level",
+  placeholder = "Select or add Job Level",
   className = "",
   required = false 
 }) => {
@@ -78,7 +78,7 @@ const JobLevelDropdown = ({
         // Add to local state
         setJobLevels(prev => [...prev, newJobLevelData]);
         
-        // Select the new job level
+        // Select the new Job Level
         setSearchTerm(newJobLevelData.name);
         onChange({ target: { name, value: newJobLevelData.name } });
         
@@ -88,7 +88,7 @@ const JobLevelDropdown = ({
         setIsDropdownOpen(false);
       }
     } catch (error) {
-      console.error('Error adding job level:', error);
+      console.error('Error adding Job Level:', error);
     } finally {
       setIsLoading(false);
     }
@@ -185,7 +185,7 @@ const JobLevelDropdown = ({
                   className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 focus:outline-none"
                   onMouseDown={() => setShowAddForm(true)}
                 >
-                  + Add "{searchTerm}" as new job level
+                  + Add "{searchTerm}" as new Job Level
                 </button>
               ) : (
                 <div className="p-3 border-t">
@@ -194,7 +194,7 @@ const JobLevelDropdown = ({
                       type="text"
                       value={newJobLevel}
                       onChange={(e) => setNewJobLevel(e.target.value)}
-                      placeholder="Enter job level name"
+                      placeholder="Enter Job Level name"
                       className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       autoFocus
                     />

@@ -2,18 +2,18 @@
 
 // Define which fields contribute to completeness and human labels
 const REQUIRED_FIELDS = [
-  { path: 'firstName', label: 'First name' },
-  { path: 'lastName', label: 'Last name' },
-  { path: 'email', label: 'Email' },
+  { path: 'firstName', label: 'First Name' },
+  { path: 'lastName', label: 'Last Name' },
+  { path: 'Email', label: 'Email' },
   { path: 'mobile', label: 'Mobile' },
-  { path: 'jobTitle', label: 'Job title' },
+  { path: 'jobTitle', label: 'Job Title' },
   { path: 'department', label: 'Department' },
   { path: 'company', label: 'Company' },
   { path: 'staffType', label: 'Staff type' }
 ];
 
 const OPTIONAL_FIELDS = [
-  { path: 'dateOfBirth', label: 'Date of birth' },
+  { path: 'dateOfBirth', label: 'Date of Birth' },
   { path: 'gender', label: 'Gender' },
   { path: 'nationality', label: 'Nationality' },
   { path: 'location', label: 'Location' },
@@ -29,7 +29,7 @@ function get(obj, path) {
   return path.split('.').reduce((acc, key) => (acc ? acc[key] : undefined), obj);
 }
 
-export function getProfileCompleteness(profile) {
+export function getProfileCompleteness(Profile) {
   if (!profile || typeof profile !== 'object') {
     return { percent: 0, missing: REQUIRED_FIELDS.map(f => f.label) };
   }
@@ -39,7 +39,7 @@ export function getProfileCompleteness(profile) {
   const missing = [];
 
   ALL_FIELDS.forEach(f => {
-    const v = get(profile, f.path);
+    const v = get(Profile, f.path);
     let isFilled = false;
     
     if (Array.isArray(v)) {

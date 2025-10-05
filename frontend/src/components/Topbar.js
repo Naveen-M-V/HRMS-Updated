@@ -16,7 +16,7 @@ export default function Topbar({ toggleSidebar }) {
           src="/TSL.png" 
           alt="TSL Logo" 
           className="h-14 w-14 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/Dashboard")}
           loading="lazy"
           onError={(e) => {
             e.target.style.display = 'none';
@@ -55,7 +55,7 @@ export default function Topbar({ toggleSidebar }) {
               <button
                 onClick={() => {
                   setOpen(false);
-                  navigate("/dashboard/profilescreate"); 
+                  navigate("/Dashboard/profilescreate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >
@@ -64,8 +64,8 @@ export default function Topbar({ toggleSidebar }) {
               <button
                 onClick={() => {
                   setOpen(false);
-                  console.log('Navigating to create certificate page...');
-                  navigate("/dashboard/createcertificate"); 
+                  console.log('Navigating to create Certificate page...');
+                  navigate("/Dashboard/createcertificate"); 
                 }}
                 className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
               >

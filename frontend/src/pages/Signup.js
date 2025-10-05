@@ -9,10 +9,10 @@ export default function Signup() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
-    password: "",
+    Email: "",
+    Password: "",
     confirmPassword: "",
-    role: "admin", // Always admin for this signup page
+    role: "Admin", // Always admin for this signup page
     termsAccepted: false,
     requireEmailVerification: true,
   });
@@ -26,7 +26,7 @@ export default function Signup() {
   // This signup page is admin-only
   useEffect(() => {
     // Ensure role is always admin for this page
-    setFormData((prev) => ({ ...prev, role: "admin" }));
+    setFormData((prev) => ({ ...prev, role: "Admin" }));
   }, []);
 
   // Fix loading issue
@@ -56,7 +56,7 @@ export default function Signup() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-    // Clear error when user starts typing
+    // Clear error when User starts typing
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -69,27 +69,27 @@ export default function Signup() {
     const newErrors = {};
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
+      newErrors.firstName = "First Name is required";
     }
 
     if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
+      newErrors.lastName = "Last Name is required";
     }
 
-    if (!formData.email) {
+    if (!formData.Email) {
       newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(formData.Email)) {
       newErrors.email = "Email is invalid";
     }
 
-    if (!formData.password) {
+    if (!formData.Password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
+    } else if (formData.Password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
+      newErrors.confirmPassword = "Please confirm your Password";
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
@@ -113,8 +113,8 @@ export default function Signup() {
       const payload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
+        Email: formData.email,
+        Password: formData.password,
         role: formData.role,
         termsAccepted: formData.termsAccepted,
         requireEmailVerification: formData.requireEmailVerification,
@@ -125,7 +125,7 @@ export default function Signup() {
         alert(
           "Admin account created successfully! Please check your email to verify your account before logging in."
         );
-        navigate("/login");
+        navigate("/Login");
       } else {
         setErrors({ general: result.error || "Signup failed. Please try again." });
       }
@@ -180,7 +180,7 @@ export default function Signup() {
               </svg>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Admin Account</h2>
-            <p className="text-gray-600">Join the HRMS platform with admin privileges</p>
+            <p className="text-gray-600">Join the HRMS platform with Admin privileges</p>
             <div className="mt-4 flex items-center justify-center space-x-2">
               <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
               <p className="text-sm text-gray-500">Email verification required</p>
@@ -229,7 +229,7 @@ export default function Signup() {
                           ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
                           : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
                       } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
-                      placeholder="First name"
+                      placeholder="First Name"
                     />
                     {errors.firstName && (
                       <p className="mt-2 text-sm text-red-600 flex items-center">
@@ -261,7 +261,7 @@ export default function Signup() {
                           ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
                           : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
                       } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
-                      placeholder="Last name"
+                      placeholder="Last Name"
                     />
                     {errors.lastName && (
                       <p className="mt-2 text-sm text-red-600 flex items-center">
@@ -276,7 +276,7 @@ export default function Signup() {
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="Email" className="block text-sm font-semibold text-gray-700 mb-2">
                   Email address <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -284,32 +284,32 @@ export default function Signup() {
                     <MailIcon className="h-5 w-5 text-emerald-400" aria-hidden="true" />
                   </div>
                   <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
+                    id="Email"
+                    name="Email"
+                    type="Email"
+                    autoComplete="Email"
                     value={formData.email}
                     onChange={handleChange}
                     className={`block w-full pl-12 pr-4 py-3 border-2 ${
-                      errors.email 
+                      errors.Email 
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
                         : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
                     } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
-                    placeholder="Enter your email address"
+                    placeholder="Enter your Email address"
                   />
                   {errors.email && (
                     <p className="mt-2 text-sm text-red-600 flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      {errors.email}
+                      {errors.Email}
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="Password" className="block text-sm font-semibold text-gray-700 mb-2">
                   Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -317,25 +317,25 @@ export default function Signup() {
                     <LockClosedIcon className="h-5 w-5 text-emerald-400" aria-hidden="true" />
                   </div>
                   <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
+                    id="Password"
+                    name="Password"
+                    type="Password"
+                    autoComplete="new-Password"
                     value={formData.password}
                     onChange={handleChange}
                     className={`block w-full pl-12 pr-4 py-3 border-2 ${
-                      errors.password 
+                      errors.Password 
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
                         : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
                     } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
-                    placeholder="Create a secure password"
+                    placeholder="Create a secure Password"
                   />
                   {errors.password && (
                     <p className="mt-2 text-sm text-red-600 flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      {errors.password}
+                      {errors.Password}
                     </p>
                   )}
                 </div>
@@ -352,8 +352,8 @@ export default function Signup() {
                   <input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
+                    type="Password"
+                    autoComplete="new-Password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className={`block w-full pl-12 pr-4 py-3 border-2 ${
@@ -361,7 +361,7 @@ export default function Signup() {
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
                         : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-200'
                     } rounded-xl placeholder-gray-400 focus:outline-none focus:ring-4 transition-all duration-200 ease-in-out text-gray-900 bg-gray-50 hover:bg-white`}
-                    placeholder="Confirm your password"
+                    placeholder="Confirm your Password"
                   />
                   {errors.confirmPassword && (
                     <p className="mt-2 text-sm text-red-600 flex items-center">
@@ -382,7 +382,7 @@ export default function Signup() {
                 <div className="grid grid-cols-2 gap-3">
                   <label
                     className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                      formData.role === "user"
+                      formData.role === "User"
                         ? "border-emerald-600 bg-emerald-50 text-emerald-900"
                         : "border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
                     }`}
@@ -390,17 +390,17 @@ export default function Signup() {
                     <input
                       type="radio"
                       name="role"
-                      value="user"
-                      checked={formData.role === "user"}
+                      value="User"
+                      checked={formData.role === "User"}
                       onChange={handleChange}
                       className="sr-only"
                     />
                     <div className="flex w-full items-center justify-between">
                       <div className="text-sm">
                         <div className="font-medium">User</div>
-                        <div className="text-gray-500">Access your profile & certificates</div>
+                        <div className="text-gray-500">Access your Profile & Certificates</div>
                       </div>
-                      {formData.role === "user" && (
+                      {formData.role === "User" && (
                         <svg
                           className="h-5 w-5 text-emerald-600"
                           viewBox="0 0 20 20"
@@ -417,7 +417,7 @@ export default function Signup() {
                   </label>
                   <label
                     className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
-                      formData.role === "admin"
+                      formData.role === "Admin"
                         ? "border-emerald-600 bg-emerald-50 text-emerald-900"
                         : "border-gray-300 bg-white text-gray-900 hover:bg-gray-50"
                     }`}
@@ -425,8 +425,8 @@ export default function Signup() {
                     <input
                       type="radio"
                       name="role"
-                      value="admin"
-                      checked={formData.role === "admin"}
+                      value="Admin"
+                      checked={formData.role === "Admin"}
                       onChange={handleChange}
                       className="sr-only"
                     />
@@ -435,7 +435,7 @@ export default function Signup() {
                         <div className="font-medium">Admin</div>
                         <div className="text-gray-500">Full system management (requires approval)</div>
                       </div>
-                      {formData.role === "admin" && (
+                      {formData.role === "Admin" && (
                         <svg
                           className="h-5 w-5 text-emerald-600"
                           viewBox="0 0 20 20"
@@ -466,7 +466,7 @@ export default function Signup() {
                   className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
                 />
                 <label htmlFor="requireEmailVerification" className="ml-2 block text-sm text-gray-700">
-                  Require email verification before login
+                  Require Email verification before Login
                 </label>
               </div>*/}
 
@@ -572,7 +572,7 @@ export default function Signup() {
 
               <div className="mt-6">
                 <Link
-                  to="/login"
+                  to="/Login"
                   className="w-full flex justify-center py-3 px-6 border-2 border-emerald-500 rounded-xl text-sm font-semibold text-emerald-600 bg-white/50 backdrop-blur-sm hover:bg-emerald-50 hover:border-emerald-600 focus:outline-none focus:ring-4 focus:ring-emerald-200 transition-all duration-200 ease-in-out transform hover:scale-105 shadow-md hover:shadow-lg"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -636,11 +636,11 @@ export default function Signup() {
                   </p>
                   <h5 className="mb-3 font-semibold text-gray-900">1. Acceptance of Terms</h5>
                   <p className="mb-4">
-                    By creating an admin account and using this HRMS system, you acknowledge that you have read, understood, and agree to be bound by these terms.
+                    By creating an Admin account and using this HRMS system, you acknowledge that you have read, understood, and agree to be bound by these terms.
                   </p>
                   <h5 className="mb-3 font-semibold text-gray-900">2. Admin Responsibilities</h5>
                   <p className="mb-4">
-                    As an administrator, you are responsible for maintaining the confidentiality of user data, ensuring proper access controls, and using the system in accordance with applicable laws and regulations.
+                    As an administrator, you are responsible for maintaining the confidentiality of User data, ensuring proper access controls, and using the system in accordance with applicable laws and regulations.
                   </p>
                   <h5 className="mb-3 font-semibold text-gray-900">3. Data Protection</h5>
                   <p className="mb-4">
@@ -648,7 +648,7 @@ export default function Signup() {
                   </p>
                   <h5 className="mb-3 font-semibold text-gray-900">4. Account Security</h5>
                   <p className="mb-4">
-                    You are responsible for maintaining the security of your admin account, including using strong passwords and keeping your login credentials confidential.
+                    You are responsible for maintaining the security of your Admin account, including using strong passwords and keeping your Login credentials confidential.
                   </p>
                 </div>
               </div>
@@ -693,7 +693,7 @@ export default function Signup() {
                   </p>
                   <h5 className="mb-3 font-semibold text-gray-900">2. How We Use Information</h5>
                   <p className="mb-4">
-                    Information is used for HR management purposes, compliance tracking, certificate management, and system administration. We do not share personal data with unauthorized third parties.
+                    Information is used for HR management purposes, compliance tracking, Certificate management, and system administration. We do not share personal data with unauthorized third parties.
                   </p>
                   <h5 className="mb-3 font-semibold text-gray-900">3. Data Security</h5>
                   <p className="mb-4">

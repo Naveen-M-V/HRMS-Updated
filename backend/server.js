@@ -1368,31 +1368,45 @@ app.delete('/api/certificates/:id/file', async (req, res) => {
 });
 
 // Serve certificate file for viewing (not downloading)
-// Delete certificate
+
+// Delete certificate with enhanced email notifications
 app.delete('/api/certificates/:id', async (req, res) => {
   try {
-    const certificate = await Certificate.findById(req.params.id);
+    const certificateId = req.params.id;
+    
+    const certificate = await Certificate.findById(certificateId).populate('profileId');
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
     
-    const deletedCertificate = await Certificate.findByIdAndDelete(req.params.id);
+    const profile = certificate.profileId;
     
-    // Create notification for certificate deletion
-    try {
-      const users = await User.find({ role: 'admin' });
-      for (const user of users) {
-        const notification = new Notification({
-          userId: user._id,
-          type: 'certificate_deleted',
-          priority: 'medium',
-          message: `Certificate deleted: ${certificate.certificate} for ${certificate.profileName}`,
-          read: false
-        });
-        await notification.save();
+    // Delete certificate
+    await Certificate.findByIdAndDelete(certificateId);
+    
+    // Send email notifications
+    if (profile) {
+      try {
+        // Send notification to user
+        await sendCertificateDeletedEmail(profile, certificate);
+        console.log('Certificate deletion email sent to user:', profile.email);
+        
+        // Send notification to admins
+        const adminUsers = await User.find({ role: 'admin' });
+        for (const admin of adminUsers) {
+          await sendNotificationEmail(
+            admin.email,
+            `${admin.firstName} ${admin.lastName}`,
+            'Certificate Deleted',
+            `Certificate "${certificate.certificate}" for ${profile.firstName} ${profile.lastName} has been deleted.`,
+            'warning'
+          );
+        }
+        console.log('Admin notifications sent for certificate deletion');
+        
+      } catch (emailError) {
+        console.error('Error sending certificate deletion emails:', emailError);
       }
-    } catch (notificationError) {
-      console.error('Error creating certificate delete notification:', notificationError);
     }
     
     res.json({ message: 'Certificate deleted successfully' });
@@ -2690,6 +2704,23 @@ const calculateDaysUntilExpiry = (expiryDate) => {
 const sendEmailNotification = async (userEmail, subject, body) => {
   try {
     const { sendEmail } = require('./utils/emailService');
+// Enhanced email service functions
+const {
+  sendProfileCreationEmail,
+  sendProfileUpdateEmail,
+  sendProfileDeletionEmail,
+  sendCertificateAddedEmail,
+  sendCertificateDeletedEmail,
+  sendCertificateExpiryReminderEmail,
+  sendCertificateExpiredEmail,
+  sendUserCredentialsEmail,
+  sendAdminNewUserCredentialsEmail,
+  sendNotificationEmail
+} = require('./utils/emailService');
+
+// Password generator utility
+const { generateSecurePassword } = require('./utils/passwordGenerator');
+
     const result = await sendEmail({
       to: userEmail,
       subject: subject,
@@ -2937,6 +2968,85 @@ const createDefaultSuppliers = async () => {
     console.error('Error creating default suppliers:', error);
   }
 };
+
+
+// Enhanced Certificate Expiry Monitoring with Email Notifications
+const enhancedCertificateExpiryMonitoring = async () => {
+  try {
+    console.log('Running enhanced certificate expiry monitoring...');
+    
+    const today = new Date();
+    const certificates = await Certificate.find({
+      active: 'Yes',
+      status: 'Approved',
+      expiryDate: { $exists: true, $ne: null }
+    }).populate('profileId');
+    
+    for (const certificate of certificates) {
+      if (!certificate.profileId || !certificate.expiryDate) continue;
+      
+      const profile = certificate.profileId;
+      const expiryDate = new Date(certificate.expiryDate);
+      const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+      
+      // Send expiry reminders
+      if (daysUntilExpiry === 30 || daysUntilExpiry === 14 || daysUntilExpiry === 7 || daysUntilExpiry === 1) {
+        try {
+          // Send to user
+          await sendCertificateExpiryReminderEmail(profile, certificate, daysUntilExpiry);
+          
+          // Send to admins
+          const adminUsers = await User.find({ role: 'admin' });
+          for (const admin of adminUsers) {
+            await sendNotificationEmail(
+              admin.email,
+              `${admin.firstName} ${admin.lastName}`,
+              `Certificate Expiring in ${daysUntilExpiry} Days`,
+              `Certificate "${certificate.certificate}" for ${profile.firstName} ${profile.lastName} expires in ${daysUntilExpiry} days.`,
+              daysUntilExpiry <= 7 ? 'error' : 'warning'
+            );
+          }
+          
+          console.log(`Expiry reminder sent for certificate ${certificate.certificate} (${daysUntilExpiry} days)`);
+        } catch (emailError) {
+          console.error('Error sending expiry reminder:', emailError);
+        }
+      }
+      
+      // Send expired notifications
+      if (daysUntilExpiry < 0 && daysUntilExpiry >= -7) { // Send for first week after expiry
+        try {
+          // Send to user
+          await sendCertificateExpiredEmail(profile, certificate);
+          
+          // Send to admins
+          const adminUsers = await User.find({ role: 'admin' });
+          for (const admin of adminUsers) {
+            await sendNotificationEmail(
+              admin.email,
+              `${admin.firstName} ${admin.lastName}`,
+              'Certificate EXPIRED',
+              `Certificate "${certificate.certificate}" for ${profile.firstName} ${profile.lastName} has EXPIRED.`,
+              'error'
+            );
+          }
+          
+          console.log(`Expired notification sent for certificate ${certificate.certificate}`);
+        } catch (emailError) {
+          console.error('Error sending expired notification:', emailError);
+        }
+      }
+    }
+    
+    console.log('Certificate expiry monitoring completed');
+  } catch (error) {
+    console.error('Error in certificate expiry monitoring:', error);
+  }
+};
+
+// Schedule enhanced certificate expiry monitoring to run daily at 9 AM
+cron.schedule('0 9 * * *', enhancedCertificateExpiryMonitoring);
+console.log('Enhanced certificate expiry monitoring scheduled for 9 AM daily');
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

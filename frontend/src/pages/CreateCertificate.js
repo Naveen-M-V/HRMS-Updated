@@ -10,22 +10,22 @@ export default function CreateCertificate() {
   const navigate = useNavigate();
   const routerLocation = useLocation();
   const { addCertificate } = useCertificates();
-  const { profiles, loading: profilesLoading, error: profilesError } = useProfiles();
+  const { Profiles, loading: profilesLoading, error: profilesError } = useProfiles();
 
   // Debug logging
-  console.log('CreateCertificate - profiles:', profiles);
-  console.log('CreateCertificate - profiles length:', profiles?.length);
+  console.log('CreateCertificate - profiles:', Profiles);
+  console.log('CreateCertificate - profiles length:', Profiles?.length);
   console.log('CreateCertificate - loading:', profilesLoading);
   console.log('CreateCertificate - error:', profilesError);
 
-  // State for certificate suggestions based on job role
+  // State for Certificate suggestions based on Job Role
   const [suggestedCertificates, setSuggestedCertificates] = useState({ mandatory: [], alternative: [] });
   const [profileJobRoles, setProfileJobRoles] = useState([]);
   const [pageError, setPageError] = useState(null);
   const [localProfiles, setLocalProfiles] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
 
-  // Fallback function to fetch profiles directly if context fails
+  // Fallback function to fetch Profiles directly if context fails
   const fetchProfilesDirectly = async () => {
     try {
       setLocalLoading(true);
@@ -38,10 +38,10 @@ export default function CreateCertificate() {
         setLocalProfiles(data);
         console.log('Profiles fetched directly:', data);
       } else {
-        throw new Error(`Failed to fetch profiles: ${response.status}`);
+        throw new Error(`Failed to fetch Profiles: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error fetching profiles directly:', error);
+      console.error('Error fetching Profiles directly:', error);
       setPageError(error.message);
     } finally {
       setLocalLoading(false);
@@ -54,7 +54,7 @@ export default function CreateCertificate() {
       console.log('ProfileContext failed, trying direct fetch...');
       fetchProfilesDirectly();
     }
-  }, [profilesError, profiles]);
+  }, [profilesError, Profiles]);
 
   // Determine which profiles to use
   const availableProfiles = profiles && profiles.length > 0 ? profiles : localProfiles;
@@ -82,14 +82,14 @@ export default function CreateCertificate() {
   const [suppliers, setSuppliers] = useState([]);
   const [certificateNames, setCertificateNames] = useState([]);
 
-  // Load suppliers and certificate names on component mount
+  // Load suppliers and Certificate names on component mount
   useEffect(() => {
     fetchSuppliers();
     fetchCertificateNames();
     initializeCertificateNames();
   }, []);
 
-  // Pre-fill profile if passed from ProfileDetailView
+  // Pre-fill Profile if passed from ProfileDetailView
   useEffect(() => {
     if (routerLocation.state?.profileId && availableProfiles.length > 0) {
       const prefilledProfile = availableProfiles.find(p => p._id === routerLocation.state.profileId);
@@ -105,7 +105,7 @@ export default function CreateCertificate() {
         setProfileJobRoles(jobRoles);
         
         if (jobRoles.length > 0) {
-          const certificates = getCertificatesForMultipleJobRoles(jobRoles);
+          const Certificates = getCertificatesForMultipleJobRoles(jobRoles);
           setSuggestedCertificates({
             mandatory: certificates.mandatory || [],
             alternative: certificates.alternative || []
@@ -144,19 +144,19 @@ export default function CreateCertificate() {
 
   const fetchCertificateNames = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/certificate-names`);
+      const response = await fetch(`${getApiUrl()}/api/Certificate-names`);
       if (response.ok) {
         const data = await response.json();
         setCertificateNames(data);
       }
     } catch (error) {
-      console.error('Error fetching certificate names:', error);
+      console.error('Error fetching Certificate names:', error);
     }
   };
 
   const initializeCertificateNames = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/certificate-names/initialize`, {
+      const response = await fetch(`${getApiUrl()}/api/Certificate-names/initialize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,7 +166,7 @@ export default function CreateCertificate() {
         console.warn('Certificate names initialization failed, but continuing anyway');
       }
     } catch (error) {
-      console.warn('Error initializing certificate names (non-critical):', error);
+      console.warn('Error initializing Certificate names (non-critical):', error);
     }
   };
 
@@ -214,22 +214,22 @@ export default function CreateCertificate() {
   const handleCertificateNameSearch = async (searchTerm) => {
     try {
       const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}/api/certificate-names/search?q=${encodeURIComponent(searchTerm)}`);
+      const response = await fetch(`${baseUrl}/api/Certificate-names/search?q=${encodeURIComponent(searchTerm)}`);
       if (response.ok) {
         const data = await response.json();
         setCertificateNames(data);
       } else {
-        console.error('Failed to search certificate names:', response.status, response.statusText);
+        console.error('Failed to search Certificate names:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error searching certificate names:', error);
+      console.error('Error searching Certificate names:', error);
     }
   };
 
   const handleAddCertificateName = async (certificateName) => {
     try {
       const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}/api/certificate-names`, {
+      const response = await fetch(`${baseUrl}/api/Certificate-names`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -239,16 +239,16 @@ export default function CreateCertificate() {
       
       if (response.ok) {
         const newCertificateName = await response.json();
-        console.log('New certificate name added:', newCertificateName);
+        console.log('New Certificate name added:', newCertificateName);
         // Update certificate names list
         fetchCertificateNames();
         // Update form
         setForm(prev => ({ ...prev, certificateName: certificateName }));
       } else {
-        console.error('Failed to add certificate name:', response.status, response.statusText);
+        console.error('Failed to Add Certificate name:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error adding certificate name:', error);
+      console.error('Error adding Certificate name:', error);
     }
   };
 
@@ -256,9 +256,9 @@ export default function CreateCertificate() {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
 
-    // Handle profile selection change
+    // Handle Profile selection change
     if (name === 'profileId') {
-      const profile = availableProfiles.find(p => p._id === value);
+      const Profile = availableProfiles.find(p => p._id === value);
       setSelectedProfile(profile);
       
       // Get job roles from profile
@@ -269,7 +269,7 @@ export default function CreateCertificate() {
       }
       setProfileJobRoles(jobRoles);
       
-      // Get suggested certificates based on ALL job roles
+      // Get suggested Certificates based on ALL job roles
       if (jobRoles.length > 0) {
         const certificates = getCertificatesForMultipleJobRoles(jobRoles);
         setSuggestedCertificates({
@@ -280,7 +280,7 @@ export default function CreateCertificate() {
         setSuggestedCertificates({ mandatory: [], alternative: [] });
       }
       
-      // Reset certificate selection when profile changes
+      // Reset Certificate selection when profile changes
       setForm(prev => ({ ...prev, certificateName: "" }));
     }
   };
@@ -313,12 +313,12 @@ export default function CreateCertificate() {
     
     // Validate required fields
     if (!form.profileId) {
-      alert('Please select a profile');
+      alert('Please select a Profile');
       return;
     }
     
     if (!form.certificateName) {
-      alert('Please select or enter a certificate name');
+      alert('Please select or enter a Certificate name');
       return;
     }
     
@@ -338,13 +338,13 @@ export default function CreateCertificate() {
       }
     };
     
-    // Transform form data to match certificate structure
+    // Transform form data to match Certificate structure
     const newCertificate = {
       // Required fields for backend validation
       certificate: form.certificateName || "New Certificate",
       category: "Other",
       
-      // CRITICAL: Link to profile via profileId
+      // CRITICAL: Link to Profile via profileId
       profileId: selectedProfile?._id,
       profileName: selectedProfile ? `${selectedProfile.firstName} ${selectedProfile.lastName}` : "Unknown Profile",
       
@@ -366,22 +366,22 @@ export default function CreateCertificate() {
       fileData: form.certificateFile
     };
 
-    // Add certificate to context
+    // Add Certificate to context
     addCertificate(newCertificate)
       .then(() => {
         alert('Certificate created successfully!');
-        // Navigate to certificate management page
-        navigate("/certificates");
+        // Navigate to Certificate management page
+        navigate("/Certificates");
       })
       .catch((error) => {
-        console.error('Error creating certificate:', error);
-        alert('Failed to create certificate. Please try again.');
+        console.error('Error creating Certificate:', error);
+        alert('Failed to create Certificate. Please try again.');
       });
   };
 
   const handleCancel = () => {
     navigate(-1); // go back one page
-    // OR navigate("/certificates"); // redirect to certificate list
+    // OR navigate("/Certificates"); // redirect to Certificate list
   };
 
   // Show loading state
@@ -391,7 +391,7 @@ export default function CreateCertificate() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading profiles...</p>
+            <p className="text-gray-600">Loading Profiles...</p>
           </div>
         </div>
       </div>
@@ -413,7 +413,7 @@ export default function CreateCertificate() {
               Retry
             </button>
             <button 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/Dashboard')}
               className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
             >
               Back to Dashboard
@@ -424,15 +424,15 @@ export default function CreateCertificate() {
     );
   }
 
-  // Show message if no profiles available
+  // Show message if no Profiles available
   if (!availableProfiles || availableProfiles.length === 0) {
     return (
       <div className="flex-1 p-6">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
           <h3 className="text-yellow-800 font-medium mb-2">No Profiles Available</h3>
-          <p className="text-yellow-600 mb-4">You need to create profiles before you can create certificates.</p>
+          <p className="text-yellow-600 mb-4">You need to create Profiles before you can create Certificates.</p>
           <button 
-            onClick={() => navigate('/dashboard/profilescreate')}
+            onClick={() => navigate('/Dashboard/profilescreate')}
             className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
           >
             Create Profile First
@@ -461,12 +461,12 @@ export default function CreateCertificate() {
           className="w-full border rounded-lg p-2"
           required
           >
-          <option value="">Select a profile...</option>
+          <option value="">Select a Profile...</option>
           {availableProfiles.map((profile) => (
           <option key={profile._id} value={profile._id}>
           {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobRole) 
           ? profile.jobRole.join(', ') 
-          : (profile.jobRole || 'N/A')
+          : (Profile.jobRole || 'N/A')
           }
           </option>
           ))}
@@ -551,13 +551,13 @@ export default function CreateCertificate() {
               value={form.certificateName}
               onChange={handleChange}
               options={certificateNames}
-              placeholder="Type to search certificates or add new..."
+              placeholder="Type to search Certificates or add new..."
               onSearch={handleCertificateNameSearch}
               onAddNew={handleAddCertificateName}
               className="w-full"
             />
             <p className="text-xs text-gray-500 mt-1">
-              You can type to search existing certificates or add a new one
+              You can type to search existing Certificates or add a new one
             </p>
           </div>
 
@@ -567,7 +567,7 @@ export default function CreateCertificate() {
               <input
                 type="text"
                 name="account"
-                placeholder="Please select a profile above to proceed"
+                placeholder="Please select a Profile above to proceed"
                 value={form.account}
                 onChange={handleChange}
                 className="w-full border rounded-lg p-2"
@@ -593,7 +593,7 @@ export default function CreateCertificate() {
                   name="issueDate"
                   value={form.issueDate}
                   onChange={handleChange}
-                  placeholder="Select issue date"
+                  placeholder="Select Issue Date"
                   className="w-full"
                 />
               </div>
@@ -603,7 +603,7 @@ export default function CreateCertificate() {
                   name="expiryDate"
                   value={form.expiryDate}
                   onChange={handleChange}
-                  placeholder="Select expiry date"
+                  placeholder="Select Expiry Date"
                   className="w-full"
                 />
               </div>
@@ -676,7 +676,7 @@ export default function CreateCertificate() {
               <input
                 type="number"
                 name="totalCost"
-                placeholder="Enter total cost of the certificate"
+                placeholder="Enter total cost of the Certificate"
                 value={form.totalCost}
                 onChange={handleChange}
                 className="w-full border rounded-lg p-2"
@@ -698,7 +698,7 @@ export default function CreateCertificate() {
                 </p>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                Please upload the certificate in PDF, JPEG, or PNG format (max 10MB)
+                Please upload the Certificate in PDF, JPEG, or PNG format (max 10MB)
               </p>
             </div>
 
@@ -715,7 +715,7 @@ export default function CreateCertificate() {
                 type="submit"
                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
               >
-                Save changes
+                Save Changes
               </button>
             </div>
           </form>

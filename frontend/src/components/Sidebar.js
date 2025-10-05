@@ -16,7 +16,7 @@ import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
-  const { logout, loading } = useAuth();
+  const { Logout, loading } = useAuth();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
@@ -24,7 +24,7 @@ export default function Sidebar({ isOpen }) {
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // Fetch notification count on component mount
+  // Fetch Notification count on component mount
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
@@ -34,7 +34,7 @@ export default function Sidebar({ isOpen }) {
           return;
         }
 
-        const response = await fetch('https://talentshield.co.uk/api/notifications/unread-count', {
+        const response = await fetch('https://talentshield.co.uk/api/Notifications/unread-count', {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -59,27 +59,27 @@ export default function Sidebar({ isOpen }) {
           console.error('Unexpected response format:', data);
         }
       } catch (error) {
-        console.error('Failed to fetch notification count:', error);
+        console.error('Failed to fetch Notification count:', error);
         setUnreadNotifications(0); // Reset count on error
       }
     };
 
     fetchNotificationCount();
     
-    // Poll for new notifications every 30 seconds
+    // Poll for new Notifications every 30 seconds
     const interval = setInterval(fetchNotificationCount, 30000);
     
     return () => clearInterval(interval);
   }, []);
 
-  // Handle logout
+  // Handle Logout
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login");
+      navigate("/Login");
     } catch (error) {
       console.error("Logout error:", error);
-      navigate("/login");
+      navigate("/Login");
     }
   };
 
@@ -183,17 +183,17 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
               <ChildItem
                 name="Profiles"
                 icon={UserIcon}
-                onClick={() => navigate("/reporting/profiles")}
+                onClick={() => navigate("/reporting/Profiles")}
               />
               <ChildItem
                 name="Create User"
                 icon={UserPlusIcon}
-                onClick={() => navigate("/create-user")}
+                onClick={() => navigate("/create-User")}
               />
               <ChildItem
                 name="Certificates"
                 icon={DocumentTextIcon}
-                onClick={() => navigate("/certificates")}
+                onClick={() => navigate("/Certificates")}
               />
             </div>
           )}
@@ -229,14 +229,14 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
               <ChildItem
                 name="Profile"
                 icon={UserIcon}
-                onClick={() => navigate("/myaccount/profiles")}
+                onClick={() => navigate("/myaccount/Profiles")}
               />
               <div className="relative">
                 <ChildItem
                   name="Notifications"
                   icon={BellIcon}
                   onClick={() => {
-                    navigate("/myaccount/notifications");
+                    navigate("/myaccount/Notifications");
                     setUnreadNotifications(0);
                   }}
                 />
