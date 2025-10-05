@@ -1223,7 +1223,13 @@ app.delete('/api/profiles/:id', async (req, res) => {
     // Send comprehensive email notifications BEFORE deletion
     try {
       // Send professional profile deletion email to user
-      await sendProfileDeletionEmail(profile);
+      await sendNotificationEmail(
+        profile.email,
+        `${profile.firstName} ${profile.lastName}`,
+        'Profile Deletion Notification',
+        `Your profile has been deleted from the HRMS system.\n\nProfile Details:\n- Name: ${profile.firstName} ${profile.lastName}\n- Email: ${profile.email}\n- Job Role: ${Array.isArray(profile.jobRole) ? profile.jobRole.join(', ') : profile.jobRole}\n\nIf you have any questions, please contact your administrator.`,
+        'warning'
+      );
       console.log('Profile deletion email sent to user:', profile.email);
       
       // Send notification to all admins
