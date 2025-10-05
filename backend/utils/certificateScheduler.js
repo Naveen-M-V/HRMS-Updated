@@ -5,17 +5,26 @@ const {
   sendCertificateExpiredEmail 
 } = require('./emailService');
 
-// Helper function to parse DD/MM/YYYY date format
-function parseDate(dateString) {
-  if (!dateString || typeof dateString !== 'string') return null;
-  const [day, month, year] = dateString.split('/');
-  if (!day || !month || !year) return null;
-  return new Date(year, month - 1, day);
+// Helper function to parse DD/MM/YYYY date format or Date object
+function parseDate(dateInput) {
+  if (!dateInput) return null;
+  
+  // If it's already a Date object, return it
+  if (dateInput instanceof Date) return dateInput;
+  
+  // If it's a string, parse DD/MM/YYYY format
+  if (typeof dateInput === 'string') {
+    const [day, month, year] = dateInput.split('/');
+    if (!day || !month || !year) return null;
+    return new Date(year, month - 1, day);
+  }
+  
+  return null;
 }
 
 // Calculate days until expiry
-function getDaysUntilExpiry(expiryDateString) {
-  const expiryDate = parseDate(expiryDateString);
+function getDaysUntilExpiry(expiryDateInput) {
+  const expiryDate = parseDate(expiryDateInput);
   if (!expiryDate) return null;
   
   const today = new Date();
@@ -53,17 +62,13 @@ async function checkExpiringCertificates() {
       const reminderDays = [60, 30, 14, 7, 3, 1];
       
       if (reminderDays.includes(daysUntilExpiry) && daysUntilExpiry > 0) {
-        // Find the profile
-        // Note: Your Certificate schema stores profileName as a string, not a profileId reference
-        // This is a workaround - consider adding profileId field to Certificate schema for better performance
-        const nameParts = cert.profileName.split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ');
+        // Find the profile using profileId (now properly linked)
+        if (!cert.profileId) {
+          console.warn(`[Certificate Scheduler] No profileId for certificate: ${cert.certificate}`);
+          continue;
+        }
         
-        const profile = await Profile.findOne({
-          firstName: firstName,
-          lastName: lastName
-        });
+        const profile = await Profile.findById(cert.profileId);
         
         if (profile && profile.email) {
           const certificateData = {
@@ -129,15 +134,13 @@ async function checkExpiredCertificates() {
       
       // If expired (negative days or zero)
       if (daysUntilExpiry <= 0) {
-        // Find the profile
-        const nameParts = cert.profileName.split(' ');
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ');
+        // Find the profile using profileId
+        if (!cert.profileId) {
+          console.warn(`[Certificate Scheduler] No profileId for expired certificate: ${cert.certificate}`);
+          continue;
+        }
         
-        const profile = await Profile.findOne({
-          firstName: firstName,
-          lastName: lastName
-        });
+        const profile = await Profile.findById(cert.profileId);
         
         if (profile && profile.email) {
           const certificateData = {

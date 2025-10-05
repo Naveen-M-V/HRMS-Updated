@@ -118,10 +118,13 @@ mongoose.connection.on('disconnected', () => {
 
 // Profile Schema
 const profileSchema = new mongoose.Schema({
+  // User Reference
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', unique: true, sparse: true, index: true },
+  
   // Basic Info
   firstName: { type: String, required: true, index: true },
   lastName: { type: String, required: true, index: true },
-  email: { type: String, required: true, unique: true, index: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
   mobile: String,
   dateOfBirth: Date,
   gender: String,
@@ -135,7 +138,7 @@ const profileSchema = new mongoose.Schema({
   staffType: { type: String, default: 'Direct' },
   company: { type: String, default: 'VitruX Ltd' },
   jobRole: [String], // Array of job roles to support multiple selections
-  jobTitle: [String], // Job title field - changed to array to match frontend
+  jobTitle: { type: String, default: '' }, // Job title field - single string to fix casting error
   jobLevel: String,
   department: String, // Department field
   language: { type: String, default: 'English' },
@@ -242,17 +245,36 @@ const Profile = mongoose.model('Profile', profileSchema);
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  username: { type: String },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  username: { type: String, unique: true, sparse: true, trim: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  vtid: { type: String, unique: true, sparse: true, uppercase: true, trim: true, index: true }, // Add VTID to User
+  profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', unique: true, sparse: true }, // Link to Profile
   isActive: { type: Boolean, default: true },
   emailVerified: { type: Boolean, default: false },
   verificationToken: { type: String },
   adminApprovalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
   adminApprovalToken: { type: String },
-  termsAcceptedAt: { type: Date }
+  termsAcceptedAt: { type: Date },
+  passwordChangedAt: { type: Date },
+  lastLoginAt: { type: Date }
 }, { timestamps: true });
+
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) return next();
+  
+  try {
+    // Hash password with salt rounds of 10
+    this.password = await bcrypt.hash(this.password, 10);
+    this.passwordChangedAt = Date.now();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Add method to create default admin if none exists
 userSchema.statics.ensureAdminExists = async function() {
@@ -290,26 +312,26 @@ const certificateSchema = new mongoose.Schema({
   certificate: { type: String, required: true },
   description: String,
   account: String,
-  issueDate: String,
-  expiryDate: String,
-  profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile' },
+  issueDate: { type: Date }, // Changed to Date type
+  expiryDate: { type: Date, index: true }, // Changed to Date type with index for queries
+  profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', index: true },
   profileName: String,
   provider: String,
   fileRequired: { type: String, default: 'No' },
   active: { type: String, default: 'Yes' },
-  status: { type: String, default: 'Approved' },
-  cost: { type: String, default: '0.00' },
-  category: { type: String, required: true }, 
+  status: { type: String, default: 'Approved', index: true },
+  cost: { type: Number, default: 0 }, // Changed to Number
+  category: { type: String, required: true, index: true }, 
   jobRole: String, 
   approvalStatus: String,
-  isInterim: { type: String, default: 'False' }, 
+  isInterim: { type: Boolean, default: false }, // Changed to Boolean
   timeLogged: {
-    days: { type: String, default: '0' },
-    hours: { type: String, default: '0' },
-    minutes: { type: String, default: '0' }
+    days: { type: Number, default: 0 },
+    hours: { type: Number, default: 0 },
+    minutes: { type: Number, default: 0 }
   },
   supplier: String,
-  totalCost: String,
+  totalCost: { type: Number, default: 0 }, // Changed to Number
   
   // File storage fields - store in database
   certificateFile: String, // Store original filename
@@ -320,6 +342,72 @@ const certificateSchema = new mongoose.Schema({
   archived: { type: String, default: 'Unarchived' },
   createdOn: { type: Date, default: Date.now, index: true },
   updatedOn: { type: Date, default: Date.now }
+});
+
+// Helper function to parse date strings (moved from below for pre-save hook)
+const parseDateString = (dateString) => {
+  if (!dateString) return null;
+  if (dateString instanceof Date) return dateString;
+  
+  try {
+    const cleanDate = dateString.toString().trim();
+    let date;
+    
+    // Try ISO format first (YYYY-MM-DD)
+    if (cleanDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+      date = new Date(cleanDate);
+    }
+    // Try DD/MM/YYYY format
+    else if (cleanDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+      const [day, month, year] = cleanDate.split('/');
+      date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    // Default: try direct parsing
+    else {
+      date = new Date(cleanDate);
+    }
+    
+    return isNaN(date.getTime()) ? null : date;
+  } catch (error) {
+    return null;
+  }
+};
+
+// Pre-save hook to convert string dates to Date objects
+certificateSchema.pre('save', function(next) {
+  // Convert issueDate if it's a string
+  if (this.issueDate && typeof this.issueDate === 'string') {
+    this.issueDate = parseDateString(this.issueDate);
+  }
+  
+  // Convert expiryDate if it's a string
+  if (this.expiryDate && typeof this.expiryDate === 'string') {
+    this.expiryDate = parseDateString(this.expiryDate);
+  }
+  
+  // Validate expiryDate is after issueDate
+  if (this.issueDate && this.expiryDate && this.expiryDate <= this.issueDate) {
+    return next(new Error('Expiry date must be after issue date'));
+  }
+  
+  // Convert cost strings to numbers
+  if (typeof this.cost === 'string') {
+    this.cost = parseFloat(this.cost) || 0;
+  }
+  
+  if (typeof this.totalCost === 'string') {
+    this.totalCost = parseFloat(this.totalCost) || 0;
+  }
+  
+  // Convert isInterim string to boolean
+  if (typeof this.isInterim === 'string') {
+    this.isInterim = this.isInterim.toLowerCase() === 'true' || this.isInterim.toLowerCase() === 'yes';
+  }
+  
+  // Update updatedOn timestamp
+  this.updatedOn = Date.now();
+  
+  next();
 });
 
 const Certificate = mongoose.model('Certificate', certificateSchema);
@@ -660,37 +748,35 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       const existingUser = await User.findOne({ email: savedProfile.email });
       
       if (!existingUser) {
-        // Create new user account with VTID as password
-        const vtid = savedProfile.vtid || Math.floor(1000 + Math.random() * 8000); // Generate VTID if not exists
-        
-        // Update profile with VTID if it wasn't set
-        if (!savedProfile.vtid) {
-          savedProfile.vtid = vtid;
-          await savedProfile.save();
-        }
+        // Use VTID as the initial password (will be hashed by pre-save hook)
+        const vtidPassword = savedProfile.vtid.toString();
         
         // Create user account
         const newUser = new User({
           firstName: savedProfile.firstName,
           lastName: savedProfile.lastName,
           email: savedProfile.email,
-          password: vtid.toString(), // Store VTID as plain text for user accounts
+          password: vtidPassword, // Password will be hashed by pre-save hook
+          vtid: savedProfile.vtid.toString(), // Store VTID in User for VTID-based login
           role: 'user',
           isActive: true,
           emailVerified: true, // Auto-verify user accounts created by admin
-          createdBy: 'admin',
           profileId: savedProfile._id
         });
         
         await newUser.save();
         console.log('User account created for profile:', savedProfile.email);
         
+        // Update profile with user reference
+        savedProfile.userId = newUser._id;
+        await savedProfile.save();
+        
         // Send credentials email to user
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const loginUrl = `${frontendUrl}/login`;
         const userName = `${savedProfile.firstName} ${savedProfile.lastName}`;
         
-        await sendUserCredentialsEmail(savedProfile.email, userName, vtid, loginUrl);
+        await sendUserCredentialsEmail(savedProfile.email, userName, savedProfile.vtid, loginUrl);
         console.log('Credentials email sent to:', savedProfile.email);
       }
     } catch (userCreationError) {
@@ -1849,7 +1935,13 @@ app.get('/api/profiles/:profileId/certificates', async (req, res) => {
 // Get profile by email (for user login)
 app.get('/api/profiles/by-email/:email', async (req, res) => {
   try {
-    const { email } = req.params;
+    // Normalize email to lowercase for consistent lookup
+    const email = (req.params.email || '').toLowerCase().trim();
+    
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+    
     const profile = await Profile.findOne({ email });
     
     if (!profile) {
@@ -1920,16 +2012,13 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
     // Prepare user document
+    // NOTE: Password will be hashed by pre-save hook - do NOT hash manually to avoid double hashing
     const user = new User({
       firstName,
       lastName,
       email,
-      password: hashedPassword,
+      password, // Plain text - pre-save hook will hash it
       role: role === 'admin' ? 'admin' : 'user',
       isActive: true,
       termsAcceptedAt: termsAccepted ? new Date() : undefined,
@@ -2059,49 +2148,61 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Email/username and password are required' });
     }
 
-    // First check admin accounts (by email or username) - ONLY role=admin
-    const admin = await User.findOne({ 
+    // Check for admin or user account - support email, username, or VTID login
+    const user = await User.findOne({ 
       $or: [
         { email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
-        { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }
-      ],
-      role: 'admin'
+        { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
+        { vtid: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }
+      ]
     });
-    if (admin) {
-      const isValidPassword = await bcrypt.compare(password, admin.password);
+    
+    if (user) {
+      const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
-        return res.status(400).json({ message: 'Invalid email or password' });
+        return res.status(400).json({ message: 'Invalid credentials' });
       }
 
-      // Enforce admin approval
-      if (admin.adminApprovalStatus !== 'approved') {
+      // Check if account is active
+      if (!user.isActive) {
+        return res.status(400).json({ message: 'Account is deactivated' });
+      }
+
+      // For admin accounts, enforce approval
+      if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
         return res.status(403).json({ 
           message: 'Your admin account is pending approval. Please wait for the super admin to approve your account.',
           requiresApproval: true
         });
       }
 
-      // Enforce email verification
-      if (!admin.emailVerified) {
+      // For admin accounts, enforce email verification
+      if (user.role === 'admin' && !user.emailVerified) {
         return res.status(403).json({ 
           message: 'Email not verified. Please check your email and click the verification link to continue.',
           requiresVerification: true
         });
       }
 
-      // Create session data for admin - use actual role from database
+      // Update last login time
+      user.lastLoginAt = Date.now();
+      await user.save();
+
+      // Create session data
       const sessionUser = {
-        userId: admin._id,
-        email: admin.email,
-        role: admin.role,
-        firstName: admin.firstName,
-        lastName: admin.lastName
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        vtid: user.vtid,
+        profileId: user.profileId
       };
 
-      // Generate JWT token for admin
+      // Generate JWT token
       const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
 
-      // Store admin in session
+      // Store in session
       req.session.user = sessionUser;
       
       if (rememberMe) {
@@ -2112,8 +2213,8 @@ app.post('/api/auth/login', async (req, res) => {
       try {
         const loginTime = new Date().toLocaleString();
         const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
-        const userName = `${admin.firstName} ${admin.lastName}`;
-        await sendLoginSuccessEmail(admin.email, userName, loginTime, ipAddress);
+        const userName = `${user.firstName} ${user.lastName}`;
+        await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
       } catch (emailError) {
         console.error('Failed to send login success email:', emailError);
       }
@@ -2121,168 +2222,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.json({ user: sessionUser, token });
     }
 
-    // Then check user accounts (profiles)
-    const profile = await Profile.findOne({ email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } });
-    if (profile) {
-      if (password !== profile.password) {
-        return res.status(400).json({ message: 'Invalid email or password' });
-      }
-
-      if (!profile.isActive) {
-        return res.status(400).json({ message: 'User account is deactivated' });
-      }
-
-      // Create session data for user
-      const sessionUser = {
-        userId: profile._id,
-        email: profile.email,
-        role: 'user',
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        profileId: profile._id,
-        vtid: profile.vtid
-      };
-
-      // Store user in session
-      req.session.user = sessionUser;
-
-      // Force session save
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save error:', err);
-        } else {
-          console.log('Session saved successfully for user:', sessionUser.email);
-        }
-      });
-
-      // If remember me is checked, extend session duration
-      if (rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-      }
-
-      // Generate JWT token for API compatibility
-      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
-      
-      // Send response with both session and token
-      res.json({
-        user: sessionUser,
-        token
-      });
-
-      // Send login success email notification
-      try {
-        const loginTime = new Date().toLocaleString();
-        const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
-        const userName = `${profile.firstName} ${profile.lastName}`;
-        
-        await sendLoginSuccessEmail(profile.email, userName, loginTime, ipAddress);
-      } catch (emailError) {
-        console.error('Failed to send login success email:', emailError);
-        // Don't fail the login if email fails
-      }
-
-      return res.json({
-        success: true,
-        message: 'Login successful',
-        user: sessionUser,
-        token: token,
-        redirectTo: '/user-dashboard'
-      });
-    }
-
-    // If not found in Profile collection, check User collection (admin accounts)
-    const user = await User.findOne({ 
-      $or: [ 
-        { email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }, 
-        { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } } 
-      ] 
-    });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password' });
-    }
-
-    // Check if user is active
-    if (!user.isActive) {
-      return res.status(400).json({ message: 'Account is deactivated' });
-    }
-
-    // Enforce email verification for non-admin users only
-    // Admins with approved status can skip email verification
-    if (!user.emailVerified && (user.role !== 'admin' || user.adminApprovalStatus !== 'approved')) {
-      return res.status(403).json({ 
-        message: 'Email not verified. Please check your email and click the verification link to continue.',
-        requiresVerification: true
-      });
-    }
-
-    // Enforce admin approval for all admin users
-    if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
-      return res.status(403).json({ 
-        message: 'Your admin account is pending approval. Please wait for the super admin to approve your account.',
-        requiresApproval: true
-      });
-    }
-
-    // Verify password for admin accounts (hashed)
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: 'Invalid email or password' });
-    }
-
-    // Create session data
-    const sessionUser = {
-      userId: user._id,
-      email: user.email,
-      role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName
-    };
-
-    // Store user in session
-    req.session.user = sessionUser;
-
-    // Force session save
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-      } else {
-        console.log('Session saved successfully for user:', sessionUser.email);
-      }
-    });
-
-    // If remember me is checked, extend session duration
-    if (rememberMe) {
-      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-    }
-
-    // Generate JWT token for API compatibility
-    const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: '24h' });
-
-    // Send login success email notification
-    try {
-      const loginTime = new Date().toLocaleString();
-      const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
-      const userName = `${user.firstName} ${user.lastName}`;
-      
-      await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
-    } catch (emailError) {
-      console.error('Failed to send login success email:', emailError);
-      // Don't fail the login if email fails
-    }
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      token, // Keep for backward compatibility
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role
-      },
-      redirectTo: '/dashboard'
-    });
+    // No user found with given credentials
+    return res.status(400).json({ message: 'Invalid credentials' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -2595,7 +2536,6 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
       lastName,
       email,
       vtid: vtid || `VT${Date.now()}`, // Generate VTID if not provided
-      password: generatedPassword, // Store plain text password for user login
       role: 'user',
       isActive: true,
       emailVerified: true, // Auto-verify email for admin-created users
@@ -2606,6 +2546,40 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
 
     // Save the profile
     const savedProfile = await newProfile.save();
+
+    // CRITICAL: Create User account for login
+    // Without this, the user cannot login since login now uses User collection only
+    try {
+      const existingUser = await User.findOne({ email: savedProfile.email });
+      
+      if (!existingUser) {
+        // Create User with VTID as password (pre-save hook will hash it)
+        const newUser = new User({
+          firstName: savedProfile.firstName,
+          lastName: savedProfile.lastName,
+          email: savedProfile.email,
+          password: generatedPassword, // Plain text - pre-save hook will hash it
+          vtid: savedProfile.vtid.toString(),
+          role: 'user',
+          isActive: true,
+          emailVerified: true,
+          profileId: savedProfile._id
+        });
+        
+        await newUser.save();
+        
+        // Link back to profile
+        savedProfile.userId = newUser._id;
+        await savedProfile.save();
+        
+        console.log('User account created and linked for:', savedProfile.email);
+      }
+    } catch (userCreationError) {
+      console.error('Error creating user account:', userCreationError);
+      // If user creation fails, delete the profile to maintain consistency
+      await Profile.findByIdAndDelete(savedProfile._id);
+      throw new Error('Failed to create user account. Please try again.');
+    }
 
     const loginUrl = `${process.env.FRONTEND_URL || 'https://talentshield.co.uk'}/login`;
     const userName = `${firstName} ${lastName}`;
@@ -2865,22 +2839,51 @@ const createDefaultUser = async () => {
       ]
     });
     
-    const existingUser = await User.findOne({ email: 'admin@talentshield.com' });
-    if (!existingUser) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      const defaultUser = new User({
-        firstName: 'Admin',
-        lastName: 'User',
-        email: 'admin@talentshield.com',
-        password: hashedPassword,
-        role: 'admin',
-        isActive: true
-      });
-      await defaultUser.save();
-      console.log('Default user created: admin@talentshield.com / admin123');
+    // Create super admin accounts from SUPER_ADMIN_EMAIL env variable
+    const superAdminEmails = process.env.SUPER_ADMIN_EMAIL?.split(',').map(e => e.trim()) || [];
+    
+    console.log(`Creating ${superAdminEmails.length} super admin accounts...`);
+    
+    for (const email of superAdminEmails) {
+      if (!email || !email.includes('@')) {
+        console.warn(`Skipping invalid email: ${email}`);
+        continue;
+      }
+      
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (!existingUser) {
+        // Extract name from email
+        const emailPrefix = email.split('@')[0];
+        const nameParts = emailPrefix.split('.');
+        const firstName = nameParts[0] ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1) : 'Admin';
+        const lastName = nameParts[1] ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : 'User';
+        
+        // Generate a secure temporary password
+        const tempPassword = 'TalentShield@2025'; // They should change this after first login
+        
+        const superAdmin = new User({
+          firstName,
+          lastName,
+          email: email.toLowerCase(),
+          password: tempPassword, // Will be hashed by pre-save hook
+          role: 'admin',
+          isActive: true,
+          emailVerified: true,
+          adminApprovalStatus: 'approved'
+        });
+        
+        await superAdmin.save();
+        console.log(`✅ Super admin created: ${email} (password: TalentShield@2025)`);
+      } else {
+        console.log(`⏭️  Super admin already exists: ${email}`);
+      }
+    }
+    
+    if (superAdminEmails.length === 0) {
+      console.warn('⚠️  No super admin emails found in SUPER_ADMIN_EMAIL environment variable');
     }
   } catch (error) {
-    console.error('Error creating default user:', error);
+    console.error('Error creating default super admins:', error);
   }
 };
 
