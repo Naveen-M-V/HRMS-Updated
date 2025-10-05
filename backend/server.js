@@ -474,6 +474,46 @@ const certificateNameSchema = new mongoose.Schema({
 
 const CertificateName = mongoose.model('CertificateName', certificateNameSchema);
 
+// Notification Schema - REQUIRED for in-app notifications
+const notificationSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  type: { 
+    type: String, 
+    required: true,
+    enum: [
+      'profile_created',
+      'profile_updated', 
+      'profile_deleted',
+      'certificate_created',
+      'certificate_updated',
+      'certificate_deleted',
+      'certificate_expiry',
+      'certificate_expired',
+      'user_created',
+      'system_notification',
+      'general'
+    ]
+  },
+  priority: { 
+    type: String, 
+    enum: ['low', 'medium', 'high', 'urgent'], 
+    default: 'medium' 
+  },
+  message: { type: String, required: true },
+  title: { type: String },
+  read: { type: Boolean, default: false },
+  createdOn: { type: Date, default: Date.now },
+  readOn: { type: Date },
+  metadata: { type: mongoose.Schema.Types.Mixed }
+});
+
+// Add indexes for better query performance
+notificationSchema.index({ userId: 1, createdOn: -1 });
+notificationSchema.index({ userId: 1, read: 1 });
+notificationSchema.index({ type: 1, createdOn: -1 });
+
+const Notification = mongoose.model('Notification', notificationSchema);
+
 // Multer configuration for file uploads with 10MB limit
 const storage = multer.memoryStorage(); // Store in memory for database storage
 
@@ -993,6 +1033,20 @@ app.delete('/api/profiles/:id', async (req, res) => {
     }
     
     console.log('Profile found:', profile.firstName, profile.lastName);
+
+    // Send email notification to user BEFORE deletion
+    try {
+      await sendNotificationEmail(
+        profile.email,
+        `${profile.firstName} ${profile.lastName}`,
+        'Profile Deletion Notice',
+        `Your profile has been deleted from the HRMS system. If you have any questions, please contact your administrator.`,
+        'warning'
+      );
+      console.log('Profile deletion email sent to user:', profile.email);
+    } catch (emailError) {
+      console.error('Error sending profile deletion email:', emailError);
+    }
 
     // Delete all certificates associated with this profile
     const deletedCertificates = await Certificate.deleteMany({ profileId: req.params.id });
@@ -2673,20 +2727,6 @@ app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
 
 // Email service handled by utils/emailService.js
-
-// Notification Schema
-const notificationSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, required: true, enum: ['certificate_expiry', 'certificate_expired', 'system'] },
-  priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'low' },
-  message: { type: String, required: true },
-  certificateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Certificate' },
-  read: { type: Boolean, default: false },
-  emailSent: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const Notification = mongoose.model('Notification', notificationSchema);
 
 // Function to calculate days until expiry
 const calculateDaysUntilExpiry = (expiryDate) => {
