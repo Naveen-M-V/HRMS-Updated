@@ -1,8 +1,7 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
 const { 
-  sendCertificateExpiryReminderEmail,
-  sendCertificateExpiredEmail 
+  sendNotificationEmail
 } = require('./emailService');
 
 // Helper function to parse DD/MM/YYYY date format or Date object
@@ -81,20 +80,24 @@ async function checkExpiringCertificates() {
           console.log(`[Certificate Scheduler] Sending expiry reminder: ${cert.certificate} to ${profile.email} (${daysUntilExpiry} days remaining)`);
           
           try {
-            const result = await sendCertificateExpiryReminderEmail(profile, certificateData, daysUntilExpiry);
-            if (result.success) {
-              remindersSent++;
+            await sendNotificationEmail(
+              profile.email,
+              `${profile.firstName} ${profile.lastName}`,
+              `Certificate Expiry Reminder - ${daysUntilExpiry} days remaining`,
+              `Your certificate "${certificateData.certificate}" will expire in ${daysUntilExpiry} days.\n\nCertificate: ${certificateData.certificate}\nCategory: ${certificateData.category}\nExpiry Date: ${certificateData.expiryDate}\n\nPlease renew this certificate before it expires.`,
+              'warning'
+            );
+            remindersSent++;
               
-              // OPTIONAL: Track that reminder was sent (requires adding expiryRemindersSent field to Certificate schema)
-              // if (!cert.expiryRemindersSent) {
-              //   cert.expiryRemindersSent = [];
-              // }
-              // if (!cert.expiryRemindersSent.includes(daysUntilExpiry)) {
-              //   cert.expiryRemindersSent.push(daysUntilExpiry);
-              //   cert.lastEmailSentAt = new Date();
-              //   await cert.save();
-              // }
-            }
+            // OPTIONAL: Track that reminder was sent (requires adding expiryRemindersSent field to Certificate schema)
+            // if (!cert.expiryRemindersSent) {
+            //   cert.expiryRemindersSent = [];
+            // }
+            // if (!cert.expiryRemindersSent.includes(daysUntilExpiry)) {
+            //   cert.expiryRemindersSent.push(daysUntilExpiry);
+            //   cert.lastEmailSentAt = new Date();
+            //   await cert.save();
+            // }
           } catch (emailError) {
             console.error(`[Certificate Scheduler] Failed to send reminder email:`, emailError);
           }
@@ -160,15 +163,19 @@ async function checkExpiredCertificates() {
           // Requires adding 'expiredEmailSent' field to Certificate schema
           if (!cert.expiredEmailSent) {
             try {
-              const result = await sendCertificateExpiredEmail(profile, certificateData);
-              if (result.success) {
-                expiredNotificationsSent++;
+              await sendNotificationEmail(
+                profile.email,
+                `${profile.firstName} ${profile.lastName}`,
+                `Certificate Expired - ${certificateData.certificate}`,
+                `Your certificate "${certificateData.certificate}" has expired.\n\nCertificate: ${certificateData.certificate}\nCategory: ${certificateData.category}\nExpiry Date: ${certificateData.expiryDate}\n\nPlease renew this certificate immediately to maintain compliance.`,
+                'error'
+              );
+              expiredNotificationsSent++;
                 
-                // Mark as sent (requires expiredEmailSent field in schema)
-                // cert.expiredEmailSent = true;
-                // cert.lastEmailSentAt = new Date();
-                // await cert.save();
-              }
+              // Mark as sent (requires expiredEmailSent field in schema)
+              // cert.expiredEmailSent = true;
+              // cert.lastEmailSentAt = new Date();
+              // await cert.save();
             } catch (emailError) {
               console.error(`[Certificate Scheduler] Failed to send expired email:`, emailError);
             }

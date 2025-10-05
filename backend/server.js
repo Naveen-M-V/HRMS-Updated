@@ -1429,6 +1429,11 @@ app.get('/api/certificates/:id', async (req, res) => {
 // Create new certificate with file upload
 app.post('/api/certificates', upload.single('certificateFile'), validateCertificateInput, async (req, res) => {
   try {
+    console.log('🔥 Certificate creation endpoint called');
+    console.log('📋 Request body:', req.body);
+    console.log('📎 File uploaded:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
+    console.log('🔍 Headers:', req.headers['content-type']);
+    
     const certificateData = { ...req.body };
     
     // Validate profileId if provided

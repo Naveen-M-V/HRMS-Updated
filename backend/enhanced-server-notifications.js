@@ -2,13 +2,6 @@
 // This file contains the enhanced endpoints to be integrated into server.js
 
 const {
-  sendProfileCreationEmail,
-  sendProfileUpdateEmail,
-  sendProfileDeletionEmail,
-  sendCertificateAddedEmail,
-  sendCertificateDeletedEmail,
-  sendCertificateExpiryReminderEmail,
-  sendCertificateExpiredEmail,
   sendUserCredentialsEmail,
   sendAdminNewUserCredentialsEmail,
   sendNotificationEmail

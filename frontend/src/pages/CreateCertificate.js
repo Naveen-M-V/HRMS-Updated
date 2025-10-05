@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
@@ -12,11 +12,11 @@ export default function CreateCertificate() {
   const { addCertificate } = useCertificates();
   const { profiles, loading: profilesLoading, error: profilesError } = useProfiles();
 
-  // Debug logging
-  console.log('CreateCertificate - profiles:', profiles);
-  console.log('CreateCertificate - profiles length:', profiles?.length);
-  console.log('CreateCertificate - loading:', profilesLoading);
-  console.log('CreateCertificate - error:', profilesError);
+  // Debug logging (commented out to prevent infinite loops)
+  // console.log('CreateCertificate - profiles:', profiles);
+  // console.log('CreateCertificate - profiles length:', profiles?.length);
+  // console.log('CreateCertificate - loading:', profilesLoading);
+  // console.log('CreateCertificate - error:', profilesError);
 
   // State for certificate suggestions based on job role
   const [suggestedCertificates, setSuggestedCertificates] = useState({ mandatory: [], alternative: [] });
@@ -24,6 +24,7 @@ export default function CreateCertificate() {
   const [pageError, setPageError] = useState(null);
   const [localProfiles, setLocalProfiles] = useState([]);
   const [localLoading, setLocalLoading] = useState(false);
+  const fallbackAttempted = useRef(false);
 
   // Fallback function to fetch profiles directly if context fails
   const fetchProfilesDirectly = async () => {
@@ -48,13 +49,14 @@ export default function CreateCertificate() {
     }
   };
 
-  // Use effect to fetch profiles if context fails
+  // Use effect to fetch profiles if context fails (only once)
   useEffect(() => {
-    if (profilesError && (!profiles || profiles.length === 0)) {
+    if (profilesError && (!profiles || profiles.length === 0) && !fallbackAttempted.current) {
       console.log('ProfileContext failed, trying direct fetch...');
+      fallbackAttempted.current = true;
       fetchProfilesDirectly();
     }
-  }, [profilesError, profiles]);
+  }, [profilesError]);
 
   // Determine which profiles to use
   const availableProfiles = profiles && profiles.length > 0 ? profiles : localProfiles;

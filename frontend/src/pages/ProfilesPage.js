@@ -149,7 +149,7 @@ This will also delete any associated certificates and user account. This action 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchProfiles]);
+  }, []); // Remove fetchProfiles dependency to prevent infinite loop
 
   // Filtered profiles with memoization for performance
   const filteredProfiles = useMemo(() => {
