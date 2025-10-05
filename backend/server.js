@@ -105,41 +105,33 @@ const validateCertificateInput = (req, res, next) => {
   if (!category || category.trim().length < 1) {
     console.log('Certificate validation failed - missing category');
     return res.status(400).json({ message: 'Certificate category is required', received: { certificate, category } });
+  }
   
   console.log('Certificate validation passed');
   next();
 };
 
-// Super Admin Email List
-const SUPER_ADMIN_EMAILS = [
-  'dean.cumming@vitrux.co.uk',
-  'syed.shahab.ahmed@vitrux.co.uk',
-  'tazeen.syeda@vitrux.co.uk',
-  'thaya.govzig@vitruxshield.com',
-  'syedali.asgar@vitruxshield.com',
-  'mvnaveen18@gmail.com'
-];
-
 // MongoDB connection
-mongoose.connect(MONGODB_URI, {
-  useUnifiedTopology: true
-})
-.then(() => {
+mongoose.connect(MONGODB_URI).then(() => {
+  console.log('MongoDB connected successfully');
+  
+  // Start certificate monitoring
+  const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
+  startAllCertificateSchedulers();
+  
+}).catch(err => {
+  console.error('MongoDB connection error:', err);
+});
+
+// Connection event handlers
+mongoose.connection.on('connected', () => {
   console.log('Connected to MongoDB');
-  
-  // Ensure admin user exists
-  User.ensureAdminExists();
-  
-  // Ensure super admins are properly configured
-  ensureSuperAdminsExist();
   
   // Start certificate expiry monitoring schedulers
   console.log('Starting email notification schedulers...');
   startAllCertificateSchedulers();
-})
-.catch(err => console.error('MongoDB connection error:', err));
+});
 
-// Connection event handlers
 mongoose.connection.on('error', (err) => {
   console.error('MongoDB connection error:', err);
 });
@@ -147,32 +139,6 @@ mongoose.connection.on('error', (err) => {
 mongoose.connection.on('disconnected', () => {
   console.log('Disconnected from MongoDB');
 });
-
-// Function to ensure super admins exist and are configured
-async function ensureSuperAdminsExist() {
-  try {
-    console.log('🔑 Checking super admin accounts...');
-    
-    for (const email of SUPER_ADMIN_EMAILS) {
-      const user = await User.findOne({ email });
-      if (!user) {
-        console.log(`⚠️  Super admin not found: ${email} - Account needs to be created via signup`);
-      } else if (user.role !== 'admin') {
-        await User.updateOne({ email }, { 
-          role: 'admin', 
-          isActive: true,
-          emailVerified: true,
-          adminApprovalStatus: 'approved'
-        });
-        console.log(`✅ Updated ${email} to super admin status`);
-      } else {
-        console.log(`✅ Super admin confirmed: ${email}`);
-      }
-    }
-  } catch (error) {
-    console.error('Error checking super admins:', error);
-  }
-}
 
 // Profile Schema
 const profileSchema = new mongoose.Schema({
@@ -853,8 +819,8 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       const existingUser = await User.findOne({ email: savedProfile.email });
       
       if (!existingUser) {
-        // Use VTID@vtid_number format as the initial password (will be hashed by pre-save hook)
-        const vtidPassword = `VTID@${savedProfile.vtid}`;
+        // Use VTID as the initial password (will be hashed by pre-save hook)
+        const vtidPassword = savedProfile.vtid.toString();
         
         // Create user account
         const newUser = new User({
@@ -881,7 +847,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         const loginUrl = `${frontendUrl}/login`;
         const userName = `${savedProfile.firstName} ${savedProfile.lastName}`;
         
-        await sendUserCredentialsEmail(savedProfile.email, userName, `VTID@${savedProfile.vtid}`, loginUrl);
+        await sendUserCredentialsEmail(savedProfile.email, userName, savedProfile.vtid, loginUrl);
         console.log('Credentials email sent to:', savedProfile.email);
       }
     } catch (userCreationError) {
@@ -902,7 +868,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       // 1. Send profile creation email to user (with credentials if new user)
       const userCredentials = wasNewUserCreated ? {
         email: savedProfile.email,
-        password: `VTID@${savedProfile.vtid}`
+        password: savedProfile.vtid.toString()
       } : null;
       
       console.log('Sending profile creation email...');
