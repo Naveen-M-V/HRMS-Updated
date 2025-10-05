@@ -1,16 +1,13 @@
 import React from 'react';
-import { CalendarIcon } from '@heroicons/react/24/outline';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { TextField } from '@mui/material';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 
-/**
- * Modern Date Picker Component for HRMS
- * 
- * Features:
- * - Native HTML5 date input with custom styling
- * - DD/MM/YYYY display format
- * - Responsive design
- * - No external dependencies
- * - Accessible
- */
+dayjs.extend(customParseFormat);
+
 const ModernDatePicker = ({
   name,
   value,
@@ -24,57 +21,38 @@ const ModernDatePicker = ({
   label = null
 }) => {
   
-  // Convert DD/MM/YYYY to YYYY-MM-DD for input
-  const getInputValue = () => {
-    if (!value) return '';
+  // Convert value to dayjs object
+  const getDayjsValue = () => {
+    if (!value) return null;
     
     // Handle DD/MM/YYYY format
-    if (value.includes('/')) {
+    if (typeof value === 'string' && value.includes('/')) {
       const [day, month, year] = value.split('/');
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      return dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
     }
-    
-    // Already in YYYY-MM-DD format
-    if (value.includes('-')) {
-      return value;
-    }
-    
-    return '';
-  };
-
-  // Convert YYYY-MM-DD to DD/MM/YYYY for display
-  const getDisplayValue = () => {
-    if (!value) return '';
     
     // Handle YYYY-MM-DD format
-    if (value.includes('-')) {
-      const [year, month, day] = value.split('-');
-      return `${day}/${month}/${year}`;
+    if (typeof value === 'string' && value.includes('-')) {
+      return dayjs(value);
     }
     
-    // Already in DD/MM/YYYY format
-    if (value.includes('/')) {
-      return value;
-    }
-    
-    return '';
+    return dayjs(value);
   };
 
-  // Handle date change
-  const handleChange = (e) => {
-    const inputValue = e.target.value; // YYYY-MM-DD format
-    
-    if (inputValue) {
-      // Keep in YYYY-MM-DD format for consistency
+  // Handle date change from Material UI DatePicker
+  const handleDateChange = (newValue) => {
+    if (newValue && newValue.isValid()) {
+      // Convert to YYYY-MM-DD format
+      const formattedValue = newValue.format('YYYY-MM-DD');
+      
       const syntheticEvent = {
         target: {
           name: name,
-          value: inputValue
+          value: formattedValue
         }
       };
       onChange(syntheticEvent);
     } else {
-      // Handle clear
       const syntheticEvent = {
         target: {
           name: name,
@@ -86,7 +64,7 @@ const ModernDatePicker = ({
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={className}>
       {label && (
         <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
           {label}
@@ -94,40 +72,42 @@ const ModernDatePicker = ({
         </label>
       )}
       
-      <div className="relative">
-        <input
-          type="date"
-          id={name}
-          name={name}
-          value={getInputValue()}
-          onChange={handleChange}
-          min={min}
-          max={max}
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <DatePicker
+          value={getDayjsValue()}
+          onChange={handleDateChange}
           disabled={disabled}
-          required={required}
-          className={`
-            w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-            disabled:bg-gray-100 disabled:cursor-not-allowed
-            text-gray-900 placeholder-gray-500
-            transition-colors duration-200
-            ${disabled ? 'bg-gray-50' : 'bg-white'}
-            ${className}
-          `}
-          placeholder={placeholder}
-          aria-label={label || placeholder}
-          aria-required={required}
+          minDate={min ? dayjs(min) : undefined}
+          maxDate={max ? dayjs(max) : undefined}
+          format="DD/MM/YYYY"
+          slotProps={{
+            textField: {
+              placeholder: placeholder,
+              required: required,
+              name: name,
+              fullWidth: true,
+              size: "small",
+              sx: {
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  backgroundColor: disabled ? '#F9FAFB' : 'white',
+                  '&:hover fieldset': {
+                    borderColor: '#3B82F6',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#3B82F6',
+                    borderWidth: '2px',
+                  },
+                },
+                '& .MuiOutlinedInput-input': {
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                },
+              }
+            }
+          }}
         />
-        
-        <CalendarIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-      </div>
-      
-      {/* Display formatted date below input for clarity */}
-      {value && (
-        <div className="text-xs text-gray-500 mt-1">
-          Selected: {getDisplayValue()}
-        </div>
-      )}
+      </LocalizationProvider>
     </div>
   );
 };
