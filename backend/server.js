@@ -85,14 +85,19 @@ const validateProfileInput = (req, res, next) => {
 const validateCertificateInput = (req, res, next) => {
   const { certificate, category } = req.body;
   
+  console.log('Certificate validation - received data:', { certificate, category, body: req.body });
+  
   if (!certificate || certificate.trim().length < 1) {
-    return res.status(400).json({ message: 'Certificate name is required' });
+    console.log('Certificate validation failed - missing certificate name');
+    return res.status(400).json({ message: 'Certificate name is required', received: { certificate, category } });
   }
   
   if (!category || category.trim().length < 1) {
-    return res.status(400).json({ message: 'Certificate category is required' });
+    console.log('Certificate validation failed - missing category');
+    return res.status(400).json({ message: 'Certificate category is required', received: { certificate, category } });
   }
   
+  console.log('Certificate validation passed');
   next();
 };
 
@@ -840,7 +845,53 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       // Don't fail the profile creation if user account creation fails
     }
     
-    // Create notification for profile creation
+    // Send comprehensive email notifications
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const loginUrl = `${frontendUrl}/login`;
+      
+      // Check if a new user was created
+      const wasNewUserCreated = await User.findOne({ profileId: savedProfile._id });
+      
+      // 1. Send profile creation email to user (with credentials if new user)
+      const userCredentials = wasNewUserCreated ? {
+        email: savedProfile.email,
+        password: savedProfile.vtid.toString()
+      } : null;
+      
+      await sendProfileCreationEmail(savedProfile, userCredentials);
+      console.log('Profile creation email sent to user:', savedProfile.email);
+      
+      // 2. Send notification to all admins
+      const adminUsers = await User.find({ role: 'admin' });
+      for (const admin of adminUsers) {
+        if (userCredentials) {
+          // Send admin notification with user credentials
+          await sendAdminNewUserCredentialsEmail(
+            admin.email,
+            `${savedProfile.firstName} ${savedProfile.lastName}`,
+            savedProfile.email,
+            userCredentials.password,
+            loginUrl
+          );
+        } else {
+          // Send general admin notification
+          await sendNotificationEmail(
+            admin.email,
+            `${admin.firstName} ${admin.lastName}`,
+            'New Profile Created',
+            `A new profile has been created for ${savedProfile.firstName} ${savedProfile.lastName} (${savedProfile.email}).`,
+            'info'
+          );
+        }
+      }
+      console.log('Admin notifications sent for profile creation');
+      
+    } catch (emailError) {
+      console.error('Error sending profile creation emails:', emailError);
+    }
+    
+    // Create in-app notification for profile creation
     try {
       const users = await User.find({ role: 'admin' });
       for (const user of users) {
@@ -869,22 +920,91 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
 // Update profile
 app.put('/api/profiles/:id', async (req, res) => {
   try {
+    const profileId = req.params.id;
+    
+    // Get original profile for comparison
+    const originalProfile = await Profile.findById(profileId);
+    if (!originalProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
     // Handle jobTitle array from frontend - convert to string
     const updateData = { ...req.body };
     if (Array.isArray(updateData.jobTitle)) {
       updateData.jobTitle = updateData.jobTitle.length > 0 ? updateData.jobTitle[0] : '';
     }
     
-    const profile = await Profile.findByIdAndUpdate(
-      req.params.id,
+    const updatedProfile = await Profile.findByIdAndUpdate(
+      profileId,
       { ...updateData, lastSeen: new Date() },
       { new: true, runValidators: true }
     );
-    if (!profile) {
-      return res.status(404).json({ message: 'Profile not found' });
+    
+    // CRITICAL FIX: Update associated certificates if profile name changed
+    const nameChanged = (
+      originalProfile.firstName !== updatedProfile.firstName ||
+      originalProfile.lastName !== updatedProfile.lastName
+    );
+    
+    if (nameChanged) {
+      const newProfileName = `${updatedProfile.firstName} ${updatedProfile.lastName}`;
+      
+      // Update all certificates with the new profile name to maintain sync
+      await Certificate.updateMany(
+        { profileId: profileId },
+        { profileName: newProfileName }
+      );
+      
+      console.log(`Updated certificate profile names for profile ${profileId} to: ${newProfileName}`);
     }
     
-    // Create notification for profile update
+    // Update associated user account if email changed
+    if (originalProfile.email !== updatedProfile.email) {
+      await User.findOneAndUpdate(
+        { profileId: profileId },
+        { 
+          email: updatedProfile.email,
+          firstName: updatedProfile.firstName,
+          lastName: updatedProfile.lastName
+        }
+      );
+      console.log(`Updated user account email from ${originalProfile.email} to ${updatedProfile.email}`);
+    }
+    
+    // Send email notifications
+    try {
+      // Determine what fields were updated
+      const updatedFields = {};
+      Object.keys(updateData).forEach(key => {
+        if (originalProfile[key] !== updatedProfile[key]) {
+          updatedFields[key] = updatedProfile[key];
+        }
+      });
+      
+      if (Object.keys(updatedFields).length > 0) {
+        // Send update notification to user
+        await sendProfileUpdateEmail(updatedProfile, updatedFields);
+        console.log('Profile update email sent to user:', updatedProfile.email);
+        
+        // Send notification to admins
+        const adminUsers = await User.find({ role: 'admin' });
+        for (const admin of adminUsers) {
+          await sendNotificationEmail(
+            admin.email,
+            `${admin.firstName} ${admin.lastName}`,
+            'Profile Updated',
+            `Profile updated for ${updatedProfile.firstName} ${updatedProfile.lastName}. Updated fields: ${Object.keys(updatedFields).join(', ')}.`,
+            'info'
+          );
+        }
+        console.log('Admin notifications sent for profile update');
+      }
+      
+    } catch (emailError) {
+      console.error('Error sending profile update emails:', emailError);
+    }
+    
+    // Create in-app notification for profile update
     try {
       const users = await User.find({ role: 'admin' });
       for (const user of users) {
@@ -892,7 +1012,7 @@ app.put('/api/profiles/:id', async (req, res) => {
           userId: user._id,
           type: 'profile_updated',
           priority: 'low',
-          message: `Profile updated: ${profile.firstName} ${profile.lastName}`,
+          message: `Profile updated: ${updatedProfile.firstName} ${updatedProfile.lastName}`,
           read: false
         });
         await notification.save();
@@ -901,7 +1021,7 @@ app.put('/api/profiles/:id', async (req, res) => {
       console.error('Error creating update notification:', notificationError);
     }
     
-    res.json(profile);
+    res.json(updatedProfile);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -1267,7 +1387,34 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
     const certificate = new Certificate(certificateData);
     const savedCertificate = await certificate.save();
     
-    // Create notification for certificate creation
+    // Send comprehensive email notifications
+    if (certificateData.profileId) {
+      try {
+        const profile = await Profile.findById(certificateData.profileId);
+        if (profile) {
+          // Send notification to user
+          await sendCertificateAddedEmail(profile, savedCertificate);
+          console.log('Certificate added email sent to user:', profile.email);
+          
+          // Send notification to admins
+          const adminUsers = await User.find({ role: 'admin' });
+          for (const admin of adminUsers) {
+            await sendNotificationEmail(
+              admin.email,
+              `${admin.firstName} ${admin.lastName}`,
+              'Certificate Added',
+              `New certificate "${savedCertificate.certificate}" has been added for ${profile.firstName} ${profile.lastName}.`,
+              'success'
+            );
+          }
+          console.log('Admin notifications sent for certificate addition');
+        }
+      } catch (emailError) {
+        console.error('Error sending certificate creation emails:', emailError);
+      }
+    }
+    
+    // Create in-app notification for certificate creation
     try {
       const users = await User.find({ role: 'admin' });
       for (const user of users) {
@@ -1293,19 +1440,62 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
 // Update certificate (without file)
 app.put('/api/certificates/:id', async (req, res) => {
   try {
+    const certificateId = req.params.id;
+    
+    // Get original certificate for comparison
+    const originalCertificate = await Certificate.findById(certificateId).populate('profileId');
+    if (!originalCertificate) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+    
     const updateData = { 
       ...req.body,
       updatedOn: new Date()
     };
     
     const certificate = await Certificate.findByIdAndUpdate(
-      req.params.id,
+      certificateId,
       updateData,
-      { new: true }
-    ).select('-fileData');
+      { new: true, runValidators: true }
+    ).populate('profileId').select('-fileData');
     
-    if (!certificate) {
-      return res.status(404).json({ message: 'Certificate not found' });
+    // Send email notifications if significant changes occurred
+    try {
+      const profile = certificate.profileId;
+      if (profile) {
+        // Determine what fields were updated
+        const significantFields = ['certificate', 'expiryDate', 'status', 'approvalStatus'];
+        const hasSignificantChanges = significantFields.some(field => 
+          originalCertificate[field] !== certificate[field]
+        );
+        
+        if (hasSignificantChanges) {
+          // Send update notification to user
+          await sendNotificationEmail(
+            profile.email,
+            `${profile.firstName} ${profile.lastName}`,
+            'Certificate Updated',
+            `Your certificate "${certificate.certificate}" has been updated.`,
+            'info'
+          );
+          console.log('Certificate update email sent to user:', profile.email);
+          
+          // Send notification to admins
+          const adminUsers = await User.find({ role: 'admin' });
+          for (const admin of adminUsers) {
+            await sendNotificationEmail(
+              admin.email,
+              `${admin.firstName} ${admin.lastName}`,
+              'Certificate Updated',
+              `Certificate "${certificate.certificate}" for ${profile.firstName} ${profile.lastName} has been updated.`,
+              'info'
+            );
+          }
+          console.log('Admin notifications sent for certificate update');
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending certificate update emails:', emailError);
     }
     
     res.json(certificate);
