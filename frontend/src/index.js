@@ -1,9 +1,4 @@
-// Syncfusion DatePicker Styles - Using Material Theme (more reliable)
-import '@syncfusion/ej2-base/styles/material.css';
-import '@syncfusion/ej2-buttons/styles/material.css';
-import '@syncfusion/ej2-calendars/styles/material.css';
-import '@syncfusion/ej2-inputs/styles/material.css';
-import '@syncfusion/ej2-popups/styles/material.css';
+// Modern date picker uses native HTML5 inputs with Tailwind CSS styling
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';

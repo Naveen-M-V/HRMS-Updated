@@ -5,7 +5,7 @@ import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getCertificatesForJobRole, getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
-import SyncfusionDatePicker from "../components/SyncfusionDatePicker";
+import ModernDatePicker from "../components/ModernDatePicker";
 
 export default function EditCertificate() {
   const { id } = useParams();
@@ -303,12 +303,11 @@ export default function EditCertificate() {
             />
           </div>
         </div>
-
         {/* Issue Date */}
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Issue Date</label>
           <div className="col-span-10">
-            <SyncfusionDatePicker
+            <ModernDatePicker
               name="issueDate"
               value={formData.issueDate}
               onChange={handleChange}
@@ -322,7 +321,7 @@ export default function EditCertificate() {
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Expiry Date</label>
           <div className="col-span-10">
-            <SyncfusionDatePicker
+            <ModernDatePicker
               name="expiryDate"
               value={formData.expiryDate}
               onChange={handleChange}

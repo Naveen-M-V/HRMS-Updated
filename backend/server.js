@@ -97,7 +97,16 @@ const validateCertificateInput = (req, res, next) => {
 };
 
 // MongoDB connection
-mongoose.connect(MONGODB_URI);
+mongoose.connect(MONGODB_URI).then(() => {
+  console.log('MongoDB connected successfully');
+  
+  // Start certificate monitoring
+  const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
+  startAllCertificateSchedulers();
+  
+}).catch(err => {
+  console.error('MongoDB connection error:', err);
+});
 
 // Connection event handlers
 mongoose.connection.on('connected', () => {
@@ -2649,24 +2658,12 @@ app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
 
-// Email configuration using SMTP settings from .env
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT),
-  secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false // Allow self-signed certificates
-  }
-});
+// Email service handled by utils/emailService.js
 
 // Notification Schema
 const notificationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, required: true }, // 'certificate_expiry', 'certificate_expired', 'system'
+  type: { type: String, required: true, enum: ['certificate_expiry', 'certificate_expired', 'system'] },
   priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'low' },
   message: { type: String, required: true },
   certificateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Certificate' },
@@ -2689,21 +2686,27 @@ const calculateDaysUntilExpiry = (expiryDate) => {
   return diffDays;
 };
 
-// Function to send email notification
+// Enhanced email notification using utils/emailService.js
 const sendEmailNotification = async (userEmail, subject, body) => {
   try {
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    const { sendEmail } = require('./utils/emailService');
+    const result = await sendEmail({
       to: userEmail,
       subject: subject,
-      text: body
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${userEmail}: ${subject}`);
-    return true;
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:#2196F3;color:white;padding:20px;text-align:center">
+            <h1>HRMS Notification</h1>
+          </div>
+          <div style="padding:20px;background:#f9f9f9">
+            <div style="white-space:pre-wrap">${body}</div>
+          </div>
+        </div>
+      `
+    });
+    return result.success;
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Email error:', error);
     return false;
   }
 };
@@ -2721,8 +2724,14 @@ const checkCertificateExpiry = async () => {
       
       const daysUntilExpiry = calculateDaysUntilExpiry(cert.expiryDate);
       
-      // Find the user who owns this certificate (assuming userId field exists)
-      const user = users.find(u => u._id.toString() === cert.userId?.toString());
+      // Find user via profileId relationship
+      let user = null;
+      if (cert.profileId) {
+        const profile = await Profile.findById(cert.profileId);
+        if (profile && profile.userId) {
+          user = users.find(u => u._id.toString() === profile.userId.toString());
+        }
+      }
       if (!user) continue;
       
       let shouldNotify = false;

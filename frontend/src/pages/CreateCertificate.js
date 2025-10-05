@@ -4,7 +4,7 @@ import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getCertificatesForMultipleJobRoles, getAllJobRoles, allCertificates } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
-import SyncfusionDatePicker from "../components/SyncfusionDatePicker";
+import ModernDatePicker from "../components/ModernDatePicker";
 
 export default function CreateCertificate() {
   const navigate = useNavigate();
@@ -585,12 +585,11 @@ export default function CreateCertificate() {
                 className="w-full border rounded-lg p-2"
               />
             </div>
-
             {/* Dates */}
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block font-medium mb-1">Issue Date</label>
-                <SyncfusionDatePicker
+                <ModernDatePicker
                   name="issueDate"
                   value={form.issueDate}
                   onChange={handleChange}
@@ -600,7 +599,7 @@ export default function CreateCertificate() {
               </div>
               <div>
                 <label className="block font-medium mb-1">Expiry Date</label>
-                <SyncfusionDatePicker
+                <ModernDatePicker
                   name="expiryDate"
                   value={form.expiryDate}
                   onChange={handleChange}

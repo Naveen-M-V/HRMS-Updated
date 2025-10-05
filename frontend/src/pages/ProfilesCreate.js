@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
-import SyncfusionDatePicker from "../components/SyncfusionDatePicker";
+import ModernDatePicker from "../components/ModernDatePicker";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 
 export default function ProfilesCreate() {
@@ -245,12 +245,11 @@ export default function ProfilesCreate() {
               />
             </div>
           </div>
-
           {/* Date of Birth & Company */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium">Date of Birth</label>
-              <SyncfusionDatePicker
+              <ModernDatePicker
                 name="dob"
                 value={formData.dob}
                 onChange={handleChange}
@@ -397,7 +396,7 @@ export default function ProfilesCreate() {
           {/* Start Date */}
           <div>
             <label className="block text-sm font-medium">Start Date</label>
-            <SyncfusionDatePicker
+            <ModernDatePicker
               name="startDate"
               value={formData.startDate}
               onChange={handleChange}
