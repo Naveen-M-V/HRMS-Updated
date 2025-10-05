@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext();
@@ -41,7 +41,7 @@ export const ProfileProvider = ({ children }) => {
   const { user } = useAuth();
 
   // Fetch profiles with caching + optional pagination
-  const fetchProfiles = async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
+  const fetchProfiles = useCallback(async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
     setLoading(true);
     try {
       console.log('Fetching profiles from API');
@@ -110,7 +110,7 @@ export const ProfileProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const deleteProfile = async (profileId) => {
     const possibleUrls = [

@@ -25,14 +25,7 @@ const {
   sendAdminApprovalRequestEmail, 
   sendUserCredentialsEmail, 
   sendAdminNewUserCredentialsEmail, 
-  sendWelcomeEmailToNewUser,
-  sendProfileCreationEmail,
-  sendProfileUpdateEmail,
-  sendProfileDeletionEmail,
-  sendCertificateAddedEmail,
-  sendCertificateDeletedEmail,
-  sendCertificateExpiryReminderEmail,
-  sendCertificateExpiredEmail
+  sendWelcomeEmailToNewUser
 } = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
@@ -878,8 +871,16 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         password: savedProfile.vtid.toString()
       } : null;
       
-      console.log('Calling sendProfileCreationEmail...');
-      await sendProfileCreationEmail(savedProfile, userCredentials);
+      console.log('Sending profile creation email...');
+      await sendNotificationEmail(
+        savedProfile.email,
+        `${savedProfile.firstName} ${savedProfile.lastName}`,
+        'Welcome to HRMS - Profile Created',
+        userCredentials 
+          ? `Welcome to the HRMS system! Your profile has been created successfully.\n\nYour login credentials:\nEmail: ${userCredentials.email}\nPassword: ${userCredentials.password}\n\nPlease login at: ${loginUrl}`
+          : `Welcome to the HRMS system! Your profile has been created successfully.`,
+        'success'
+      );
       console.log('✅ Profile creation email sent to user:', savedProfile.email);
       
       // 2. Send notification to all admins
@@ -887,18 +888,17 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       console.log(`Found ${adminUsers.length} admin users for notification`);
       
       for (const admin of adminUsers) {
+        console.log('Sending admin notification to:', admin.email);
         if (userCredentials) {
-          console.log('Sending admin notification with credentials to:', admin.email);
           // Send admin notification with user credentials
-          await sendAdminNewUserCredentialsEmail(
+          await sendNotificationEmail(
             admin.email,
-            `${savedProfile.firstName} ${savedProfile.lastName}`,
-            savedProfile.email,
-            userCredentials.password,
-            loginUrl
+            `${admin.firstName} ${admin.lastName}`,
+            'New User Created with Credentials',
+            `A new user profile has been created:\n\nName: ${savedProfile.firstName} ${savedProfile.lastName}\nEmail: ${savedProfile.email}\nPassword: ${userCredentials.password}\nVTID: ${savedProfile.vtid}\n\nLogin URL: ${loginUrl}`,
+            'info'
           );
         } else {
-          console.log('Sending general admin notification to:', admin.email);
           // Send general admin notification
           await sendNotificationEmail(
             admin.email,
@@ -1011,8 +1011,15 @@ app.put('/api/profiles/:id', async (req, res) => {
       
       if (Object.keys(updatedFields).length > 0) {
         // Send update notification to user
-        console.log('Calling sendProfileUpdateEmail...');
-        await sendProfileUpdateEmail(updatedProfile, updatedFields);
+        console.log('Sending profile update email...');
+        const fieldsList = Object.keys(updatedFields).map(key => `${key}: ${updatedFields[key]}`).join('\n');
+        await sendNotificationEmail(
+          updatedProfile.email,
+          `${updatedProfile.firstName} ${updatedProfile.lastName}`,
+          'Profile Updated',
+          `Your profile has been updated successfully.\n\nUpdated fields:\n${fieldsList}`,
+          'info'
+        );
         console.log('✅ Profile update email sent to user:', updatedProfile.email);
         
         // Send notification to admins
@@ -1167,6 +1174,30 @@ app.get('/api/profiles/:id/stats', async (req, res) => {
 app.get('/api/test', (req, res) => {
   console.log('Test endpoint called');
   res.json({ message: 'API is working', timestamp: new Date().toISOString() });
+});
+
+// Get unread notification count
+app.get('/api/notifications/unread-count', async (req, res) => {
+  try {
+    console.log('Unread notification count endpoint called');
+    const count = await Notification.countDocuments({ read: false });
+    res.json({ count });
+  } catch (error) {
+    console.error('Error getting unread notification count:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Initialize certificate names endpoint
+app.get('/api/certificate-names/initialize', async (req, res) => {
+  try {
+    console.log('Certificate names initialization endpoint called');
+    // Return a simple success response
+    res.json({ message: 'Certificate names initialized', success: true });
+  } catch (error) {
+    console.error('Error initializing certificate names:', error);
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Delete profile
@@ -1440,8 +1471,14 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
           console.log('Profile found for email notification:', profile.email);
           
           // Send notification to user
-          console.log('Calling sendCertificateAddedEmail...');
-          await sendCertificateAddedEmail(profile, savedCertificate);
+          console.log('Sending certificate added email...');
+          await sendNotificationEmail(
+            profile.email,
+            `${profile.firstName} ${profile.lastName}`,
+            'Certificate Added',
+            `A new certificate has been added to your profile.\n\nCertificate: ${savedCertificate.certificate}\nCategory: ${savedCertificate.category}\nIssue Date: ${savedCertificate.issueDate}\nExpiry Date: ${savedCertificate.expiryDate || 'N/A'}`,
+            'success'
+          );
           console.log('✅ Certificate added email sent to user:', profile.email);
           
           // Send notification to admins
@@ -1688,7 +1725,13 @@ app.delete('/api/certificates/:id', async (req, res) => {
     if (profile) {
       try {
         // Send notification to user
-        await sendCertificateDeletedEmail(profile, certificate);
+        await sendNotificationEmail(
+          profile.email,
+          `${profile.firstName} ${profile.lastName}`,
+          'Certificate Deleted',
+          `A certificate has been deleted from your profile.\n\nCertificate: ${certificate.certificate}\nCategory: ${certificate.category || 'N/A'}\nDeleted on: ${new Date().toLocaleDateString()}`,
+          'warning'
+        );
         console.log('Certificate deletion email sent to user:', profile.email);
         
         // Send notification to admins
