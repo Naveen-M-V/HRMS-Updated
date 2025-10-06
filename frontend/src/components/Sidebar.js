@@ -29,19 +29,15 @@ export default function Sidebar({ isOpen }) {
   // Subscribe to notification changes from context
   useEffect(() => {
     if (!user || user.role !== 'admin') {
-      console.log('Sidebar: User not admin, setting notifications to 0');
       setUnreadNotifications(0);
       return;
     }
 
     // Set initial count from context
-    const initialCount = getUnreadCount();
-    console.log('Sidebar: Setting initial notification count:', initialCount);
-    setUnreadNotifications(initialCount);
+    setUnreadNotifications(getUnreadCount());
 
     // Subscribe to real-time updates
     const unsubscribe = subscribeToNotificationChanges((count) => {
-      console.log('Sidebar: Received notification count update:', count);
       setUnreadNotifications(count);
     });
 

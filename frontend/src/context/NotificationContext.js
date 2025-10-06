@@ -19,8 +19,7 @@ export const NotificationProvider = ({ children }) => {
 
   // Fetch notifications from backend
   useEffect(() => {
-    if (user && (user.id || user.userId) && user.role === 'admin') {
-      console.log('NotificationContext: Starting to fetch notifications for admin user:', user.email);
+    if (user && user.id) {
       fetchNotifications();
       
       // Set up auto-refresh every 30 seconds
@@ -29,13 +28,6 @@ export const NotificationProvider = ({ children }) => {
       }, 30000);
 
       return () => clearInterval(interval);
-    } else {
-      console.log('NotificationContext: User not eligible for notifications:', { 
-        hasUser: !!user, 
-        hasId: !!(user?.id || user?.userId), 
-        role: user?.role 
-      });
-      setNotifications([]);
     }
   }, [user]);
 
@@ -44,12 +36,17 @@ export const NotificationProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      console.log('NotificationContext: Fetching notifications...');
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
 
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
       const response = await fetch(`${API_BASE_URL}/api/notifications`, {
         credentials: 'include',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         }
@@ -60,14 +57,9 @@ export const NotificationProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      console.log('NotificationContext: Received data:', data);
-      
-      // Handle both direct array and object with notifications property
-      const notificationsArray = Array.isArray(data) ? data : (data.notifications || []);
-      console.log('NotificationContext: Processing notifications array:', notificationsArray.length, 'items');
       
       // Transform backend notifications to match frontend format
-      const transformedNotifications = notificationsArray.map(notif => ({
+      const transformedNotifications = data.notifications.map(notif => ({
         id: notif._id,
         title: notif.title || notif.message, // Use message as title if title is empty
         message: notif.message,
@@ -80,7 +72,6 @@ export const NotificationProvider = ({ children }) => {
         metadata: notif.metadata || {}
       }));
 
-      console.log('NotificationContext: Transformed notifications:', transformedNotifications.length, 'items');
       setNotifications(transformedNotifications);
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -93,13 +84,18 @@ export const NotificationProvider = ({ children }) => {
 
   const markAsRead = async (notificationId) => {
     try {
-      console.log('NotificationContext: Marking notification as read:', notificationId);
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
 
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
       const response = await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json'
         }
