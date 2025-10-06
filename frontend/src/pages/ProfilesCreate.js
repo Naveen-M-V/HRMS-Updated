@@ -7,6 +7,7 @@ import JobLevelDropdown from "../components/JobLevelDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
+import LoadingScreen, { LoadingButton, FormLoadingOverlay } from "../components/LoadingScreen";
 
 export default function ProfilesCreate() {
   const { success, error } = useAlert();
@@ -37,7 +38,7 @@ export default function ProfilesCreate() {
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
-  const { addProfile } = useProfiles();
+  const { addProfile, creating } = useProfiles();
 
   // Fetch job roles and levels on component mount
   useEffect(() => {
@@ -204,8 +205,9 @@ export default function ProfilesCreate() {
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white shadow rounded-lg p-6 space-y-6"
+          className="bg-white shadow rounded-lg p-6 space-y-6 relative"
         >
+          <FormLoadingOverlay isLoading={creating} message="Creating profile..." />
           {/* Email */}
           <div>
             <label className="block text-sm font-medium">Account Email <span className="text-red-500">*</span></label>
@@ -543,12 +545,14 @@ export default function ProfilesCreate() {
             >
               Cancel
             </button>
-            <button
+            <LoadingButton
               type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              isLoading={creating}
+              loadingText="Creating Profile..."
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
             >
               Save changes
-            </button>
+            </LoadingButton>
           </div>
         </form>
       </div>

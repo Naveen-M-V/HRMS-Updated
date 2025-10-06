@@ -37,6 +37,9 @@ export const useProfiles = () => {
 export const ProfileProvider = ({ children }) => {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
@@ -113,6 +116,7 @@ export const ProfileProvider = ({ children }) => {
   }, []);
 
   const deleteProfile = async (profileId) => {
+    setDeleting(true);
     const possibleUrls = [
       'https://talentshield.co.uk:5003',
       'https://talentshield.co.uk',
@@ -183,7 +187,9 @@ export const ProfileProvider = ({ children }) => {
     // If we get here, all URLs failed
     console.error('DeleteProfile - All API URLs failed');
     throw lastError || new Error('Failed to delete profile - all API endpoints unreachable');
-  };
+  } finally {
+    setDeleting(false);
+  }
 
   const refreshProfiles = async () => {
     await fetchProfiles(true);
@@ -194,7 +200,7 @@ export const ProfileProvider = ({ children }) => {
   }, []);
 
   const addProfile = async (newProfile) => {
-    setLoading(true);
+    setCreating(true);
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -223,25 +229,28 @@ export const ProfileProvider = ({ children }) => {
       }
 
       setProfiles(prev => [data, ...prev]);
-      // Clear the cache to ensure fresh data on next fetch
-      localStorage.removeItem('profiles_cache_optimized');
-      localStorage.removeItem('profiles_cache_time');
-
+      
+      // Update cache with new data
       const updatedProfiles = [data, ...profiles];
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
+
+      // Force refresh to ensure UI is updated
+      setTimeout(() => {
+        fetchProfiles(true);
+      }, 500);
 
       return data;
     } catch (err) {
       setError('Failed to create profile');
       throw err;
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
 
   const updateProfile = async (id, updatedProfile) => {
-    setLoading(true);
+    setUpdating(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, {
         method: 'PUT',
@@ -253,18 +262,26 @@ export const ProfileProvider = ({ children }) => {
       if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
 
       const data = await response.json();
+      
+      // Update state immediately
       setProfiles(prev => prev.map(profile => profile._id === id ? data : profile));
 
+      // Update cache with new data
       const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
+
+      // Force refresh to ensure UI is updated
+      setTimeout(() => {
+        fetchProfiles(true);
+      }, 500);
 
       return data;
     } catch (err) {
       setError('Failed to update profile');
       throw err;
     } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   };
 
@@ -491,6 +508,9 @@ export const ProfileProvider = ({ children }) => {
   const value = {
     profiles,
     loading,
+    updating,
+    creating,
+    deleting,
     error,
     addProfile,
     updateProfile,

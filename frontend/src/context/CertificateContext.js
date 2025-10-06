@@ -43,6 +43,10 @@ export const CertificateProvider = ({ children }) => {
   const [certificates, setCertificates] = useState([]);
   const [loadingCount, setLoadingCount] = useState(0);
   const loading = loadingCount > 0;
+  const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
   const incrementLoading = () => setLoadingCount((count) => count + 1);
@@ -94,6 +98,7 @@ export const CertificateProvider = ({ children }) => {
   }, []);
 
   const addCertificate = useCallback(async (newCertificate) => {
+    setCreating(true);
     incrementLoading();
     try {
       const formData = new FormData();
@@ -113,6 +118,12 @@ export const CertificateProvider = ({ children }) => {
       });
       setCertificates((prev) => [response.data, ...prev]);
       setError(null);
+      
+      // Force refresh to ensure UI is updated
+      setTimeout(() => {
+        fetchCertificates();
+      }, 500);
+      
       return response.data;
     } catch (err) {
       setError("Failed to add certificate");
@@ -121,6 +132,7 @@ export const CertificateProvider = ({ children }) => {
       console.error('Error status:', err.response?.status);
       throw err;
     } finally {
+      setCreating(false);
       decrementLoading();
     }
   }, []);
@@ -164,6 +176,7 @@ export const CertificateProvider = ({ children }) => {
   // Update a certificate
   const updateCertificate = useCallback(async (certificateId, updatedData) => {
     if (!certificateId) throw new Error("certificateId is required");
+    setUpdating(true);
     incrementLoading();
     try {
       const url = buildApiUrl(`/certificates/${certificateId}`);
@@ -174,12 +187,19 @@ export const CertificateProvider = ({ children }) => {
       );
       setError(null);
       console.log('Certificate updated successfully');
+      
+      // Force refresh to ensure UI is updated
+      setTimeout(() => {
+        fetchCertificates();
+      }, 500);
+      
       return response.data;
     } catch (err) {
       setError("Failed to update certificate");
       console.error('Update certificate error:', err);
       throw err;
     } finally {
+      setUpdating(false);
       decrementLoading();
     }
   }, []);
@@ -187,6 +207,7 @@ export const CertificateProvider = ({ children }) => {
   // Delete a certificate
   const deleteCertificate = useCallback(async (certificateId) => {
     if (!certificateId) throw new Error("certificateId is required");
+    setDeleting(true);
     incrementLoading();
     try {
       const url = buildApiUrl(`/certificates/${certificateId}`);
@@ -197,11 +218,18 @@ export const CertificateProvider = ({ children }) => {
       );
       setError(null);
       console.log('Certificate deleted successfully');
+      
+      // Force refresh to ensure UI is updated
+      setTimeout(() => {
+        fetchCertificates();
+      }, 500);
+      
     } catch (err) {
       setError("Failed to delete certificate");
       console.error('Delete certificate error:', err);
       throw err;
     } finally {
+      setDeleting(false);
       decrementLoading();
     }
   }, []);
@@ -282,10 +310,18 @@ export const CertificateProvider = ({ children }) => {
       getExpiredCertificates,
       getCertificatesByCategory,
       getCertificatesByJobRole,
+      creating,
+      updating,
+      deleting,
+      uploading,
     }),
     [
       certificates,
       loading,
+      creating,
+      updating,
+      deleting,
+      uploading,
       error,
       fetchCertificates,
       addCertificate,

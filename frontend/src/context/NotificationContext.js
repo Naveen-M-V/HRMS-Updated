@@ -21,6 +21,13 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (user && user.id) {
       fetchNotifications();
+      
+      // Set up auto-refresh every 30 seconds
+      const interval = setInterval(() => {
+        fetchNotifications();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -117,13 +124,21 @@ export const NotificationProvider = ({ children }) => {
     fetchNotifications();
   };
 
+  // Function to trigger immediate refresh after actions
+  const triggerRefresh = () => {
+    setTimeout(() => {
+      fetchNotifications();
+    }, 1000); // Wait 1 second for backend to process
+  };
+
   const value = {
     notifications,
     loading,
     error,
     markAsRead,
     getUnreadCount,
-    refreshNotifications
+    refreshNotifications,
+    triggerRefresh
   };
 
   return (

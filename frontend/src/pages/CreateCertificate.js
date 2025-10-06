@@ -6,11 +6,12 @@ import { getCertificatesForMultipleJobRoles, getAllJobRoles, allCertificates } f
 import SearchableDropdown from "../components/SearchableDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
 import { useAlert } from "../components/AlertNotification";
+import LoadingScreen, { LoadingButton, FormLoadingOverlay } from "../components/LoadingScreen";
 
 export default function CreateCertificate() {
   const navigate = useNavigate();
   const routerLocation = useLocation();
-  const { addCertificate } = useCertificates();
+  const { addCertificate, creating, uploading } = useCertificates();
   const { profiles, loading: profilesLoading, error: profilesError } = useProfiles();
   const { success, error, warning } = useAlert();
 
@@ -449,7 +450,8 @@ export default function CreateCertificate() {
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-semibold mb-6">Create Certificate</h1>
 
-<div className="w-full max-w-6xl mx-auto bg-white shadow-md rounded-2xl p-6">
+<div className="w-full max-w-6xl mx-auto bg-white shadow-md rounded-2xl p-6 relative">
+          <FormLoadingOverlay isLoading={creating || uploading} message={uploading ? "Uploading certificate..." : "Creating certificate..."} />
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Profile */}
            {/* Profile Selection */}
@@ -712,12 +714,14 @@ export default function CreateCertificate() {
               >
                 Cancel
               </button>
-              <button
+              <LoadingButton
                 type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                isLoading={creating || uploading}
+                loadingText={uploading ? "Uploading..." : "Creating..."}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
               >
                 Save changes
-              </button>
+              </LoadingButton>
             </div>
           </form>
         </div>

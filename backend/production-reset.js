@@ -51,7 +51,8 @@ const productionReset = async () => {
       { email: 'tazeen.syeda@vitrux.co.uk', firstName: 'Tazeen', lastName: 'Syeda' },
       { email: 'thaya.govzig@vitruxshield.com', firstName: 'Thaya', lastName: 'Govzig' },
       { email: 'syed.ali.asgar@vitruxshield.com', firstName: 'Syed Ali', lastName: 'Asgar' },
-      { email: 'mvnaveen18@gmail.com', firstName: 'Naveen', lastName: 'MV' }
+      { email: 'mvnaveen18@gmail.com', firstName: 'Naveen', lastName: 'MV' },
+      { email: 'joseph.byrne@vitrux.co.uk', firstName: 'Joseph', lastName: 'Byrne' }
     ];
 
     for (const admin of superAdmins) {
