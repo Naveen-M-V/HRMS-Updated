@@ -827,15 +827,15 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       const existingUser = await User.findOne({ email: savedProfile.email });
       
       if (!existingUser) {
-        // Use VTID as the initial password (will be hashed by pre-save hook)
-        const vtidPassword = savedProfile.vtid.toString();
+        // Generate a secure 8-character password
+        const generatedPassword = generateSimplePassword(8);
         
         // Create user account
         const newUser = new User({
           firstName: savedProfile.firstName,
           lastName: savedProfile.lastName,
           email: savedProfile.email,
-          password: vtidPassword, // Password will be hashed by pre-save hook
+          password: generatedPassword, // Password will be hashed by pre-save hook
           vtid: savedProfile.vtid.toString(), // Store VTID in User for VTID-based login
           role: 'user',
           isActive: true,
@@ -850,12 +850,15 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         savedProfile.userId = newUser._id;
         await savedProfile.save();
         
+        // Store the generated password for email notifications
+        savedProfile.generatedPassword = generatedPassword;
+        
         // Send credentials email to user
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const loginUrl = `${frontendUrl}/login`;
         const userName = `${savedProfile.firstName} ${savedProfile.lastName}`;
         
-        await sendUserCredentialsEmail(savedProfile.email, userName, savedProfile.vtid, loginUrl);
+        await sendUserCredentialsEmail(savedProfile.email, userName, generatedPassword, loginUrl);
         console.log('Credentials email sent to:', savedProfile.email);
       }
     } catch (userCreationError) {
@@ -865,7 +868,6 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
     
     // Send comprehensive email notifications
     try {
-      console.log('Attempting to send profile creation emails...');
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const loginUrl = `${frontendUrl}/login`;
       
@@ -876,7 +878,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       // 1. Send profile creation email to user (with credentials if new user)
       const userCredentials = wasNewUserCreated ? {
         email: savedProfile.email,
-        password: savedProfile.vtid.toString()
+        password: savedProfile.generatedPassword || 'Contact admin for password'
       } : null;
       
       console.log('Sending profile creation email...');
@@ -886,7 +888,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         'Welcome to HRMS - Profile Created',
         userCredentials 
           ? `Welcome to the HRMS system! Your profile has been created successfully.\n\nYour login credentials:\nEmail: ${userCredentials.email}\nPassword: ${userCredentials.password}\n\nPlease login at: ${loginUrl}`
-          : `Welcome to the HRMS system! Your profile has been created successfully.`,
+          : `Welcome to the HRMS system! Your profile has been created successfully.\n\nPlease login at: ${loginUrl}`,
         'success'
       );
       console.log('✅ Profile creation email sent to user:', savedProfile.email);

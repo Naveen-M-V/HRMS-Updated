@@ -28,48 +28,58 @@ export default function Sidebar({ isOpen }) {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
-        if (!token || !user || !user.id) {
-          console.error('Authentication token or user ID not found');
+        // Only fetch notifications for authenticated admin users
+        if (!user || !user.userId || user.role !== 'admin') {
+          setUnreadNotifications(0);
           return;
         }
 
-        const response = await fetch(`https://talentshield.co.uk/api/notifications/${user.id}/unread-count`, {
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+        const response = await fetch(`${API_BASE_URL}/api/notifications/${user.userId}/unread-count`, {
           credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           }
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // If endpoint doesn't exist or fails, silently set to 0
+          setUnreadNotifications(0);
+          return;
         }
 
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Server returned non-JSON response');
+          setUnreadNotifications(0);
+          return;
         }
 
         const data = await response.json();
         if (typeof data.count === 'number') {
           setUnreadNotifications(data.count);
         } else {
-          console.error('Unexpected response format:', data);
+          setUnreadNotifications(0);
         }
       } catch (error) {
-        console.error('Failed to fetch notification count:', error);
-        setUnreadNotifications(0); // Reset count on error
+        // Silently handle errors and set count to 0
+        setUnreadNotifications(0);
       }
     };
 
     fetchNotificationCount();
     
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotificationCount, 30000);
+    // Poll for new notifications every 30 seconds (only for admins)
+    let interval;
+    if (user && user.role === 'admin') {
+      interval = setInterval(fetchNotificationCount, 30000);
+    }
     
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [user]);
 
   // Handle logout
