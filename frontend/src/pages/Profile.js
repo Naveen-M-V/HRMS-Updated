@@ -18,7 +18,7 @@ import {
 import { useAlert } from "../components/AlertNotification";
 
 export default function Profile() {
-  const { success, error } = useAlert();
+  const { success, error: showError } = useAlert();
   const { user } = useAuth();
   const { uploadProfilePicture } = useProfiles();
   const { certificates } = useCertificates();
@@ -95,7 +95,7 @@ export default function Profile() {
         success('Profile picture updated successfully!');
       } catch (err) {
         console.error("Failed to upload profile picture:", err);
-        error('Failed to upload profile picture. Please try again.');
+        showError('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
       }

@@ -6,7 +6,7 @@ import { getImageUrl } from "../utils/config";
 import { useAlert } from "../components/AlertNotification";
 
 export default function MyAccount() {
-  const { success, error } = useAlert();
+  const { success, error: showError } = useAlert();
   const navigate = useNavigate();
   const { user, logout, loading: authLoading } = useAuth();
   const { uploadProfilePicture, getProfileById } = useProfiles();
@@ -103,19 +103,19 @@ export default function MyAccount() {
     
     if (!file || !profileId) {
       console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
-      error('Unable to upload: Missing profile information. Please try refreshing the page.');
+      showError('Unable to upload: Missing profile information. Please try refreshing the page.');
       return;
     }
 
     // Validate file type and size
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
-      error('Please upload a valid image file (JPEG, PNG, or GIF)');
+      showError('Please upload a valid image file (JPEG, PNG, or GIF)');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit (matching backend)
-      error('File size should be less than 10MB');
+      showError('File size should be less than 10MB');
       return;
     }
 
@@ -139,7 +139,7 @@ export default function MyAccount() {
       success("Profile picture updated successfully!");
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
-      error("Failed to upload profile picture: " + (err.message || "Please try again."));
+      showError("Failed to upload profile picture: " + (err.message || "Please try again."));
     } finally {
       setSavingImage(false);
       e.target.value = "";
