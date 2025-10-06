@@ -3,6 +3,10 @@ const mongoose = require('mongoose');
 const { 
   sendNotificationEmail
 } = require('./emailService');
+const {
+  notifyCertificateExpiring,
+  notifyCertificateExpired
+} = require('./notificationService');
 
 // Helper function to parse DD/MM/YYYY date format or Date object
 function parseDate(dateInput) {
@@ -70,23 +74,11 @@ async function checkExpiringCertificates() {
         const profile = await Profile.findById(cert.profileId);
         
         if (profile && profile.email) {
-          const certificateData = {
-            certificate: cert.certificate,
-            category: cert.category,
-            jobRole: cert.jobRole,
-            expiryDate: cert.expiryDate
-          };
-          
           console.log(`[Certificate Scheduler] Sending expiry reminder: ${cert.certificate} to ${profile.email} (${daysUntilExpiry} days remaining)`);
           
           try {
-            await sendNotificationEmail(
-              profile.email,
-              `${profile.firstName} ${profile.lastName}`,
-              `Certificate Expiry Reminder - ${daysUntilExpiry} days remaining`,
-              `Your certificate "${certificateData.certificate}" will expire in ${daysUntilExpiry} days.\n\nCertificate: ${certificateData.certificate}\nCategory: ${certificateData.category}\nExpiry Date: ${certificateData.expiryDate}\n\nPlease renew this certificate before it expires.`,
-              'warning'
-            );
+            // Use the new notification service
+            await notifyCertificateExpiring(cert, profile, daysUntilExpiry);
             remindersSent++;
               
             // OPTIONAL: Track that reminder was sent (requires adding expiryRemindersSent field to Certificate schema)
@@ -98,8 +90,8 @@ async function checkExpiringCertificates() {
             //   cert.lastEmailSentAt = new Date();
             //   await cert.save();
             // }
-          } catch (emailError) {
-            console.error(`[Certificate Scheduler] Failed to send reminder email:`, emailError);
+          } catch (notificationError) {
+            console.error(`[Certificate Scheduler] Failed to send expiry notification:`, notificationError);
           }
         } else {
           console.warn(`[Certificate Scheduler] Profile not found for certificate: ${cert.certificate} (${cert.profileName})`);
@@ -146,38 +138,22 @@ async function checkExpiredCertificates() {
         const profile = await Profile.findById(cert.profileId);
         
         if (profile && profile.email) {
-          const certificateData = {
-            certificate: cert.certificate,
-            category: cert.category,
-            jobRole: cert.jobRole,
-            expiryDate: cert.expiryDate
-          };
-          
           console.log(`[Certificate Scheduler] Certificate EXPIRED: ${cert.certificate} for ${profile.email} (expired ${Math.abs(daysUntilExpiry)} days ago)`);
-          
-          // OPTION 1: Send every day (can be annoying)
-          // await sendCertificateExpiredEmail(profile, certificateData);
-          // expiredNotificationsSent++;
           
           // OPTION 2 (RECOMMENDED): Only send once when it first expires
           // Requires adding 'expiredEmailSent' field to Certificate schema
           if (!cert.expiredEmailSent) {
             try {
-              await sendNotificationEmail(
-                profile.email,
-                `${profile.firstName} ${profile.lastName}`,
-                `Certificate Expired - ${certificateData.certificate}`,
-                `Your certificate "${certificateData.certificate}" has expired.\n\nCertificate: ${certificateData.certificate}\nCategory: ${certificateData.category}\nExpiry Date: ${certificateData.expiryDate}\n\nPlease renew this certificate immediately to maintain compliance.`,
-                'error'
-              );
+              // Use the new notification service
+              await notifyCertificateExpired(cert, profile, Math.abs(daysUntilExpiry));
               expiredNotificationsSent++;
                 
               // Mark as sent (requires expiredEmailSent field in schema)
               // cert.expiredEmailSent = true;
               // cert.lastEmailSentAt = new Date();
               // await cert.save();
-            } catch (emailError) {
-              console.error(`[Certificate Scheduler] Failed to send expired email:`, emailError);
+            } catch (notificationError) {
+              console.error(`[Certificate Scheduler] Failed to send expired notification:`, notificationError);
             }
           }
         } else {

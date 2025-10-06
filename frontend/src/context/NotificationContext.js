@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useCertificates } from './CertificateContext';
-import { useProfiles } from './ProfileContext';
-import { getCertificateExpiryNotifications } from '../utils/notificationUtils';
+import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
 
@@ -17,71 +15,98 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { certificates } = useCertificates();
-  const { userProfile } = useProfiles();
+  const { user } = useAuth();
 
-  // Generate notifications based on certificate expiry
+  // Fetch notifications from backend
   useEffect(() => {
-    if (certificates && userProfile) {
-      generateNotifications();
+    if (user && user.id) {
+      fetchNotifications();
     }
-  }, [certificates, userProfile]);
+  }, [user]);
 
-  const generateNotifications = () => {
+  const fetchNotifications = async () => {
     try {
-      // Only generate notifications if we have a user profile
-      if (!userProfile || !userProfile._id) {
-        setNotifications([]);
+      setLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        console.error('No authentication token found');
         return;
       }
 
-      // Filter certificates to only include user's certificates
-      const userCertificates = certificates.filter(cert => 
-        cert.profileId === userProfile._id || 
-        cert.profileId?._id === userProfile._id
-      );
-
-      // Generate certificate expiry notifications for user's certificates only
-      const expiryNotifications = getCertificateExpiryNotifications(userCertificates, userProfile.email);
-      
-      // Add system notifications (only once)
-      const systemNotifications = [
-        {
-          id: "system-welcome",
-          type: "system",
-          priority: "low",
-          message: "Welcome to HRMS! Keep track of your certificates and profiles.",
-          title: "Welcome to HRMS",
-          status: "Open",
-          date: new Date().toLocaleDateString(),
-          createdAt: new Date().toISOString(),
-          read: false
+      const response = await fetch('https://talentshield.co.uk/api/notifications', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
-      ];
+      });
 
-      // Combine and format all notifications
-      const allNotifications = [...expiryNotifications, ...systemNotifications].map(notif => ({
-        ...notif,
-        title: notif.title || notif.message,
-        status: notif.status || "Open",
-        date: notif.date || new Date(notif.createdAt).toLocaleDateString()
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Transform backend notifications to match frontend format
+      const transformedNotifications = data.notifications.map(notif => ({
+        id: notif._id,
+        title: notif.title,
+        message: notif.message,
+        type: notif.type,
+        priority: notif.priority,
+        read: notif.isRead,
+        status: notif.isRead ? 'Read' : 'Open',
+        date: new Date(notif.createdAt).toLocaleDateString(),
+        createdAt: notif.createdAt,
+        metadata: notif.metadata || {}
       }));
 
-      setNotifications(allNotifications);
+      setNotifications(transformedNotifications);
     } catch (err) {
-      console.error('Error generating notifications:', err);
-      setError('Failed to generate notifications');
+      console.error('Error fetching notifications:', err);
+      setError('Failed to fetch notifications');
+      setNotifications([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const markAsRead = (notificationId) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId 
-          ? { ...notif, read: true }
-          : notif
-      )
-    );
+  const markAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      const response = await fetch(`https://talentshield.co.uk/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif.id === notificationId 
+            ? { ...notif, read: true, status: 'Read' }
+            : notif
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
   const getUnreadCount = () => {
@@ -89,7 +114,7 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const refreshNotifications = () => {
-    generateNotifications();
+    fetchNotifications();
   };
 
   const value = {

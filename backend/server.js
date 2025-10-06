@@ -30,6 +30,13 @@ const {
 } = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
+const { 
+  notifyUserCreation,
+  notifyProfileUpdate,
+  notifyCertificateAdded,
+  notifyCertificateDeleted,
+  notifyCertificateUpdated
+} = require('./utils/notificationService');
 
 const app = express();
 const PORT = config.server.port;
@@ -917,21 +924,15 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       console.error('Email error stack:', emailError.stack);
     }
     
-    // Create in-app notification for profile creation
+    // Create in-app notifications using new notification service
     try {
-      const users = await User.find({ role: 'admin' });
-      for (const user of users) {
-        const notification = new Notification({
-          userId: user._id,
-          type: 'profile_created',
-          priority: 'low',
-          message: `New profile created: ${savedProfile.firstName} ${savedProfile.lastName}`,
-          read: false
-        });
-        await notification.save();
+      const newUser = await User.findOne({ profileId: savedProfile._id });
+      if (newUser) {
+        await notifyUserCreation(newUser, savedProfile, req.session?.user?.userId);
+        console.log('✅ User creation notifications sent');
       }
     } catch (notificationError) {
-      console.error('Error creating notifications:', notificationError);
+      console.error('❌ Error creating user creation notifications:', notificationError);
     }
     
     res.status(201).json(savedProfile);
@@ -1057,21 +1058,21 @@ app.put('/api/profiles/:id', async (req, res) => {
       console.error('Email error stack:', emailError.stack);
     }
     
-    // Create in-app notification for profile update
+    // Create in-app notifications using new notification service
     try {
-      const users = await User.find({ role: 'admin' });
-      for (const user of users) {
-        const notification = new Notification({
-          userId: user._id,
-          type: 'profile_updated',
-          priority: 'low',
-          message: `Profile updated: ${updatedProfile.firstName} ${updatedProfile.lastName}`,
-          read: false
-        });
-        await notification.save();
+      const updatedFields = {};
+      Object.keys(updateData).forEach(key => {
+        if (originalProfile[key] !== updatedProfile[key]) {
+          updatedFields[key] = updatedProfile[key];
+        }
+      });
+      
+      if (Object.keys(updatedFields).length > 0) {
+        await notifyProfileUpdate(updatedProfile, updatedFields, req.session?.user?.userId);
+        console.log('✅ Profile update notifications sent');
       }
     } catch (notificationError) {
-      console.error('Error creating update notification:', notificationError);
+      console.error('❌ Error creating profile update notifications:', notificationError);
     }
     
     res.json(updatedProfile);
@@ -1509,21 +1510,17 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
       console.log('⚠️ No profileId provided, skipping email notifications');
     }
     
-    // Create in-app notification for certificate creation
+    // Create in-app notifications using new notification service
     try {
-      const users = await User.find({ role: 'admin' });
-      for (const user of users) {
-        const notification = new Notification({
-          userId: user._id,
-          type: 'certificate_created',
-          priority: 'low',
-          message: `New certificate added: ${savedCertificate.certificate} for ${savedCertificate.profileName}`,
-          read: false
-        });
-        await notification.save();
+      if (certificateData.profileId) {
+        const profile = await Profile.findById(certificateData.profileId);
+        if (profile) {
+          await notifyCertificateAdded(savedCertificate, profile, req.session?.user?.userId);
+          console.log('✅ Certificate added notifications sent');
+        }
       }
     } catch (notificationError) {
-      console.error('Error creating certificate notification:', notificationError);
+      console.error('❌ Error creating certificate added notifications:', notificationError);
     }
     
     res.status(201).json(savedCertificate);
@@ -1597,6 +1594,27 @@ app.put('/api/certificates/:id', async (req, res) => {
       }
     } catch (emailError) {
       console.error('Error sending certificate update emails:', emailError);
+    }
+    
+    // Create in-app notifications using new notification service
+    try {
+      const profile = certificate.profileId;
+      if (profile) {
+        const significantFields = ['certificate', 'expiryDate', 'status', 'approvalStatus'];
+        const updatedFields = {};
+        significantFields.forEach(field => {
+          if (originalCertificate[field] !== certificate[field]) {
+            updatedFields[field] = certificate[field];
+          }
+        });
+        
+        if (Object.keys(updatedFields).length > 0) {
+          await notifyCertificateUpdated(certificate, profile, updatedFields, req.session?.user?.userId);
+          console.log('✅ Certificate update notifications sent');
+        }
+      }
+    } catch (notificationError) {
+      console.error('❌ Error creating certificate update notifications:', notificationError);
     }
     
     res.json(certificate);
@@ -1765,6 +1783,16 @@ app.delete('/api/certificates/:id', async (req, res) => {
       } catch (emailError) {
         console.error('Error sending certificate deletion emails:', emailError);
       }
+    }
+    
+    // Create in-app notifications using new notification service
+    try {
+      if (profile) {
+        await notifyCertificateDeleted(certificate, profile, req.session?.user?.userId);
+        console.log('✅ Certificate deletion notifications sent');
+      }
+    } catch (notificationError) {
+      console.error('❌ Error creating certificate deletion notifications:', notificationError);
     }
     
     res.json({ message: 'Certificate deleted successfully' });
