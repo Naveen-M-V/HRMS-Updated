@@ -4,7 +4,7 @@ const getEmailFrom = () => process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
 // Create SMTP transporter
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT) || 587,
     secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
