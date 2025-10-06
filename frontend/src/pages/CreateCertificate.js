@@ -324,17 +324,14 @@ export default function CreateCertificate() {
       return;
     }
     
-    // Helper to safely convert dates to ISO
+    // Helper to safely convert dates to ISO format for backend
     const toIsoDate = (dateStr) => {
       if (!dateStr) return null;
       try {
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return null;
-        // Convert to DD/MM/YYYY format
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
+        // Return ISO string for proper backend parsing
+        return date.toISOString();
       } catch {
         return null;
       }

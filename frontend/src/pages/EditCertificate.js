@@ -209,11 +209,8 @@ export default function EditCertificate() {
           console.warn('Invalid date for submission:', dateString);
           return null;
         }
-        // Convert to DD/MM/YYYY format
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
+        // Return ISO string for proper backend parsing
+        return date.toISOString();
       } catch (error) {
         console.error('Error formatting date for submission:', dateString, error);
         return null;

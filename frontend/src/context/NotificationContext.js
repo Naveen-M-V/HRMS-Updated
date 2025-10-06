@@ -29,10 +29,22 @@ export const NotificationProvider = ({ children }) => {
 
   const generateNotifications = () => {
     try {
-      // Generate certificate expiry notifications
-      const expiryNotifications = getCertificateExpiryNotifications(certificates, userProfile.email);
+      // Only generate notifications if we have a user profile
+      if (!userProfile || !userProfile._id) {
+        setNotifications([]);
+        return;
+      }
+
+      // Filter certificates to only include user's certificates
+      const userCertificates = certificates.filter(cert => 
+        cert.profileId === userProfile._id || 
+        cert.profileId?._id === userProfile._id
+      );
+
+      // Generate certificate expiry notifications for user's certificates only
+      const expiryNotifications = getCertificateExpiryNotifications(userCertificates, userProfile.email);
       
-      // Add system notifications
+      // Add system notifications (only once)
       const systemNotifications = [
         {
           id: "system-welcome",

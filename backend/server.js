@@ -1176,29 +1176,9 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working', timestamp: new Date().toISOString() });
 });
 
-// Get unread notification count
-app.get('/api/notifications/unread-count', async (req, res) => {
-  try {
-    console.log('Unread notification count endpoint called');
-    const count = await Notification.countDocuments({ read: false });
-    res.json({ count });
-  } catch (error) {
-    console.error('Error getting unread notification count:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
+// Get unread notification count (removed - duplicate endpoint, use /api/notifications/:userId/unread-count instead)
 
-// Initialize certificate names endpoint
-app.get('/api/certificate-names/initialize', async (req, res) => {
-  try {
-    console.log('Certificate names initialization endpoint called');
-    // Return a simple success response
-    res.json({ message: 'Certificate names initialized', success: true });
-  } catch (error) {
-    console.error('Error initializing certificate names:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
+// Initialize certificate names endpoint (removed - conflicts with POST endpoint below)
 
 // Delete profile
 app.delete('/api/profiles/:id', async (req, res) => {
@@ -1537,6 +1517,12 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
     
     res.status(201).json(savedCertificate);
   } catch (error) {
+    console.error('❌ Certificate creation error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      requestBody: req.body
+    });
     res.status(400).json({ message: error.message });
   }
 });
@@ -1604,6 +1590,13 @@ app.put('/api/certificates/:id', async (req, res) => {
     
     res.json(certificate);
   } catch (error) {
+    console.error('❌ Certificate update error:', error);
+    console.error('Update error details:', {
+      message: error.message,
+      stack: error.stack,
+      requestBody: req.body,
+      certificateId: req.params.id
+    });
     res.status(400).json({ message: error.message });
   }
 });
