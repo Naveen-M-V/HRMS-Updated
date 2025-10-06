@@ -2,13 +2,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { 
+  PencilIcon, 
+  PlusIcon, 
+  EyeIcon, 
+  BellIcon,
+  UserCircleIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  ClockIcon
+} from '@heroicons/react/24/outline';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({});
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
@@ -24,6 +39,7 @@ const UserDashboard = () => {
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
         setUserProfile(profileData);
+        setEditedProfile(profileData);
         
         // Fetch user certificates
         const certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${profileData._id}/certificates`, {
@@ -33,6 +49,16 @@ const UserDashboard = () => {
         if (certificatesResponse.ok) {
           const certificatesData = await certificatesResponse.json();
           setCertificates(certificatesData);
+        }
+
+        // Fetch user notifications
+        const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications/user/${profileData._id}`, {
+          credentials: 'include'
+        });
+        
+        if (notificationsResponse.ok) {
+          const notificationsData = await notificationsResponse.json();
+          setNotifications(notificationsData.slice(0, 10)); // Show latest 10
         }
       }
     } catch (error) {
@@ -51,6 +77,81 @@ const UserDashboard = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleProfileEdit = () => {
+    setIsEditingProfile(true);
+  };
+
+  const handleProfileSave = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/profiles/${userProfile._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(editedProfile)
+      });
+
+      if (response.ok) {
+        const updatedProfile = await response.json();
+        setUserProfile(updatedProfile);
+        setIsEditingProfile(false);
+        // Show success message
+        alert('Profile updated successfully!');
+      } else {
+        alert('Failed to update profile. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile. Please try again.');
+    }
+  };
+
+  const handleProfileCancel = () => {
+    setEditedProfile(userProfile);
+    setIsEditingProfile(false);
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditedProfile(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleAddCertificate = () => {
+    navigate('/user/certificates/create');
+  };
+
+  const handleViewCertificate = (certificateId) => {
+    navigate(`/user/certificates/${certificateId}`);
+  };
+
+  const getCertificateStatusColor = (expiryDate) => {
+    if (!expiryDate) return 'text-gray-500';
+    
+    const expiry = new Date(expiryDate);
+    const today = new Date();
+    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilExpiry < 0) return 'text-red-600'; // Expired
+    if (daysUntilExpiry <= 30) return 'text-yellow-600'; // Expiring soon
+    return 'text-green-600'; // Valid
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'certificate_expiry':
+        return <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />;
+      case 'certificate_added':
+        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+      case 'profile_updated':
+        return <UserCircleIcon className="h-5 w-5 text-blue-500" />;
+      default:
+        return <BellIcon className="h-5 w-5 text-gray-500" />;
+    }
   };
 
   if (loading) {
@@ -80,110 +181,371 @@ const UserDashboard = () => {
                 }}
               />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">User Dashboard</h1>
+                <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
                 <p className="text-sm text-gray-500">Welcome back, {user?.firstName} {user?.lastName}</p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Logout
-            </button>
+            <div className="flex items-center space-x-4">
+              {notifications.length > 0 && (
+                <div className="relative">
+                  <BellIcon className="h-6 w-6 text-gray-400" />
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8">
+            {[
+              { id: 'overview', name: 'Overview', icon: UserCircleIcon },
+              { id: 'profile', name: 'My Profile', icon: UserCircleIcon },
+              { id: 'certificates', name: 'My Certificates', icon: DocumentTextIcon },
+              { id: 'notifications', name: 'Notifications', icon: BellIcon }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+              >
+                <tab.icon className="h-5 w-5" />
+                <span>{tab.name}</span>
+                {tab.id === 'notifications' && notifications.length > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Information */}
-        {userProfile && (
-          <div className="bg-white shadow rounded-lg mb-8">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Profile Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500">Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{userProfile.firstName} {userProfile.lastName}</p>
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <DocumentTextIcon className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">Total Certificates</dt>
+                        <dd className="text-lg font-medium text-gray-900">{certificates.length}</dd>
+                      </dl>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500">Email</label>
-                  <p className="mt-1 text-sm text-gray-900">{userProfile.email}</p>
+              </div>
+
+              <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <ExclamationTriangleIcon className="h-6 w-6 text-yellow-400" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">Expiring Soon</dt>
+                        <dd className="text-lg font-medium text-gray-900">
+                          {certificates.filter(cert => {
+                            if (!cert.expiryDate) return false;
+                            const daysUntilExpiry = Math.ceil((new Date(cert.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                            return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+                          }).length}
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500">VTID</label>
-                  <p className="mt-1 text-sm text-gray-900">{userProfile.vtid || 'Not assigned'}</p>
+              </div>
+
+              <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <BellIcon className="h-6 w-6 text-blue-400" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">New Notifications</dt>
+                        <dd className="text-lg font-medium text-gray-900">{notifications.length}</dd>
+                      </dl>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500">Job Role</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {Array.isArray(userProfile.jobRole) ? userProfile.jobRole.join(', ') : userProfile.jobRole || 'Not specified'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500">Company</label>
-                  <p className="mt-1 text-sm text-gray-900">{userProfile.company || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500">Mobile</label>
-                  <p className="mt-1 text-sm text-gray-900">{userProfile.mobile || 'Not specified'}</p>
-                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Recent Activity</h3>
+                {notifications.length === 0 ? (
+                  <p className="text-gray-500">No recent activity</p>
+                ) : (
+                  <div className="space-y-3">
+                    {notifications.slice(0, 5).map((notification, index) => (
+                      <div key={index} className="flex items-start space-x-3">
+                        {getNotificationIcon(notification.type)}
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-900">{notification.message}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(notification.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Certificates Section */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">My Certificates ({certificates.length})</h3>
-            
-            {certificates.length === 0 ? (
-              <div className="text-center py-12">
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No certificates found</h3>
-                <p className="mt-1 text-sm text-gray-500">Your certificates will appear here once they are added by the admin.</p>
+        {/* Profile Tab */}
+        {activeTab === 'profile' && userProfile && (
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">My Profile</h3>
+                {!isEditingProfile ? (
+                  <button
+                    onClick={handleProfileEdit}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <PencilIcon className="h-4 w-4 mr-2" />
+                    Edit Profile
+                  </button>
+                ) : (
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleProfileSave}
+                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={handleProfileCancel}
+                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Certificate
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Category
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Issue Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Expiry Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {certificates.map((certificate) => (
-                      <tr key={certificate._id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {certificate.certificate}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {certificate.category}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {certificate.issueDate ? new Date(certificate.issueDate).toLocaleDateString() : 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {certificate.expiryDate ? new Date(certificate.expiryDate).toLocaleDateString() : 'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { field: 'firstName', label: 'First Name', type: 'text' },
+                  { field: 'lastName', label: 'Last Name', type: 'text' },
+                  { field: 'email', label: 'Email', type: 'email', disabled: true },
+                  { field: 'vtid', label: 'VTID', type: 'text', disabled: true },
+                  { field: 'mobile', label: 'Mobile', type: 'tel' },
+                  { field: 'dateOfBirth', label: 'Date of Birth', type: 'date' },
+                  { field: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
+                  { field: 'nationality', label: 'Nationality', type: 'text' }
+                ].map((fieldConfig) => (
+                  <div key={fieldConfig.field}>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">
+                      {fieldConfig.label}
+                    </label>
+                    {isEditingProfile && !fieldConfig.disabled ? (
+                      fieldConfig.type === 'select' ? (
+                        <select
+                          value={editedProfile[fieldConfig.field] || ''}
+                          onChange={(e) => handleInputChange(fieldConfig.field, e.target.value)}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        >
+                          <option value="">Select {fieldConfig.label}</option>
+                          {fieldConfig.options.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={fieldConfig.type}
+                          value={editedProfile[fieldConfig.field] || ''}
+                          onChange={(e) => handleInputChange(fieldConfig.field, e.target.value)}
+                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        />
+                      )
+                    ) : (
+                      <p className="mt-1 text-sm text-gray-900">
+                        {fieldConfig.field === 'dateOfBirth' && userProfile[fieldConfig.field]
+                          ? new Date(userProfile[fieldConfig.field]).toLocaleDateString()
+                          : userProfile[fieldConfig.field] || 'Not specified'
+                        }
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Certificates Tab */}
+        {activeTab === 'certificates' && (
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    My Certificates ({certificates.length})
+                  </h3>
+                  <button
+                    onClick={handleAddCertificate}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add Certificate
+                  </button>
+                </div>
+
+                {certificates.length === 0 ? (
+                  <div className="text-center py-12">
+                    <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No certificates</h3>
+                    <p className="mt-1 text-sm text-gray-500">Get started by adding your first certificate.</p>
+                    <div className="mt-6">
+                      <button
+                        onClick={handleAddCertificate}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Add Certificate
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-300">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Certificate
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Category
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Expiry Date
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {certificates.map((certificate) => {
+                          const expiryDate = certificate.expiryDate ? new Date(certificate.expiryDate) : null;
+                          const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                          
+                          return (
+                            <tr key={certificate._id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{certificate.certificate}</div>
+                                <div className="text-sm text-gray-500">{certificate.provider || 'N/A'}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {certificate.category}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  daysUntilExpiry === null ? 'bg-gray-100 text-gray-800' :
+                                  daysUntilExpiry < 0 ? 'bg-red-100 text-red-800' :
+                                  daysUntilExpiry <= 30 ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-green-100 text-green-800'
+                                }`}>
+                                  {daysUntilExpiry === null ? 'No Expiry' :
+                                   daysUntilExpiry < 0 ? 'Expired' :
+                                   daysUntilExpiry <= 30 ? 'Expiring Soon' :
+                                   'Valid'}
+                                </span>
+                              </td>
+                              <td className={`px-6 py-4 whitespace-nowrap text-sm ${getCertificateStatusColor(certificate.expiryDate)}`}>
+                                {certificate.expiryDate ? new Date(certificate.expiryDate).toLocaleDateString() : 'No expiry'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button
+                                  onClick={() => handleViewCertificate(certificate._id)}
+                                  className="text-blue-600 hover:text-blue-900 flex items-center"
+                                >
+                                  <EyeIcon className="h-4 w-4 mr-1" />
+                                  View
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-6">My Notifications</h3>
+              
+              {notifications.length === 0 ? (
+                <div className="text-center py-12">
+                  <BellIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No notifications</h3>
+                  <p className="mt-1 text-sm text-gray-500">You're all caught up! New notifications will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {notifications.map((notification, index) => (
+                    <div key={index} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{notification.title || 'Notification'}</p>
+                        <p className="text-sm text-gray-600">{notification.message}</p>
+                        <div className="mt-2 flex items-center text-xs text-gray-500">
+                          <ClockIcon className="h-4 w-4 mr-1" />
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

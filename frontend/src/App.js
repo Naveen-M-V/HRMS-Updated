@@ -34,8 +34,8 @@ const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const CreateUser = lazy(() => import("./pages/CreateUser"));
-// const UserCertificateCreate = lazy(() => import("./pages/UserCertificateCreate"));
-// const UserCertificateView = lazy(() => import("./pages/UserCertificateView"));
+const UserCertificateCreate = lazy(() => import("./pages/UserCertificateCreate"));
+const UserCertificateView = lazy(() => import("./pages/UserCertificateView"));
 const AdminDetailsModal = lazy(() => import("./pages/AdminDetailsModal"));
 
 // Protected Route Component
@@ -161,6 +161,35 @@ function App() {
                   </div>
                 }>
                   <UserDashboard />
+                </Suspense>
+              </ErrorBoundary>
+            </UserProtectedRoute>
+          } />
+
+          {/* User Certificate Routes */}
+          <Route path="/user/certificates/create" element={
+            <UserProtectedRoute>
+              <ErrorBoundary>
+                <Suspense fallback={
+                  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
+                }>
+                  <UserCertificateCreate />
+                </Suspense>
+              </ErrorBoundary>
+            </UserProtectedRoute>
+          } />
+
+          <Route path="/user/certificates/:id" element={
+            <UserProtectedRoute>
+              <ErrorBoundary>
+                <Suspense fallback={
+                  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                  </div>
+                }>
+                  <UserCertificateView />
                 </Suspense>
               </ErrorBoundary>
             </UserProtectedRoute>
