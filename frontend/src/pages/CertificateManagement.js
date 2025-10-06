@@ -42,6 +42,15 @@ export default function CertificateManagement() {
     return { categories, statuses, providers };
   }, [certificates]);
 
+  // Check if certificate is expiring soon (within 30 days)
+  const isExpiringSoon = (expiryDate) => {
+    if (!expiryDate) return false;
+    const expiry = new Date(expiryDate.split('/').reverse().join('-'));
+    const today = new Date();
+    const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+    return expiry <= thirtyDaysFromNow && expiry >= today;
+  };
+
   // Filter certificates
   const filteredCertificates = useMemo(() => {
     let filtered = certificates.filter((cert) => {
@@ -105,15 +114,6 @@ export default function CertificateManagement() {
       default:
         return <ClockIcon className="h-4 w-4" />;
     }
-  };
-
-  // Check if certificate is expiring soon (within 30 days)
-  const isExpiringSoon = (expiryDate) => {
-    if (!expiryDate) return false;
-    const expiry = new Date(expiryDate.split('/').reverse().join('-'));
-    const today = new Date();
-    const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-    return expiry <= thirtyDaysFromNow && expiry >= today;
   };
 
   const handleDeleteCertificate = async (certificateId, certificateName) => {
