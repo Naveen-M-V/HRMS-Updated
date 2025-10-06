@@ -80,7 +80,7 @@ async function validateEmailConfig() {
 async function testBasicEmail() {
   log.section('BASIC EMAIL TEST');
   
-  const testEmail = 'mvnaveen18@gmail.com'; // Your email
+  const testEmail = 'thaya.govzig@vitruxshield.com'; // Your email
   
   try {
     log.info(`Sending test email to: ${testEmail}`);
