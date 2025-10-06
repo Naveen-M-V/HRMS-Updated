@@ -358,13 +358,13 @@ export default function CreateCertificate() {
       provider: form.supplier || "SKILLS PROVIDER",
       fileRequired: form.fileRequired === "True" ? "Yes" : "No",
       status: form.approvalStatus || "Approved",
-      cost: form.totalCost || "0.00",
+      cost: parseFloat(form.totalCost) || 0,
       jobRole: selectedProfile && selectedProfile.jobRole ? (Array.isArray(selectedProfile.jobRole) ? selectedProfile.jobRole[0] : selectedProfile.jobRole) : "Unknown",
       approvalStatus: form.approvalStatus || "Approved",
-      isInterim: form.isInterim || "False",
+      isInterim: form.isInterim === "True", // Convert string to boolean
       
       supplier: form.supplier || "",
-      totalCost: form.totalCost || "0.00",
+      totalCost: parseFloat(form.totalCost) || 0,
       fileData: form.certificateFile
     };
 
