@@ -17,13 +17,49 @@ export default function ViewCertificate() {
   const [certificate, setCertificate] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const cert = certificates.find(
       (c) => (c.id || c._id) === id || (c.id || c._id) === parseInt(id)
     );
-    if (cert) setCertificate(cert);
+    if (cert) {
+      setCertificate(cert);
+      setLoading(false);
+    } else if (certificates.length > 0) {
+      // If certificates are loaded but certificate not found, try fetching individual certificate
+      fetchIndividualCertificate();
+    }
   }, [id, certificates]);
+
+  const fetchIndividualCertificate = async () => {
+    try {
+      setLoading(true);
+      const url = buildApiUrl(`/certificates/${id}`);
+      console.log('Fetching individual certificate from:', url);
+      
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const cert = await response.json();
+        console.log('Individual certificate fetched successfully:', cert);
+        setCertificate(cert);
+      } else {
+        console.error('Failed to fetch certificate:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching individual certificate:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatDate = (date) => {
     if (!date) return "N/A";
@@ -153,11 +189,23 @@ export default function ViewCertificate() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-4">Loading certificate...</h2>
+        </div>
+      </div>
+    );
+  }
+
   if (!certificate) {
     return (
       <div className="p-6">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4">Certificate not found</h2>
+          <p className="text-gray-600 mb-4">The certificate you're looking for doesn't exist or has been deleted.</p>
           <Link to="/certificates" className="text-blue-600 hover:underline">
             Back to Certificate Management
           </Link>
@@ -207,8 +255,9 @@ export default function ViewCertificate() {
           >
             Delete certificate
           </button>
+        </div>
       </div>
-</div>
+
       <div className="grid grid-cols-12 gap-6">
         {/* Left Column - Certificate Details */}
         <div className="col-span-8">

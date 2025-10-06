@@ -241,18 +241,30 @@ export default function EditCertificate() {
     };
 
     try {
+      console.log('Attempting to update certificate with data:', updatedCert);
       await updateCertificate(id, updatedCert);
       alert('Changes saved successfully!');
-      navigate(`/dashboard/certificates/${id}`);
+      navigate(`/viewcertificate/${id}`);
     } catch (error) {
       console.error('Failed to update certificate:', error);
-      alert('Failed to save changes. Please try again.');
-      navigate(`/dashboard/certificates/${id}`);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = 'Failed to save changes. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = `Failed to save changes: ${error.response.data.message}`;
+      }
+      
+      alert(errorMessage);
+      // Don't navigate on error - stay on edit page so user can try again
     }
   };
 
   const handleCancel = () => {
-    navigate(`/dashboard/certificates/${id}`);
+    navigate(`/viewcertificate/${id}`);
   };
 
   return (

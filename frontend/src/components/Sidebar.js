@@ -16,7 +16,7 @@ import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
-  const { logout, loading } = useAuth();
+  const { logout, loading, user } = useAuth();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
@@ -29,12 +29,12 @@ export default function Sidebar({ isOpen }) {
     const fetchNotificationCount = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        if (!token) {
-          console.error('Authentication token not found');
+        if (!token || !user || !user.id) {
+          console.error('Authentication token or user ID not found');
           return;
         }
 
-        const response = await fetch('https://talentshield.co.uk/api/notifications/unread-count', {
+        const response = await fetch(`https://talentshield.co.uk/api/notifications/${user.id}/unread-count`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -70,7 +70,7 @@ export default function Sidebar({ isOpen }) {
     const interval = setInterval(fetchNotificationCount, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   // Handle logout
   const handleLogout = async () => {
