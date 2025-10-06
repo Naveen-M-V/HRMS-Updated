@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-  ArrowLeftIcon,
+  ArrowLeftIcon, 
   DocumentIcon,
   CalendarIcon,
   BuildingOfficeIcon,
-  CurrencyPoundSterlingIcon,
+  CurrencyDollarIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
@@ -223,7 +223,7 @@ const UserCertificateView = () => {
 
                 {certificate.cost && (
                   <div className="flex items-start">
-                    <CurrencyPoundSterlingIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
+                    <CurrencyDollarIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Cost</dt>
                       <dd className="text-sm text-gray-900">{certificate.cost}</dd>
@@ -231,7 +231,6 @@ const UserCertificateView = () => {
                   </div>
                 )}
               </div>
-
               <div className="space-y-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Profile Name</dt>
