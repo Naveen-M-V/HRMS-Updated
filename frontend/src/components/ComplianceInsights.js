@@ -27,6 +27,16 @@ const ComplianceInsights = () => {
   
   const [selectedSection, setSelectedSection] = useState(null);
 
+  // Format date to show only date without timestamp
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
   useEffect(() => {
     if (certificates.length > 0) {
       const expiring = getExpiringCertificates(30);
@@ -145,7 +155,7 @@ const ComplianceInsights = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{cert.category || 'N/A'}</td>
                   <td className="px-6 py-4 text-sm text-gray-500">{cert.provider || 'N/A'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{cert.expiryDate || 'N/A'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">{formatDate(cert.expiryDate)}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(cert.status)}`}>
                       {getStatusIcon(cert.status)}

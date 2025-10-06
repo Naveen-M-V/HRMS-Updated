@@ -42,6 +42,16 @@ export default function CertificateManagement() {
     return { categories, statuses, providers };
   }, [certificates]);
 
+  // Format date to show only date without timestamp
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
   // Check if certificate is expiring soon (within 30 days)
   const isExpiringSoon = (expiryDate) => {
     if (!expiryDate) return false;
@@ -49,6 +59,14 @@ export default function CertificateManagement() {
     const today = new Date();
     const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
     return expiry <= thirtyDaysFromNow && expiry >= today;
+  };
+
+  // Check if certificate is expired
+  const isExpired = (expiryDate) => {
+    if (!expiryDate) return false;
+    const expiry = new Date(expiryDate.split('/').reverse().join('-'));
+    const today = new Date();
+    return expiry < today;
   };
 
   // Filter certificates
@@ -77,6 +95,9 @@ export default function CertificateManagement() {
           break;
         case 'expiring':
           filtered = filtered.filter(c => isExpiringSoon(c.expiryDate));
+          break;
+        case 'expired':
+          filtered = filtered.filter(c => isExpired(c.expiryDate));
           break;
         default:
           break;
@@ -158,7 +179,7 @@ export default function CertificateManagement() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-5 gap-4 mt-6">
               <button
                 onClick={() => setSelectedSection(selectedSection === 'total' ? null : 'total')}
                 className={`p-4 rounded-lg border-2 transition-all hover:shadow-md text-left ${
@@ -193,13 +214,24 @@ export default function CertificateManagement() {
               <button
                 onClick={() => setSelectedSection(selectedSection === 'expiring' ? null : 'expiring')}
                 className={`p-4 rounded-lg border-2 transition-all hover:shadow-md text-left ${
-                  selectedSection === 'expiring' ? 'border-red-500 bg-red-50' : 'bg-red-50 border-gray-200 hover:border-red-300'
+                  selectedSection === 'expiring' ? 'border-yellow-500 bg-yellow-50' : 'bg-yellow-50 border-gray-200 hover:border-yellow-300'
+                }`}
+              >
+                <div className="text-2xl font-bold text-yellow-600">
+                  {certificates.filter(c => isExpiringSoon(c.expiryDate)).length}
+                </div>
+                <div className="text-sm text-yellow-700">Expiring Soon</div>
+              </button>
+              <button
+                onClick={() => setSelectedSection(selectedSection === 'expired' ? null : 'expired')}
+                className={`p-4 rounded-lg border-2 transition-all hover:shadow-md text-left ${
+                  selectedSection === 'expired' ? 'border-red-500 bg-red-50' : 'bg-red-50 border-gray-200 hover:border-red-300'
                 }`}
               >
                 <div className="text-2xl font-bold text-red-600">
-                  {certificates.filter(c => isExpiringSoon(c.expiryDate)).length}
+                  {certificates.filter(c => isExpired(c.expiryDate)).length}
                 </div>
-                <div className="text-sm text-red-700">Expiring Soon</div>
+                <div className="text-sm text-red-700">Expired</div>
               </button>
             </div>
           </div>
@@ -362,7 +394,7 @@ export default function CertificateManagement() {
                       </div>
                       <div className="flex items-center gap-2">
                         <CalendarIcon className="h-4 w-4" />
-                        Expires: {cert.expiryDate}
+                        Expires: {formatDate(cert.expiryDate)}
                       </div>
                     </div>
 
@@ -425,9 +457,11 @@ export default function CertificateManagement() {
                       <td className="px-6 py-4 text-sm text-gray-500">{cert.category}</td>
                       <td className="px-6 py-4 text-sm text-gray-500">{cert.provider}</td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{cert.expiryDate}</div>
-                        {isExpiringSoon(cert.expiryDate) && (
-                          <div className="text-xs text-red-600 font-medium">Expiring Soon</div>
+                        <div className="text-sm text-gray-900">{formatDate(cert.expiryDate)}</div>
+                        {isExpired(cert.expiryDate) ? (
+                          <div className="text-xs text-red-600 font-medium">Expired</div>
+                        ) : isExpiringSoon(cert.expiryDate) && (
+                          <div className="text-xs text-yellow-600 font-medium">Expiring Soon</div>
                         )}
                       </td>
                       <td className="px-6 py-4">
