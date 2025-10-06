@@ -32,15 +32,18 @@ router.get('/unread-count', async (req, res) => {
 router.get('/:userId/unread-count', async (req, res) => {
   try {
     const userId = req.params.userId;
+    console.log(`📊 Unread count request for user: ${userId}`);
     
     if (!userId) {
       return res.status(400).json({ error: 'User ID is required' });
     }
 
     const unreadCount = await getUnreadNotificationCount(userId);
+    console.log(`📊 Unread count for user ${userId}: ${unreadCount}`);
+    
     res.json({ count: unreadCount });
   } catch (error) {
-    console.error("Error fetching notification count:", error);
+    console.error("❌ Error fetching notification count:", error);
     res.status(500).json({ error: 'Failed to fetch notification count' });
   }
 });
@@ -48,12 +51,21 @@ router.get('/:userId/unread-count', async (req, res) => {
 // Get all notifications for user
 router.get('/', async (req, res) => {
   try {
+    // Debug logging can be removed after testing
+    
     const userId = req.session?.user?.userId;
     
     if (!userId) {
-      console.warn("No user session found for notifications");
+      console.warn("❌ No user session found for notifications");
+      console.log('Session details:', {
+        hasSession: !!req.session,
+        sessionUser: req.session?.user,
+        cookies: req.headers.cookie
+      });
       return res.json({ notifications: [] });
     }
+
+    console.log(`✅ Fetching notifications for user: ${userId}`);
 
     const { limit, skip, unreadOnly, type } = req.query;
     const options = {
@@ -64,9 +76,11 @@ router.get('/', async (req, res) => {
     };
 
     const notifications = await getUserNotifications(userId, options);
+    console.log(`📊 Found ${notifications.length} notifications for user`);
+    
     res.json({ notifications });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('❌ Error fetching notifications:', error);
     res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });

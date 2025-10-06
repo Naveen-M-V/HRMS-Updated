@@ -3,10 +3,12 @@ import { useNotifications } from "../context/NotificationContext";
 import { Mail, Check } from "lucide-react";
 
 export default function Notifications() {
-  const { notifications, markAsRead, refreshNotifications } = useNotifications();
+  const { notifications, markAsRead, refreshNotifications, loading, error } = useNotifications();
 
   // 👇 Track which notification is selected
   const [selected, setSelected] = useState(null);
+
+  console.log('Notifications page - notifications:', notifications.length, 'loading:', loading, 'error:', error);
   
   // Handle opening notification and marking as read
   const handleOpenNotification = (note) => {
@@ -19,9 +21,31 @@ export default function Notifications() {
       {/* Page Title */}
       <h1 className="text-2xl font-bold mb-6">Notifications</h1>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex justify-center items-center py-8">
+          <div className="text-gray-600">Loading notifications...</div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && notifications.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          No notifications found.
+        </div>
+      )}
+
       {/* Notifications List */}
-      <div className="space-y-4">
-        {notifications.map((note) => (
+      {!loading && notifications.length > 0 && (
+        <div className="space-y-4">
+          {notifications.map((note) => (
           <div
             key={note.id}
             className="flex items-start justify-between bg-white shadow rounded-lg p-4 border"
@@ -51,8 +75,9 @@ export default function Notifications() {
               </button>
             )}
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Floating Modal */}
       {selected && (
