@@ -890,6 +890,128 @@ const sendCertificateExpiredEmail = async (profileData, certificateData) => {
   });
 };
 
+// 8. Send password reset email
+// CALL THIS IN: Password reset endpoint (e.g., POST /api/auth/forgot-password)
+const sendPasswordResetEmail = async (userEmail, userName, resetUrl, resetToken) => {
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 300;">Password Reset Request</h1>
+        <p style="color: #e8f4fd; margin: 10px 0 0 0; font-size: 16px;">Talent Shield HRMS</p>
+      </div>
+      
+      <div style="padding: 40px 30px;">
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+          <h2 style="color: #856404; margin: 0 0 15px 0; font-size: 20px;">🔐 Password Reset Request</h2>
+          <p style="margin: 0; color: #856404; font-size: 16px;">
+            Hello <strong>${userName}</strong>, we received a request to reset your password for your Talent Shield HRMS account.
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+            Reset My Password
+          </a>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0 0 10px 0; color: #495057; font-size: 14px;"><strong>Security Information:</strong></p>
+          <ul style="margin: 0; padding-left: 20px; color: #6c757d; font-size: 14px;">
+            <li>This reset link is valid for 1 hour only</li>
+            <li>If you didn't request this reset, please ignore this email</li>
+            <li>Your password will remain unchanged until you create a new one</li>
+            <li>Reset Token: <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">${resetToken}</code></li>
+          </ul>
+        </div>
+        
+        <div style="background-color: #d1ecf1; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0; color: #0c5460; font-size: 14px;">
+            <strong>Alternative:</strong> If the button doesn't work, copy and paste this link into your browser:<br>
+            <a href="${resetUrl}" style="color: #0c5460; word-break: break-all;">${resetUrl}</a>
+          </p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated email from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: userEmail,
+    subject: '🔐 Password Reset Request - Talent Shield HRMS',
+    html
+  });
+};
+
+// 9. Send general expiry notification email
+// CALL THIS IN: Scheduled jobs for any expiring items (certificates, accounts, etc.)
+const sendExpiryNotificationEmail = async (userEmail, userName, itemName, itemType, expiryDate, daysUntilExpiry, actionUrl = null) => {
+  const isExpired = daysUntilExpiry <= 0;
+  const urgencyColor = daysUntilExpiry <= 7 ? '#dc3545' : daysUntilExpiry <= 30 ? '#fd7e14' : '#ffc107';
+  const urgencyText = isExpired ? 'EXPIRED' : daysUntilExpiry <= 7 ? 'URGENT' : daysUntilExpiry <= 30 ? 'IMPORTANT' : 'REMINDER';
+  
+  const html = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, ${urgencyColor} 0%, #6c757d 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 300;">${urgencyText}: ${itemType} ${isExpired ? 'Expired' : 'Expiring Soon'}</h1>
+        <p style="color: #e8f4fd; margin: 10px 0 0 0; font-size: 16px;">Talent Shield HRMS</p>
+      </div>
+      
+      <div style="padding: 40px 30px;">
+        <div style="background-color: ${isExpired ? '#f8d7da' : '#fff3cd'}; border: 1px solid ${isExpired ? '#f5c6cb' : '#ffeaa7'}; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+          <h2 style="color: ${isExpired ? '#721c24' : '#856404'}; margin: 0 0 15px 0; font-size: 20px;">
+            ${isExpired ? '🚨' : '⚠️'} ${itemType} ${isExpired ? 'Has Expired' : 'Expiring Soon'}
+          </h2>
+          <p style="margin: 0; color: ${isExpired ? '#721c24' : '#856404'}; font-size: 16px;">
+            Hello <strong>${userName}</strong>, this is ${isExpired ? 'an urgent notification' : 'a reminder'} about your ${itemType.toLowerCase()}.
+          </p>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <h3 style="margin: 0 0 15px 0; color: #495057; font-size: 18px;">${itemType} Details:</h3>
+          <ul style="margin: 0; padding-left: 20px; color: #495057; font-size: 16px;">
+            <li><strong>Item:</strong> ${itemName}</li>
+            <li><strong>Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString()}</li>
+            <li><strong>Status:</strong> ${isExpired ? `Expired ${Math.abs(daysUntilExpiry)} days ago` : `Expires in ${daysUntilExpiry} days`}</li>
+          </ul>
+        </div>
+        
+        ${actionUrl ? `
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${actionUrl}" style="background: linear-gradient(135deg, ${urgencyColor} 0%, #6c757d 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);">
+            Take Action Now
+          </a>
+        </div>
+        ` : ''}
+        
+        <div style="background-color: ${isExpired ? '#d1ecf1' : '#d4edda'}; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0; color: ${isExpired ? '#0c5460' : '#155724'}; font-size: 14px;">
+            <strong>${isExpired ? 'Immediate Action Required:' : 'Next Steps:'}</strong><br>
+            ${isExpired ? 
+              `Your ${itemType.toLowerCase()} has expired. Please contact your administrator immediately to renew or update it.` :
+              `Please ensure you renew or update your ${itemType.toLowerCase()} before it expires to avoid any service interruptions.`
+            }
+          </p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated notification from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: userEmail,
+    subject: `${urgencyText}: ${itemType} ${isExpired ? 'Expired' : 'Expiring Soon'} - ${itemName}`,
+    html
+  });
+};
+
 module.exports = {
   sendEmail,
   sendLoginSuccessEmail,
