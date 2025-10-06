@@ -394,7 +394,7 @@ export default function ViewCertificate() {
                       certificate.certificate?.replace(/[^a-zA-Z0-9]/g, "_")}
                   </p>
                   <p className="text-xs text-gray-500 mb-4">
-                    Added: {formatDate(certificate.createdOn)} 14:37
+                    Added: {formatDate(certificate.createdOn)}
                   </p>
                   <div className="flex gap-2 justify-center mb-4">
                     <button
