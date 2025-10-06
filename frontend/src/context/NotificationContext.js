@@ -42,7 +42,8 @@ export const NotificationProvider = ({ children }) => {
         return;
       }
 
-      const response = await fetch('https://talentshield.co.uk/api/notifications', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+      const response = await fetch(`${API_BASE_URL}/api/notifications`, {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -89,7 +90,8 @@ export const NotificationProvider = ({ children }) => {
         return;
       }
 
-      const response = await fetch(`https://talentshield.co.uk/api/notifications/${notificationId}/read`, {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+      const response = await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -124,6 +126,22 @@ export const NotificationProvider = ({ children }) => {
     fetchNotifications();
   };
 
+  // Add callback for external components to listen to count changes
+  const [notificationCallbacks, setNotificationCallbacks] = useState([]);
+  
+  const subscribeToNotificationChanges = (callback) => {
+    setNotificationCallbacks(prev => [...prev, callback]);
+    return () => {
+      setNotificationCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
+  };
+
+  // Notify subscribers when unread count changes
+  useEffect(() => {
+    const unreadCount = getUnreadCount();
+    notificationCallbacks.forEach(callback => callback(unreadCount));
+  }, [notifications, notificationCallbacks]);
+
   // Function to trigger immediate refresh after actions
   const triggerRefresh = () => {
     setTimeout(() => {
@@ -138,7 +156,8 @@ export const NotificationProvider = ({ children }) => {
     markAsRead,
     getUnreadCount,
     refreshNotifications,
-    triggerRefresh
+    triggerRefresh,
+    subscribeToNotificationChanges
   };
 
   return (

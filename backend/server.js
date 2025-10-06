@@ -2158,22 +2158,11 @@ app.put('/api/notifications/user/:userId/read-all', async (req, res) => {
     );
     res.json({ message: 'All notifications marked as read' });
   } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Get unread notification count
-app.get('/api/notifications/:userId/unread-count', async (req, res) => {
-  try {
-    const count = await Notification.countDocuments({ 
-      userId: req.params.userId, 
-      read: false 
-    });
-    res.json({ count });
-  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+
+// Notification unread count endpoint moved to routes/notifications.js
 
 // Dashboard Analytics Endpoints
 

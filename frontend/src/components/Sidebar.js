@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import { ClipboardDocumentIcon as ClipboardIcon } from '@heroicons/react/24/outline';
 import { AcademicCapIcon } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
@@ -17,6 +18,7 @@ import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
   const { logout, loading, user } = useAuth();
+  const { getUnreadCount, subscribeToNotificationChanges, triggerRefresh } = useNotifications();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
@@ -24,63 +26,23 @@ export default function Sidebar({ isOpen }) {
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // Fetch notification count on component mount
+  // Subscribe to notification changes from context
   useEffect(() => {
-    const fetchNotificationCount = async () => {
-      try {
-        // Only fetch notifications for authenticated admin users
-        if (!user || !user.userId || user.role !== 'admin') {
-          setUnreadNotifications(0);
-          return;
-        }
-
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
-        const response = await fetch(`${API_BASE_URL}/api/notifications/${user.userId}/unread-count`, {
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          // If endpoint doesn't exist or fails, silently set to 0
-          setUnreadNotifications(0);
-          return;
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          setUnreadNotifications(0);
-          return;
-        }
-
-        const data = await response.json();
-        if (typeof data.count === 'number') {
-          setUnreadNotifications(data.count);
-        } else {
-          setUnreadNotifications(0);
-        }
-      } catch (error) {
-        // Silently handle errors and set count to 0
-        setUnreadNotifications(0);
-      }
-    };
-
-    fetchNotificationCount();
-    
-    // Poll for new notifications every 30 seconds (only for admins)
-    let interval;
-    if (user && user.role === 'admin') {
-      interval = setInterval(fetchNotificationCount, 30000);
+    if (!user || user.role !== 'admin') {
+      setUnreadNotifications(0);
+      return;
     }
-    
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [user]);
+
+    // Set initial count from context
+    setUnreadNotifications(getUnreadCount());
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToNotificationChanges((count) => {
+      setUnreadNotifications(count);
+    });
+
+    return unsubscribe;
+  }, [user, getUnreadCount, subscribeToNotificationChanges]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -247,7 +209,7 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
                   icon={BellIcon}
                   onClick={() => {
                     navigate("/myaccount/notifications");
-                    setUnreadNotifications(0);
+                    triggerRefresh(); // Refresh notifications when navigating
                   }}
                 />
                 {/* Notification Badge */}
