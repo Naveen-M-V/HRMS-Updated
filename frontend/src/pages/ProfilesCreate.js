@@ -6,8 +6,10 @@ import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
+import { useAlert } from "../components/AlertNotification";
 
 export default function ProfilesCreate() {
+  const { success, error } = useAlert();
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
@@ -132,7 +134,7 @@ export default function ProfilesCreate() {
     
     // Validate required fields
     if (!formData.firstName || !formData.lastName || !formData.email) {
-      alert('Please fill in all required fields: First Name, Last Name, and Email');
+      error('Please fill in all required fields: First Name, Last Name, and Email');
       return;
     }
 
@@ -170,7 +172,7 @@ export default function ProfilesCreate() {
       const createdProfile = await addProfile(newProfile);
       console.log('Profile created successfully:', createdProfile);
       
-      alert('Profile created successfully!');
+      success('Profile created successfully!');
       
       // Navigate to the newly created profile's detail page
       if (createdProfile && (createdProfile._id || createdProfile.id)) {
@@ -179,14 +181,14 @@ export default function ProfilesCreate() {
         // Fallback to profiles list
         navigate("/reporting/profiles");
       }
-    } catch (error) {
-      console.error('Failed to create profile:', error);
-      console.error('Error details:', error.response?.data || error.message);
+    } catch (err) {
+      console.error('Failed to create profile:', err);
+      console.error('Error details:', err.response?.data || err.message);
       console.log('Profile data that failed:', newProfile);
       
       // Show more specific error message
-      const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
-      alert(`Failed to create profile: ${errorMessage}`);
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
+      error(`Failed to create profile: ${errorMessage}`);
     }
   };
 

@@ -3,9 +3,11 @@ import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { getImageUrl } from '../utils/config';
+import { useAlert } from "../components/AlertNotification";
 
 export default function CertificatesPage() {
   const { certificates, deleteCertificate } = useCertificates();
+  const { success, error, warning, info } = useAlert();
   const [search, setSearch] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [selectedCertificate, setSelectedCertificate] = useState(null); // 
@@ -28,9 +30,9 @@ export default function CertificatesPage() {
       try {
         await deleteCertificate(certificateId);
         setSelectedCertificate(null); // close sidebar if open
-      } catch (error) {
-        console.error('Failed to delete certificate:', error);
-        alert('Failed to delete certificate. Please try again.');
+      } catch (err) {
+        console.error('Failed to delete certificate:', err);
+        error('Failed to delete certificate. Please try again.');
       }
     }
   };

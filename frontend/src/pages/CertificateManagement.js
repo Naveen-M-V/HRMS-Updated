@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
+import { useAlert } from "../components/AlertNotification";
 import { 
   AcademicCapIcon, 
   PlusIcon, 
@@ -22,6 +23,7 @@ export default function CertificateManagement() {
   const { certificates, deleteCertificate } = useCertificates();
   const { profiles } = useProfiles();
   const navigate = useNavigate();
+  const { error } = useAlert();
   
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -29,6 +31,7 @@ export default function CertificateManagement() {
   const [selectedProvider, setSelectedProvider] = useState("");
   const [viewMode, setViewMode] = useState('table'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedSection, setSelectedSection] = useState(null);
 
   // Get filter options
   const filterOptions = useMemo(() => {
@@ -41,7 +44,7 @@ export default function CertificateManagement() {
 
   // Filter certificates
   const filteredCertificates = useMemo(() => {
-    return certificates.filter((cert) => {
+    let filtered = certificates.filter((cert) => {
       const matchesSearch = cert.certificate.toLowerCase().includes(search.toLowerCase()) ||
                            cert.profileName.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = !selectedCategory || cert.category === selectedCategory;
@@ -50,7 +53,29 @@ export default function CertificateManagement() {
       
       return matchesSearch && matchesCategory && matchesStatus && matchesProvider;
     });
-  }, [certificates, search, selectedCategory, selectedStatus, selectedProvider]);
+
+    // Apply section filter
+    if (selectedSection) {
+      switch (selectedSection) {
+        case 'total':
+          // Show all filtered certificates
+          break;
+        case 'approved':
+          filtered = filtered.filter(c => c.status === 'Approved');
+          break;
+        case 'pending':
+          filtered = filtered.filter(c => c.status === 'Pending');
+          break;
+        case 'expiring':
+          filtered = filtered.filter(c => isExpiringSoon(c.expiryDate));
+          break;
+        default:
+          break;
+      }
+    }
+
+    return filtered;
+  }, [certificates, search, selectedCategory, selectedStatus, selectedProvider, selectedSection]);
 
   // Get certificate status color
   const getStatusColor = (status) => {
@@ -95,9 +120,9 @@ export default function CertificateManagement() {
     if (window.confirm(`Are you sure you want to delete "${certificateName}"? This action cannot be undone.`)) {
       try {
         await deleteCertificate(certificateId);
-      } catch (error) {
-        console.error('Failed to delete certificate:', error);
-        alert('Failed to delete certificate. Please try again.');
+      } catch (err) {
+        console.error('Failed to delete certificate:', err);
+        error('Failed to delete certificate. Please try again.');
       }
     }
   };
@@ -134,28 +159,48 @@ export default function CertificateManagement() {
 
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4 mt-6">
-              <div className="bg-emerald-50 rounded-lg p-4">
+              <button
+                onClick={() => setSelectedSection(selectedSection === 'total' ? null : 'total')}
+                className={`p-4 rounded-lg border-2 transition-all hover:shadow-md text-left ${
+                  selectedSection === 'total' ? 'border-emerald-500 bg-emerald-50' : 'bg-emerald-50 border-gray-200 hover:border-emerald-300'
+                }`}
+              >
                 <div className="text-2xl font-bold text-emerald-600">{certificates.length}</div>
                 <div className="text-sm text-emerald-700">Total Certificates</div>
-              </div>
-              <div className="bg-green-50 rounded-lg p-4">
+              </button>
+              <button
+                onClick={() => setSelectedSection(selectedSection === 'approved' ? null : 'approved')}
+                className={`p-4 rounded-lg border-2 transition-all hover:shadow-md text-left ${
+                  selectedSection === 'approved' ? 'border-green-500 bg-green-50' : 'bg-green-50 border-gray-200 hover:border-green-300'
+                }`}
+              >
                 <div className="text-2xl font-bold text-green-600">
                   {certificates.filter(c => c.status === 'Approved').length}
                 </div>
                 <div className="text-sm text-green-700">Approved</div>
-              </div>
-              <div className="bg-yellow-50 rounded-lg p-4">
+              </button>
+              <button
+                onClick={() => setSelectedSection(selectedSection === 'pending' ? null : 'pending')}
+                className={`p-4 rounded-lg border-2 transition-all hover:shadow-md text-left ${
+                  selectedSection === 'pending' ? 'border-yellow-500 bg-yellow-50' : 'bg-yellow-50 border-gray-200 hover:border-yellow-300'
+                }`}
+              >
                 <div className="text-2xl font-bold text-yellow-600">
                   {certificates.filter(c => c.status === 'Pending').length}
                 </div>
                 <div className="text-sm text-yellow-700">Pending</div>
-              </div>
-              <div className="bg-red-50 rounded-lg p-4">
+              </button>
+              <button
+                onClick={() => setSelectedSection(selectedSection === 'expiring' ? null : 'expiring')}
+                className={`p-4 rounded-lg border-2 transition-all hover:shadow-md text-left ${
+                  selectedSection === 'expiring' ? 'border-red-500 bg-red-50' : 'bg-red-50 border-gray-200 hover:border-red-300'
+                }`}
+              >
                 <div className="text-2xl font-bold text-red-600">
                   {certificates.filter(c => isExpiringSoon(c.expiryDate)).length}
                 </div>
                 <div className="text-sm text-red-700">Expiring Soon</div>
-              </div>
+              </button>
             </div>
           </div>
         </div>

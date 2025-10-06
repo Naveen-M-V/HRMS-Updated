@@ -3,10 +3,12 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { buildApiUrl } from "../utils/apiConfig";
+import { useAlert } from "../components/AlertNotification";
 
 export default function ViewCertificate() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { success, error, warning } = useAlert();
   const {
     certificates,
     deleteCertificate,
@@ -79,9 +81,9 @@ export default function ViewCertificate() {
       try {
         await deleteCertificate(certificate.id || certificate._id);
         navigate("/certificates");
-      } catch (error) {
-        console.error("Failed to delete certificate:", error);
-        alert("Failed to delete certificate. Please try again.");
+      } catch (err) {
+        console.error("Failed to delete certificate:", err);
+        error("Failed to delete certificate. Please try again.");
       }
     }
   };
@@ -90,7 +92,7 @@ export default function ViewCertificate() {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert("File size exceeds 10MB limit. Please select a smaller file.");
+        warning("File size exceeds 10MB limit. Please select a smaller file.");
         e.target.value = "";
         return;
       }
@@ -102,7 +104,7 @@ export default function ViewCertificate() {
       ) {
         setSelectedFile(file);
       } else {
-        alert("Please select a PDF, JPEG, or PNG file only.");
+        warning("Please select a PDF, JPEG, or PNG file only.");
         e.target.value = "";
       }
     }
@@ -110,12 +112,12 @@ export default function ViewCertificate() {
 
   const handleFileUpload = async () => {
     if (!selectedFile) {
-      alert("Please select a file first.");
+      warning("Please select a file first.");
       return;
     }
     const certificateId = certificate?.id || certificate?._id;
     if (!certificateId) {
-      alert("Certificate ID not found. Please refresh the page and try again.");
+      error("Certificate ID not found. Please refresh the page and try again.");
       return;
     }
 
@@ -132,10 +134,10 @@ export default function ViewCertificate() {
       const fileInput = document.getElementById("certificateFileInput");
       if (fileInput) fileInput.value = "";
 
-      alert("Certificate file updated successfully!");
-    } catch (error) {
-      console.error("Failed to upload certificate file:", error);
-      alert("Failed to upload certificate file. " + (error.message || "Please try again."));
+      success("Certificate file updated successfully!");
+    } catch (err) {
+      console.error("Failed to upload certificate file:", err);
+      error("Failed to upload certificate file. " + (err.message || "Please try again."));
     } finally {
       setUploading(false);
     }
@@ -179,10 +181,10 @@ export default function ViewCertificate() {
           mimeType: null
         }));
         
-        alert("Certificate file deleted successfully!");
-      } catch (error) {
-        console.error("Failed to delete certificate file:", error);
-        alert("Failed to delete certificate file: " + (error.message || "Please try again."));
+        success("Certificate file deleted successfully!");
+      } catch (err) {
+        console.error("Failed to delete certificate file:", err);
+        error("Failed to delete certificate file: " + (err.message || "Please try again."));
       } finally {
         setUploading(false);
       }
@@ -225,7 +227,7 @@ export default function ViewCertificate() {
               if (certificate.profileName) {
                 navigate("/profiles");
               } else {
-                alert("Profile information not available");
+                warning("Profile information not available");
               }
             }}
             className="px-4 py-2 text-sm bg-gray-100 rounded hover:bg-gray-200"

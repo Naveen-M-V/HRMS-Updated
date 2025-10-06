@@ -8,6 +8,7 @@ import { CertificateProvider } from "./context/CertificateContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { AlertProvider } from './components/AlertNotification';
 
 // Lazy load components for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -112,8 +113,9 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
+      <AlertProvider>
+        <Router>
+          <Routes>
           {/* Authentication routes without layout */}
           <Route path="/login" element={
             <ErrorBoundary>
@@ -215,8 +217,9 @@ function App() {
               </ProfileProvider>
             </AdminProtectedRoute>
           } />
-        </Routes>
-      </Router>
+          </Routes>
+        </Router>
+      </AlertProvider>
     </AuthProvider>
   );
 }

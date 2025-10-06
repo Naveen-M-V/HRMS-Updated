@@ -2,9 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ModernDatePicker from '../components/ModernDatePicker';
+import { useAlert } from "../components/AlertNotification";
 
 export default function AdminDetailsModal() {
   const navigate = useNavigate();
+  const { success, error: showError, warning, info } = useAlert();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -119,7 +121,7 @@ export default function AdminDetailsModal() {
       const ct = resp.headers.get('content-type') || '';
       const data = ct.includes('application/json') ? await resp.json() : {};
       if (!resp.ok) throw new Error(data.message || 'Failed to save');
-      alert('Admin details saved successfully!');
+      success('Admin details saved successfully!');
       navigate('/dashboard');
     } catch (e) {
       setError(e.message);

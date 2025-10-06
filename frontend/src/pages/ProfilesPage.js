@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useProfiles } from '../context/ProfileContext';
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { useAlert } from "../components/AlertNotification";
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
@@ -19,6 +20,7 @@ function generateVTID(profile) {
 }
 
 export default function ProfilesPage() {
+  const { success, error } = useAlert();
   const { profiles, deleteProfile, fetchProfiles } = useProfiles();
   const [search, setSearch] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -73,14 +75,14 @@ export default function ProfilesPage() {
     // Validate inputs
     if (!profileId || !profileName) {
       console.error('Invalid profile data:', { profileId, profileName });
-      alert('Invalid profile data. Please refresh the page and try again.');
+      error('Invalid profile data. Please refresh the page and try again.');
       return;
     }
 
     // Check if deleteProfile function exists
     if (typeof deleteProfile !== 'function') {
       console.error('deleteProfile function not available');
-      alert('Delete function not available. Please refresh the page and try again.');
+      error('Delete function not available. Please refresh the page and try again.');
       return;
     }
 
@@ -115,7 +117,7 @@ This will also delete any associated certificates and user account. This action 
           }
         }
 
-        alert(successMessage);
+        success(successMessage);
         console.log(`Profile ${profileName} deleted successfully`, response);
         
         // Refresh the profiles list to ensure UI is updated
@@ -123,9 +125,9 @@ This will also delete any associated certificates and user account. This action 
         await fetchProfiles();
         console.log('Profiles refreshed');
         
-      } catch (error) {
-        console.error('Error deleting profile:', error);
-        alert(`Failed to delete profile: ${error.message || 'Please try again.'}`);
+      } catch (err) {
+        console.error('Error deleting profile:', err);
+        error(`Failed to delete profile: ${err.message || 'Please try again.'}`);
       } finally {
         setLoading(false);
       }

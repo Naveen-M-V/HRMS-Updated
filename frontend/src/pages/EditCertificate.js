@@ -6,12 +6,14 @@ import { useProfiles } from "../context/ProfileContext";
 import { getCertificatesForJobRole, getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
+import { useAlert } from "../components/AlertNotification";
 
 export default function EditCertificate() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { certificates, updateCertificate } = useCertificates();
   const { profiles } = useProfiles();
+  const { success, error } = useAlert();
   
   const [formData, setFormData] = useState({
     certificate: "",
@@ -21,7 +23,7 @@ export default function EditCertificate() {
     expiryDate: "",
     profileName: "",
     approvalStatus: "",
-    isInterim: "",
+    isInterim: "No",
     fileRequired: "",
     timeLogged: {
       days: "",
@@ -96,7 +98,7 @@ export default function EditCertificate() {
         expiryDate: formatDate(cert.expiryDate),
         profileName: cert.profileName || "",
         approvalStatus: cert.status || "",
-        isInterim: cert.isInterim || "Jobs",
+        isInterim: cert.isInterim === true || cert.isInterim === "true" || cert.isInterim === "True" ? "Yes" : "No",
         fileRequired: cert.fileRequired || "",
         timeLogged: {
           days: cert.timeLogged?.days || "0",
@@ -233,7 +235,7 @@ export default function EditCertificate() {
       cost: formData.totalCost,
       // Additional fields for backend
       approvalStatus: formData.approvalStatus,
-      isInterim: formData.isInterim,
+      isInterim: formData.isInterim === "Yes",
       timeLogged: formData.timeLogged,
       supplier: formData.supplier,
       totalCost: formData.totalCost,
@@ -243,22 +245,22 @@ export default function EditCertificate() {
     try {
       console.log('Attempting to update certificate with data:', updatedCert);
       await updateCertificate(id, updatedCert);
-      alert('Changes saved successfully!');
+      success('Changes saved successfully!');
       navigate(`/viewcertificate/${id}`);
-    } catch (error) {
-      console.error('Failed to update certificate:', error);
+    } catch (err) {
+      console.error('Failed to update certificate:', err);
       console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
       });
       
       let errorMessage = 'Failed to save changes. Please try again.';
-      if (error.response?.data?.message) {
-        errorMessage = `Failed to save changes: ${error.response.data.message}`;
+      if (err.response?.data?.message) {
+        errorMessage = `Failed to save changes: ${err.response.data.message}`;
       }
       
-      alert(errorMessage);
+      error(errorMessage);
       // Don't navigate on error - stay on edit page so user can try again
     }
   };

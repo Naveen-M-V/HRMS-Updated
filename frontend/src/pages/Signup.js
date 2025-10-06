@@ -4,8 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { EnvelopeIcon as MailIcon, LockClosedIcon, UserIcon } from '@heroicons/react/24/outline';
+import { useAlert } from "../components/AlertNotification";
 
 export default function Signup() {
+  const { success, error: showError, warning, info } = useAlert();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -122,14 +124,14 @@ export default function Signup() {
       const result = await signup(payload);
 
       if (result.success) {
-        alert(
+        success(
           "Admin account created successfully! Please check your email to verify your account before logging in."
         );
         navigate("/login");
       } else {
         setErrors({ general: result.error || "Signup failed. Please try again." });
       }
-    } catch (error) {
+    } catch (err) {
       setErrors({ general: "Signup failed. Please try again." });
     }
   };

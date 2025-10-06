@@ -10,11 +10,13 @@ import {
   CurrencyPoundSterlingIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
+import { useAlert } from "../components/AlertNotification";
 
 const UserCertificateView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { success, error: showError, warning, info } = useAlert();
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -68,14 +70,14 @@ const UserCertificateView = () => {
       });
 
       if (response.ok) {
-        alert('Delete request sent to admin successfully!');
+        success('Delete request sent to admin successfully!');
         navigate('/user-dashboard');
       } else {
-        alert('Failed to send delete request. Please try again.');
+        showError('Failed to send delete request. Please try again.');
       }
-    } catch (error) {
-      console.error('Error sending delete request:', error);
-      alert('Failed to send delete request. Please try again.');
+    } catch (err) {
+      console.error('Error sending delete request:', err);
+      showError('Failed to send delete request. Please try again.');
     }
   };
 

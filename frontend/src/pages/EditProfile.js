@@ -6,9 +6,11 @@ import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
+import { useAlert } from "../components/AlertNotification";
 
 
 export default function EditProfile() {
+  const { success, error } = useAlert();
   const navigate = useNavigate();
   const { userProfile, updateUserProfile } = useProfiles();
   
@@ -281,15 +283,15 @@ export default function EditProfile() {
       
       if (result.success) {
         // Show success message
-        alert("Profile updated successfully!");
+        success("Profile updated successfully!");
         // Navigate back to MyAccount page
         navigate("/myaccount");
       } else {
-        alert(result.error || "Failed to save profile changes. Please try again.");
+        error(result.error || "Failed to save profile changes. Please try again.");
       }
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      alert("Failed to save profile changes: " + (error.message || "Please try again."));
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      error("Failed to save profile changes: " + (err.message || "Please try again."));
     }
   };
 

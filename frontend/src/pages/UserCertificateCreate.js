@@ -8,10 +8,12 @@ import {
   CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 import SearchableDropdown from '../components/SearchableDropdown';
+import { useAlert } from "../components/AlertNotification";
 
 const UserCertificateCreate = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { success, error, warning, info } = useAlert();
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -124,7 +126,7 @@ const UserCertificateCreate = () => {
     }
 
     if (!userProfile) {
-      alert('User profile not found. Please try again.');
+      error('User profile not found. Please try again.');
       return;
     }
 
@@ -165,15 +167,15 @@ const UserCertificateCreate = () => {
       });
 
       if (response.ok) {
-        alert('Certificate added successfully!');
+        success('Certificate added successfully!');
         navigate('/user-dashboard');
       } else {
         const errorData = await response.json();
-        alert(`Failed to add certificate: ${errorData.message || 'Unknown error'}`);
+        error(`Failed to add certificate: ${errorData.message || 'Unknown error'}`);
       }
-    } catch (error) {
-      console.error('Error adding certificate:', error);
-      alert('Failed to add certificate. Please try again.');
+    } catch (err) {
+      console.error('Error adding certificate:', err);
+      error('Failed to add certificate. Please try again.');
     } finally {
       setLoading(false);
     }

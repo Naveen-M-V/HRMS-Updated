@@ -14,8 +14,10 @@ import { Bars3Icon } from '@heroicons/react/24/outline';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { TrashIcon } from '@heroicons/react/24/outline';
+import { useAlert } from "../components/AlertNotification";
 
 export default function ProfileDetailView() {
+  const { success, error } = useAlert();
   const { id } = useParams();
   const navigate = useNavigate();
   const { getProfileById, uploadProfilePicture, deleteProfile } = useProfiles();
@@ -45,9 +47,9 @@ const handleCertificateFileSelected = async (event) => {
   try {
     setUploading(true);
     await uploadCertificateFile(uploadingCertId, file);
-    alert("Certificate uploaded successfully");
-  } catch (error) {
-    alert("Failed to upload certificate. Please try again.");
+    success("Certificate uploaded successfully");
+  } catch (err) {
+    error("Failed to upload certificate. Please try again.");
   } finally {
     setUploading(false);
     setUploadingCertId(null);
@@ -59,9 +61,9 @@ const handleDeleteCertificate = async (certId) => {
   if (!window.confirm("Are you sure you want to delete this certificate?")) return;
   try {
     await deleteCertificate(certId);
-    alert("Certificate deleted successfully");
-  } catch (error) {
-    alert("Failed to delete certificate");
+    success("Certificate deleted successfully");
+  } catch (err) {
+    error("Failed to delete certificate");
   }
 };
 
@@ -95,10 +97,10 @@ const handleDeleteCertificate = async (certId) => {
         }
         setImageKey(Date.now());
         event.target.value = '';
-        alert('Profile picture updated successfully!');
-      } catch (error) {
-        console.error("Failed to upload profile picture:", error);
-        alert('Failed to upload profile picture. Please try again.');
+        success('Profile picture updated successfully!');
+      } catch (err) {
+        console.error("Failed to upload profile picture:", err);
+        error('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
       }

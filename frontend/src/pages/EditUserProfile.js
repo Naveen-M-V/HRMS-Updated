@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import MultiJobRoleSelector from '../components/MultiJobRoleSelector';
+import { useAlert } from "../components/AlertNotification";
 
 export default function EditUserProfile() {
   console.log('EditUserProfile component loaded');
   
+  const { success, error, warning } = useAlert();
   const [activeTab, setActiveTab] = useState("Profile Details");
   const [profileLoading, setProfileLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -83,7 +85,7 @@ export default function EditUserProfile() {
         
         if (!profile) {
           console.error('Profile not found');
-          alert('Profile not found. Redirecting to profiles list.');
+          error('Profile not found. Redirecting to profiles list.');
           navigate('/profiles');
           return;
         }
@@ -129,9 +131,9 @@ export default function EditUserProfile() {
           bio: profile.bio || "",
           otherInformation: profile.otherInformation || "",
         });
-      } catch (error) {
-        console.error('Error loading profile:', error);
-        alert(error.message === 'Profile not found' ? 
+      } catch (err) {
+        console.error('Error loading profile:', err);
+        error(err.message === 'Profile not found' ? 
           'Profile not found. Redirecting to profiles page.' : 
           'Failed to load profile. Please try again or contact support.');
         navigate('/profiles');
@@ -194,11 +196,11 @@ export default function EditUserProfile() {
       console.log('Submitting profile update:', profileData);
       await updateProfile(id, profileData);
       
-      alert('Profile updated successfully!');
+      success('Profile updated successfully!');
       navigate(`/profiles/${id}`);
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      alert('Failed to update profile. Please try again.');
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      error('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -213,15 +215,15 @@ export default function EditUserProfile() {
         // Show detailed success message
         const certCount = response.details?.certificatesDeleted || 0;
         if (certCount > 0) {
-          alert(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
+          success(`Profile and ${certCount} associated certificate(s) deleted successfully!`);
         } else {
-          alert('Profile deleted successfully!');
+          success('Profile deleted successfully!');
         }
         
         navigate("/reporting/profiles");
-      } catch (error) {
-        console.error("Failed to delete profile:", error);
-        alert('Failed to delete profile. Please try again.');
+      } catch (err) {
+        console.error("Failed to delete profile:", err);
+        error('Failed to delete profile. Please try again.');
       } finally {
         setLoading(false);
       }

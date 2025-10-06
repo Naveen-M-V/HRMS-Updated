@@ -15,8 +15,10 @@ import {
   CalendarIcon,
   MapPinIcon
 } from '@heroicons/react/24/outline';
+import { useAlert } from "../components/AlertNotification";
 
 export default function Profile() {
+  const { success, error } = useAlert();
   const { user } = useAuth();
   const { uploadProfilePicture } = useProfiles();
   const { certificates } = useCertificates();
@@ -90,10 +92,10 @@ export default function Profile() {
         setImageKey(Date.now());
         // Refresh profile data to get updated picture
         await fetchMyProfile();
-        alert('Profile picture updated successfully!');
-      } catch (error) {
-        console.error("Failed to upload profile picture:", error);
-        alert('Failed to upload profile picture. Please try again.');
+        success('Profile picture updated successfully!');
+      } catch (err) {
+        console.error("Failed to upload profile picture:", err);
+        error('Failed to upload profile picture. Please try again.');
       } finally {
         setUploading(false);
       }

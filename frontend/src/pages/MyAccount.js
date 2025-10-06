@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getImageUrl } from "../utils/config";
+import { useAlert } from "../components/AlertNotification";
 
 export default function MyAccount() {
+  const { success, error } = useAlert();
   const navigate = useNavigate();
   const { user, logout, loading: authLoading } = useAuth();
   const { uploadProfilePicture, getProfileById } = useProfiles();
@@ -101,19 +103,19 @@ export default function MyAccount() {
     
     if (!file || !profileId) {
       console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
-      alert('Unable to upload: Missing profile information. Please try refreshing the page.');
+      error('Unable to upload: Missing profile information. Please try refreshing the page.');
       return;
     }
 
     // Validate file type and size
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid image file (JPEG, PNG, or GIF)');
+      error('Please upload a valid image file (JPEG, PNG, or GIF)');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit (matching backend)
-      alert('File size should be less than 10MB');
+      error('File size should be less than 10MB');
       return;
     }
 
@@ -134,10 +136,10 @@ export default function MyAccount() {
       // Update image key to force refresh
       setImageKey(Date.now());
 
-      alert("Profile picture updated successfully!");
+      success("Profile picture updated successfully!");
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
-      alert("Failed to upload profile picture: " + (err.message || "Please try again."));
+      error("Failed to upload profile picture: " + (err.message || "Please try again."));
     } finally {
       setSavingImage(false);
       e.target.value = "";

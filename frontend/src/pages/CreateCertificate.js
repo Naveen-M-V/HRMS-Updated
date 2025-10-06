@@ -5,12 +5,14 @@ import { useProfiles } from "../context/ProfileContext";
 import { getCertificatesForMultipleJobRoles, getAllJobRoles, allCertificates } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
+import { useAlert } from "../components/AlertNotification";
 
 export default function CreateCertificate() {
   const navigate = useNavigate();
   const routerLocation = useLocation();
   const { addCertificate } = useCertificates();
   const { profiles, loading: profilesLoading, error: profilesError } = useProfiles();
+  const { success, error, warning } = useAlert();
 
   // Debug logging (commented out to prevent infinite loops)
   // console.log('CreateCertificate - profiles:', profiles);
@@ -292,7 +294,7 @@ export default function CreateCertificate() {
     if (file) {
       // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size exceeds 10MB limit. Please select a smaller file.');
+        error('File size exceeds 10MB limit. Please select a smaller file.');
         e.target.value = '';
         return;
       }
@@ -304,7 +306,7 @@ export default function CreateCertificate() {
           file.type === 'image/jpg') {
         setForm({ ...form, certificateFile: file });
       } else {
-        alert('Please select a PDF, JPEG, or PNG file only.');
+        error('Please select a PDF, JPEG, or PNG file only.');
         e.target.value = '';
       }
     }
@@ -315,12 +317,12 @@ export default function CreateCertificate() {
     
     // Validate required fields
     if (!form.profileId) {
-      alert('Please select a profile');
+      error('Please select a profile');
       return;
     }
     
     if (!form.certificateName) {
-      alert('Please select or enter a certificate name');
+      error('Please select or enter a certificate name');
       return;
     }
     
@@ -368,13 +370,13 @@ export default function CreateCertificate() {
     // Add certificate to context
     addCertificate(newCertificate)
       .then(() => {
-        alert('Certificate created successfully!');
+        success('Certificate created successfully!');
         // Navigate to certificate management page
         navigate("/certificates");
       })
-      .catch((error) => {
-        console.error('Error creating certificate:', error);
-        alert('Failed to create certificate. Please try again.');
+      .catch((err) => {
+        console.error('Error creating certificate:', err);
+        error('Failed to create certificate. Please try again.');
       });
   };
 
