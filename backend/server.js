@@ -8,6 +8,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
+const crypto = require('crypto');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
@@ -2581,7 +2582,7 @@ app.post('/api/auth/login', async (req, res) => {
     const loginIdentifier = (identifier || email || '').trim().toLowerCase();
 
     if (!loginIdentifier || !password) {
-      console.log('Login validation failed:', { loginIdentifier, hasPassword: !!password });
+      console.log('Login validation failed: missing credentials');
       return res.status(400).json({ message: 'Email/username and password are required' });
     }
 
@@ -2765,8 +2766,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       return res.json({ message: 'If an account with this email exists, a password reset link has been sent.' });
     }
 
-    // Generate reset token (simple approach - in production use crypto.randomBytes)
-    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    // Generate secure reset token using crypto
+    const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
     // Save reset token to user
@@ -2789,7 +2790,6 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       console.error('Failed to send reset email:', emailError);
       // Continue anyway - don't reveal email sending failure
     }
-
     res.json({ message: 'If an account with this email exists, a password reset link has been sent.' });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -3433,7 +3433,7 @@ const createDefaultUser = async () => {
         });
         
         await superAdmin.save();
-        console.log(`✅ Super admin created: ${email} (password: TalentShield@2025)`);
+        console.log(`✅ Super admin created: ${email}`);
       } else {
         console.log(`⏭️  Super admin already exists: ${email}`);
       }

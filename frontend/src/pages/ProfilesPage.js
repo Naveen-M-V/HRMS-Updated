@@ -7,7 +7,7 @@ import { useAlert } from "../components/AlertNotification";
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
-  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://talentshield.co.uk:5003";
+  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://talentshield.co.uk";
 };
 
 // Safely get VTID for a profile row

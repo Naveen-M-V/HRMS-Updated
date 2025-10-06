@@ -106,7 +106,7 @@ const productionReset = async () => {
     console.log('✅ Test email sent');
 
     console.log('\n🎉 PRODUCTION RESET COMPLETE');
-    console.log('🔑 Login with any super admin email + password: TalentShield@2025');
+    console.log('🔑 Super admin accounts are ready for login');
 
   } catch (error) {
     console.error('❌ Error:', error.message);

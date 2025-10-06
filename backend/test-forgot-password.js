@@ -44,8 +44,9 @@ async function testForgotPassword() {
         console.log(`   Has resetPasswordToken field: ${user.resetPasswordToken !== undefined ? 'Yes' : 'No'}`);
         console.log(`   Has resetPasswordExpires field: ${user.resetPasswordExpires !== undefined ? 'Yes' : 'No'}`);
         
-        // Simulate token generation
-        const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        // Simulate secure token generation
+        const crypto = require('crypto');
+        const resetToken = crypto.randomBytes(32).toString('hex');
         const resetTokenExpiry = new Date(Date.now() + 3600000);
         
         console.log(`   Generated token: ${resetToken}`);

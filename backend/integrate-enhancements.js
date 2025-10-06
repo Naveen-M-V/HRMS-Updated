@@ -637,7 +637,7 @@ console.log('✅ Expired Certificates - Notification to User and Admin');
 
 console.log('\n🔧 Critical Fixes Applied:');
 console.log('✅ Profile name changes now update associated certificates');
-console.log('✅ Auto-generated secure passwords for new users');
+console.log('✅ Auto-generated secure authentication for new users');
 console.log('✅ Email verification and admin approval auto-set for admin-created users');
 console.log('✅ Comprehensive error handling for email failures');
 

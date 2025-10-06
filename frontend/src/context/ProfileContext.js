@@ -7,7 +7,7 @@ const getApiUrl = () => {
   if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
   if (process.env.REACT_APP_API_BASE_URL) return process.env.REACT_APP_API_BASE_URL;
   if (window.location.hostname === 'talentshield.co.uk') {
-    return 'https://talentshield.co.uk:5003';
+    return 'https://talentshield.co.uk';
   }
   return 'http://localhost:5003';
 };
@@ -94,7 +94,6 @@ export const ProfileProvider = ({ children }) => {
   const deleteProfile = async (profileId) => {
     setDeleting(true);
     const possibleUrls = [
-      'https://talentshield.co.uk:5003',
       'https://talentshield.co.uk',
       'http://localhost:5003'
     ];

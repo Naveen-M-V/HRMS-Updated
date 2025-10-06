@@ -51,7 +51,7 @@ async function createMissingUserAccounts() {
             adminApprovalStatus: 'approved'
           });
           
-          console.log(`✅ Created User account for ${profile.email} with password: ${password}`);
+          console.log(`✅ Created User account for ${profile.email}`);
           created++;
           
         } catch (createError) {
