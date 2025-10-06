@@ -24,7 +24,7 @@ async function testDomainRestrictions() {
   
   const testEmails = [
     { email: 'thaya.govzig@vitruxshield.com', domain: 'vitruxshield.com', type: 'Internal Domain' },
-    { email: 'test@vitrux.co.uk', domain: 'vitrux.co.uk', type: 'Related Domain' },
+    { email: 'dean.cumming@vitrux.co.uk', domain: 'vitrux.co.uk', type: 'Related Domain' },
     { email: 'mvnaveen18@gmail.com', domain: 'gmail.com', type: 'External Domain (Gmail)' },
     { email: 'test@yahoo.com', domain: 'yahoo.com', type: 'External Domain (Yahoo)' },
     { email: 'test@outlook.com', domain: 'outlook.com', type: 'External Domain (Outlook)' }
