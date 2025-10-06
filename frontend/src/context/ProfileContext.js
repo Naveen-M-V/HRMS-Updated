@@ -3,24 +3,12 @@ import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext();
 
-// Use API base URL from .env with a localhost fallback for dev
-// Try multiple possible API endpoints
 const getApiUrl = () => {
-  // First try environment variables
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  if (process.env.REACT_APP_API_BASE_URL) {
-    return process.env.REACT_APP_API_BASE_URL;
-  }
-  
-  // For production, try different possible endpoints
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+  if (process.env.REACT_APP_API_BASE_URL) return process.env.REACT_APP_API_BASE_URL;
   if (window.location.hostname === 'talentshield.co.uk') {
-    // Try the direct backend port first
     return 'https://talentshield.co.uk:5003';
   }
-  
-  // Default fallback
   return 'http://localhost:5003';
 };
 
@@ -28,9 +16,7 @@ const API_BASE_URL = getApiUrl();
 
 export const useProfiles = () => {
   const context = useContext(ProfileContext);
-  if (!context) {
-    throw new Error('useProfiles must be used within a ProfileProvider');
-  }
+  if (!context) throw new Error('useProfiles must be used within a ProfileProvider');
   return context;
 };
 
@@ -43,7 +29,6 @@ export const ProfileProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
-  // Fetch profiles with caching + optional pagination
   const fetchProfiles = useCallback(async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
     setLoading(true);
     try {
@@ -53,7 +38,6 @@ export const ProfileProvider = ({ children }) => {
         const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
         const cacheTime = localStorage.getItem('profiles_cache_time');
         const cacheAge = Date.now() - parseInt(cacheTime || '0');
-
         if (cachedProfiles && cacheAge < 5 * 60 * 1000) {
           console.log('Using cached profiles data');
           setProfiles(JSON.parse(cachedProfiles));
@@ -68,9 +52,7 @@ export const ProfileProvider = ({ children }) => {
         : `/api/profiles`;
 
       const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
+      if (!token) throw new Error('Authentication token not found');
 
       const response = await fetch(`https://talentshield.co.uk${endpoint}`, {
         credentials: 'include',
@@ -78,10 +60,8 @@ export const ProfileProvider = ({ children }) => {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        credentials: 'include'
+          'Cache-Control': 'no-cache'
+        }
       });
 
       if (response.ok) {
@@ -103,13 +83,9 @@ export const ProfileProvider = ({ children }) => {
     } catch (err) {
       setError('Failed to fetch profiles');
       console.error('Error fetching profiles:', err);
-
       const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
-      if (cachedProfiles) {
-        setProfiles(JSON.parse(cachedProfiles));
-      } else {
-        setProfiles([]);
-      }
+      if (cachedProfiles) setProfiles(JSON.parse(cachedProfiles));
+      else setProfiles([]);
     } finally {
       setLoading(false);
     }
@@ -122,90 +98,72 @@ export const ProfileProvider = ({ children }) => {
       'https://talentshield.co.uk',
       'http://localhost:5003'
     ];
-    
+
     const token = localStorage.getItem('auth_token');
     console.log('DeleteProfile - Profile ID:', profileId);
     console.log('DeleteProfile - Token exists:', !!token);
-    
+
     const headers = {
       'Content-Type': 'application/json'
     };
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     let lastError = null;
-    
-    // Try each possible API URL
-    for (let i = 0; i < possibleUrls.length; i++) {
-      const apiUrl = possibleUrls[i];
-      console.log(`DeleteProfile - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
-      
-      try {
-        const response = await fetch(`${apiUrl}/api/profiles/${profileId}`, {
-          method: 'DELETE',
-          headers: headers,
-          credentials: 'include'
-        });
 
-        console.log('DeleteProfile - Response status:', response.status);
-        console.log('DeleteProfile - Response headers:', response.headers.get('content-type'));
+    try {
+      for (let i = 0; i < possibleUrls.length; i++) {
+        const apiUrl = possibleUrls[i];
+        console.log(`DeleteProfile - Trying API URL ${i + 1}/${possibleUrls.length}:`, apiUrl);
 
-        if (response.ok) {
-          // Check if response is JSON
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
+        try {
+          const response = await fetch(`${apiUrl}/api/profiles/${profileId}`, {
+            method: 'DELETE',
+            headers,
+            credentials: 'include'
+          });
+
+          console.log('DeleteProfile - Response status:', response.status);
+          console.log('DeleteProfile - Response headers:', response.headers.get('content-type'));
+
+          if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            const isJson = contentType && contentType.includes('application/json');
+            const data = isJson ? await response.json() : { message: 'Profile deleted successfully' };
+
             setProfiles(prev => prev.filter(p => p._id !== profileId));
             localStorage.removeItem('profiles_cache_optimized');
             localStorage.removeItem('profiles_cache_time');
             console.log(`DeleteProfile - Success with URL: ${apiUrl}`);
             return data;
           } else {
-            // If not JSON, treat as success but return basic response
-            setProfiles(prev => prev.filter(p => p._id !== profileId));
-            localStorage.removeItem('profiles_cache_optimized');
-            localStorage.removeItem('profiles_cache_time');
-            console.log(`DeleteProfile - Success (non-JSON) with URL: ${apiUrl}`);
-            return { message: 'Profile deleted successfully' };
+            const textResponse = await response.text();
+            console.log(`DeleteProfile - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
+            lastError = new Error(`Server error (${response.status})`);
+            continue;
           }
-        } else {
-          // This URL failed, try next one
-          const textResponse = await response.text();
-          console.log(`DeleteProfile - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
-          lastError = new Error(`Server error (${response.status})`);
+        } catch (err) {
+          console.log(`DeleteProfile - Error with URL ${apiUrl}:`, err.message);
+          lastError = err;
           continue;
         }
-      } catch (err) {
-        console.log(`DeleteProfile - Error with URL ${apiUrl}:`, err.message);
-        lastError = err;
-        continue;
       }
+      throw lastError || new Error('Failed to delete profile - all API endpoints unreachable');
+    } finally {
+      setDeleting(false);
     }
-    
-    // If we get here, all URLs failed
-    console.error('DeleteProfile - All API URLs failed');
-    throw lastError || new Error('Failed to delete profile - all API endpoints unreachable');
-  } finally {
-    setDeleting(false);
-  }
-
-  const refreshProfiles = async () => {
-    await fetchProfiles(true);
   };
+
+  const refreshProfiles = async () => fetchProfiles(true);
 
   useEffect(() => {
     fetchProfiles();
-  }, []);
+  }, [fetchProfiles]);
 
   const addProfile = async (newProfile) => {
     setCreating(true);
     try {
       const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
+      if (!token) throw new Error('Authentication token not found');
 
       const response = await fetch('https://talentshield.co.uk/api/profiles', {
         method: 'POST',
@@ -219,27 +177,18 @@ export const ProfileProvider = ({ children }) => {
       });
 
       const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      if (!contentType || !contentType.includes('application/json'))
         throw new Error('Server returned non-JSON response');
-      }
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || `Failed to create profile: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(data.message || `Failed to create profile: ${response.status}`);
 
       setProfiles(prev => [data, ...prev]);
-      
-      // Update cache with new data
       const updatedProfiles = [data, ...profiles];
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
 
-      // Force refresh to ensure UI is updated
-      setTimeout(() => {
-        fetchProfiles(true);
-      }, 500);
-
+      setTimeout(() => fetchProfiles(true), 500);
       return data;
     } catch (err) {
       setError('Failed to create profile');
@@ -262,19 +211,11 @@ export const ProfileProvider = ({ children }) => {
       if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
 
       const data = await response.json();
-      
-      // Update state immediately
       setProfiles(prev => prev.map(profile => profile._id === id ? data : profile));
-
-      // Update cache with new data
       const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
-
-      // Force refresh to ensure UI is updated
-      setTimeout(() => {
-        fetchProfiles(true);
-      }, 500);
+      setTimeout(() => fetchProfiles(true), 500);
 
       return data;
     } catch (err) {
@@ -296,14 +237,11 @@ export const ProfileProvider = ({ children }) => {
           'Cache-Control': 'no-cache'
         }
       });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
         throw new Error(errorData.message || `Failed to fetch profile: ${response.status}`);
       }
-
-      const profile = await response.json();
-      return profile;
+      return await response.json();
     } catch (err) {
       console.error('Error fetching my profile:', err);
       throw err;
@@ -313,16 +251,12 @@ export const ProfileProvider = ({ children }) => {
   const fetchProfileById = async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, { credentials: 'include' });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
         throw new Error(errorData.message || `Failed to fetch profile: ${response.status}`);
       }
 
-      const profile = await response.json().catch(() => {
-        throw new Error('Invalid JSON response from server');
-      });
-
+      const profile = await response.json();
       const updatedProfiles = profiles.map(p => p._id === id ? { ...p, ...profile } : p);
       setProfiles(updatedProfiles);
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
@@ -352,77 +286,44 @@ export const ProfileProvider = ({ children }) => {
   };
 
   const uploadProfilePicture = async (id, file) => {
-    // Use environment API URL or fallback to relative path for production
-    const getApiUrl = () => {
-      if (process.env.REACT_APP_API_URL) {
-        return process.env.REACT_APP_API_URL;
-      }
-      // In production with nginx, use relative path
-      return '';
-    };
-    
+    const getApiUrl = () => process.env.REACT_APP_API_URL || '';
     setLoading(true);
-    
     try {
       const token = localStorage.getItem('auth_token');
       const apiUrl = getApiUrl();
-      
-      console.log('UploadProfilePicture - Profile ID:', id);
-      console.log('UploadProfilePicture - File:', file.name, file.size);
-      console.log('UploadProfilePicture - Token exists:', !!token);
-      console.log('UploadProfilePicture - Using API URL:', apiUrl || '(relative path)');
-      
-      try {
-        const formData = new FormData();
-        formData.append('profilePicture', file);
+      const formData = new FormData();
+      formData.append('profilePicture', file);
 
-        const headers = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+      const headers = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
-          method: 'POST',
-          headers: headers,
-          body: formData,
-          credentials: 'include'
-        });
+      const response = await fetch(`${apiUrl}/api/profiles/${id}/upload-picture`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include'
+      });
 
-        console.log('UploadProfilePicture - Response status:', response.status);
-        console.log('UploadProfilePicture - Response headers:', response.headers.get('content-type'));
-
-        if (response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            
-            const updatedProfiles = profiles.map(profile =>
-              profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
-            );
-            setProfiles(updatedProfiles);
-            localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-            localStorage.setItem('profiles_cache_time', Date.now().toString());
-
-            console.log(`UploadProfilePicture - Success with URL: ${apiUrl}`);
-            return data.profilePicture;
-          } else {
-            console.log(`UploadProfilePicture - Non-JSON response with URL ${apiUrl}`);
-            throw new Error('Server returned non-JSON response');
-          }
-        } else {
-          const textResponse = await response.text();
-          console.log(`UploadProfilePicture - Failed with URL ${apiUrl}, status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
-          throw new Error(`Server error (${response.status}): ${textResponse.substring(0, 100)}`);
-        }
-      } catch (err) {
-        console.error('UploadProfilePicture - Error:', err);
-        setError('Failed to upload profile picture: ' + err.message);
-        throw err;
+      if (response.ok) {
+        const data = await response.json();
+        const updatedProfiles = profiles.map(profile =>
+          profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
+        );
+        setProfiles(updatedProfiles);
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
+        return data.profilePicture;
+      } else {
+        const textResponse = await response.text();
+        throw new Error(`Server error (${response.status}): ${textResponse.substring(0, 100)}`);
       }
+    } catch (err) {
+      setError('Failed to upload profile picture: ' + err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   const [userProfile, setUserProfile] = useState({});
 
