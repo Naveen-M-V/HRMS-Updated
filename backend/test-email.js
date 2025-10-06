@@ -19,13 +19,29 @@ async function testEmailSetup() {
   console.log('');
 
   if (configTest.success) {
-    // Test sending actual email
-    console.log('Testing email sending...');
-    const testEmail = process.env.SUPER_ADMIN_EMAIL.split(',')[0]; // Use first super admin email
-    console.log('Sending test email to:', testEmail);
+    // Test sending actual email to multiple addresses
+    const adminEmails = process.env.SUPER_ADMIN_EMAIL.split(',');
     
-    const emailTest = await sendTestEmail(testEmail, 'Test User');
-    console.log('Email test result:', emailTest);
+    for (let i = 0; i < Math.min(3, adminEmails.length); i++) {
+      const testEmail = adminEmails[i].trim();
+      console.log(`\nTesting email sending to: ${testEmail}`);
+      
+      const emailTest = await sendTestEmail(testEmail, `Test User ${i + 1}`);
+      console.log('Email test result:', emailTest);
+      
+      if (emailTest.success) {
+        console.log(`✅ Email sent successfully to ${testEmail}`);
+        console.log(`Message ID: ${emailTest.messageId}`);
+      } else {
+        console.log(`❌ Failed to send email to ${testEmail}: ${emailTest.error}`);
+      }
+    }
+    
+    console.log('\n=== TROUBLESHOOTING TIPS ===');
+    console.log('1. Check your SPAM/JUNK folder');
+    console.log('2. Check if your email server blocks external emails');
+    console.log('3. Verify the domain configuration');
+    console.log('4. Try sending to a personal Gmail/Yahoo account for testing');
   }
 }
 
