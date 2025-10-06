@@ -275,7 +275,7 @@ export default function ViewCertificate() {
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-medium">Issued:</span>
-                  <span className="font-medium">{certificate.issueDate}</span>
+                  <span className="font-medium">{formatDate(certificate.issueDate)}</span>
                 </div>
 
                 <div className="flex justify-between">
