@@ -92,6 +92,7 @@ export const CertificateProvider = ({ children }) => {
         }
       });
       const url = buildApiUrl('/certificates');
+      console.log('Sending certificate data:', newCertificate);
       const response = await axios.post(url, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -100,7 +101,9 @@ export const CertificateProvider = ({ children }) => {
       return response.data;
     } catch (err) {
       setError("Failed to add certificate");
-      console.error(err);
+      console.error('Add certificate error:', err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
       throw err;
     } finally {
       decrementLoading();

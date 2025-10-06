@@ -100,12 +100,27 @@ router.get('/:id', async (req, res) => {
 // ----------------------
 router.post('/', async (req, res) => {
   try {
+    console.log('Creating certificate with data:', req.body);
     const newCert = new Certificate(req.body);
     const savedCert = await newCert.save();
     res.status(201).json(savedCert);
   } catch (error) {
     console.error("Error creating certificate:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    console.error("Error details:", error.message);
+    
+    // Check for validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: "Validation Error", 
+        errors: error.errors,
+        details: error.message 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: "Internal Server Error",
+      error: error.message 
+    });
   }
 });
 
