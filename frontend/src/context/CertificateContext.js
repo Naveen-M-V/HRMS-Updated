@@ -20,8 +20,23 @@ export const useCertificates = () => {
 
 const parseExpiryDate = (expiryDateStr) => {
   if (!expiryDateStr) return null;
-  const [day, month, year] = expiryDateStr.split("/");
-  return new Date(year, month - 1, day);
+  
+  // Handle Date objects
+  if (expiryDateStr instanceof Date) return expiryDateStr;
+  
+  // Handle ISO date strings (YYYY-MM-DD or full ISO format)
+  if (typeof expiryDateStr === 'string' && expiryDateStr.includes('-')) {
+    return new Date(expiryDateStr);
+  }
+  
+  // Handle DD/MM/YYYY format
+  if (typeof expiryDateStr === 'string' && expiryDateStr.includes('/')) {
+    const [day, month, year] = expiryDateStr.split("/");
+    return new Date(year, month - 1, day);
+  }
+  
+  // Fallback: try to parse as is
+  return new Date(expiryDateStr);
 };
 
 export const CertificateProvider = ({ children }) => {

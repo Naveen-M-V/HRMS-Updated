@@ -93,10 +93,14 @@ export default function MyAccount() {
   // Handle profile picture change - persist to backend
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    const profileId = profile?._id || user?._id;
+    const profileId = profile?._id || user?._id || user?.id;
+    
+    console.log('Profile picture upload - Profile:', profile);
+    console.log('Profile picture upload - User:', user);
+    console.log('Profile picture upload - ProfileId:', profileId);
     
     if (!file || !profileId) {
-      console.error('Missing file or profile ID:', { file: !!file, profileId });
+      console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
       alert('Unable to upload: Missing profile information. Please try refreshing the page.');
       return;
     }
