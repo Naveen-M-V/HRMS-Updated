@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useProfiles } from '../context/ProfileContext';
-import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
 
 // Get API URL - same logic as ProfileContext
@@ -169,165 +169,188 @@ This will also delete any associated certificates and user account. This action 
   }, [profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
 
   return (
-    <div className="p-6">
-      {/* Header with Create Button */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-4xl font-bold">Profiles</h1>
-          {/*<button
-            onClick={() => navigate("/dashboard/profilescreate")}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow"
-          >
-            + Create Profile
-          </button>*/}
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm border mb-6">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Profiles</h1>
+                <p className="text-gray-600 mt-1">Manage and track all employee profiles</p>
+              </div>
+              {/*<button
+                onClick={() => navigate("/dashboard/profilescreate")}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                + Create Profile
+              </button>*/}
+            </div>
+          </div>
+        </div>
 
-      {/* Search + Rows selector */}
-      <div className="flex items-center justify-between mb-4">
-        <input
-          type="text"
-          placeholder="Search employee..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border px-3 py-2 rounded w-1/3"
-        />
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow-sm border mb-6">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              {/* Search */}
+              <div className="relative flex-1 max-w-md">
+                <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search employee..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm">Show</span>
-          <select
-            value={rowsPerPage}
-            onChange={(e) => setRowsPerPage(Number(e.target.value))}
-            className="border px-2 py-1 rounded"
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-          </select>
-          <span className="text-sm">entries</span>
+              {/* Rows per page */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Show</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-sm text-gray-600">entries</span>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="border-t pt-4">
+              <div className="grid grid-cols-5 gap-4">
+                <select 
+                  value={selectedRole} 
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="">All Roles</option>
+                  {filterOptions.roles.map(role => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+                <select 
+                  value={selectedStaffType} 
+                  onChange={(e) => setSelectedStaffType(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="">All Staff Types</option>
+                  {filterOptions.staffTypes.map(staffType => (
+                    <option key={staffType} value={staffType}>{staffType}</option>
+                  ))}
+                </select>
+                <select 
+                  value={selectedCompany} 
+                  onChange={(e) => setSelectedCompany(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="">All Companies</option>
+                  {filterOptions.companies.map(company => (
+                    <option key={company} value={company}>{company}</option>
+                  ))}
+                </select>
+                <select 
+                  value={selectedManager} 
+                  onChange={(e) => setSelectedManager(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                >
+                  <option value="">All Managers</option>
+                  {filterOptions.managers.map(manager => (
+                    <option key={manager} value={manager}>{manager}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={clearAllFilters}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg border border-gray-300"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">VTID</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">First name</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Last name</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Type</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredProfiles.slice(0, rowsPerPage).map((p) => (
+                  <tr key={p._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900">{generateVTID(p)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.role}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.firstName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.lastName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.staffType}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.company}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {(() => {
+                        const jobRoles = Array.isArray(p.jobRole) ? p.jobRole : (p.jobRole ? [p.jobRole] : []);
+                        return jobRoles.length > 0 ? jobRoles.join(', ') : "N/A";
+                      })()
+                      }
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{formatDate(p.lastSeen)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Link 
+                          to={`/profiles/${p._id}`} 
+                          className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                          title="View Profile"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => {
+                            console.log('Edit clicked for profile:', p._id);
+                            console.log('Navigating to:', `/profiles/edit/${p._id}`);
+                            navigate(`/profiles/edit/${p._id}`);
+                          }}
+                          className="text-gray-600 hover:text-gray-800"
+                          title="Edit Profile"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            console.log('Delete clicked for profile:', p._id, p.firstName, p.lastName);
+                            handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete Profile"
+                          disabled={loading}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-
-      {/* Filters + Clear button */}
-      <div className="flex gap-4 mb-4">
-        <select 
-          value={selectedRole} 
-          onChange={(e) => setSelectedRole(e.target.value)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="">All Roles</option>
-          {filterOptions.roles.map(role => (
-            <option key={role} value={role}>{role}</option>
-          ))}
-        </select>
-        <select 
-          value={selectedStaffType} 
-          onChange={(e) => setSelectedStaffType(e.target.value)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="">All Staff Types</option>
-          {filterOptions.staffTypes.map(staffType => (
-            <option key={staffType} value={staffType}>{staffType}</option>
-          ))}
-        </select>
-        <select 
-          value={selectedCompany} 
-          onChange={(e) => setSelectedCompany(e.target.value)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="">All Companies</option>
-          {filterOptions.companies.map(company => (
-            <option key={company} value={company}>{company}</option>
-          ))}
-        </select>
-        <select 
-          value={selectedManager} 
-          onChange={(e) => setSelectedManager(e.target.value)}
-          className="border px-2 py-1 rounded"
-        >
-          <option value="">All Managers</option>
-          {filterOptions.managers.map(manager => (
-            <option key={manager} value={manager}>{manager}</option>
-          ))}
-        </select>
-
-        <button
-          onClick={clearAllFilters}
-          className="ml-auto text-sm bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
-        >
-          Clear All Filters
-        </button>
-      </div>
-
-      {/* Table */}
-      <table className="w-full border text-sm">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="border px-2 py-1">VTID</th>
-            <th className="border px-2 py-1">Role</th>
-            <th className="border px-2 py-1">First name</th>
-            <th className="border px-2 py-1">Last name</th>
-            <th className="border px-2 py-1">Staff Type</th>
-            <th className="border px-2 py-1">Company</th>
-            <th className="border px-2 py-1">Job Title</th>
-            <th className="border px-2 py-1">Last Seen</th>
-            <th className="border px-2 py-1">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredProfiles.slice(0, rowsPerPage).map((p) => (
-            <tr key={p._id}>
-              <td className="border px-2 py-1">{generateVTID(p)}</td>
-              <td className="border px-2 py-1">{p.role}</td>
-              <td className="border px-2 py-1">{p.firstName}</td>
-              <td className="border px-2 py-1">{p.lastName}</td>
-              <td className="border px-2 py-1">{p.staffType}</td>
-              <td className="border px-2 py-1">{p.company}</td>
-              <td className="border px-2 py-1">
-                {(() => {
-                  const jobRoles = Array.isArray(p.jobRole) ? p.jobRole : (p.jobRole ? [p.jobRole] : []);
-                  return jobRoles.length > 0 ? jobRoles.join(', ') : "N/A";
-                })()
-                }
-              </td>
-              <td className="border px-2 py-1">{formatDate(p.lastSeen)}</td>
-              <td className="border px-2 py-1 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Link 
-                    to={`/profiles/${p._id}`} 
-                    className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50" 
-                    title="View Profile"
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </Link>
-                  <button
-                    onClick={() => {
-                      console.log('Edit clicked for profile:', p._id);
-                      console.log('Navigating to:', `/profiles/edit/${p._id}`);
-                      navigate(`/profiles/edit/${p._id}`);
-                    }}
-                    className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
-                    title="Edit Profile"
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      console.log('Delete clicked for profile:', p._id, p.firstName, p.lastName);
-                      handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`);
-                    }}
-                    className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
-                    title="Delete Profile"
-                    disabled={loading}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

@@ -29,7 +29,7 @@ const ComplianceInsights = () => {
 
   useEffect(() => {
     if (certificates.length > 0) {
-      const expiring = getExpiringCertificates(90);
+      const expiring = getExpiringCertificates(30);
       const expired = getExpiredCertificates();
       
       // Fix: Filter active certificates properly - exclude expired ones

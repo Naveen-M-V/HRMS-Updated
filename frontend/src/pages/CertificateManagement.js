@@ -311,18 +311,22 @@ export default function CertificateManagement() {
               <AcademicCapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No certificates found</h3>
               <p className="text-gray-600 mb-4">
-                {search || selectedCategory || selectedStatus || selectedProvider
+                {selectedSection 
+                  ? `No ${selectedSection === 'total' ? '' : selectedSection} certificates found`
+                  : search || selectedCategory || selectedStatus || selectedProvider
                   ? 'Try adjusting your search or filters'
                   : 'Get started by adding your first certificate'
                 }
               </p>
-              <button
-                onClick={() => navigate("/dashboard/createcertificate")}
-                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Certificate
-              </button>
+              {!selectedSection && (
+                <button
+                  onClick={() => navigate("/dashboard/createcertificate")}
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  Add Certificate
+                </button>
+              )}
             </div>
           ) : viewMode === 'grid' ? (
             <div className="p-6">

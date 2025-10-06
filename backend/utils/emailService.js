@@ -242,6 +242,9 @@ const sendNotificationEmail = async (userEmail, userName, subject, message, type
       info: '#2196F3'
     };
     
+    // Convert newlines to <br> for HTML
+    const htmlMessage = message.replace(/\n/g, '<br>');
+    
     const mailOptions = {
       from: getEmailFrom(),
       to: userEmail,
@@ -255,8 +258,8 @@ const sendNotificationEmail = async (userEmail, userName, subject, message, type
             <p>Hello <strong>${userName}</strong>,</p>
             
             <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 15px 0;">
-              <h3>${subject}</h3>
-              <p>${message}</p>
+              <h3 style="color: ${typeColors[type]};">${subject}</h3>
+              <p style="line-height: 1.6; color: #333;">${htmlMessage}</p>
             </div>
             
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666;">
@@ -282,10 +285,55 @@ const testEmailConfiguration = async () => {
   try {
     const transporter = createTransporter();
     await transporter.verify();
-    console.log('SMTP configuration is valid');
+    console.log('✅ SMTP configuration is valid');
     return { success: true, message: 'SMTP configuration is valid' };
   } catch (error) {
-    console.error('SMTP configuration error:', error);
+    console.error('❌ SMTP configuration error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Send test email
+const sendTestEmail = async (recipientEmail, recipientName = 'Test User') => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: getEmailFrom(),
+      to: recipientEmail,
+      subject: 'HRMS Email Test - Configuration Successful',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
+            <h1>✅ Email Test Successful</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>Hello <strong>${recipientName}</strong>,</p>
+            <p>This is a test email to verify that your HRMS email configuration is working correctly.</p>
+            
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <h3>Configuration Details:</h3>
+              <ul>
+                <li><strong>SMTP Host:</strong> ${process.env.EMAIL_HOST}</li>
+                <li><strong>SMTP Port:</strong> ${process.env.EMAIL_PORT}</li>
+                <li><strong>From Address:</strong> ${getEmailFrom()}</li>
+                <li><strong>Test Time:</strong> ${new Date().toLocaleString()}</li>
+              </ul>
+            </div>
+            
+            <p>If you're receiving this email, your HRMS system is configured correctly and can send emails successfully.</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666;">
+              <p>This is a test message from HRMS System</p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Test email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('❌ Error sending test email:', error);
     return { success: false, error: error.message };
   }
 };
@@ -848,6 +896,7 @@ module.exports = {
   sendCertificateExpiryEmail,
   sendNotificationEmail,
   testEmailConfiguration,
+  sendTestEmail,
   sendVerificationEmail,
   sendAdminApprovalRequestEmail,
   sendUserCredentialsEmail,
@@ -859,5 +908,7 @@ module.exports = {
   sendCertificateAddedEmail,
   sendCertificateDeletedEmail,
   sendCertificateExpiryReminderEmail,
-  sendCertificateExpiredEmail
+  sendCertificateExpiredEmail,
+  sendPasswordResetEmail,
+  sendExpiryNotificationEmail
 };

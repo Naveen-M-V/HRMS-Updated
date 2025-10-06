@@ -20,7 +20,8 @@ const {
   sendLoginSuccessEmail, 
   sendCertificateExpiryEmail, 
   sendNotificationEmail, 
-  testEmailConfiguration, 
+  testEmailConfiguration,
+  sendTestEmail,
   sendVerificationEmail, 
   sendAdminApprovalRequestEmail, 
   sendUserCredentialsEmail, 
@@ -1012,15 +1013,25 @@ app.put('/api/profiles/:id', async (req, res) => {
       if (Object.keys(updatedFields).length > 0) {
         // Send update notification to user
         console.log('Sending profile update email...');
-        const fieldsList = Object.keys(updatedFields).map(key => `${key}: ${updatedFields[key]}`).join('\n');
-        await sendNotificationEmail(
+        const fieldsList = Object.keys(updatedFields)
+          .map(key => `• ${key.replace(/([A-Z])/g, ' $1').trim()}: ${updatedFields[key] || 'N/A'}`)
+          .join('\n');
+        
+        const updateMessage = `Your profile has been updated successfully by an administrator.\n\nUpdated Information:\n${fieldsList}\n\nIf you have any questions about these changes, please contact your administrator.`;
+        
+        const emailResult = await sendNotificationEmail(
           updatedProfile.email,
           `${updatedProfile.firstName} ${updatedProfile.lastName}`,
           'Profile Updated',
-          `Your profile has been updated successfully.\n\nUpdated fields:\n${fieldsList}`,
+          updateMessage,
           'info'
         );
-        console.log('✅ Profile update email sent to user:', updatedProfile.email);
+        
+        if (emailResult.success) {
+          console.log('✅ Profile update email sent to user:', updatedProfile.email);
+        } else {
+          console.error('❌ Failed to send profile update email:', emailResult.error);
+        }
         
         // Send notification to admins
         const adminUsers = await User.find({ role: 'admin' });
@@ -2435,23 +2446,34 @@ app.post('/api/auth/signup', async (req, res) => {
         const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(user.verificationToken)}`;
         const name = `${user.firstName} ${user.lastName}`.trim();
         
-        console.log('Attempting to send verification email to:', user.email);
+        console.log('=== SENDING VERIFICATION EMAIL ===');
+        console.log('Recipient:', user.email);
+        console.log('Recipient Name:', name);
+        console.log('Verify URL:', verifyUrl);
         console.log('Email config:', {
           host: process.env.EMAIL_HOST,
           port: process.env.EMAIL_PORT,
           user: process.env.EMAIL_USER ? 'configured' : 'missing',
-          pass: process.env.EMAIL_PASS ? 'configured' : 'missing'
+          pass: process.env.EMAIL_PASS ? 'configured' : 'missing',
+          from: process.env.EMAIL_FROM || process.env.EMAIL_USER
         });
         
         const result = await sendVerificationEmail(user.email, verifyUrl, name);
         if (result.success) {
-          console.log(`✓ Verification email sent to ${user.email}`);
+          console.log(`✅ Verification email sent successfully to ${user.email}`);
+          console.log(`Message ID: ${result.messageId}`);
         } else {
-          console.error(`✗ Verification email failed:`, result.error);
+          console.error(`❌ Verification email failed for ${user.email}`);
+          console.error(`Error: ${result.error}`);
         }
+      } else {
+        console.log('⚠️ Skipping verification email:', {
+          requireEmailVerification,
+          hasVerificationToken: !!user.verificationToken
+        });
       }
     } catch (e) {
-      console.error('Failed to send verification email:', e);
+      console.error('❌ Exception while sending verification email:', e);
       console.error('Error details:', {
         message: e.message,
         code: e.code,
@@ -2624,6 +2646,46 @@ app.post('/api/auth/logout', (req, res) => {
     });
   } else {
     return res.json({ message: 'No active session' });
+  }
+});
+
+// Test email endpoint - for debugging email configuration
+app.post('/api/test-email', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Valid email is required' });
+    }
+    
+    console.log(`=== TESTING EMAIL CONFIGURATION ===`);
+    console.log(`Sending test email to: ${email}`);
+    console.log(`Name: ${name || 'Test User'}`);
+    
+    const result = await sendTestEmail(email, name || 'Test User');
+    
+    if (result.success) {
+      console.log(`✅ Test email sent successfully`);
+      res.json({ 
+        success: true, 
+        message: 'Test email sent successfully! Please check your inbox.',
+        messageId: result.messageId 
+      });
+    } else {
+      console.error(`❌ Test email failed:`, result.error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send test email',
+        error: result.error 
+      });
+    }
+  } catch (error) {
+    console.error('❌ Test email endpoint exception:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to send test email',
+      error: error.message 
+    });
   }
 });
 
