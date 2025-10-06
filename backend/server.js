@@ -290,7 +290,9 @@ const userSchema = new mongoose.Schema({
   adminApprovalToken: { type: String },
   termsAcceptedAt: { type: Date },
   passwordChangedAt: { type: Date },
-  lastLoginAt: { type: Date }
+  lastLoginAt: { type: Date },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date }
 }, { timestamps: true });
 
 // Hash password before saving
@@ -2747,7 +2749,103 @@ app.get('/api/auth/validate-session', (req, res) => {
   });
 });
 
-// Reset Password with Old Password Verification
+// Forgot Password - Send Reset Email (True forgot password without old password)
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      return res.json({ message: 'If an account with this email exists, a password reset link has been sent.' });
+    }
+
+    // Generate reset token (simple approach - in production use crypto.randomBytes)
+    const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+    // Save reset token to user
+    await User.findByIdAndUpdate(user._id, {
+      resetPasswordToken: resetToken,
+      resetPasswordExpires: resetTokenExpiry
+    });
+
+    // Send reset email
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    
+    try {
+      // Import email service
+      const { sendPasswordResetEmail } = require('./utils/emailService');
+      const userName = `${user.firstName} ${user.lastName}`;
+      await sendPasswordResetEmail(user.email, userName, resetUrl, resetToken);
+      console.log('Password reset email sent to:', user.email);
+    } catch (emailError) {
+      console.error('Failed to send reset email:', emailError);
+      // Continue anyway - don't reveal email sending failure
+    }
+
+    res.json({ message: 'If an account with this email exists, a password reset link has been sent.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'An error occurred. Please try again.' });
+  }
+});
+
+// Reset Password with Token (from email link)
+app.post('/api/auth/reset-password-token', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    // Find user by reset token
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Validate new password
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      return res.status(400).json({ 
+        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password and clear reset token
+    await User.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+      resetPasswordToken: undefined,
+      resetPasswordExpires: undefined
+    });
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Reset password with token error:', error);
+    res.status(500).json({ message: 'An error occurred. Please try again.' });
+  }
+});
+
+// Reset Password with Old Password Verification (Change Password)
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { email, oldPassword, newPassword } = req.body;

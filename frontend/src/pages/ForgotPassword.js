@@ -5,9 +5,6 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,8 +16,8 @@ const ForgotPassword = () => {
     setMessage('');
     setIsSubmitting(true);
 
-    if (!email || !oldPassword || !newPassword || !confirmPassword) {
-      setError('Please fill in all fields');
+    if (!email) {
+      setError('Please enter your email address');
       setIsSubmitting(false);
       return;
     }
@@ -33,51 +30,24 @@ const ForgotPassword = () => {
       return;
     }
 
-    // Password confirmation validation
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Password strength validation
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-      setError('Password must contain at least one uppercase letter, one lowercase letter, and one number');
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
-      const response = await fetch('http://localhost:5004/api/auth/reset-password', {
+      const response = await fetch('http://localhost:5003/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          email, 
-          oldPassword, 
-          newPassword 
-        }),
+        body: JSON.stringify({ email }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Password reset successful! Redirecting to login...");
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        setMessage("If an account with this email exists, a password reset link has been sent to your email address. Please check your inbox and follow the instructions.");
       } else {
-        setError(data.message || "Failed to reset password. Please try again.");
+        setError(data.message || "Failed to send reset email. Please try again.");
       }
     } catch (error) {
-      console.error("Reset password error:", error);
+      console.error("Forgot password error:", error);
       setError("An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -103,8 +73,8 @@ const ForgotPassword = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Reset Password</h2>
-          <p className="mt-1 text-sm text-gray-500">Enter your details to reset your password</p>
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Forgot Password</h2>
+          <p className="mt-1 text-sm text-gray-500">Enter your email address to receive a password reset link</p>
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -174,63 +144,6 @@ const ForgotPassword = () => {
               </div>
 
               <div>
-                <label htmlFor="oldPassword" className="block text-sm font-medium text-gray-700">
-                  Current Password
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="oldPassword"
-                    name="oldPassword"
-                    type="password"
-                    autoComplete="current-password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm"
-                    placeholder="Enter your current password"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                  New Password
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="newPassword"
-                    name="newPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm"
-                    placeholder="Enter your new password"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm New Password
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 ease-in-out sm:text-sm"
-                    placeholder="Confirm your new password"
-                  />
-                </div>
-              </div>
-
-              <div>
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -246,10 +159,10 @@ const ForgotPassword = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Resetting Password...
+                      Sending Reset Link...
                     </div>
                   ) : (
-                    'Reset Password'
+                    'Send Reset Link'
                   )}
                 </button>
               </div>

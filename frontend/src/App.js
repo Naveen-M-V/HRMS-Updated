@@ -32,6 +32,7 @@ const Login = lazy(() => import("./pages/Login"));
 const StaffDetail = lazy(() => import("./pages/StaffDetail"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const CreateUser = lazy(() => import("./pages/CreateUser"));
 const UserCertificateCreate = lazy(() => import("./pages/UserCertificateCreate"));
@@ -147,6 +148,17 @@ function App() {
                 </div>
               }>
                 <ForgotPassword />
+              </Suspense>
+            </ErrorBoundary>
+          } />
+          <Route path="/reset-password" element={
+            <ErrorBoundary>
+              <Suspense fallback={
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              }>
+                <ResetPassword />
               </Suspense>
             </ErrorBoundary>
           } />

@@ -374,6 +374,16 @@ export default function Login() {
               </div>
             </form>
 
+            {/* Forgot Password Link */}
+            <div className="mt-6 text-center">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-emerald-600 hover:text-emerald-500 font-medium transition-colors duration-200"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
             <div className="mt-8">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

@@ -15,15 +15,16 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const email = location.state?.email;
-  const token = location.state?.token;
+  // Get token from URL parameters
+  const urlParams = new URLSearchParams(location.search);
+  const token = urlParams.get('token');
 
-  // Redirect if no email or token provided
+  // Redirect if no token provided
   useEffect(() => {
-    if (!email || !token) {
+    if (!token) {
       navigate('/forgot-password');
     }
-  }, [email, token, navigate]);
+  }, [token, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -73,13 +74,12 @@ export default function ResetPassword() {
     setMessage("");
 
     try {
-      const response = await fetch('http://talentshield.co.uk/api/auth/reset-password', {
+      const response = await fetch('http://localhost:5003/api/auth/reset-password-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          email, 
           token, 
           newPassword: formData.newPassword 
         }),
@@ -136,12 +136,11 @@ export default function ResetPassword() {
             {/* Back Link */}
             <div className="mb-6">
               <Link
-                to="/verify-otp"
-                state={{ email }}
+                to="/forgot-password"
                 className="inline-flex items-center text-sm text-emerald-600 hover:text-emerald-500 transition duration-150 ease-in-out"
               >
                 <ArrowLeftIcon className="h-4 w-4 mr-2" />
-                Back to OTP Verification
+                Back to Forgot Password
               </Link>
             </div>
 
