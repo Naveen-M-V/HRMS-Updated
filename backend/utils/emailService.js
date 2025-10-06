@@ -1,11 +1,10 @@
 const nodemailer = require('nodemailer');
-
 // Get email sender address
 const getEmailFrom = () => process.env.EMAIL_FROM || process.env.EMAIL_USER;
 
 // Create SMTP transporter
 const createTransporter = () => {
-  return nodemailer.createTransport({
+  return nodemailer.createTransporter({
     host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT) || 587,
     secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
@@ -15,7 +14,10 @@ const createTransporter = () => {
     },
     tls: {
       rejectUnauthorized: false // Allow self-signed certificates
-    }
+    },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000, // 5 seconds
+    socketTimeout: 10000 // 10 seconds
   });
 };
 

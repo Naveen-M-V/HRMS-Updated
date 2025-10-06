@@ -15,6 +15,7 @@ export default function EditCertificate() {
   
   const [formData, setFormData] = useState({
     certificate: "",
+    category: "",
     description: "",
     issueDate: "",
     expiryDate: "",
@@ -89,6 +90,7 @@ export default function EditCertificate() {
 
       setFormData({
         certificate: cert.certificate || "",
+        category: cert.category || "Professional Development",
         description: cert.description || cert.certificate || "",
         issueDate: formatDate(cert.issueDate),
         expiryDate: formatDate(cert.expiryDate),
@@ -219,6 +221,7 @@ export default function EditCertificate() {
 
     const updatedCert = {
       certificate: formData.certificate,
+      category: formData.category, // Required field for backend validation
       description: formData.description,
       issueDate: formatDateForSubmit(formData.issueDate),
       expiryDate: formatDateForSubmit(formData.expiryDate),
