@@ -8,8 +8,7 @@ const {
   markAllNotificationsAsRead
 } = require('../utils/notificationService');
 
-// Ensure Notification model is loaded
-require('../models/Notification');
+// Notification model is already defined in server.js
 
 // Get unread notification count
 router.get('/unread-count', async (req, res) => {

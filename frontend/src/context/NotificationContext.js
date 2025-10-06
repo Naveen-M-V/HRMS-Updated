@@ -53,14 +53,14 @@ export const NotificationProvider = ({ children }) => {
       // Transform backend notifications to match frontend format
       const transformedNotifications = data.notifications.map(notif => ({
         id: notif._id,
-        title: notif.title,
+        title: notif.title || notif.message, // Use message as title if title is empty
         message: notif.message,
         type: notif.type,
         priority: notif.priority,
-        read: notif.isRead,
-        status: notif.isRead ? 'Read' : 'Open',
-        date: new Date(notif.createdAt).toLocaleDateString(),
-        createdAt: notif.createdAt,
+        read: notif.read, // Use existing 'read' field
+        status: notif.read ? 'Read' : 'Open',
+        date: new Date(notif.createdOn || notif.createdAt).toLocaleDateString(), // Use createdOn field
+        createdAt: notif.createdOn || notif.createdAt,
         metadata: notif.metadata || {}
       }));
 

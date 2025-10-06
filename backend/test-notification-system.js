@@ -14,8 +14,7 @@ const {
 const { testEmailConfiguration, sendTestEmail } = require('./utils/emailService');
 require('dotenv').config();
 
-// Load models
-require('./models/Notification');
+// Notification model is defined in server.js
 
 async function connectToDatabase() {
   try {

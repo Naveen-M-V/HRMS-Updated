@@ -37,8 +37,21 @@ async function getUserProfile(userId) {
 async function createNotification(data) {
   try {
     const Notification = mongoose.model('Notification');
-    const notification = await Notification.createNotification(data);
-    console.log(`✅ Notification created: ${notification.title} for user ${notification.userId}`);
+    
+    // Map our data structure to the existing schema
+    const notificationData = {
+      userId: data.userId,
+      type: data.type,
+      priority: data.priority === 'critical' ? 'urgent' : data.priority, // Map critical to urgent
+      message: data.message,
+      title: data.title,
+      read: false,
+      metadata: data.metadata || {}
+    };
+    
+    const notification = new Notification(notificationData);
+    await notification.save();
+    console.log(`✅ Notification created: ${notification.title || notification.message} for user ${notification.userId}`);
     return notification;
   } catch (error) {
     console.error('❌ Error creating notification:', error);
@@ -93,8 +106,7 @@ async function notifyCertificateExpiring(certificateData, profileData, daysUntil
     
     const notificationData = {
       userId: profileData.userId,
-      profileId: profileData._id,
-      type: 'certificate_expiring',
+      type: 'certificate_expiry', // Use existing type
       title: `Certificate Expiring in ${daysUntilExpiry} days`,
       message: `Your certificate "${certificateData.certificate}" will expire in ${daysUntilExpiry} days. Please renew it before ${certificateData.expiryDate}.`,
       priority,
@@ -102,7 +114,8 @@ async function notifyCertificateExpiring(certificateData, profileData, daysUntil
         certificateId: certificateData._id,
         certificateName: certificateData.certificate,
         expiryDate: certificateData.expiryDate,
-        daysUntilExpiry
+        daysUntilExpiry,
+        profileId: profileData._id
       }
     };
     
@@ -137,8 +150,7 @@ async function notifyCertificateExpired(certificateData, profileData, daysExpire
     
     const notificationData = {
       userId: profileData.userId,
-      profileId: profileData._id,
-      type: 'certificate_expired',
+      type: 'certificate_expired', // Use existing type
       title: `Certificate Expired`,
       message: `Your certificate "${certificateData.certificate}" has expired ${daysExpired} days ago. Please renew it immediately.`,
       priority: 'critical',
@@ -146,7 +158,8 @@ async function notifyCertificateExpired(certificateData, profileData, daysExpire
         certificateId: certificateData._id,
         certificateName: certificateData.certificate,
         expiryDate: certificateData.expiryDate,
-        daysExpired
+        daysExpired,
+        profileId: profileData._id
       }
     };
     
@@ -181,8 +194,7 @@ async function notifyUserCreation(userData, profileData, createdByUserId) {
     
     const notificationData = {
       userId: userData._id,
-      profileId: profileData._id,
-      type: 'user_created',
+      type: 'user_created', // Use existing type
       title: 'Welcome to Talent Shield HRMS',
       message: `Your account has been created successfully. Welcome to the Talent Shield HRMS system!`,
       priority: 'medium',
@@ -220,8 +232,7 @@ async function notifyProfileUpdate(profileData, updatedFields, updatedByUserId) 
     
     const notificationData = {
       userId: profileData.userId,
-      profileId: profileData._id,
-      type: 'profile_updated',
+      type: 'profile_updated', // Use existing type
       title: 'Profile Updated',
       message: `Your profile has been updated. Fields changed: ${fieldNames}`,
       priority: 'low',
@@ -257,8 +268,7 @@ async function notifyCertificateAdded(certificateData, profileData, addedByUserI
     
     const notificationData = {
       userId: profileData.userId,
-      profileId: profileData._id,
-      type: 'certificate_added',
+      type: 'certificate_created', // Use existing type
       title: 'Certificate Added',
       message: `A new certificate "${certificateData.certificate}" has been added to your profile.`,
       priority: 'low',
@@ -267,7 +277,8 @@ async function notifyCertificateAdded(certificateData, profileData, addedByUserI
         certificateName: certificateData.certificate,
         category: certificateData.category,
         expiryDate: certificateData.expiryDate,
-        addedBy: addedByUserId
+        addedBy: addedByUserId,
+        profileId: profileData._id
       }
     };
     
@@ -296,8 +307,7 @@ async function notifyCertificateDeleted(certificateData, profileData, deletedByU
     
     const notificationData = {
       userId: profileData.userId,
-      profileId: profileData._id,
-      type: 'certificate_deleted',
+      type: 'certificate_deleted', // Use existing type
       title: 'Certificate Removed',
       message: `The certificate "${certificateData.certificate}" has been removed from your profile.`,
       priority: 'medium',
@@ -306,7 +316,8 @@ async function notifyCertificateDeleted(certificateData, profileData, deletedByU
         certificateName: certificateData.certificate,
         category: certificateData.category,
         expiryDate: certificateData.expiryDate,
-        deletedBy: deletedByUserId
+        deletedBy: deletedByUserId,
+        profileId: profileData._id
       }
     };
     
@@ -337,8 +348,7 @@ async function notifyCertificateUpdated(certificateData, profileData, updatedFie
     
     const notificationData = {
       userId: profileData.userId,
-      profileId: profileData._id,
-      type: 'certificate_updated',
+      type: 'certificate_updated', // Use existing type
       title: 'Certificate Updated',
       message: `Your certificate "${certificateData.certificate}" has been updated. Fields changed: ${fieldNames}`,
       priority: 'low',
@@ -346,7 +356,8 @@ async function notifyCertificateUpdated(certificateData, profileData, updatedFie
         certificateId: certificateData._id,
         certificateName: certificateData.certificate,
         updatedFields,
-        updatedBy: updatedByUserId
+        updatedBy: updatedByUserId,
+        profileId: profileData._id
       }
     };
     
@@ -386,14 +397,13 @@ async function getUserNotifications(userId, options = {}) {
     } = options;
     
     const query = { userId };
-    if (unreadOnly) query.isRead = false;
+    if (unreadOnly) query.read = false; // Use 'read' field from existing schema
     if (type) query.type = type;
     
     const notifications = await Notification.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ createdOn: -1 }) // Use 'createdOn' field from existing schema
       .limit(limit)
-      .skip(skip)
-      .populate('profileId', 'firstName lastName email vtid');
+      .skip(skip);
     
     return notifications;
   } catch (error) {
@@ -408,7 +418,7 @@ async function getUnreadNotificationCount(userId) {
     const Notification = mongoose.model('Notification');
     const count = await Notification.countDocuments({ 
       userId, 
-      isRead: false 
+      read: false // Use 'read' field from existing schema
     });
     return count;
   } catch (error) {
@@ -421,16 +431,19 @@ async function getUnreadNotificationCount(userId) {
 async function markNotificationAsRead(notificationId, userId) {
   try {
     const Notification = mongoose.model('Notification');
-    const notification = await Notification.findOne({ 
-      _id: notificationId, 
-      userId 
-    });
+    const notification = await Notification.findOneAndUpdate(
+      { _id: notificationId, userId },
+      { 
+        read: true, 
+        readOn: new Date() // Use existing schema fields
+      },
+      { new: true }
+    );
     
     if (!notification) {
       throw new Error('Notification not found');
     }
     
-    await notification.markAsRead();
     return notification;
   } catch (error) {
     console.error('❌ Error marking notification as read:', error);
@@ -443,10 +456,10 @@ async function markAllNotificationsAsRead(userId) {
   try {
     const Notification = mongoose.model('Notification');
     const result = await Notification.updateMany(
-      { userId, isRead: false },
+      { userId, read: false }, // Use existing schema fields
       { 
-        isRead: true, 
-        readAt: new Date() 
+        read: true, 
+        readOn: new Date() 
       }
     );
     
