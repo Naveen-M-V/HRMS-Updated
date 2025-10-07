@@ -432,7 +432,8 @@ export default function CertificateManagement() {
                 <thead className="bg-gray-50 border-b">
                   <tr>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
-                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">VTID</th>
+                    <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Profile Name</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
                     <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
@@ -448,7 +449,6 @@ export default function CertificateManagement() {
                           <AcademicCapIcon className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                           <div>
                             <div className="font-medium text-gray-900">{cert.certificate}</div>
-                            <div className="text-sm text-gray-500">{cert.category}</div>
                           </div>
                         </div>
                       </td>

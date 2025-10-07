@@ -359,13 +359,6 @@ const handleDeleteCertificate = async (certId) => {
                   <span className="text-gray-600">Staff Type:</span>
                   <span className="font-medium">{profile.staffType || "N/A"}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Client Contracts:</span>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">0</span>
-                    <ArrowTopRightOnSquareIcon className="h-3 w-3 text-gray-400" />
-                  </div>
-                </div>
               </div>
             </div>
 

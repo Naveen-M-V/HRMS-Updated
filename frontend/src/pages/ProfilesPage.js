@@ -156,6 +156,9 @@ This will also delete any associated certificates and user account. This action 
   // Filtered profiles with memoization for performance
   const filteredProfiles = useMemo(() => {
     return profiles.filter((p) => {
+      // Exclude admin accounts - only show user profiles
+      const isUserProfile = !p.role || p.role === 'user' || p.role === 'User';
+      
       const matchesSearch = `${p.firstName} ${p.lastName}`
         .toLowerCase()
         .includes(search.toLowerCase());
@@ -164,7 +167,7 @@ This will also delete any associated certificates and user account. This action 
       const matchesCompany = !selectedCompany || p.company === selectedCompany;
       const matchesManager = !selectedManager || p.poc === selectedManager;
 
-      return matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
+      return isUserProfile && matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
     });
   }, [profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
 
