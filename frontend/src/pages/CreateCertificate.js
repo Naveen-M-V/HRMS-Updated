@@ -6,7 +6,6 @@ import { getCertificatesForMultipleJobRoles, getAllJobRoles, allCertificates } f
 import SearchableDropdown from "../components/SearchableDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
 import { useAlert } from "../components/AlertNotification";
-import LoadingScreen, { LoadingButton, FormLoadingOverlay } from "../components/LoadingScreen";
 
 export default function CreateCertificate() {
   const navigate = useNavigate();
@@ -451,7 +450,6 @@ export default function CreateCertificate() {
         <h1 className="text-2xl font-semibold mb-6">Create Certificate</h1>
 
 <div className="w-full max-w-6xl mx-auto bg-white shadow-md rounded-2xl p-6 relative">
-          <FormLoadingOverlay isLoading={creating || uploading} message={uploading ? "Uploading certificate..." : "Creating certificate..."} />
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Profile */}
            {/* Profile Selection */}
@@ -714,14 +712,13 @@ export default function CreateCertificate() {
               >
                 Cancel
               </button>
-              <LoadingButton
+              <button
                 type="submit"
-                isLoading={creating || uploading}
-                loadingText={uploading ? "Uploading..." : "Creating..."}
+                disabled={creating || uploading}
                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
               >
-                Save changes
-              </LoadingButton>
+                {creating || uploading ? (uploading ? "Uploading..." : "Creating...") : "Save changes"}
+              </button>
             </div>
           </form>
         </div>
