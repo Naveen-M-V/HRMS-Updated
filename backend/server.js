@@ -2636,18 +2636,20 @@ app.post('/api/auth/login', async (req, res) => {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
       }
 
-      // Send login success email notification (non-blocking)
-      setImmediate(async () => {
-        try {
-          const loginTime = new Date().toLocaleString();
-          const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
-          const userName = `${user.firstName} ${user.lastName}`;
-          await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
-        } catch (emailError) {
-          console.error('Failed to send login success email:', emailError);
-          // Email failure should not block login
-        }
-      });
+      // Send login success email notification (only if enabled)
+      if (process.env.DISABLE_LOGIN_EMAILS !== 'true') {
+        setImmediate(async () => {
+          try {
+            const loginTime = new Date().toLocaleString();
+            const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+            const userName = `${user.firstName} ${user.lastName}`;
+            await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
+          } catch (emailError) {
+            console.error('Failed to send login success email:', emailError);
+            // Email failure should not block login
+          }
+        });
+      }
       
       return res.json({ user: sessionUser, token });
     }
