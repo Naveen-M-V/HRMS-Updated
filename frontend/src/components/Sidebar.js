@@ -3,52 +3,65 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
-import { ClipboardDocumentIcon as ClipboardIcon } from '@heroicons/react/24/outline';
-import { AcademicCapIcon } from '@heroicons/react/24/outline';
-import { UserCircleIcon } from '@heroicons/react/24/outline';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
-import { ChevronRightIcon } from '@heroicons/react/24/outline';
-import { HomeIcon } from '@heroicons/react/24/outline';
-import { UserIcon } from '@heroicons/react/24/outline';
-import { UserPlusIcon } from '@heroicons/react/24/outline';
-import { DocumentTextIcon } from '@heroicons/react/24/outline';
-import { BellIcon } from '@heroicons/react/24/outline';
-import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon as ClipboardIcon } from "@heroicons/react/24/outline";
+import { AcademicCapIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
+import { HomeIcon } from "@heroicons/react/24/outline";
+import { UserIcon } from "@heroicons/react/24/outline";
+import { UserPlusIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
+import { BellIcon } from "@heroicons/react/24/outline";
+import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
   const { logout, loading, user } = useAuth();
-  const { getUnreadCount, subscribeToNotificationChanges, triggerRefresh } = useNotifications();
+  const {
+    getUnreadCount,
+    subscribeToNotificationChanges,
+    triggerRefresh,
+    initializeNotifications,
+  } = useNotifications();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
-  // const [openSupply, setOpenSupply] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // Subscribe to notification changes from context
+  // Simplified notification - completely async, won't block anything
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      console.log('Sidebar: User not admin, setting notifications to 0');
+    if (!user || user.role !== "admin") {
       setUnreadNotifications(0);
       return;
     }
 
-    // Set initial count from context
-    const initialCount = getUnreadCount();
-    console.log('Sidebar: Setting initial notification count:', initialCount);
-    setUnreadNotifications(initialCount);
+    // Make this completely non-blocking
+    Promise.resolve().then(() => {
+      try {
+        if (isOpen) {
+          initializeNotifications();
+        }
+        setUnreadNotifications(getUnreadCount());
+      } catch (error) {
+        console.error("Notification init error:", error);
+      }
+    });
 
-    // Subscribe to real-time updates
     const unsubscribe = subscribeToNotificationChanges((count) => {
-      console.log('Sidebar: Received notification count update:', count);
       setUnreadNotifications(count);
     });
 
-    return unsubscribe;
-  }, [user, getUnreadCount, subscribeToNotificationChanges]);
+    return () => {
+      try {
+        unsubscribe();
+      } catch (e) {
+        // ignore
+      }
+    };
+  }, [user, isOpen, getUnreadCount, subscribeToNotificationChanges, initializeNotifications]);
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       await logout();
@@ -59,49 +72,35 @@ export default function Sidebar({ isOpen }) {
     }
   };
 
-  const itemBase =
-    "relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md";
-
-  const Divider = () => <div className="border-b border-green-300 mx-2 my-2"></div>;
-
-  // ✅ Fixed ChildItem with onClick support
-  const ChildItem = ({ name, icon: Icon, onClick }) => (
-    <div
-      onClick={onClick}
-      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3"
-    >
-      {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300" />}
-      {isOpen && <span className="text-sm">{name}</span>}
-
-      {/* Tooltip when collapsed */}
-      {!isOpen && (
-        <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
-          {name}
-        </span>
-      )}
-    </div>
-  );
+  const handleNavigation = (path) => {
+    console.log("Navigating to:", path);
+    navigate(path);
+  };
 
   return (
     <div
-className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all duration-300 z-40 ${
-  isOpen ? "w-64" : "w-16"
-} overflow-y-auto`}
+      className={`fixed left-0 top-0 h-screen bg-green-900 text-white overflow-y-auto z-50 transition-all duration-300 ${
+        isOpen ? "w-64" : "w-16"
+      }`}
     >
       <div className="py-4 space-y-2">
+        {/* Header */}
         {isOpen && (
           <div className="px-4 pb-2 text-xs uppercase font-bold tracking-wider text-green-300">
             My Compliance
           </div>
         )}
 
-        {/* Reporting */}
+        {/* Reporting Section */}
         <div>
           <div
-            onClick={() => setOpenReporting(!openReporting)}
-            className={`${itemBase} select-none`}
+            onClick={() => {
+              console.log("Reporting clicked");
+              setOpenReporting(!openReporting);
+            }}
+            className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
           >
-            <ClipboardIcon className="h-6 w-6 shrink-0" />
+            <ClipboardIcon className="h-6 w-6 flex-shrink-0" />
             {isOpen && (
               <>
                 <span className="text-sm flex-1">Reporting</span>
@@ -113,31 +112,38 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none">
                 Reporting
-              </span>
+              </div>
             )}
           </div>
-          {openReporting && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
-              <ChildItem
-                name="Compliance Dashboard"
-                icon={HomeIcon}
-                onClick={() => navigate("/")}
-              />
-              
+
+          {/* Reporting Children */}
+          {openReporting && isOpen && (
+            <div className="ml-3 pl-5 border-l border-green-800">
+              <div
+                onClick={() => handleNavigation("/")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <HomeIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Compliance Dashboard</span>
+              </div>
             </div>
           )}
-          <Divider />
+
+          <div className="border-b border-green-300 mx-2 my-2"></div>
         </div>
 
-        {/* Training Compliance */}
+        {/* Training Compliance Section */}
         <div>
           <div
-            onClick={() => setOpenTraining(!openTraining)}
-            className={`${itemBase} select-none`}
+            onClick={() => {
+              console.log("Training clicked");
+              setOpenTraining(!openTraining);
+            }}
+            className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
           >
-            <AcademicCapIcon className="h-6 w-6 shrink-0" />
+            <AcademicCapIcon className="h-6 w-6 flex-shrink-0" />
             {isOpen && (
               <>
                 <span className="text-sm flex-1">Training Compliance</span>
@@ -149,41 +155,54 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none">
                 Training Compliance
-              </span>
+              </div>
             )}
           </div>
-          {openTraining && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
-              <ChildItem
-                name="Profiles"
-                icon={UserIcon}
-                onClick={() => navigate("/reporting/profiles")}
-              />
-              <ChildItem
-                name="Create User"
-                icon={UserPlusIcon}
-                onClick={() => navigate("/create-user")}
-              />
-              <ChildItem
-                name="Certificates"
-                icon={DocumentTextIcon}
-                onClick={() => navigate("/certificates")}
-              />
+
+          {/* Training Children */}
+          {openTraining && isOpen && (
+            <div className="ml-3 pl-5 border-l border-green-800">
+              <div
+                onClick={() => handleNavigation("/reporting/profiles")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <UserIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Profiles</span>
+              </div>
+
+              <div
+                onClick={() => handleNavigation("/create-user")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <UserPlusIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Create User</span>
+              </div>
+
+              <div
+                onClick={() => handleNavigation("/certificates")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <DocumentTextIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Certificates</span>
+              </div>
             </div>
           )}
-          <Divider />
+
+          <div className="border-b border-green-300 mx-2 my-2"></div>
         </div>
 
-
-        {/* My Settings */}
+        {/* My Settings Section */}
         <div>
           <div
-            onClick={() => setOpenSettings(!openSettings)}
-            className={`${itemBase} select-none`}
+            onClick={() => {
+              console.log("Settings clicked");
+              setOpenSettings(!openSettings);
+            }}
+            className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
           >
-            <UserCircleIcon className="h-6 w-6 shrink-0" />
+            <UserCircleIcon className="h-6 w-6 flex-shrink-0" />
             {isOpen && (
               <>
                 <span className="text-sm flex-1">My Settings</span>
@@ -195,64 +214,70 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none">
                 My Settings
-              </span>
+              </div>
             )}
           </div>
-          {openSettings && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
-              <ChildItem
-                name="Profile"
-                icon={UserIcon}
-                onClick={() => navigate("/myaccount/profiles")}
-              />
-              <div className="relative">
-                <ChildItem
-                  name="Notifications"
-                  icon={BellIcon}
-                  onClick={() => {
-                    navigate("/myaccount/notifications");
-                    triggerRefresh(); // Refresh notifications when navigating
-                  }}
-                />
-                {/* Notification Badge */}
+
+          {/* Settings Children */}
+          {openSettings && isOpen && (
+            <div className="ml-3 pl-5 border-l border-green-800">
+              <div
+                onClick={() => handleNavigation("/myaccount/profiles")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <UserIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Profile</span>
+              </div>
+
+              <div
+                onClick={() => {
+                  handleNavigation("/myaccount/notifications");
+                  triggerRefresh();
+                }}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <BellIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Notifications</span>
                 {unreadNotifications > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  <div className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
                   </div>
                 )}
               </div>
             </div>
           )}
-          <Divider />
+
+          <div className="border-b border-green-300 mx-2 my-2"></div>
         </div>
 
         {/* Logout Button */}
         <div className="mt-auto pt-4">
           <div
             onClick={handleLogout}
-            className={`${itemBase} select-none ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            <ArrowRightOnRectangleIcon className="h-6 w-6 shrink-0" />
+            <ArrowRightOnRectangleIcon className="h-6 w-6 flex-shrink-0" />
             {isOpen && (
               <span className="text-sm flex-1">
-                {loading ? 'Logging out...' : 'Logout'}
+                {loading ? "Logging out..." : "Logout"}
               </span>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+              <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none">
                 Logout
-              </span>
+              </div>
             )}
           </div>
         </div>
-        {/* Version Text - Fixed at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 text-center pb-2 text-xs text-green-300/50">
+
+        {/* Version */}
+        <div className="pb-2 text-center text-xs text-green-300/50">
           Talentshield v.0.1
         </div>
-
-        
       </div>
     </div>
   );

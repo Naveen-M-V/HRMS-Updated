@@ -9,7 +9,7 @@ export default function Topbar({ toggleSidebar }) {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full flex items-center bg-white shadow px-6 py-3 gap-4 relative z-10">
+    <div className="w-full flex items-center bg-white shadow px-6 py-3 gap-4 relative">
       {/* Logo */}
       <div className="flex items-center">
         <img 

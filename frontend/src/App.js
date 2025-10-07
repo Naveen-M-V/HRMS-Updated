@@ -246,12 +246,9 @@ function App() {
                         <div className="flex min-h-screen bg-gray-50">
                           <Sidebar isOpen={isSidebarOpen} />
                           <div
-                            className="flex-1 flex flex-col min-h-screen transition-[margin-left] duration-300"
-                            style={{
-                              marginLeft: isSidebarOpen ? "256px" : "64px",
-                              position: "relative",
-                              zIndex: 1,
-                            }}
+                            className={`flex-1 flex flex-col transition-all duration-300 ${
+                              isSidebarOpen ? "ml-64" : "ml-16"
+                            }`}
                           >
                             <Topbar
                               toggleSidebar={() =>
