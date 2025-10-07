@@ -71,7 +71,8 @@ export default function Sidebar({ isOpen }) {
         console.log(`ChildItem clicked: ${name}`);
         if (onClick) onClick();
       }}
-      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3"
+      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3 pointer-events-auto"
+      style={{ pointerEvents: 'auto', zIndex: 51 }}
     >
       {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300" />}
       {isOpen && <span className="text-sm">{name}</span>}
@@ -126,7 +127,7 @@ style={{ pointerEvents: 'auto' }}
             )}
           </div>
           {openReporting && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800 pointer-events-auto`}>
               <ChildItem
                 name="Compliance Dashboard"
                 icon={HomeIcon}
@@ -144,7 +145,10 @@ style={{ pointerEvents: 'auto' }}
         {/* Training Compliance */}
         <div>
           <div
-            onClick={() => setOpenTraining(!openTraining)}
+            onClick={() => {
+              console.log("Training Compliance section clicked");
+              setOpenTraining(!openTraining);
+            }}
             className={`${itemBase} select-none`}
           >
             <AcademicCapIcon className="h-6 w-6 shrink-0" />
@@ -165,21 +169,30 @@ style={{ pointerEvents: 'auto' }}
             )}
           </div>
           {openTraining && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800 pointer-events-auto`}>
               <ChildItem
                 name="Profiles"
                 icon={UserIcon}
-                onClick={() => navigate("/reporting/profiles")}
+                onClick={() => {
+                  console.log("Profiles clicked");
+                  navigate("/reporting/profiles");
+                }}
               />
               <ChildItem
                 name="Create User"
                 icon={UserPlusIcon}
-                onClick={() => navigate("/create-user")}
+                onClick={() => {
+                  console.log("Create User clicked");
+                  navigate("/create-user");
+                }}
               />
               <ChildItem
                 name="Certificates"
                 icon={DocumentTextIcon}
-                onClick={() => navigate("/certificates")}
+                onClick={() => {
+                  console.log("Certificates clicked");
+                  navigate("/certificates");
+                }}
               />
             </div>
           )}
@@ -190,7 +203,10 @@ style={{ pointerEvents: 'auto' }}
         {/* My Settings */}
         <div>
           <div
-            onClick={() => setOpenSettings(!openSettings)}
+            onClick={() => {
+              console.log("My Settings section clicked");
+              setOpenSettings(!openSettings);
+            }}
             className={`${itemBase} select-none`}
           >
             <UserCircleIcon className="h-6 w-6 shrink-0" />
@@ -211,17 +227,21 @@ style={{ pointerEvents: 'auto' }}
             )}
           </div>
           {openSettings && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800 pointer-events-auto`}>
               <ChildItem
                 name="Profile"
                 icon={UserIcon}
-                onClick={() => navigate("/myaccount/profiles")}
+                onClick={() => {
+                  console.log("Profile clicked");
+                  navigate("/myaccount/profiles");
+                }}
               />
               <div className="relative">
                 <ChildItem
                   name="Notifications"
                   icon={BellIcon}
                   onClick={() => {
+                    console.log("Notifications clicked");
                     navigate("/myaccount/notifications");
                     triggerRefresh(); // Refresh notifications when navigating
                   }}
