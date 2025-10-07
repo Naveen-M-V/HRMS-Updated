@@ -30,25 +30,29 @@ export default function Sidebar({ isOpen }) {
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // Subscribe to notification changes from context
+  // Simplified notification initialization - non-blocking
   useEffect(() => {
     if (!user || user.role !== "admin") {
       setUnreadNotifications(0);
       return;
     }
 
-    // Only initialize if sidebar is open to prevent slow loads
-    if (isOpen) {
-      initializeNotifications();
-    }
-
-    setUnreadNotifications(getUnreadCount());
+    // Use setTimeout to make it non-blocking
+    const timer = setTimeout(() => {
+      if (isOpen) {
+        initializeNotifications();
+      }
+      setUnreadNotifications(getUnreadCount());
+    }, 0);
 
     const unsubscribe = subscribeToNotificationChanges((count) => {
       setUnreadNotifications(count);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [
     user,
     isOpen,
@@ -69,7 +73,7 @@ export default function Sidebar({ isOpen }) {
   };
 
   const itemBase =
-    "relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md";
+    "relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md transition-colors";
 
   const Divider = () => (
     <div className="border-b border-green-300 mx-2 my-2"></div>
@@ -81,12 +85,12 @@ export default function Sidebar({ isOpen }) {
         e.stopPropagation();
         if (onClick) onClick();
       }}
-      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3"
+      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3 transition-colors"
     >
       {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300" />}
       {isOpen && <span className="text-sm">{name}</span>}
       {!isOpen && (
-        <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50 pointer-events-none">
+        <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
           {name}
         </span>
       )}
@@ -95,9 +99,10 @@ export default function Sidebar({ isOpen }) {
 
   return (
     <div
-      className={`pointer-events-auto bg-green-900 text-white fixed left-0 top-0 h-screen transition-[width] duration-300 z-[60] ${
+      className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-[width] duration-300 z-[100] ${
         isOpen ? "w-64" : "w-16"
-      } overflow-y-auto`}
+      } overflow-y-auto shadow-2xl`}
+      style={{ pointerEvents: "auto" }}
     >
       <div className="py-4 space-y-2">
         {isOpen && (
@@ -124,7 +129,7 @@ export default function Sidebar({ isOpen }) {
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50 pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
                 Reporting
               </span>
             )}
@@ -163,7 +168,7 @@ export default function Sidebar({ isOpen }) {
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50 pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
                 Training Compliance
               </span>
             )}
@@ -212,7 +217,7 @@ export default function Sidebar({ isOpen }) {
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50 pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
                 My Settings
               </span>
             )}
@@ -238,7 +243,7 @@ export default function Sidebar({ isOpen }) {
                   }}
                 />
                 {unreadNotifications > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold pointer-events-none">
+                  <div className="absolute top-2 right-4 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold pointer-events-none">
                     {unreadNotifications > 99 ? "99+" : unreadNotifications}
                   </div>
                 )}
@@ -263,7 +268,7 @@ export default function Sidebar({ isOpen }) {
               </span>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50 pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
                 Logout
               </span>
             )}
