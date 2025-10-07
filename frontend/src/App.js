@@ -224,9 +224,21 @@ function App() {
                         </div>
                       }>
                         <Routes>
-                          <Route path="/" element={<Dashboard />} />
-                          <Route path="/dashboard" element={<Dashboard />} />
-                          <Route path="/myaccount/profiles" element={<MyAccount />} />
+                          <Route path="/" element={
+                            <CertificateProvider>
+                              <Dashboard />
+                            </CertificateProvider>
+                          } />
+                          <Route path="/dashboard" element={
+                            <CertificateProvider>
+                              <Dashboard />
+                            </CertificateProvider>
+                          } />
+                          <Route path="/myaccount/profiles" element={
+                            <ProfileProvider>
+                              <MyAccount />
+                            </ProfileProvider>
+                          } />
                           <Route path="/myaccount/notifications" element={<Notifications />} />
                           <Route path="/clients" element={<Clients />} />
                           
@@ -248,7 +260,9 @@ function App() {
                           } />
                           <Route path="/profiles/:id" element={
                             <ProfileProvider>
-                              <ProfileDetailView />
+                              <CertificateProvider>
+                                <ProfileDetailView />
+                              </CertificateProvider>
                             </ProfileProvider>
                           } />
                           <Route path="/profiles/edit/:id" element={
@@ -258,7 +272,9 @@ function App() {
                           } />
                           <Route path="/profile" element={
                             <ProfileProvider>
-                              <Profile />
+                              <CertificateProvider>
+                                <Profile />
+                              </CertificateProvider>
                             </ProfileProvider>
                           } />
                           <Route path="/editprofile" element={
@@ -268,7 +284,9 @@ function App() {
                           } />
                           <Route path="/sharestaff" element={
                             <ProfileProvider>
-                              <Sharestaff/>
+                              <CertificateProvider>
+                                <Sharestaff/>
+                              </CertificateProvider>
                             </ProfileProvider>
                           } />
                           <Route path="/staffdetail" element={
@@ -284,9 +302,11 @@ function App() {
                           
                           {/* Certificate-related routes with CertificateProvider */}
                           <Route path="/dashboard/createcertificate" element={
-                            <CertificateProvider>
-                              <CreateCertificate />
-                            </CertificateProvider>
+                            <ProfileProvider>
+                              <CertificateProvider>
+                                <CreateCertificate />
+                              </CertificateProvider>
+                            </ProfileProvider>
                           } />
                           <Route path="/reporting/certificates" element={
                             <CertificateProvider>
@@ -294,14 +314,18 @@ function App() {
                             </CertificateProvider>
                           } />
                           <Route path="/certificates" element={
-                            <CertificateProvider>
-                              <CertificateManagement />
-                            </CertificateProvider>
+                            <ProfileProvider>
+                              <CertificateProvider>
+                                <CertificateManagement />
+                              </CertificateProvider>
+                            </ProfileProvider>
                           } />
                           <Route path="/editcertificate/:id" element={
-                            <CertificateProvider>
-                              <EditCertificate />
-                            </CertificateProvider>
+                            <ProfileProvider>
+                              <CertificateProvider>
+                                <EditCertificate />
+                              </CertificateProvider>
+                            </ProfileProvider>
                           } />
                           <Route path="/viewcertificate/:id" element={
                             <CertificateProvider>
