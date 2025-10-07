@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { AlertProvider } from './components/AlertNotification';
 
+
 // Lazy load components for better performance
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Clients = lazy(() => import("./pages/Clients"));
@@ -39,23 +40,9 @@ const UserCertificateCreate = lazy(() => import("./pages/UserCertificateCreate")
 const UserCertificateView = lazy(() => import("./pages/UserCertificateView"));
 const AdminDetailsModal = lazy(() => import("./pages/AdminDetailsModal"));
 
-// Protected Route Component
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
-}
+
+// Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
+
 
 // Admin Protected Route Component
 function AdminProtectedRoute({ children }) {
@@ -83,6 +70,7 @@ function AdminProtectedRoute({ children }) {
   return children;
 }
 
+
 // User Protected Route Component
 function UserProtectedRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
@@ -109,8 +97,10 @@ function UserProtectedRoute({ children }) {
   return children;
 }
 
+
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
 
   return (
     <AuthProvider>
@@ -178,6 +168,7 @@ function App() {
             </UserProtectedRoute>
           } />
 
+
           {/* User Certificate Routes */}
           <Route path="/user/certificates/create" element={
             <UserProtectedRoute>
@@ -193,6 +184,7 @@ function App() {
             </UserProtectedRoute>
           } />
 
+
           <Route path="/user/certificates/:id" element={
             <UserProtectedRoute>
               <ErrorBoundary>
@@ -207,14 +199,15 @@ function App() {
             </UserProtectedRoute>
           } />
 
+
           {/* Admin routes with layout - Protected */}
           <Route path="/*" element={
             <AdminProtectedRoute>
-              <NotificationProvider>
-                <ProfileProvider>
-                  <CertificateProvider>
+              <ProfileProvider>
+                <CertificateProvider>
+                  <NotificationProvider>
                     <div className="flex">
-                      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+                      <Sidebar isOpen={isSidebarOpen} />
                       <div className={`flex-1 flex flex-col transition-all duration-300 ${
                         isSidebarOpen ? "ml-64" : "ml-16"
                       }`}>
@@ -226,42 +219,36 @@ function App() {
                             </div>
                           }>
                             <Routes>
-                          <Route path="/" element={<Dashboard />} />
-                          <Route path="/dashboard" element={<Dashboard />} />
-                          <Route path="/myaccount/profiles" element={<MyAccount />} />
-                          <Route path="/myaccount/notifications" element={<Notifications />} />
-                          <Route path="/clients" element={<Clients />} />
-                          
-                          {/* Profile-related routes with ProfileProvider */}
-                          <Route path="/profiles" element={<ProfilesPage />} />
-                          <Route path="/dashboard/profilescreate" element={<ProfilesCreate />} />
-                          <Route path="/create-user" element={<CreateUser />} />
-                          <Route path="/profiles/:id" element={<ProfileDetailView />} />
-                          <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
-                          <Route path="/profile" element={<Profile />} />
-                          <Route path="/editprofile" element={<EditProfile />} />
-                          <Route path="/sharestaff" element={<Sharestaff/>} />
-                          <Route path="/staffdetail" element={<StaffDetail/>} />
-                          <Route path="/reporting/profiles" element={<ProfilesPage />} />
-                          
-                          {/* Certificate-related routes with CertificateProvider */}
-                          <Route path="/dashboard/createcertificate" element={<CreateCertificate />} />
-                          <Route path="/reporting/certificates" element={<CertificatesPage />} />
-                          <Route path="/certificates" element={<CertificateManagement />} />
-                          <Route path="/editcertificate/:id" element={<EditCertificate />} />
-                          <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
-                          
-                          {/* Other routes */}
-                          <Route path="/noaccess" element={<NoAccess />} />
-                          <Route path="/dashboard/admin-details" element={<AdminDetailsModal />} />
-                        </Routes>
-                      </Suspense>
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/dashboard" element={<Dashboard />} />
+                              <Route path="/myaccount/profiles" element={<MyAccount />} />
+                              <Route path="/myaccount/notifications" element={<Notifications />} />
+                              <Route path="/clients" element={<Clients />} />
+                              <Route path="/profiles" element={<ProfilesPage />} />
+                              <Route path="/dashboard/profilescreate" element={<ProfilesCreate />} />
+                              <Route path="/create-user" element={<CreateUser />} />
+                              <Route path="/profiles/:id" element={<ProfileDetailView />} />
+                              <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
+                              <Route path="/profile" element={<Profile />} />
+                              <Route path="/noaccess" element={<NoAccess />} />
+                              <Route path="/editprofile" element={<EditProfile />} />
+                              <Route path="/sharestaff" element={<Sharestaff/>} />
+                              <Route path="/staffdetail" element={<StaffDetail/>} />
+                              <Route path="/dashboard/createcertificate" element={<CreateCertificate />} />
+                              <Route path="/reporting/certificates" element={<CertificatesPage />} />
+                              <Route path="/certificates" element={<CertificateManagement />} />
+                              <Route path="/editcertificate/:id" element={<EditCertificate />} />
+                              <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
+                              <Route path="/reporting/profiles" element={<ProfilesPage />} />
+                              <Route path="/dashboard/admin-details" element={<AdminDetailsModal />} />
+                            </Routes>
+                          </Suspense>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                  </CertificateProvider>
-                </ProfileProvider>
-              </NotificationProvider>
+                  </NotificationProvider>
+                </CertificateProvider>
+              </ProfileProvider>
             </AdminProtectedRoute>
           } />
           </Routes>
