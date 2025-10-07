@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -15,38 +15,34 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { AlertProvider } from "./components/AlertNotification";
 
-// Lazy load components for better performance
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Clients = lazy(() => import("./pages/Clients"));
-const ProfilesPage = lazy(() => import("./pages/ProfilesPage"));
-const CertificatesPage = lazy(() => import("./pages/CertificatePage"));
-const MyAccount = lazy(() => import("./pages/MyAccount"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const ProfilesCreate = lazy(() => import("./pages/ProfilesCreate"));
-const CreateCertificate = lazy(() => import("./pages/CreateCertificate"));
-const Sharestaff = lazy(() => import("./pages/ShareStaff"));
-const NoAccess = lazy(() => import("./pages/NoAccess"));
-const EditUserProfile = lazy(() => import("./pages/EditUserProfile"));
-const EditProfile = lazy(() => import("./pages/EditProfile"));
-const EditCertificate = lazy(() => import("./pages/EditCertificate"));
-const ViewCertificate = lazy(() => import("./pages/ViewCertificate"));
-const ProfileDetailView = lazy(() => import("./pages/ProfileDetailView"));
-const Profile = lazy(() => import("./pages/Profile"));
-const CertificateManagement = lazy(() =>
-  import("./pages/CertificateManagement")
-);
-const Login = lazy(() => import("./pages/Login"));
-const StaffDetail = lazy(() => import("./pages/StaffDetail"));
-const Signup = lazy(() => import("./pages/Signup"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const UserDashboard = lazy(() => import("./pages/UserDashboard"));
-const CreateUser = lazy(() => import("./pages/CreateUser"));
-const UserCertificateCreate = lazy(() =>
-  import("./pages/UserCertificateCreate")
-);
-const UserCertificateView = lazy(() => import("./pages/UserCertificateView"));
-const AdminDetailsModal = lazy(() => import("./pages/AdminDetailsModal"));
+// Direct imports for faster navigation (no loading spinners)
+import Dashboard from "./pages/Dashboard";
+import Clients from "./pages/Clients";
+import ProfilesPage from "./pages/ProfilesPage";
+import CertificatesPage from "./pages/CertificatePage";
+import MyAccount from "./pages/MyAccount";
+import Notifications from "./pages/Notifications";
+import ProfilesCreate from "./pages/ProfilesCreate";
+import CreateCertificate from "./pages/CreateCertificate";
+import Sharestaff from "./pages/ShareStaff";
+import NoAccess from "./pages/NoAccess";
+import EditUserProfile from "./pages/EditUserProfile";
+import EditProfile from "./pages/EditProfile";
+import EditCertificate from "./pages/EditCertificate";
+import ViewCertificate from "./pages/ViewCertificate";
+import ProfileDetailView from "./pages/ProfileDetailView";
+import Profile from "./pages/Profile";
+import CertificateManagement from "./pages/CertificateManagement";
+import Login from "./pages/Login";
+import StaffDetail from "./pages/StaffDetail";
+import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import UserDashboard from "./pages/UserDashboard";
+import CreateUser from "./pages/CreateUser";
+import UserCertificateCreate from "./pages/UserCertificateCreate";
+import UserCertificateView from "./pages/UserCertificateView";
+import AdminDetailsModal from "./pages/AdminDetailsModal";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -115,15 +111,7 @@ function App() {
               path="/login"
               element={
                 <ErrorBoundary>
-                  <Suspense
-                    fallback={
-                      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-                      </div>
-                    }
-                  >
-                    <Login />
-                  </Suspense>
+                  <Login />
                 </ErrorBoundary>
               }
             />
@@ -131,15 +119,7 @@ function App() {
               path="/signup"
               element={
                 <ErrorBoundary>
-                  <Suspense
-                    fallback={
-                      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-                      </div>
-                    }
-                  >
-                    <Signup />
-                  </Suspense>
+                  <Signup />
                 </ErrorBoundary>
               }
             />
@@ -147,15 +127,7 @@ function App() {
               path="/forgot-password"
               element={
                 <ErrorBoundary>
-                  <Suspense
-                    fallback={
-                      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                      </div>
-                    }
-                  >
-                    <ForgotPassword />
-                  </Suspense>
+                  <ForgotPassword />
                 </ErrorBoundary>
               }
             />
@@ -163,15 +135,7 @@ function App() {
               path="/reset-password"
               element={
                 <ErrorBoundary>
-                  <Suspense
-                    fallback={
-                      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                      </div>
-                    }
-                  >
-                    <ResetPassword />
-                  </Suspense>
+                  <ResetPassword />
                 </ErrorBoundary>
               }
             />
@@ -182,15 +146,7 @@ function App() {
               element={
                 <UserProtectedRoute>
                   <ErrorBoundary>
-                    <Suspense
-                      fallback={
-                        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                        </div>
-                      }
-                    >
-                      <UserDashboard />
-                    </Suspense>
+                    <UserDashboard />
                   </ErrorBoundary>
                 </UserProtectedRoute>
               }
@@ -202,15 +158,7 @@ function App() {
               element={
                 <UserProtectedRoute>
                   <ErrorBoundary>
-                    <Suspense
-                      fallback={
-                        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                        </div>
-                      }
-                    >
-                      <UserCertificateCreate />
-                    </Suspense>
+                    <UserCertificateCreate />
                   </ErrorBoundary>
                 </UserProtectedRoute>
               }
@@ -221,15 +169,7 @@ function App() {
               element={
                 <UserProtectedRoute>
                   <ErrorBoundary>
-                    <Suspense
-                      fallback={
-                        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                        </div>
-                      }
-                    >
-                      <UserCertificateView />
-                    </Suspense>
+                    <UserCertificateView />
                   </ErrorBoundary>
                 </UserProtectedRoute>
               }
@@ -256,14 +196,7 @@ function App() {
                               }
                             />
                             <div className="p-6 flex-1">
-                              <Suspense
-                                fallback={
-                                  <div className="flex items-center justify-center min-h-[400px]">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                  </div>
-                                }
-                              >
-                                <Routes>
+                              <Routes>
                                   <Route path="/" element={<Dashboard />} />
                                   <Route
                                     path="/dashboard"
@@ -350,7 +283,6 @@ function App() {
                                     element={<AdminDetailsModal />}
                                   />
                                 </Routes>
-                              </Suspense>
                             </div>
                           </div>
                         </div>

@@ -377,6 +377,8 @@ export default function EditUserProfile() {
                   <option value="Director">Director</option>
                   <option value="Senior">Senior</option>
                   <option value="Junior">Junior</option>
+                  <option value="Associate">Associate</option>
+
                 </select>
               </div>
               <div>
