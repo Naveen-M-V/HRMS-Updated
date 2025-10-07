@@ -3,63 +3,50 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
-import { ClipboardDocumentIcon as ClipboardIcon } from "@heroicons/react/24/outline";
-import { AcademicCapIcon } from "@heroicons/react/24/outline";
-import { UserCircleIcon } from "@heroicons/react/24/outline";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { ChevronRightIcon } from "@heroicons/react/24/outline";
-import { HomeIcon } from "@heroicons/react/24/outline";
-import { UserIcon } from "@heroicons/react/24/outline";
-import { UserPlusIcon } from "@heroicons/react/24/outline";
-import { DocumentTextIcon } from "@heroicons/react/24/outline";
-import { BellIcon } from "@heroicons/react/24/outline";
-import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
+import { ClipboardDocumentIcon as ClipboardIcon } from '@heroicons/react/24/outline';
+import { AcademicCapIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon } from '@heroicons/react/24/outline';
+import { HomeIcon } from '@heroicons/react/24/outline';
+import { UserIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
+import { BellIcon } from '@heroicons/react/24/outline';
+import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
   const { logout, loading, user } = useAuth();
-  const {
-    getUnreadCount,
-    subscribeToNotificationChanges,
-    triggerRefresh,
-    initializeNotifications,
-  } = useNotifications();
+  const { getUnreadCount, subscribeToNotificationChanges, triggerRefresh } = useNotifications();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
+  // const [openSupply, setOpenSupply] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  // Simplified notification initialization - non-blocking
+  // Subscribe to notification changes from context
   useEffect(() => {
-    if (!user || user.role !== "admin") {
+    if (!user || user.role !== 'admin') {
+      console.log('Sidebar: User not admin, setting notifications to 0');
       setUnreadNotifications(0);
       return;
     }
 
-    // Use setTimeout to make it non-blocking
-    const timer = setTimeout(() => {
-      if (isOpen) {
-        initializeNotifications();
-      }
-      setUnreadNotifications(getUnreadCount());
-    }, 0);
+    // Set initial count from context
+    const initialCount = getUnreadCount();
+    console.log('Sidebar: Setting initial notification count:', initialCount);
+    setUnreadNotifications(initialCount);
 
+    // Subscribe to real-time updates
     const unsubscribe = subscribeToNotificationChanges((count) => {
+      console.log('Sidebar: Received notification count update:', count);
       setUnreadNotifications(count);
     });
 
-    return () => {
-      clearTimeout(timer);
-      unsubscribe();
-    };
-  }, [
-    user,
-    isOpen,
-    getUnreadCount,
-    subscribeToNotificationChanges,
-    initializeNotifications,
-  ]);
+    return unsubscribe;
+  }, [user, getUnreadCount, subscribeToNotificationChanges]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -73,24 +60,22 @@ export default function Sidebar({ isOpen }) {
   };
 
   const itemBase =
-    "relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md transition-colors";
+    "relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md";
 
-  const Divider = () => (
-    <div className="border-b border-green-300 mx-2 my-2"></div>
-  );
+  const Divider = () => <div className="border-b border-green-300 mx-2 my-2"></div>;
 
+  // ✅ Fixed ChildItem with onClick support
   const ChildItem = ({ name, icon: Icon, onClick }) => (
     <div
-      onClick={(e) => {
-        e.stopPropagation();
-        if (onClick) onClick();
-      }}
-      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3 transition-colors"
+      onClick={onClick}
+      className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3"
     >
       {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300" />}
       {isOpen && <span className="text-sm">{name}</span>}
+
+      {/* Tooltip when collapsed */}
       {!isOpen && (
-        <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
+        <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
           {name}
         </span>
       )}
@@ -99,10 +84,9 @@ export default function Sidebar({ isOpen }) {
 
   return (
     <div
-      className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-[width] duration-300 z-[100] ${
-        isOpen ? "w-64" : "w-16"
-      } overflow-y-auto shadow-2xl`}
-      style={{ pointerEvents: "auto" }}
+className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all duration-300 z-40 ${
+  isOpen ? "w-64" : "w-16"
+} overflow-y-auto`}
     >
       <div className="py-4 space-y-2">
         {isOpen && (
@@ -129,22 +113,19 @@ export default function Sidebar({ isOpen }) {
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
                 Reporting
               </span>
             )}
           </div>
           {openReporting && (
-            <div
-              className={`${
-                isOpen ? "ml-3 pl-5" : ""
-              } border-l border-green-800`}
-            >
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
               <ChildItem
                 name="Compliance Dashboard"
                 icon={HomeIcon}
                 onClick={() => navigate("/")}
               />
+              
             </div>
           )}
           <Divider />
@@ -168,17 +149,13 @@ export default function Sidebar({ isOpen }) {
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
                 Training Compliance
               </span>
             )}
           </div>
           {openTraining && (
-            <div
-              className={`${
-                isOpen ? "ml-3 pl-5" : ""
-              } border-l border-green-800`}
-            >
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
               <ChildItem
                 name="Profiles"
                 icon={UserIcon}
@@ -199,6 +176,7 @@ export default function Sidebar({ isOpen }) {
           <Divider />
         </div>
 
+
         {/* My Settings */}
         <div>
           <div
@@ -217,17 +195,13 @@ export default function Sidebar({ isOpen }) {
               </>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
                 My Settings
               </span>
             )}
           </div>
           {openSettings && (
-            <div
-              className={`${
-                isOpen ? "ml-3 pl-5" : ""
-              } border-l border-green-800`}
-            >
+            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
               <ChildItem
                 name="Profile"
                 icon={UserIcon}
@@ -239,12 +213,13 @@ export default function Sidebar({ isOpen }) {
                   icon={BellIcon}
                   onClick={() => {
                     navigate("/myaccount/notifications");
-                    triggerRefresh();
+                    triggerRefresh(); // Refresh notifications when navigating
                   }}
                 />
+                {/* Notification Badge */}
                 {unreadNotifications > 0 && (
-                  <div className="absolute top-2 right-4 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold pointer-events-none">
-                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
                   </div>
                 )}
               </div>
@@ -257,28 +232,27 @@ export default function Sidebar({ isOpen }) {
         <div className="mt-auto pt-4">
           <div
             onClick={handleLogout}
-            className={`${itemBase} select-none ${
-              loading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+            className={`${itemBase} select-none ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <ArrowRightOnRectangleIcon className="h-6 w-6 shrink-0" />
             {isOpen && (
               <span className="text-sm flex-1">
-                {loading ? "Logging out..." : "Logout"}
+                {loading ? 'Logging out...' : 'Logout'}
               </span>
             )}
             {!isOpen && (
-              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-[70] pointer-events-none">
+              <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
                 Logout
               </span>
             )}
           </div>
         </div>
-
         {/* Version Text - Fixed at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 text-center pb-2 text-xs text-green-300/50 pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 text-center pb-2 text-xs text-green-300/50">
           Talentshield v.0.1
         </div>
+
+        
       </div>
     </div>
   );
