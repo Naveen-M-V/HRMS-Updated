@@ -1003,65 +1003,7 @@ app.put('/api/profiles/:id', async (req, res) => {
       console.log(`Updated user account email from ${originalProfile.email} to ${updatedProfile.email}`);
     }
     
-    // Send email notifications
-    try {
-      console.log('Attempting to send profile update emails...');
-      // Determine what fields were updated
-      const updatedFields = {};
-      Object.keys(updateData).forEach(key => {
-        if (originalProfile[key] !== updatedProfile[key]) {
-          updatedFields[key] = updatedProfile[key];
-        }
-      });
-      
-      console.log('Updated fields:', Object.keys(updatedFields));
-      
-      if (Object.keys(updatedFields).length > 0) {
-        // Send update notification to user
-        console.log('Sending profile update email...');
-        const fieldsList = Object.keys(updatedFields)
-          .map(key => `• ${key.replace(/([A-Z])/g, ' $1').trim()}: ${updatedFields[key] || 'N/A'}`)
-          .join('\n');
-        
-        const updateMessage = `Your profile has been updated successfully by an administrator.\n\nUpdated Information:\n${fieldsList}\n\nIf you have any questions about these changes, please contact your administrator.`;
-        
-        const emailResult = await sendNotificationEmail(
-          updatedProfile.email,
-          `${updatedProfile.firstName} ${updatedProfile.lastName}`,
-          'Profile Updated',
-          updateMessage,
-          'info'
-        );
-        
-        if (emailResult.success) {
-          console.log('✅ Profile update email sent to user:', updatedProfile.email);
-        } else {
-          console.error('❌ Failed to send profile update email:', emailResult.error);
-        }
-        
-        // Send notification to admins
-        const adminUsers = await User.find({ role: 'admin' });
-        console.log(`Found ${adminUsers.length} admin users for notification`);
-        
-        for (const admin of adminUsers) {
-          console.log('Sending admin update notification to:', admin.email);
-          await sendNotificationEmail(
-            admin.email,
-            `${admin.firstName} ${admin.lastName}`,
-            'Profile Updated',
-            `Profile updated for ${updatedProfile.firstName} ${updatedProfile.lastName}. Updated fields: ${Object.keys(updatedFields).join(', ')}.`,
-            'info'
-          );
-        }
-        console.log('✅ Admin notifications sent for profile update');
-      } else {
-        console.log('⚠️ No fields were actually updated, skipping email notifications');
-      }
-      
-    } catch (emailError) {
-      console.error('❌ Error sending profile update emails:', emailError);
-      console.error('Email error stack:', emailError.stack);
-    }
+    // Profile update email notifications disabled
     
     // Create in-app notifications using new notification service
     try {
@@ -2636,20 +2578,7 @@ app.post('/api/auth/login', async (req, res) => {
         req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
       }
 
-      // Send login success email notification (only if enabled)
-      if (process.env.DISABLE_LOGIN_EMAILS !== 'true') {
-        setImmediate(async () => {
-          try {
-            const loginTime = new Date().toLocaleString();
-            const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
-            const userName = `${user.firstName} ${user.lastName}`;
-            await sendLoginSuccessEmail(user.email, userName, loginTime, ipAddress);
-          } catch (emailError) {
-            console.error('Failed to send login success email:', emailError);
-            // Email failure should not block login
-          }
-        });
-      }
+      // Login success email notifications disabled
       
       return res.json({ user: sessionUser, token });
     }
