@@ -51,7 +51,7 @@ export default function Topbar({ toggleSidebar }) {
 
           {/* Dropdown Menu */}
           {open && (
-            <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md border z-50">
+            <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md border z-60">
               <button
                 onClick={() => {
                   setOpen(false);
