@@ -210,52 +210,114 @@ function App() {
           {/* Admin routes with layout - Protected */}
           <Route path="/*" element={
             <AdminProtectedRoute>
-              <ProfileProvider>
-                <CertificateProvider>
-                  <NotificationProvider>
-                    <div className="flex">
-                      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-                      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-                        isSidebarOpen ? "ml-64" : "ml-16"
-                      }`}>
-                        <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-                        <div className="p-6">
-                          <Suspense fallback={
-                            <div className="flex items-center justify-center min-h-[400px]">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            </div>
-                          }>
-                            <Routes>
-                              <Route path="/" element={<Dashboard />} />
-                              <Route path="/dashboard" element={<Dashboard />} />
-                              <Route path="/myaccount/profiles" element={<MyAccount />} />
-                              <Route path="/myaccount/notifications" element={<Notifications />} />
-                              <Route path="/clients" element={<Clients />} />
-                              <Route path="/profiles" element={<ProfilesPage />} />
-                              <Route path="/dashboard/profilescreate" element={<ProfilesCreate />} />
-                              <Route path="/create-user" element={<CreateUser />} />
-                              <Route path="/profiles/:id" element={<ProfileDetailView />} />
-                              <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
-                              <Route path="/profile" element={<Profile />} />
-                              <Route path="/noaccess" element={<NoAccess />} />
-                              <Route path="/editprofile" element={<EditProfile />} />
-                              <Route path="/sharestaff" element={<Sharestaff/>} />
-                              <Route path="/staffdetail" element={<StaffDetail/>} />
-                              <Route path="/dashboard/createcertificate" element={<CreateCertificate />} />
-                              <Route path="/reporting/certificates" element={<CertificatesPage />} />
-                              <Route path="/certificates" element={<CertificateManagement />} />
-                              <Route path="/editcertificate/:id" element={<EditCertificate />} />
-                              <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
-                              <Route path="/reporting/profiles" element={<ProfilesPage />} />
-                              <Route path="/dashboard/admin-details" element={<AdminDetailsModal />} />
-                            </Routes>
-                          </Suspense>
+              <NotificationProvider>
+                <div className="flex">
+                  <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+                  <div className={`flex-1 flex flex-col transition-all duration-300 ${
+                    isSidebarOpen ? "ml-64" : "ml-16"
+                  }`}>
+                    <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+                    <div className="p-6">
+                      <Suspense fallback={
+                        <div className="flex items-center justify-center min-h-[400px]">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         </div>
-                      </div>
+                      }>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/myaccount/profiles" element={<MyAccount />} />
+                          <Route path="/myaccount/notifications" element={<Notifications />} />
+                          <Route path="/clients" element={<Clients />} />
+                          
+                          {/* Profile-related routes with ProfileProvider */}
+                          <Route path="/profiles" element={
+                            <ProfileProvider>
+                              <ProfilesPage />
+                            </ProfileProvider>
+                          } />
+                          <Route path="/dashboard/profilescreate" element={
+                            <ProfileProvider>
+                              <ProfilesCreate />
+                            </ProfileProvider>
+                          } />
+                          <Route path="/create-user" element={
+                            <ProfileProvider>
+                              <CreateUser />
+                            </ProfileProvider>
+                          } />
+                          <Route path="/profiles/:id" element={
+                            <ProfileProvider>
+                              <ProfileDetailView />
+                            </ProfileProvider>
+                          } />
+                          <Route path="/profiles/edit/:id" element={
+                            <ProfileProvider>
+                              <EditUserProfile />
+                            </ProfileProvider>
+                          } />
+                          <Route path="/profile" element={
+                            <ProfileProvider>
+                              <Profile />
+                            </ProfileProvider>
+                          } />
+                          <Route path="/editprofile" element={
+                            <ProfileProvider>
+                              <EditProfile />
+                            </ProfileProvider>
+                          } />
+                          <Route path="/sharestaff" element={
+                            <ProfileProvider>
+                              <Sharestaff/>
+                            </ProfileProvider>
+                          } />
+                          <Route path="/staffdetail" element={
+                            <ProfileProvider>
+                              <StaffDetail/>
+                            </ProfileProvider>
+                          } />
+                          <Route path="/reporting/profiles" element={
+                            <ProfileProvider>
+                              <ProfilesPage />
+                            </ProfileProvider>
+                          } />
+                          
+                          {/* Certificate-related routes with CertificateProvider */}
+                          <Route path="/dashboard/createcertificate" element={
+                            <CertificateProvider>
+                              <CreateCertificate />
+                            </CertificateProvider>
+                          } />
+                          <Route path="/reporting/certificates" element={
+                            <CertificateProvider>
+                              <CertificatesPage />
+                            </CertificateProvider>
+                          } />
+                          <Route path="/certificates" element={
+                            <CertificateProvider>
+                              <CertificateManagement />
+                            </CertificateProvider>
+                          } />
+                          <Route path="/editcertificate/:id" element={
+                            <CertificateProvider>
+                              <EditCertificate />
+                            </CertificateProvider>
+                          } />
+                          <Route path="/viewcertificate/:id" element={
+                            <CertificateProvider>
+                              <ViewCertificate />
+                            </CertificateProvider>
+                          } />
+                          
+                          {/* Other routes */}
+                          <Route path="/noaccess" element={<NoAccess />} />
+                          <Route path="/dashboard/admin-details" element={<AdminDetailsModal />} />
+                        </Routes>
+                      </Suspense>
                     </div>
-                  </NotificationProvider>
-                </CertificateProvider>
-              </ProfileProvider>
+                  </div>
+                </div>
+              </NotificationProvider>
             </AdminProtectedRoute>
           } />
           </Routes>

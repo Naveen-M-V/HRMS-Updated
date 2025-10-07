@@ -18,7 +18,7 @@ import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
   const { logout, loading, user } = useAuth();
-  const { getUnreadCount, subscribeToNotificationChanges, triggerRefresh } = useNotifications();
+  const { getUnreadCount, subscribeToNotificationChanges, triggerRefresh, initializeNotifications } = useNotifications();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
@@ -33,6 +33,9 @@ export default function Sidebar({ isOpen }) {
       return;
     }
 
+    // Initialize notifications only when sidebar is used
+    initializeNotifications();
+
     // Set initial count from context
     setUnreadNotifications(getUnreadCount());
 
@@ -42,7 +45,7 @@ export default function Sidebar({ isOpen }) {
     });
 
     return unsubscribe;
-  }, [user, getUnreadCount, subscribeToNotificationChanges]);
+  }, [user, getUnreadCount, subscribeToNotificationChanges, initializeNotifications]);
 
   // Handle logout
   const handleLogout = async () => {

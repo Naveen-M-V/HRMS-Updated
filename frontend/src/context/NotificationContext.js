@@ -17,19 +17,22 @@ export const NotificationProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
-  // Fetch notifications from backend
+  // Only fetch notifications when explicitly requested (not on mount)
+  // This prevents automatic loading when the context mounts
+  const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
+  
   useEffect(() => {
-    if (user && user.id) {
+    if (user && user.id && shouldAutoFetch) {
       fetchNotifications();
       
-      // Set up auto-refresh every 30 seconds
+      // Set up auto-refresh every 30 seconds only when needed
       const interval = setInterval(() => {
         fetchNotifications();
       }, 30000);
 
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, shouldAutoFetch]);
 
   const fetchNotifications = async () => {
     try {
@@ -144,9 +147,17 @@ export const NotificationProvider = ({ children }) => {
 
   // Function to trigger immediate refresh after actions
   const triggerRefresh = () => {
+    setShouldAutoFetch(true); // Enable auto-fetching
     setTimeout(() => {
       fetchNotifications();
     }, 1000); // Wait 1 second for backend to process
+  };
+
+  // Initialize notifications when first accessed
+  const initializeNotifications = () => {
+    if (!shouldAutoFetch) {
+      setShouldAutoFetch(true);
+    }
   };
 
   const value = {
@@ -157,7 +168,8 @@ export const NotificationProvider = ({ children }) => {
     getUnreadCount,
     refreshNotifications,
     triggerRefresh,
-    subscribeToNotificationChanges
+    subscribeToNotificationChanges,
+    initializeNotifications
   };
 
   return (
