@@ -17,7 +17,6 @@ export default function Topbar({ toggleSidebar }) {
           alt="TSL Logo" 
           className="h-14 w-14 mr-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/dashboard")}
-          loading="lazy"
           onError={(e) => {
             e.target.style.display = 'none';
           }}
