@@ -3,22 +3,27 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
-import { ClipboardDocumentIcon as ClipboardIcon } from '@heroicons/react/24/outline';
-import { AcademicCapIcon } from '@heroicons/react/24/outline';
-import { UserCircleIcon } from '@heroicons/react/24/outline';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
-import { ChevronRightIcon } from '@heroicons/react/24/outline';
-import { HomeIcon } from '@heroicons/react/24/outline';
-import { UserIcon } from '@heroicons/react/24/outline';
-import { UserPlusIcon } from '@heroicons/react/24/outline';
-import { DocumentTextIcon } from '@heroicons/react/24/outline';
-import { BellIcon } from '@heroicons/react/24/outline';
-import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon as ClipboardIcon } from "@heroicons/react/24/outline";
+import { AcademicCapIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
+import { HomeIcon } from "@heroicons/react/24/outline";
+import { UserIcon } from "@heroicons/react/24/outline";
+import { UserPlusIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
+import { BellIcon } from "@heroicons/react/24/outline";
+import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
   const { logout, loading, user } = useAuth();
-  const { getUnreadCount, subscribeToNotificationChanges, triggerRefresh, initializeNotifications } = useNotifications();
+  const {
+    getUnreadCount,
+    subscribeToNotificationChanges,
+    triggerRefresh,
+    initializeNotifications,
+  } = useNotifications();
 
   const [openReporting, setOpenReporting] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
@@ -27,12 +32,16 @@ export default function Sidebar({ isOpen }) {
 
   // Subscribe to notification changes from context
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== "admin") {
       setUnreadNotifications(0);
       return;
     }
 
-    initializeNotifications();
+    // Only initialize if sidebar is open to prevent slow loads
+    if (isOpen) {
+      initializeNotifications();
+    }
+
     setUnreadNotifications(getUnreadCount());
 
     const unsubscribe = subscribeToNotificationChanges((count) => {
@@ -40,7 +49,13 @@ export default function Sidebar({ isOpen }) {
     });
 
     return unsubscribe;
-  }, [user, getUnreadCount, subscribeToNotificationChanges, initializeNotifications]);
+  }, [
+    user,
+    isOpen,
+    getUnreadCount,
+    subscribeToNotificationChanges,
+    initializeNotifications,
+  ]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -56,25 +71,20 @@ export default function Sidebar({ isOpen }) {
   const itemBase =
     "relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md";
 
-  const Divider = () => <div className="border-b border-green-300 mx-2 my-2"></div>;
+  const Divider = () => (
+    <div className="border-b border-green-300 mx-2 my-2"></div>
+  );
 
-  // ✅ FIXED: Added pointer-events-none to all child elements
   const ChildItem = ({ name, icon: Icon, onClick }) => (
     <div
       onClick={(e) => {
         e.stopPropagation();
-        console.log(`ChildItem clicked: ${name}`);
         if (onClick) onClick();
       }}
       className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3"
     >
-      {/* ✅ FIX: Added pointer-events-none to icon */}
-      {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300 pointer-events-none" />}
-      
-      {/* ✅ FIX: Added pointer-events-none to text */}
-      {isOpen && <span className="text-sm pointer-events-none">{name}</span>}
-
-      {/* Tooltip when collapsed */}
+      {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300" />}
+      {isOpen && <span className="text-sm">{name}</span>}
       {!isOpen && (
         <span className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50 pointer-events-none">
           {name}
@@ -91,7 +101,7 @@ export default function Sidebar({ isOpen }) {
     >
       <div className="py-4 space-y-2">
         {isOpen && (
-          <div className="px-4 pb-2 text-xs uppercase font-bold tracking-wider text-green-300 pointer-events-none">
+          <div className="px-4 pb-2 text-xs uppercase font-bold tracking-wider text-green-300">
             My Compliance
           </div>
         )}
@@ -99,22 +109,17 @@ export default function Sidebar({ isOpen }) {
         {/* Reporting */}
         <div>
           <div
-            onClick={() => {
-              console.log("Reporting section clicked");
-              setOpenReporting(!openReporting);
-            }}
+            onClick={() => setOpenReporting(!openReporting)}
             className={`${itemBase} select-none`}
           >
-            {/* ✅ FIX: Added pointer-events-none to icon */}
-            <ClipboardIcon className="h-6 w-6 shrink-0 pointer-events-none" />
+            <ClipboardIcon className="h-6 w-6 shrink-0" />
             {isOpen && (
               <>
-                {/* ✅ FIX: Added pointer-events-none to text */}
-                <span className="text-sm flex-1 pointer-events-none">Reporting</span>
+                <span className="text-sm flex-1">Reporting</span>
                 {openReporting ? (
-                  <ChevronDownIcon className="h-4 w-4 pointer-events-none" />
+                  <ChevronDownIcon className="h-4 w-4" />
                 ) : (
-                  <ChevronRightIcon className="h-4 w-4 pointer-events-none" />
+                  <ChevronRightIcon className="h-4 w-4" />
                 )}
               </>
             )}
@@ -125,14 +130,15 @@ export default function Sidebar({ isOpen }) {
             )}
           </div>
           {openReporting && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+            <div
+              className={`${
+                isOpen ? "ml-3 pl-5" : ""
+              } border-l border-green-800`}
+            >
               <ChildItem
                 name="Compliance Dashboard"
                 icon={HomeIcon}
-                onClick={() => {
-                  console.log("Compliance Dashboard clicked");
-                  navigate("/");
-                }}
+                onClick={() => navigate("/")}
               />
             </div>
           )}
@@ -142,22 +148,17 @@ export default function Sidebar({ isOpen }) {
         {/* Training Compliance */}
         <div>
           <div
-            onClick={() => {
-              console.log("Training Compliance section clicked");
-              setOpenTraining(!openTraining);
-            }}
+            onClick={() => setOpenTraining(!openTraining)}
             className={`${itemBase} select-none`}
           >
-            {/* ✅ FIX: Added pointer-events-none to icon */}
-            <AcademicCapIcon className="h-6 w-6 shrink-0 pointer-events-none" />
+            <AcademicCapIcon className="h-6 w-6 shrink-0" />
             {isOpen && (
               <>
-                {/* ✅ FIX: Added pointer-events-none to text */}
-                <span className="text-sm flex-1 pointer-events-none">Training Compliance</span>
+                <span className="text-sm flex-1">Training Compliance</span>
                 {openTraining ? (
-                  <ChevronDownIcon className="h-4 w-4 pointer-events-none" />
+                  <ChevronDownIcon className="h-4 w-4" />
                 ) : (
-                  <ChevronRightIcon className="h-4 w-4 pointer-events-none" />
+                  <ChevronRightIcon className="h-4 w-4" />
                 )}
               </>
             )}
@@ -168,30 +169,25 @@ export default function Sidebar({ isOpen }) {
             )}
           </div>
           {openTraining && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+            <div
+              className={`${
+                isOpen ? "ml-3 pl-5" : ""
+              } border-l border-green-800`}
+            >
               <ChildItem
                 name="Profiles"
                 icon={UserIcon}
-                onClick={() => {
-                  console.log("Profiles clicked");
-                  navigate("/reporting/profiles");
-                }}
+                onClick={() => navigate("/reporting/profiles")}
               />
               <ChildItem
                 name="Create User"
                 icon={UserPlusIcon}
-                onClick={() => {
-                  console.log("Create User clicked");
-                  navigate("/create-user");
-                }}
+                onClick={() => navigate("/create-user")}
               />
               <ChildItem
                 name="Certificates"
                 icon={DocumentTextIcon}
-                onClick={() => {
-                  console.log("Certificates clicked");
-                  navigate("/certificates");
-                }}
+                onClick={() => navigate("/certificates")}
               />
             </div>
           )}
@@ -201,22 +197,17 @@ export default function Sidebar({ isOpen }) {
         {/* My Settings */}
         <div>
           <div
-            onClick={() => {
-              console.log("My Settings section clicked");
-              setOpenSettings(!openSettings);
-            }}
+            onClick={() => setOpenSettings(!openSettings)}
             className={`${itemBase} select-none`}
           >
-            {/* ✅ FIX: Added pointer-events-none to icon */}
-            <UserCircleIcon className="h-6 w-6 shrink-0 pointer-events-none" />
+            <UserCircleIcon className="h-6 w-6 shrink-0" />
             {isOpen && (
               <>
-                {/* ✅ FIX: Added pointer-events-none to text */}
-                <span className="text-sm flex-1 pointer-events-none">My Settings</span>
+                <span className="text-sm flex-1">My Settings</span>
                 {openSettings ? (
-                  <ChevronDownIcon className="h-4 w-4 pointer-events-none" />
+                  <ChevronDownIcon className="h-4 w-4" />
                 ) : (
-                  <ChevronRightIcon className="h-4 w-4 pointer-events-none" />
+                  <ChevronRightIcon className="h-4 w-4" />
                 )}
               </>
             )}
@@ -227,29 +218,28 @@ export default function Sidebar({ isOpen }) {
             )}
           </div>
           {openSettings && (
-            <div className={`${isOpen ? "ml-3 pl-5" : ""} border-l border-green-800`}>
+            <div
+              className={`${
+                isOpen ? "ml-3 pl-5" : ""
+              } border-l border-green-800`}
+            >
               <ChildItem
                 name="Profile"
                 icon={UserIcon}
-                onClick={() => {
-                  console.log("Profile clicked");
-                  navigate("/myaccount/profiles");
-                }}
+                onClick={() => navigate("/myaccount/profiles")}
               />
               <div className="relative">
                 <ChildItem
                   name="Notifications"
                   icon={BellIcon}
                   onClick={() => {
-                    console.log("Notifications clicked");
                     navigate("/myaccount/notifications");
                     triggerRefresh();
                   }}
                 />
-                {/* Notification Badge - pointer-events-none so it doesn't block clicks */}
                 {unreadNotifications > 0 && (
                   <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold pointer-events-none">
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
                   </div>
                 )}
               </div>
@@ -262,13 +252,14 @@ export default function Sidebar({ isOpen }) {
         <div className="mt-auto pt-4">
           <div
             onClick={handleLogout}
-            className={`${itemBase} select-none ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`${itemBase} select-none ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            {/* ✅ FIX: Added pointer-events-none to icon */}
-            <ArrowRightOnRectangleIcon className="h-6 w-6 shrink-0 pointer-events-none" />
+            <ArrowRightOnRectangleIcon className="h-6 w-6 shrink-0" />
             {isOpen && (
-              <span className="text-sm flex-1 pointer-events-none">
-                {loading ? 'Logging out...' : 'Logout'}
+              <span className="text-sm flex-1">
+                {loading ? "Logging out..." : "Logout"}
               </span>
             )}
             {!isOpen && (
