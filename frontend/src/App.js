@@ -206,11 +206,11 @@ function App() {
               <ProfileProvider>
                 <CertificateProvider>
                   <NotificationProvider>
-                    <div className="flex">
+                    <div className="flex min-h-screen">
                       <Sidebar isOpen={isSidebarOpen} />
                       <div className={`flex-1 flex flex-col transition-all duration-300 ${
                         isSidebarOpen ? "ml-64" : "ml-16"
-                      }`}>
+                      } relative`}>
                         <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
                         <div className="p-6">
                           <Suspense fallback={

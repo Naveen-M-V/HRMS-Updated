@@ -66,7 +66,11 @@ export default function Sidebar({ isOpen }) {
   // ✅ Fixed ChildItem with onClick support
   const ChildItem = ({ name, icon: Icon, onClick }) => (
     <div
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        console.log(`ChildItem clicked: ${name}`);
+        if (onClick) onClick();
+      }}
       className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ml-3"
     >
       {Icon && <Icon className="h-5 w-5 shrink-0 text-green-300" />}
@@ -85,7 +89,8 @@ export default function Sidebar({ isOpen }) {
     <div
 className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all duration-300 z-50 ${
   isOpen ? "w-64" : "w-16"
-} overflow-y-auto`}
+} overflow-y-auto pointer-events-auto`}
+style={{ pointerEvents: 'auto' }}
     >
       <div className="py-4 space-y-2">
         {isOpen && (
@@ -97,7 +102,10 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
         {/* Reporting */}
         <div>
           <div
-            onClick={() => setOpenReporting(!openReporting)}
+            onClick={() => {
+              console.log("Reporting section clicked");
+              setOpenReporting(!openReporting);
+            }}
             className={`${itemBase} select-none`}
           >
             <ClipboardIcon className="h-6 w-6 shrink-0" />
@@ -122,7 +130,10 @@ className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all d
               <ChildItem
                 name="Compliance Dashboard"
                 icon={HomeIcon}
-                onClick={() => navigate("/")}
+                onClick={() => {
+                  console.log("Compliance Dashboard clicked");
+                  navigate("/");
+                }}
               />
               
             </div>
