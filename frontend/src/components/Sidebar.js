@@ -95,7 +95,7 @@ export default function Sidebar({ isOpen }) {
 
   return (
     <div
-      className={`bg-green-900 text-white fixed left-0 top-0 h-screen transition-all duration-300 z-50 ${
+      className={`pointer-events-auto bg-green-900 text-white fixed left-0 top-0 h-screen transition-[width] duration-300 z-[60] ${
         isOpen ? "w-64" : "w-16"
       } overflow-y-auto`}
     >

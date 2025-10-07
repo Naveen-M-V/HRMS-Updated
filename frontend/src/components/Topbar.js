@@ -9,7 +9,7 @@ export default function Topbar({ toggleSidebar }) {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full flex items-center bg-white shadow px-6 py-3 gap-4 relative">
+    <div className="w-full flex items-center bg-white shadow px-6 py-3 gap-4 relative z-40">
       {/* Logo */}
       <div className="flex items-center">
         <img 
@@ -51,7 +51,7 @@ export default function Topbar({ toggleSidebar }) {
 
           {/* Dropdown Menu */}
           {open && (
-            <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md border z-60">
+            <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md border z-50">
               <button
                 onClick={() => {
                   setOpen(false);
