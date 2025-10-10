@@ -33,7 +33,8 @@ export default function MyAccount() {
         if (!token) {
           throw new Error('Authentication required');
         }
-        const response = await fetch('https://talentshield.co.uk/api/my-profile', {
+        const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
+        const response = await fetch(`${apiUrl}/api/my-profile`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -96,7 +97,9 @@ export default function MyAccount() {
 
   // Handle profile picture upload
   const handleProfilePictureUpload = async (file) => {
-    const profileId = profile?._id || user?._id || user?.id;
+    // For admins, we need to find their Profile._id, not User._id
+    // For regular users, profile._id is already the Profile._id
+    const profileId = profile?.profileId || profile?._id;
     
     console.log('Profile picture upload - Profile:', profile);
     console.log('Profile picture upload - User:', user);
@@ -104,7 +107,11 @@ export default function MyAccount() {
     
     if (!file || !profileId) {
       console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
-      showError('Unable to upload: Missing profile information. Please try refreshing the page.');
+      if (!profileId && user?.role === 'admin') {
+        showError('Admin users need a profile created first. Please contact support.');
+      } else {
+        showError('Unable to upload: Missing profile information. Please try refreshing the page.');
+      }
       return;
     }
 
@@ -148,7 +155,9 @@ export default function MyAccount() {
 
   // Handle profile picture delete
   const handleProfilePictureDelete = async () => {
-    const profileId = profile?._id || user?._id || user?.id;
+    // For admins, we need to find their Profile._id, not User._id
+    // For regular users, profile._id is already the Profile._id
+    const profileId = profile?.profileId || profile?._id;
     
     if (!profileId) {
       showError('Unable to delete: Missing profile information. Please try refreshing the page.');
@@ -333,6 +342,9 @@ export default function MyAccount() {
                   "👤"
                 )}
               </div>
+              {!profile.profilePicture && (
+                <p className="text-xs text-gray-500 mt-2 text-center">Click to update profile</p>
+              )}
             </div>
 
             {/* Name + Role */}

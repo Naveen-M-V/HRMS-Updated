@@ -2901,6 +2901,7 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
           .lean();
         if (prof) {
           profileExtras = {
+            profileId: prof._id, // Include Profile._id for photo upload
             mobile: prof.mobile,
             bio: prof.bio,
             jobTitle: prof.jobTitle || '',

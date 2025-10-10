@@ -239,6 +239,9 @@ const handleDeleteCertificate = async (certId) => {
                     </div>
                   )}
                 </div>
+                {!profile.profilePicture && (
+                  <p className="text-xs text-gray-500 mt-2 text-center">Click to update profile</p>
+                )}
               </div>
 
               <div className="space-y-2 text-sm">

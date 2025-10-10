@@ -197,6 +197,9 @@ export default function Profile() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                   </div>
                 )}
+                {!userProfile.profilePicture && (
+                  <p className="text-xs text-gray-500 mt-2 text-center">Click to update profile</p>
+                )}
               </div>
 
               {/* Basic Info */}
