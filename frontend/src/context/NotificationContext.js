@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
@@ -15,26 +15,12 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
+  const [notificationCallbacks, setNotificationCallbacks] = useState([]);
   const { user } = useAuth();
 
-  // Only fetch notifications when explicitly requested (not on mount)
-  // This prevents automatic loading when the context mounts
-  const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
-  
-  useEffect(() => {
-    if (user && user.id && shouldAutoFetch) {
-      fetchNotifications();
-      
-      // Set up auto-refresh every 30 seconds only when needed
-      const interval = setInterval(() => {
-        fetchNotifications();
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [user, shouldAutoFetch]);
-
-  const fetchNotifications = async () => {
+  // Define fetchNotifications BEFORE any useEffect that uses it
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -64,13 +50,13 @@ export const NotificationProvider = ({ children }) => {
       // Transform backend notifications to match frontend format
       const transformedNotifications = data.notifications.map(notif => ({
         id: notif._id,
-        title: notif.title || notif.message, // Use message as title if title is empty
+        title: notif.title || notif.message,
         message: notif.message,
         type: notif.type,
         priority: notif.priority,
-        read: notif.read, // Use existing 'read' field
+        read: notif.read,
         status: notif.read ? 'Read' : 'Open',
-        date: new Date(notif.createdOn || notif.createdAt).toLocaleDateString(), // Use createdOn field
+        date: new Date(notif.createdOn || notif.createdAt).toLocaleDateString(),
         createdAt: notif.createdOn || notif.createdAt,
         metadata: notif.metadata || {}
       }));
@@ -83,7 +69,27 @@ export const NotificationProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Now this useEffect can safely use fetchNotifications
+  useEffect(() => {
+    let interval = null;
+    
+    if (user && user.id && shouldAutoFetch) {
+      fetchNotifications();
+      
+      // Set up auto-refresh every 30 seconds only when needed
+      interval = setInterval(() => {
+        fetchNotifications();
+      }, 30000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [user, shouldAutoFetch, fetchNotifications]);
 
   const markAsRead = async (notificationId) => {
     try {
@@ -128,10 +134,6 @@ export const NotificationProvider = ({ children }) => {
   const refreshNotifications = () => {
     fetchNotifications();
   };
-
-  // Add callback for external components to listen to count changes
-  const [notificationCallbacks, setNotificationCallbacks] = useState([]);
-  
   const subscribeToNotificationChanges = (callback) => {
     setNotificationCallbacks(prev => [...prev, callback]);
     return () => {
@@ -147,10 +149,10 @@ export const NotificationProvider = ({ children }) => {
 
   // Function to trigger immediate refresh after actions
   const triggerRefresh = () => {
-    setShouldAutoFetch(true); // Enable auto-fetching
+    setShouldAutoFetch(true);
     setTimeout(() => {
       fetchNotifications();
-    }, 1000); // Wait 1 second for backend to process
+    }, 1000);
   };
 
   // Initialize notifications when first accessed
