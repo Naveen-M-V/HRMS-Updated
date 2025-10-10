@@ -271,6 +271,7 @@ profileSchema.pre('save', async function(next) {
 profileSchema.index({ firstName: 1, lastName: 1, email: 1 });
 profileSchema.index({ company: 1, createdOn: -1 });
 profileSchema.index({ skillkoId: 1, vtid: 1 });
+profileSchema.index({ createdOn: -1 }); // Index for sorting by creation date
 
 const Profile = mongoose.model('Profile', profileSchema);
 
@@ -624,6 +625,7 @@ app.get('/api/profiles', async (req, res) => {
     const profiles = await Profile.find()
       .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
       .sort({ createdOn: -1 })
+      .populate('userId', 'email role') // Add populate like certificates do
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
     console.log(`Fetched ${profiles.length} profiles (optimized)`);
@@ -878,20 +880,13 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       const wasNewUserCreated = await User.findOne({ profileId: savedProfile._id });
       console.log('New user created:', !!wasNewUserCreated);
       
-      // 1. Send profile creation email to user (with credentials if new user)
-      const userCredentials = wasNewUserCreated ? {
-        email: savedProfile.email,
-        password: savedProfile.generatedPassword || 'Contact admin for password'
-      } : null;
-      
+      // 1. Send profile creation email to user (without credentials - credentials sent separately above)
       console.log('Sending profile creation email...');
       await sendNotificationEmail(
         savedProfile.email,
         `${savedProfile.firstName} ${savedProfile.lastName}`,
         'Welcome to HRMS - Profile Created',
-        userCredentials 
-          ? `Welcome to the HRMS system! Your profile has been created successfully.\n\nYour login credentials:\nEmail: ${userCredentials.email}\nPassword: ${userCredentials.password}\n\nPlease login at: ${loginUrl}`
-          : `Welcome to the HRMS system! Your profile has been created successfully.\n\nPlease login at: ${loginUrl}`,
+        `Welcome to the HRMS system! Your profile has been created successfully.\n\nPlease login at: ${loginUrl}`,
         'success'
       );
       console.log('✅ Profile creation email sent to user:', savedProfile.email);
@@ -902,25 +897,14 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       
       for (const admin of adminUsers) {
         console.log('Sending admin notification to:', admin.email);
-        if (userCredentials) {
-          // Send admin notification with user credentials
-          await sendNotificationEmail(
-            admin.email,
-            `${admin.firstName} ${admin.lastName}`,
-            'New User Created with Credentials',
-            `A new user profile has been created:\n\nName: ${savedProfile.firstName} ${savedProfile.lastName}\nEmail: ${savedProfile.email}\nPassword: ${userCredentials.password}\nVTID: ${savedProfile.vtid}\n\nLogin URL: ${loginUrl}`,
-            'info'
-          );
-        } else {
-          // Send general admin notification
-          await sendNotificationEmail(
-            admin.email,
-            `${admin.firstName} ${admin.lastName}`,
-            'New Profile Created',
-            `A new profile has been created for ${savedProfile.firstName} ${savedProfile.lastName} (${savedProfile.email}).`,
-            'info'
-          );
-        }
+        // Send general admin notification (without user credentials for security)
+        await sendNotificationEmail(
+          admin.email,
+          `${admin.firstName} ${admin.lastName}`,
+          'New Profile Created',
+          `A new user profile has been created:\n\nName: ${savedProfile.firstName} ${savedProfile.lastName}\nEmail: ${savedProfile.email}\nVTID: ${savedProfile.vtid}\n\nLogin URL: ${loginUrl}`,
+          'info'
+        );
       }
       console.log('✅ Admin notifications sent for profile creation');
       
@@ -1069,6 +1053,38 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
     res.json({ profilePicture: profile.profilePicture });
   } catch (error) {
     console.error('Error uploading profile picture:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Delete profile picture
+app.delete('/api/profiles/:id/delete-picture', async (req, res) => {
+  try {
+    console.log('Profile picture delete endpoint called');
+    console.log('Profile ID:', req.params.id);
+    
+    const profile = await Profile.findByIdAndUpdate(
+      req.params.id,
+      { 
+        $unset: {
+          profilePicture: 1,
+          profilePictureData: 1,
+          profilePictureSize: 1,
+          profilePictureMimeType: 1
+        }
+      },
+      { new: true }
+    );
+    
+    if (!profile) {
+      console.log('Profile not found for ID:', req.params.id);
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    
+    console.log('Profile picture deleted successfully');
+    res.json({ message: 'Profile picture deleted successfully', profilePicture: null });
+  } catch (error) {
+    console.error('Error deleting profile picture:', error);
     res.status(500).json({ message: error.message });
   }
 });

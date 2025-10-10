@@ -324,6 +324,43 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
+  const deleteProfilePicture = async (id) => {
+    const getApiUrl = () => process.env.REACT_APP_API_URL || '';
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = getApiUrl();
+
+      const headers = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const response = await fetch(`${apiUrl}/api/profiles/${id}/delete-picture`, {
+        method: 'DELETE',
+        headers,
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatedProfiles = profiles.map(profile =>
+          profile._id === id ? { ...profile, profilePicture: null } : profile
+        );
+        setProfiles(updatedProfiles);
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
+        return data;
+      } else {
+        const textResponse = await response.text();
+        throw new Error(`Server error (${response.status}): ${textResponse.substring(0, 100)}`);
+      }
+    } catch (err) {
+      setError('Failed to delete profile picture: ' + err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [userProfile, setUserProfile] = useState({});
 
   useEffect(() => {
@@ -422,6 +459,7 @@ export const ProfileProvider = ({ children }) => {
     fetchProfileById,
     fetchCompleteProfileById,
     uploadProfilePicture,
+    deleteProfilePicture,
     userProfile,
     updateUserProfile
   };

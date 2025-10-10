@@ -16,11 +16,12 @@ import {
   MapPinIcon
 } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
+import ProfilePhotoPopup from "../components/ProfilePhotoPopup";
 
 export default function Profile() {
   const { success, error: showError } = useAlert();
   const { user } = useAuth();
-  const { uploadProfilePicture } = useProfiles();
+  const { uploadProfilePicture, deleteProfilePicture } = useProfiles();
   const { certificates } = useCertificates();
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -28,6 +29,7 @@ export default function Profile() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [userProfile, setUserProfile] = useState({});
   const [error, setError] = useState(null);
+  const [showPhotoPopup, setShowPhotoPopup] = useState(false);
   const fileInputRef = useRef(null);
 
   // Fetch current user's profile data
@@ -82,8 +84,7 @@ export default function Profile() {
     return `${company.substring(0, 3).toUpperCase()}${firstName.substring(0, 2).toUpperCase()}${lastName.substring(0, 2).toUpperCase()}${timestamp.toString().slice(-4)}`;
   }, []);
 
-  const handleProfilePictureUpload = async (event) => {
-    const file = event.target.files[0];
+  const handleProfilePictureUpload = async (file) => {
     if (file && userProfile._id) {
       setUploading(true);
       try {
@@ -96,6 +97,25 @@ export default function Profile() {
       } catch (err) {
         console.error("Failed to upload profile picture:", err);
         showError('Failed to upload profile picture. Please try again.');
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
+  const handleProfilePictureDelete = async () => {
+    if (userProfile._id) {
+      setUploading(true);
+      try {
+        await deleteProfilePicture(userProfile._id);
+        // Force image refresh by updating key
+        setImageKey(Date.now());
+        // Refresh profile data to get updated picture
+        await fetchMyProfile();
+        success('Profile picture deleted successfully!');
+      } catch (err) {
+        console.error("Failed to delete profile picture:", err);
+        showError('Failed to delete profile picture. Please try again.');
       } finally {
         setUploading(false);
       }
@@ -156,7 +176,10 @@ export default function Profile() {
             <div className="flex items-center space-x-6">
               {/* Profile Picture */}
               <div className="relative">
-                <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                <div 
+                  className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setShowPhotoPopup(true)}
+                >
                   {userProfile.profilePicture ? (
                     <img 
                       src={`${getImageUrl(userProfile.profilePicture)}?t=${imageKey}`}
@@ -169,24 +192,11 @@ export default function Profile() {
                     <UserCircleIcon className="h-20 w-20 text-gray-400" />
                   )}
                 </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-2 -right-2 bg-emerald-600 text-white p-2 rounded-full hover:bg-emerald-700 shadow-lg"
-                  disabled={uploading}
-                >
-                  {uploading ? (
-                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                  ) : (
-                    <CameraIcon className="h-5 w-5" />
-                  )}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleProfilePictureUpload}
-                  className="hidden"
-                />
+                {uploading && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                )}
               </div>
 
               {/* Basic Info */}
@@ -513,6 +523,16 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* Profile Photo Popup */}
+      <ProfilePhotoPopup
+        isOpen={showPhotoPopup}
+        onClose={() => setShowPhotoPopup(false)}
+        onUpdate={handleProfilePictureUpload}
+        onDelete={handleProfilePictureDelete}
+        hasProfilePicture={!!userProfile.profilePicture}
+        uploading={uploading}
+      />
     </div>
   );
 }

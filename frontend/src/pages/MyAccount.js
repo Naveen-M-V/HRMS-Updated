@@ -4,18 +4,20 @@ import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getImageUrl } from "../utils/config";
 import { useAlert } from "../components/AlertNotification";
+import ProfilePhotoPopup from "../components/ProfilePhotoPopup";
 
 export default function MyAccount() {
   const { success, error: showError } = useAlert();
   const navigate = useNavigate();
   const { user, logout, loading: authLoading } = useAuth();
-  const { uploadProfilePicture, getProfileById } = useProfiles();
+  const { uploadProfilePicture, deleteProfilePicture, getProfileById } = useProfiles();
 
   const [profile, setProfile] = useState({});
   const [savingImage, setSavingImage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageKey, setImageKey] = useState(Date.now());
+  const [showPhotoPopup, setShowPhotoPopup] = useState(false);
 
   // Fetch user profile data
   useEffect(() => {
@@ -92,9 +94,8 @@ export default function MyAccount() {
     }
   }, [user]);
 
-  // Handle profile picture change - persist to backend
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
+  // Handle profile picture upload
+  const handleProfilePictureUpload = async (file) => {
     const profileId = profile?._id || user?._id || user?.id;
     
     console.log('Profile picture upload - Profile:', profile);
@@ -142,7 +143,40 @@ export default function MyAccount() {
       showError("Failed to upload profile picture: " + (err.message || "Please try again."));
     } finally {
       setSavingImage(false);
-      e.target.value = "";
+    }
+  };
+
+  // Handle profile picture delete
+  const handleProfilePictureDelete = async () => {
+    const profileId = profile?._id || user?._id || user?.id;
+    
+    if (!profileId) {
+      showError('Unable to delete: Missing profile information. Please try refreshing the page.');
+      return;
+    }
+
+    try {
+      setSavingImage(true);
+      console.log('Deleting profile picture for profile ID:', profileId);
+
+      await deleteProfilePicture(profileId);
+      console.log('Profile picture deleted successfully');
+
+      // Update local profile state to remove picture
+      setProfile(prev => ({
+        ...prev,
+        profilePicture: null
+      }));
+
+      // Update image key to force refresh
+      setImageKey(Date.now());
+
+      success("Profile picture deleted successfully!");
+    } catch (err) {
+      console.error("Failed to delete profile picture:", err);
+      showError("Failed to delete profile picture: " + (err.message || "Please try again."));
+    } finally {
+      setSavingImage(false);
     }
   };
 
@@ -279,7 +313,10 @@ export default function MyAccount() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-12">
             {/* Profile Image */}
             <div className="flex flex-col items-center">
-              <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-4xl overflow-hidden relative">
+              <div 
+                className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-4xl overflow-hidden relative cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setShowPhotoPopup(true)}
+              >
                 {savingImage && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -296,22 +333,6 @@ export default function MyAccount() {
                   "👤"
                 )}
               </div>
-
-              <input
-                type="file"
-                id="profileUpload"
-                className="hidden"
-                accept="image/*"
-                onChange={handleImageChange}
-              />
-
-              <button
-                onClick={() => !savingImage && document.getElementById("profileUpload").click()}
-                className="mt-2 text-sm border px-3 py-1 rounded bg-gray-50 hover:bg-gray-100 disabled:opacity-50"
-                disabled={savingImage}
-              >
-                {savingImage ? "Saving..." : "Change"}
-              </button>
             </div>
 
             {/* Name + Role */}
@@ -366,6 +387,16 @@ export default function MyAccount() {
           </div>
         </div>
       )}
+
+      {/* Profile Photo Popup */}
+      <ProfilePhotoPopup
+        isOpen={showPhotoPopup}
+        onClose={() => setShowPhotoPopup(false)}
+        onUpdate={handleProfilePictureUpload}
+        onDelete={handleProfilePictureDelete}
+        hasProfilePicture={!!profile.profilePicture}
+        uploading={savingImage}
+      />
     </div>
   );
 }

@@ -15,12 +15,13 @@ import { BellIcon } from '@heroicons/react/24/outline';
 import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
+import ProfilePhotoPopup from "../components/ProfilePhotoPopup";
 
 export default function ProfileDetailView() {
   const { success, error } = useAlert();
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getProfileById, uploadProfilePicture, deleteProfile } = useProfiles();
+  const { getProfileById, uploadProfilePicture, deleteProfilePicture, deleteProfile } = useProfiles();
   const { certificates, uploadCertificateFile, deleteCertificate } = useCertificates();
 
   const handleEditProfile = () => {
@@ -30,6 +31,7 @@ export default function ProfileDetailView() {
   const [showCertificates, setShowCertificates] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imageKey, setImageKey] = useState(Date.now());
+  const [showPhotoPopup, setShowPhotoPopup] = useState(false);
   const fileInputRef = useRef(null);
   const [uploadingCertId, setUploadingCertId] = useState(null);
 const uploadFileInputRef = useRef(null);
@@ -85,8 +87,7 @@ const handleDeleteCertificate = async (certId) => {
     }
   }, [profiles, id, getProfileById]);
 
-  const handleProfilePictureUpload = async (event) => {
-    const file = event.target.files[0];
+  const handleProfilePictureUpload = async (file) => {
     if (file) {
       setUploading(true);
       try {
@@ -96,7 +97,6 @@ const handleDeleteCertificate = async (certId) => {
           setProfile(updatedProfile);
         }
         setImageKey(Date.now());
-        event.target.value = '';
         success('Profile picture updated successfully!');
       } catch (err) {
         console.error("Failed to upload profile picture:", err);
@@ -104,6 +104,24 @@ const handleDeleteCertificate = async (certId) => {
       } finally {
         setUploading(false);
       }
+    }
+  };
+
+  const handleProfilePictureDelete = async () => {
+    setUploading(true);
+    try {
+      await deleteProfilePicture(id);
+      const updatedProfile = getProfileById(id);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+      }
+      setImageKey(Date.now());
+      success('Profile picture deleted successfully!');
+    } catch (err) {
+      console.error("Failed to delete profile picture:", err);
+      error('Failed to delete profile picture. Please try again.');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -199,7 +217,10 @@ const handleDeleteCertificate = async (certId) => {
             <div className="space-y-4">
               <div className="text-center">
                 <div className="relative inline-block">
-                  <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                  <div 
+                    className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => setShowPhotoPopup(true)}
+                  >
                     {profile.profilePicture ? (
                       <img
                         src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
@@ -212,20 +233,11 @@ const handleDeleteCertificate = async (certId) => {
                       <UserCircleIcon className="h-16 w-16 text-gray-400" />
                     )}
                   </div>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute -bottom-1 -right-1 bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700"
-                    disabled={uploading}
-                  >
-                    {uploading ? "..." : "Change"}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePictureUpload}
-                    className="hidden"
-                  />
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -561,6 +573,16 @@ const handleDeleteCertificate = async (certId) => {
           </div>
         </div>
       </div>
+
+      {/* Profile Photo Popup */}
+      <ProfilePhotoPopup
+        isOpen={showPhotoPopup}
+        onClose={() => setShowPhotoPopup(false)}
+        onUpdate={handleProfilePictureUpload}
+        onDelete={handleProfilePictureDelete}
+        hasProfilePicture={!!profile.profilePicture}
+        uploading={uploading}
+      />
     </div>
   );
 }
