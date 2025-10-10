@@ -22,19 +22,25 @@ export const NotificationProvider = ({ children }) => {
   const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
   
   useEffect(() => {
+    let interval = null;
+    
     if (user && user.id && shouldAutoFetch) {
       fetchNotifications();
       
       // Set up auto-refresh every 30 seconds only when needed
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         fetchNotifications();
       }, 30000);
-
-      return () => clearInterval(interval);
     }
-  }, [user, shouldAutoFetch]);
 
-  const fetchNotifications = async () => {
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [user, shouldAutoFetch, fetchNotifications]);
+
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -83,7 +89,7 @@ export const NotificationProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const markAsRead = async (notificationId) => {
     try {
