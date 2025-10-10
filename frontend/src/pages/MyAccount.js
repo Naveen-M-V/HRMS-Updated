@@ -56,6 +56,13 @@ export default function MyAccount() {
         
         const profileData = data;
         console.log('Profile data loaded:', profileData);
+        console.log('Profile ID fields:', {
+          _id: profileData._id,
+          profileId: profileData.profileId,
+          userId: profileData.userId,
+          email: profileData.email,
+          role: profileData.role || user?.role
+        });
         
         // If we have a valid profile data
         if (profileData) {
@@ -104,6 +111,12 @@ export default function MyAccount() {
     console.log('Profile picture upload - Profile:', profile);
     console.log('Profile picture upload - User:', user);
     console.log('Profile picture upload - ProfileId:', profileId);
+    console.log('Profile ID breakdown:', {
+      'profile?._id': profile?._id,
+      'profile?.profileId': profile?.profileId,
+      'user?.role': user?.role,
+      'finalProfileId': profileId
+    });
     
     if (!file || !profileId) {
       console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
