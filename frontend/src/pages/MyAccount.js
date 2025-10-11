@@ -104,8 +104,6 @@ export default function MyAccount() {
 
   // Handle profile picture upload
   const handleProfilePictureUpload = async (file) => {
-    // For admins, we need to find their Profile._id, not User._id
-    // For regular users, profile._id is already the Profile._id
     const profileId = profile?.profileId || profile?._id;
     
     console.log('Profile picture upload - Profile:', profile);
@@ -118,13 +116,14 @@ export default function MyAccount() {
       'finalProfileId': profileId
     });
     
-    if (!file || !profileId) {
-      console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
-      if (!profileId && user?.role === 'admin') {
-        showError('Admin users need a profile created first. Please contact support.');
-      } else {
-        showError('Unable to upload: Missing profile information. Please try refreshing the page.');
-      }
+    if (!file) {
+      showError('Please select a file to upload');
+      return;
+    }
+    
+    if (!profileId) {
+      console.error('Missing profile ID:', { profileId, profile, user });
+      showError('Profile not found. Please ensure your profile exists in the database.');
       return;
     }
 

@@ -1020,11 +1020,11 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
     console.log('File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
     console.log('Request headers:', req.headers);
     
-    // Check if profile exists first
     const profileExists = await Profile.findById(req.params.id);
     console.log('Profile exists check:', !!profileExists);
     if (!profileExists) {
       console.log('Profile not found in database for ID:', req.params.id);
+      return res.status(404).json({ message: 'Profile not found' });
     }
     
     if (!req.file) {
