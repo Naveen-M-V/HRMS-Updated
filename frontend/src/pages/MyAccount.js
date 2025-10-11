@@ -125,6 +125,7 @@ export default function MyAccount() {
       const token = localStorage.getItem('auth_token');
       const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
       
+      // Fetch current profile to get correct ID
       const response = await fetch(`${apiUrl}/api/my-profile`, {
         credentials: 'include',
         headers: {
@@ -138,17 +139,21 @@ export default function MyAccount() {
       }
       
       const currentProfile = await response.json();
-      const profileId = currentProfile.profileId || currentProfile._id;
+      // Use profileId for admins, _id for regular users
+      const uploadId = currentProfile.profileId || currentProfile._id;
       
-      if (!profileId) {
-        throw new Error('Profile ID not found. Please refresh the page and try again.');
+      if (!uploadId) {
+        throw new Error('Profile ID not found. Please refresh and try again.');
       }
 
-      const profilePicturePath = await uploadProfilePicture(profileId, file);
+      // Upload the picture
+      const profilePicturePath = await uploadProfilePicture(uploadId, file);
 
+      // Update local state
       setProfile(prev => ({
         ...prev,
-        profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`
+        profilePicture: profilePicturePath || `/api/profiles/${uploadId}/picture`,
+        profileId: uploadId // Store the correct profileId
       }));
 
       setImageKey(Date.now());

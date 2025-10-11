@@ -1015,49 +1015,60 @@ app.put('/api/profiles/:id', async (req, res) => {
 // Upload profile picture
 app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), async (req, res) => {
   try {
-    console.log('Profile picture upload endpoint called');
-    console.log('Profile ID:', req.params.id);
-    console.log('File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
-    console.log('Request headers:', req.headers);
-    
-    // Check if profile exists first
-    const profileExists = await Profile.findById(req.params.id);
-    console.log('Profile exists check:', !!profileExists);
-    if (!profileExists) {
-      console.log('Profile not found in database for ID:', req.params.id);
-    }
-    
     if (!req.file) {
-      console.log('No file uploaded');
       return res.status(400).json({ message: 'No file uploaded' });
     }
-    
-    // Check file size (10MB limit)
+
     if (req.file.size > 10 * 1024 * 1024) {
-      console.log('File size exceeds limit:', req.file.size);
       return res.status(400).json({ message: 'File size exceeds 10MB limit' });
     }
-    
-    console.log('File validation passed, updating profile...');
-    
-    const profile = await Profile.findByIdAndUpdate(
-      req.params.id,
-      { 
-        profilePicture: `/api/profiles/${req.params.id}/picture`,
-        profilePictureData: req.file.buffer,
-        profilePictureSize: req.file.size,
-        profilePictureMimeType: req.file.mimetype
-      },
-      { new: true }
-    );
+
+    // Find profile by ID - if not found, try to find/create by email from User
+    let profile = await Profile.findById(req.params.id);
     
     if (!profile) {
-      console.log('Profile not found for ID:', req.params.id);
-      return res.status(404).json({ message: 'Profile not found' });
+      // Profile doesn't exist with this ID - check if it's a User ID
+      const user = await User.findById(req.params.id);
+      if (user) {
+        // Find or create Profile by email
+        profile = await Profile.findOne({ email: user.email });
+        
+        if (!profile) {
+          // Create new Profile for this user
+          profile = await Profile.create({
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            userId: user._id,
+            active: 'Yes',
+            company: 'VitruX Ltd',
+            staffType: 'Direct',
+            createdOn: new Date(),
+            isActive: true,
+            emailVerified: true
+          });
+          
+          // Link User to Profile
+          await User.findByIdAndUpdate(user._id, { profileId: profile._id });
+        }
+      } else {
+        return res.status(404).json({ message: 'Profile not found' });
+      }
     }
+
+    // Update profile with picture
+    profile.profilePicture = `/api/profiles/${profile._id}/picture`;
+    profile.profilePictureData = req.file.buffer;
+    profile.profilePictureSize = req.file.size;
+    profile.profilePictureMimeType = req.file.mimetype;
     
-    console.log('Profile picture uploaded successfully');
-    res.json({ profilePicture: profile.profilePicture });
+    await profile.save();
+
+    res.json({ 
+      profilePicture: profile.profilePicture,
+      profileId: profile._id 
+    });
   } catch (error) {
     console.error('Error uploading profile picture:', error);
     res.status(500).json({ message: error.message });

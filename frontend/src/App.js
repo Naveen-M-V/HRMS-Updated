@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -14,6 +14,7 @@ import { ProfileProvider } from "./context/ProfileContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { AlertProvider } from "./components/AlertNotification";
+import { initializeCacheManager } from "./utils/cacheManager";
 
 // Direct imports for faster navigation (no loading spinners)
 import Dashboard from "./pages/Dashboard";
@@ -100,6 +101,10 @@ function UserProtectedRoute({ children }) {
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    initializeCacheManager();
+  }, []);
 
   return (
     <AuthProvider>
