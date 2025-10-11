@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getImageUrl } from "../utils/config";
 import { useAlert } from "../components/AlertNotification";
-import ProfilePhotoPopup from "../components/ProfilePhotoPopup";
+import ProfilePictureUpload from "../components/ProfilePictureUpload";
 
 export default function MyAccount() {
   const { success, error: showError } = useAlert();
@@ -17,7 +17,6 @@ export default function MyAccount() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imageKey, setImageKey] = useState(Date.now());
-  const [showPhotoPopup, setShowPhotoPopup] = useState(false);
 
   // Fetch user profile data
   useEffect(() => {
@@ -104,6 +103,8 @@ export default function MyAccount() {
 
   // Handle profile picture upload
   const handleProfilePictureUpload = async (file) => {
+    // For admins, we need to find their Profile._id, not User._id
+    // For regular users, profile._id is already the Profile._id
     const profileId = profile?.profileId || profile?._id;
     
     console.log('Profile picture upload - Profile:', profile);
@@ -116,14 +117,13 @@ export default function MyAccount() {
       'finalProfileId': profileId
     });
     
-    if (!file) {
-      showError('Please select a file to upload');
-      return;
-    }
-    
-    if (!profileId) {
-      console.error('Missing profile ID:', { profileId, profile, user });
-      showError('Profile not found. Please ensure your profile exists in the database.');
+    if (!file || !profileId) {
+      console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
+      if (!profileId && user?.role === 'admin') {
+        showError('Admin users need a profile created first. Please contact support.');
+      } else {
+        showError('Unable to upload: Missing profile information. Please try refreshing the page.');
+      }
       return;
     }
 
@@ -334,29 +334,15 @@ export default function MyAccount() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-12">
             {/* Profile Image */}
             <div className="flex flex-col items-center">
-              <div 
-                className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-4xl overflow-hidden relative cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => setShowPhotoPopup(true)}
-              >
-                {savingImage && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  </div>
-                )}
-                {profile.profilePicture ? (
-                  <img
-                    src={`${getImageUrl(profile.profilePicture)}?t=${imageKey}`}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                    key={`profile-pic-${imageKey}`}
-                  />
-                ) : (
-                  "👤"
-                )}
-              </div>
-              {!profile.profilePicture && (
-                <p className="text-xs text-gray-500 mt-2 text-center">Click to update profile</p>
-              )}
+              <ProfilePictureUpload
+                profilePicture={profile.profilePicture ? `${getImageUrl(profile.profilePicture)}?t=${imageKey}` : null}
+                onUpload={handleProfilePictureUpload}
+                onDelete={handleProfilePictureDelete}
+                firstName={profile.firstName}
+                lastName={profile.lastName}
+                uploading={savingImage}
+                size={120}
+              />
             </div>
 
             {/* Name + Role */}
@@ -411,16 +397,6 @@ export default function MyAccount() {
           </div>
         </div>
       )}
-
-      {/* Profile Photo Popup */}
-      <ProfilePhotoPopup
-        isOpen={showPhotoPopup}
-        onClose={() => setShowPhotoPopup(false)}
-        onUpdate={handleProfilePictureUpload}
-        onDelete={handleProfilePictureDelete}
-        hasProfilePicture={!!profile.profilePicture}
-        uploading={savingImage}
-      />
     </div>
   );
 }

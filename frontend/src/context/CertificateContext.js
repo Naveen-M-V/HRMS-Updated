@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import axios from "axios";
 import { buildApiUrl } from "../utils/apiConfig";
@@ -48,9 +49,21 @@ export const CertificateProvider = ({ children }) => {
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // FIXED: Track pending refresh timeouts for cleanup
+  const refreshTimeoutRef = useRef(null);
 
   const incrementLoading = () => setLoadingCount((count) => count + 1);
   const decrementLoading = () => setLoadingCount((count) => Math.max(count - 1, 0));
+
+  // FIXED: Clean up any pending timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchCertificates = useCallback(async (page = 1, limit = 50) => {
     incrementLoading();
@@ -119,9 +132,15 @@ export const CertificateProvider = ({ children }) => {
       setCertificates((prev) => [response.data, ...prev]);
       setError(null);
       
-      // Force refresh to ensure UI is updated
-      setTimeout(() => {
+      // FIXED: Clear any existing timeout before creating a new one
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      // Store timeout ID for cleanup
+      refreshTimeoutRef.current = setTimeout(() => {
         fetchCertificates();
+        refreshTimeoutRef.current = null;
       }, 500);
       
       return response.data;
@@ -135,7 +154,7 @@ export const CertificateProvider = ({ children }) => {
       setCreating(false);
       decrementLoading();
     }
-  }, []);
+  }, [fetchCertificates]);
 
   // Updated uploadCertificateFile to use PUT and matching URL
   const uploadCertificateFile = useCallback(async (certificateId, file) => {
@@ -188,9 +207,14 @@ export const CertificateProvider = ({ children }) => {
       setError(null);
       console.log('Certificate updated successfully');
       
-      // Force refresh to ensure UI is updated
-      setTimeout(() => {
+      // FIXED: Clear any existing timeout before creating a new one
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      refreshTimeoutRef.current = setTimeout(() => {
         fetchCertificates();
+        refreshTimeoutRef.current = null;
       }, 500);
       
       return response.data;
@@ -202,7 +226,7 @@ export const CertificateProvider = ({ children }) => {
       setUpdating(false);
       decrementLoading();
     }
-  }, []);
+  }, [fetchCertificates]);
 
   // Delete a certificate
   const deleteCertificate = useCallback(async (certificateId) => {
@@ -219,9 +243,14 @@ export const CertificateProvider = ({ children }) => {
       setError(null);
       console.log('Certificate deleted successfully');
       
-      // Force refresh to ensure UI is updated
-      setTimeout(() => {
+      // FIXED: Clear any existing timeout before creating a new one
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      refreshTimeoutRef.current = setTimeout(() => {
         fetchCertificates();
+        refreshTimeoutRef.current = null;
       }, 500);
       
     } catch (err) {
@@ -232,7 +261,7 @@ export const CertificateProvider = ({ children }) => {
       setDeleting(false);
       decrementLoading();
     }
-  }, []);
+  }, [fetchCertificates]);
 
   // Other helper functions...
 

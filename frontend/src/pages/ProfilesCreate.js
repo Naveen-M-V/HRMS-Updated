@@ -5,6 +5,7 @@ import { useProfiles } from "../context/ProfileContext";
 import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
+import ProfilePictureUpload from "../components/ProfilePictureUpload";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
 
@@ -32,12 +33,14 @@ export default function ProfilesCreate() {
     status: "",
   });
 
+  const [profilePictureFile, setProfilePictureFile] = useState(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const [jobRoles, setJobRoles] = useState([]);
   const [jobLevels, setJobLevels] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
-  const { addProfile, creating } = useProfiles();
+  const { addProfile, creating, uploadProfilePicture } = useProfiles();
 
   // Fetch job roles and levels on component mount
   useEffect(() => {
@@ -129,16 +132,18 @@ export default function ProfilesCreate() {
   };
 
 
+  const handleProfilePictureUpload = (file) => {
+    setProfilePictureFile(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate required fields
     if (!formData.firstName || !formData.lastName || !formData.email) {
       error('Please fill in all required fields: First Name, Last Name, and Email');
       return;
     }
 
-    // Transform form data to match profile structure
     const newProfile = {
       role: formData.jobLevel || "User",
       firstName: formData.firstName.trim(),
@@ -146,12 +151,12 @@ export default function ProfilesCreate() {
       staffType: formData.staffType || "Direct",
       company: formData.company || "VitruX Ltd",
       jobTitle: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
-      jobRole: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []), // Keep for backward compatibility
+      jobRole: Array.isArray(formData.jobTitle) ? formData.jobTitle : (formData.jobTitle ? [formData.jobTitle] : []),
       jobLevel: formData.jobLevel,
       email: formData.email.trim().toLowerCase(),
       mobile: formData.mobile || "",
       dob: formData.dob || null,
-      dateOfBirth: formData.dob || null, // Add both formats for compatibility
+      dateOfBirth: formData.dob || null,
       language: formData.language || "English",
       startDate: formData.startDate || null,
       poc: formData.poc || "",
@@ -167,14 +172,21 @@ export default function ProfilesCreate() {
     };
 
     try {
-      console.log('Creating profile with data:', newProfile);
-      // Add profile to context
       const createdProfile = await addProfile(newProfile);
-      console.log('Profile created successfully:', createdProfile);
+      
+      if (profilePictureFile && createdProfile?._id) {
+        try {
+          setUploadingPicture(true);
+          await uploadProfilePicture(createdProfile._id, profilePictureFile);
+        } catch (uploadError) {
+          console.error('Failed to upload profile picture:', uploadError);
+        } finally {
+          setUploadingPicture(false);
+        }
+      }
       
       success('Profile created successfully!');
       
-      // Navigate to the newly created profile's detail page
       if (createdProfile && (createdProfile._id || createdProfile.id)) {
         navigate(`/profiles/${createdProfile._id || createdProfile.id}`);
       } else {
@@ -206,6 +218,18 @@ export default function ProfilesCreate() {
           onSubmit={handleSubmit}
           className="bg-white shadow rounded-lg p-6 space-y-6 relative"
         >
+          {/* Profile Picture Upload */}
+          <div className="flex justify-center mb-6">
+            <ProfilePictureUpload
+              profilePicture={null}
+              onUpload={handleProfilePictureUpload}
+              firstName={formData.firstName}
+              lastName={formData.lastName}
+              uploading={uploadingPicture}
+              size={120}
+            />
+          </div>
+
           {/* Email */}
           <div>
             <label className="block text-sm font-medium">Account Email <span className="text-red-500">*</span></label>
