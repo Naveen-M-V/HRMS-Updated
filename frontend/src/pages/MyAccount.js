@@ -103,63 +103,61 @@ export default function MyAccount() {
 
   // Handle profile picture upload
   const handleProfilePictureUpload = async (file) => {
-    // For admins, we need to find their Profile._id, not User._id
-    // For regular users, profile._id is already the Profile._id
-    const profileId = profile?.profileId || profile?._id;
-    
-    console.log('Profile picture upload - Profile:', profile);
-    console.log('Profile picture upload - User:', user);
-    console.log('Profile picture upload - ProfileId:', profileId);
-    console.log('Profile ID breakdown:', {
-      'profile?._id': profile?._id,
-      'profile?.profileId': profile?.profileId,
-      'user?.role': user?.role,
-      'finalProfileId': profileId
-    });
-    
-    if (!file || !profileId) {
-      console.error('Missing file or profile ID:', { file: !!file, profileId, profile, user });
-      if (!profileId && user?.role === 'admin') {
-        showError('Admin users need a profile created first. Please contact support.');
-      } else {
-        showError('Unable to upload: Missing profile information. Please try refreshing the page.');
-      }
+    if (!file) {
+      showError('Please select a file to upload');
       return;
     }
 
-    // Validate file type and size
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
       showError('Please upload a valid image file (JPEG, PNG, or GIF)');
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit (matching backend)
+    if (file.size > 10 * 1024 * 1024) {
       showError('File size should be less than 10MB');
       return;
     }
 
     try {
       setSavingImage(true);
-      console.log('Uploading profile picture for profile ID:', profileId);
+      
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
+      
+      const response = await fetch(`${apiUrl}/api/my-profile`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to verify profile');
+      }
+      
+      const currentProfile = await response.json();
+      const profileId = currentProfile.profileId || currentProfile._id;
+      
+      if (!profileId) {
+        throw new Error('Profile ID not found. Please refresh the page and try again.');
+      }
 
-      // Use the context's uploadProfilePicture function
       const profilePicturePath = await uploadProfilePicture(profileId, file);
-      console.log('Profile picture uploaded:', profilePicturePath);
 
-      // Update local profile state with new picture URL
       setProfile(prev => ({
         ...prev,
         profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`
       }));
 
-      // Update image key to force refresh
       setImageKey(Date.now());
-
       success("Profile picture updated successfully!");
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
       showError("Failed to upload profile picture: " + (err.message || "Please try again."));
+      localStorage.removeItem('profiles_cache_optimized');
+      localStorage.removeItem('profiles_cache_time');
     } finally {
       setSavingImage(false);
     }
