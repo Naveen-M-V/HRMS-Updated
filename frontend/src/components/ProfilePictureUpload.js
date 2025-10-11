@@ -1,62 +1,5 @@
 import React, { useState } from 'react';
-import { Avatar, Badge, IconButton, CircularProgress } from '@mui/material';
-import { PhotoCamera, Delete } from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
-
-const StyledBadge = styled(Badge)(({ theme }) => ({
-  '& .MuiBadge-badge': {
-    backgroundColor: '#44b700',
-    color: '#44b700',
-    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-    '&::after': {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      borderRadius: '50%',
-      animation: 'ripple 1.2s infinite ease-in-out',
-      border: '1px solid currentColor',
-      content: '""',
-    },
-  },
-  '@keyframes ripple': {
-    '0%': {
-      transform: 'scale(.8)',
-      opacity: 1,
-    },
-    '100%': {
-      transform: 'scale(2.4)',
-      opacity: 0,
-    },
-  },
-}));
-
-const UploadButton = styled(IconButton)(({ theme }) => ({
-  position: 'absolute',
-  bottom: 0,
-  right: 0,
-  backgroundColor: theme.palette.primary.main,
-  color: 'white',
-  '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
-  },
-  width: 40,
-  height: 40,
-}));
-
-const DeleteButton = styled(IconButton)(({ theme }) => ({
-  position: 'absolute',
-  top: 0,
-  right: 0,
-  backgroundColor: theme.palette.error.main,
-  color: 'white',
-  '&:hover': {
-    backgroundColor: theme.palette.error.dark,
-  },
-  width: 32,
-  height: 32,
-}));
+import { CameraIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const ProfilePictureUpload = ({ 
   profilePicture, 
@@ -114,63 +57,58 @@ const ProfilePictureUpload = ({
   const getInitials = () => {
     const first = firstName?.charAt(0)?.toUpperCase() || '';
     const last = lastName?.charAt(0)?.toUpperCase() || '';
-    return `${first}${last}`;
+    return `${first}${last}` || '?';
   };
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <StyledBadge
-        overlap="circular"
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        variant="dot"
+    <div className="relative inline-block">
+      <div 
+        className="rounded-full overflow-hidden shadow-lg border-4 border-white relative"
+        style={{ width: size, height: size }}
       >
         {uploading ? (
-          <div style={{ 
-            width: size, 
-            height: size, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            borderRadius: '50%',
-            backgroundColor: '#f0f0f0'
-          }}>
-            <CircularProgress size={size / 2} />
+          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        ) : (
-          <Avatar
-            alt={`${firstName} ${lastName}`}
+        ) : previewUrl ? (
+          <img
             src={previewUrl}
-            sx={{
-              width: size,
-              height: size,
-              fontSize: size / 2.5,
-              fontWeight: 600,
-              bgcolor: previewUrl ? 'transparent' : '#1976d2',
-            }}
-          >
-            {!previewUrl && getInitials()}
-          </Avatar>
+            alt={`${firstName} ${lastName}`}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-blue-600 text-white text-4xl font-semibold">
+            {getInitials()}
+          </div>
         )}
-      </StyledBadge>
+        
+        {uploading && (
+          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+            <div className="text-white text-xs font-medium">Uploading...</div>
+          </div>
+        )}
+      </div>
 
       {!uploading && (
         <>
-          <UploadButton
+          <button
+            type="button"
             onClick={handleUploadClick}
-            size="small"
-            disabled={uploading}
+            className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 shadow-lg transition-colors"
+            title="Upload photo"
           >
-            <PhotoCamera sx={{ fontSize: 20 }} />
-          </UploadButton>
+            <CameraIcon className="h-5 w-5" />
+          </button>
 
           {previewUrl && (
-            <DeleteButton
+            <button
+              type="button"
               onClick={handleDelete}
-              size="small"
-              disabled={uploading}
+              className="absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white rounded-full p-1.5 shadow-lg transition-colors"
+              title="Delete photo"
             >
-              <Delete sx={{ fontSize: 16 }} />
-            </DeleteButton>
+              <TrashIcon className="h-4 w-4" />
+            </button>
           )}
         </>
       )}
@@ -180,7 +118,7 @@ const ProfilePictureUpload = ({
         type="file"
         accept="image/jpeg,image/png,image/gif,image/jpg"
         onChange={handleFileChange}
-        style={{ display: 'none' }}
+        className="hidden"
       />
     </div>
   );
