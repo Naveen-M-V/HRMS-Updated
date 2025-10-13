@@ -191,13 +191,19 @@ export default function MyAccount() {
             
             if (fixResponse.ok) {
               const fixData = await fixResponse.json();
-              console.log('Profile fixed:', fixData);
-              showError('Profile fixed! Refreshing...');
+              console.log('✅ Profile fixed successfully:', fixData);
+              success('Profile fixed! Refreshing...');
               setTimeout(() => window.location.reload(), 1000);
             } else {
               const fixError = await fixResponse.json();
-              console.error('Fix failed:', fixError);
-              showError(`Profile fix failed: ${fixError.message}`);
+              console.error('❌ Fix failed:', fixError);
+              console.error('Fix error details:', JSON.stringify(fixError, null, 2));
+              
+              let errorMsg = fixError.message || 'Unknown error';
+              if (fixError.userData) {
+                errorMsg += ` (Missing: ${!fixError.userData.firstName ? 'firstName ' : ''}${!fixError.userData.lastName ? 'lastName' : ''})`;
+              }
+              showError(`Profile fix failed: ${errorMsg}`);
             }
           } catch (fixErr) {
             console.error('Error fixing profile:', fixErr);

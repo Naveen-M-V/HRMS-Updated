@@ -2886,19 +2886,35 @@ app.use('/api/notifications', authenticateSession, notificationRoutes);
 app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
   try {
     console.log('===== FORCE FIX PROFILE REQUEST =====');
-    console.log('User:', req.user?.email);
+    console.log('User email:', req.user?.email);
+    console.log('User role:', req.user?.role);
     
     if (!req.user || !req.user.email) {
+      console.error('❌ User not authenticated');
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const user = await User.findOne({ email: req.user.email }).select('-password');
+    const user = await User.findOne({ email: req.user.email }).select('-password -__v');
+    console.log('User found:', !!user);
+    console.log('User data:', user ? {
+      _id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      profileId: user.profileId
+    } : 'null');
+    
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      console.error('❌ User not found in database');
+      return res.status(404).json({ message: 'User not found in database' });
     }
 
     // Check required fields
     if (!user.firstName || !user.lastName) {
+      console.error('❌ Missing required fields');
+      console.error('firstName:', user.firstName);
+      console.error('lastName:', user.lastName);
       return res.status(400).json({ 
         message: 'Cannot create profile: First name and last name are required in User record',
         userData: {
@@ -2909,42 +2925,87 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
       });
     }
 
-    // Delete old stale profile if exists
+    // Check for old stale profile
     if (user.profileId) {
-      const oldProfile = await Profile.findById(user.profileId);
-      if (!oldProfile) {
-        console.log('Removing stale profileId:', user.profileId);
+      console.log('Checking if profileId is stale:', user.profileId);
+      try {
+        const oldProfile = await Profile.findById(user.profileId);
+        if (!oldProfile) {
+          console.log('Stale profileId found, clearing it');
+          await User.findByIdAndUpdate(user._id, { $unset: { profileId: 1 } });
+        } else {
+          console.log('ProfileId is valid, profile exists');
+          // Profile exists, just return it
+          return res.json({ 
+            success: true, 
+            message: 'Profile already exists',
+            profileId: oldProfile._id.toString(),
+            profile: {
+              _id: oldProfile._id,
+              email: oldProfile.email,
+              firstName: oldProfile.firstName,
+              lastName: oldProfile.lastName
+            }
+          });
+        }
+      } catch (profileCheckError) {
+        console.error('Error checking old profile:', profileCheckError);
         await User.findByIdAndUpdate(user._id, { $unset: { profileId: 1 } });
       }
     }
 
     // Check if profile already exists by email
     let profile = await Profile.findOne({ email: user.email });
+    console.log('Profile found by email:', !!profile);
     
     if (!profile) {
       // Create new profile
-      profile = await Profile.create({
+      console.log('Creating new profile with data:', {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        mobile: user.mobile || '',
         company: user.company || 'VitruX Ltd',
-        jobTitle: user.jobTitle || [],
-        staffType: user.staffType || 'Direct',
-        role: user.role || 'user',
-        dateOfBirth: user.dateOfBirth || null,
-        gender: user.gender || '',
-        nationality: user.nationality || '',
-        address: user.address || {},
-        emergencyContact: user.emergencyContact || {}
+        staffType: user.staffType || 'Direct'
       });
-      console.log('✅ Profile created:', profile._id);
+      
+      try {
+        profile = await Profile.create({
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          mobile: user.mobile || '',
+          company: user.company || 'VitruX Ltd',
+          jobTitle: Array.isArray(user.jobTitle) ? user.jobTitle : (user.jobTitle ? [user.jobTitle] : []),
+          staffType: user.staffType || 'Direct',
+          role: user.role || 'user',
+          dateOfBirth: user.dateOfBirth || null,
+          gender: user.gender || '',
+          nationality: user.nationality || '',
+          address: user.address || {},
+          emergencyContact: user.emergencyContact || {}
+        });
+        console.log('✅ Profile created successfully:', profile._id);
+      } catch (createError) {
+        console.error('❌ Error creating profile:', createError);
+        console.error('Validation errors:', createError.errors);
+        return res.status(500).json({ 
+          message: 'Failed to create profile: ' + createError.message,
+          errors: createError.errors
+        });
+      }
+    } else {
+      console.log('Profile already exists:', profile._id);
     }
 
     // Update user with correct profileId
-    await User.findByIdAndUpdate(user._id, { profileId: profile._id });
-    console.log('✅ User.profileId updated to:', profile._id);
+    try {
+      await User.findByIdAndUpdate(user._id, { profileId: profile._id });
+      console.log('✅ User.profileId updated to:', profile._id);
+    } catch (updateError) {
+      console.error('Error updating User.profileId:', updateError);
+    }
 
+    console.log('===== FIX COMPLETE =====');
     res.json({ 
       success: true, 
       message: 'Profile fixed successfully',
@@ -2957,8 +3018,12 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fixing profile:', error);
-    res.status(500).json({ message: error.message });
+    console.error('❌ CRITICAL ERROR in /api/fix-my-profile:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Internal server error: ' + error.message,
+      error: error.toString()
+    });
   }
 });
 
