@@ -2903,13 +2903,12 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
       let profileExtras = {};
       try {
         let prof = await Profile.findOne({ email: req.user.email })
-          .select('-profilePictureData -profilePictureSize -profilePictureMimeType -__v')
-          .lean();
+          .select('-profilePictureData -profilePictureSize -profilePictureMimeType -__v');
         
         // If no profile exists for admin, create one
         if (!prof) {
           console.log('Creating Profile entry for admin user:', req.user.email);
-          const newProfile = new Profile({
+          prof = await Profile.create({
             email: req.user.email,
             firstName: user.firstName || '',
             lastName: user.lastName || '',
@@ -2924,31 +2923,30 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
             address: user.address || {},
             emergencyContact: user.emergencyContact || {}
           });
-          
-          prof = await newProfile.save();
           console.log('Profile created for admin with ID:', prof._id);
         }
         
         if (prof) {
+          const profData = prof.toObject ? prof.toObject() : prof;
           profileExtras = {
-            profileId: prof._id, // Include Profile._id for photo upload
-            mobile: prof.mobile,
-            bio: prof.bio,
-            jobTitle: prof.jobTitle || '',
-            department: prof.department || '',
-            company: prof.company,
-            staffType: prof.staffType,
-            dateOfBirth: prof.dateOfBirth,
-            nationality: prof.nationality,
-            gender: prof.gender,
-            location: prof.location,
-            address: prof.address,
-            emergencyContact: prof.emergencyContact,
-            profilePicture: prof.profilePicture
+            profileId: profData._id.toString(), // Include Profile._id for photo upload
+            mobile: profData.mobile,
+            bio: profData.bio,
+            jobTitle: profData.jobTitle || '',
+            department: profData.department || '',
+            company: profData.company,
+            staffType: profData.staffType,
+            dateOfBirth: profData.dateOfBirth,
+            nationality: profData.nationality,
+            gender: profData.gender,
+            location: profData.location,
+            address: profData.address,
+            emergencyContact: profData.emergencyContact,
+            profilePicture: profData.profilePicture
           };
         }
       } catch (mergeErr) {
-        console.warn('Admin merge with Profile failed:', mergeErr?.message || mergeErr);
+        console.error('Admin merge with Profile failed:', mergeErr?.message || mergeErr);
       }
 
       // Include additional admin-specific data if needed

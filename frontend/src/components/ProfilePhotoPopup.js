@@ -7,7 +7,8 @@ const ProfilePhotoPopup = ({
   onUpdate, 
   onDelete, 
   hasProfilePicture = false,
-  uploading = false 
+  uploading = false,
+  mode = 'edit' // 'edit' for MyAccount, 'create' for create profile
 }) => {
   const fileInputRef = useRef(null);
 
@@ -21,13 +22,17 @@ const ProfilePhotoPopup = ({
     const file = event.target.files[0];
     if (file) {
       onUpdate(file);
-      event.target.value = ''; // Reset input
+      event.target.value = '';
     }
     onClose();
   };
 
   const handleDeleteClick = () => {
-    if (window.confirm('Are you sure you want to delete your profile picture?')) {
+    const confirmMessage = mode === 'create' 
+      ? 'Are you sure you want to remove this photo?' 
+      : 'Are you sure you want to delete your profile picture?';
+      
+    if (window.confirm(confirmMessage)) {
       onDelete();
     }
     onClose();
@@ -46,10 +51,13 @@ const ProfilePhotoPopup = ({
         <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Profile Photo</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {mode === 'create' ? 'Profile Photo' : 'Profile Photo'}
+            </h3>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -66,7 +74,7 @@ const ProfilePhotoPopup = ({
               <div className="flex-shrink-0">
                 <CameraIcon className="h-6 w-6 text-blue-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <div className="font-medium text-blue-900">
                   {hasProfilePicture ? 'Update Photo' : 'Upload Photo'}
                 </div>
@@ -86,11 +94,24 @@ const ProfilePhotoPopup = ({
                 <div className="flex-shrink-0">
                   <TrashIcon className="h-6 w-6 text-red-600" />
                 </div>
-                <div>
-                  <div className="font-medium text-red-900">Delete Photo</div>
-                  <div className="text-sm text-red-700">Remove your current profile picture</div>
+                <div className="flex-1">
+                  <div className="font-medium text-red-900">
+                    {mode === 'create' ? 'Remove Photo' : 'Delete Photo'}
+                  </div>
+                  <div className="text-sm text-red-700">
+                    {mode === 'create' 
+                      ? 'Remove the selected profile picture' 
+                      : 'Remove your current profile picture'}
+                  </div>
                 </div>
               </button>
+            )}
+
+            {/* Info text for create mode */}
+            {mode === 'create' && (
+              <div className="text-xs text-gray-500 text-center pt-2">
+                Photo will be uploaded when you save the profile
+              </div>
             )}
           </div>
 
@@ -98,7 +119,7 @@ const ProfilePhotoPopup = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/gif"
             onChange={handleFileSelected}
             className="hidden"
           />

@@ -33,12 +33,13 @@ export default function MyAccount() {
           throw new Error('Authentication required');
         }
         const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
-        const response = await fetch(`${apiUrl}/api/my-profile`, {
+        const response = await fetch(`${apiUrl}/api/my-profile?init=true`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache'
           }
         });
 
@@ -148,23 +149,9 @@ export default function MyAccount() {
       const profileId = currentProfile.profileId || currentProfile._id;
 
       if (!profileId) {
-        throw new Error('Profile ID not found. Please refresh the page and try again.');
-      }
-
-      // Verify the profile actually exists before upload
-      const verifyResponse = await fetch(`${apiUrl}/api/profiles/${profileId}`, {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!verifyResponse.ok) {
-        if (verifyResponse.status === 404) {
-          throw new Error('Your profile data is incomplete. Please refresh the page to initialize your profile, then try again.');
-        }
-        throw new Error('Unable to verify profile. Please try again.');
+        showError('Profile ID not found. Refreshing page...');
+        setTimeout(() => window.location.reload(), 1500);
+        return;
       }
 
       const profilePicturePath = await uploadProfilePicture(profileId, file);
