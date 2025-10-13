@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
@@ -16,12 +16,12 @@ export const NotificationProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
-  const [notificationCallbacks, setNotificationCallbacks] = useState([]);
   const { user } = useAuth();
   
   const refreshTimeoutRef = useRef(null);
   const intervalRef = useRef(null);
   const isMountedRef = useRef(true);
+  const callbacksRef = useRef(new Set());
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -120,7 +120,7 @@ export const NotificationProvider = ({ children }) => {
     };
   }, [user, shouldAutoFetch, fetchNotifications]);
 
-  const markAsRead = async (notificationId) => {
+  const markAsRead = useCallback(async (notificationId) => {
     if (!isMountedRef.current) return;
     
     try {
@@ -157,33 +157,41 @@ export const NotificationProvider = ({ children }) => {
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
-  };
+  }, []);
 
-  const getUnreadCount = () => {
+  const getUnreadCount = useCallback(() => {
     return notifications.filter(notif => !notif.read).length;
-  };
+  }, [notifications]);
 
-  const refreshNotifications = () => {
+  const refreshNotifications = useCallback(() => {
     if (isMountedRef.current) {
       fetchNotifications();
     }
-  };
+  }, [fetchNotifications]);
 
-  const subscribeToNotificationChanges = (callback) => {
-    setNotificationCallbacks(prev => [...prev, callback]);
+  const subscribeToNotificationChanges = useCallback((callback) => {
+    if (!callbacksRef.current.has(callback)) {
+      callbacksRef.current.add(callback);
+    }
     return () => {
-      setNotificationCallbacks(prev => prev.filter(cb => cb !== callback));
+      callbacksRef.current.delete(callback);
     };
-  };
+  }, []);
 
   useEffect(() => {
-    if (isMountedRef.current) {
-      const unreadCount = getUnreadCount();
-      notificationCallbacks.forEach(callback => callback(unreadCount));
-    }
-  }, [notifications, notificationCallbacks]);
+    if (!isMountedRef.current) return;
+    
+    const unreadCount = notifications.filter(n => !n.read).length;
+    callbacksRef.current.forEach(cb => {
+      try {
+        cb(unreadCount);
+      } catch (err) {
+        console.error('Notification callback error:', err);
+      }
+    });
+  }, [notifications]);
 
-  const triggerRefresh = () => {
+  const triggerRefresh = useCallback(() => {
     if (!isMountedRef.current) return;
     
     setShouldAutoFetch(true);
@@ -197,15 +205,15 @@ export const NotificationProvider = ({ children }) => {
         fetchNotifications();
       }
     }, 1000);
-  };
+  }, [fetchNotifications]);
 
-  const initializeNotifications = () => {
+  const initializeNotifications = useCallback(() => {
     if (!shouldAutoFetch && isMountedRef.current) {
       setShouldAutoFetch(true);
     }
-  };
+  }, [shouldAutoFetch]);
 
-  const value = {
+  const value = useMemo(() => ({
     notifications,
     loading,
     error,
@@ -215,7 +223,17 @@ export const NotificationProvider = ({ children }) => {
     triggerRefresh,
     subscribeToNotificationChanges,
     initializeNotifications
-  };
+  }), [
+    notifications,
+    loading,
+    error,
+    markAsRead,
+    getUnreadCount,
+    refreshNotifications,
+    triggerRefresh,
+    subscribeToNotificationChanges,
+    initializeNotifications
+  ]);
 
   return (
     <NotificationContext.Provider value={value}>

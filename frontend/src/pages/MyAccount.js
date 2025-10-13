@@ -58,14 +58,13 @@ export default function MyAccount() {
 
         const profileData = data;
         console.log('===== PROFILE DATA LOADED =====');
-        console.log('Full profile data:', profileData);
         console.log('Profile ID fields:', {
           _id: profileData._id,
           profileId: profileData.profileId,
-          userId: profileData.userId,
           email: profileData.email,
           role: profileData.role || user?.role,
-          isAdmin: profileData.isAdmin
+          isAdmin: profileData.isAdmin,
+          hasProfilePicture: !!profileData.profilePicture
         });
         console.log('==============================');
 
@@ -148,10 +147,12 @@ export default function MyAccount() {
       const currentProfile = await response.json();
       
       console.log('===== UPLOAD: PROFILE DATA =====');
-      console.log('Full profile:', currentProfile);
-      console.log('Profile ID (for uploads):', currentProfile.profileId);
-      console.log('User ID (_id):', currentProfile._id);
-      console.log('Is Admin:', currentProfile.isAdmin || currentProfile.role === 'admin');
+      console.log('Profile meta:', {
+        profileId: currentProfile.profileId,
+        _id: currentProfile._id,
+        email: currentProfile.email,
+        isAdmin: currentProfile.isAdmin || currentProfile.role === 'admin'
+      });
       console.log('================================');
       
       const profileId = currentProfile.profileId || currentProfile._id;

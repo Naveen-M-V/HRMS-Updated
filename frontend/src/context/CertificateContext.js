@@ -162,7 +162,7 @@ export const CertificateProvider = ({ children }) => {
         }
       });
       const url = buildApiUrl('/certificates');
-      console.log('Sending certificate data:', newCertificate);
+      console.log('Sending certificate (keys):', Object.keys(newCertificate), 'fileSize:', newCertificate.fileData?.size || 0);
       const response = await axios.post(url, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });

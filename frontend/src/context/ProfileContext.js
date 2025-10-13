@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { storageGuard } from '../utils/memoryGuard';
 
@@ -225,7 +225,7 @@ export const ProfileProvider = ({ children }) => {
     }
   };
 
-  const refreshProfiles = async () => fetchProfiles(true);
+  const refreshProfiles = useCallback(() => fetchProfiles(true), [fetchProfiles]);
 
   useEffect(() => {
     if (isMountedRef.current) {
@@ -233,7 +233,7 @@ export const ProfileProvider = ({ children }) => {
     }
   }, []);
 
-  const addProfile = async (newProfile) => {
+  const addProfile = useCallback(async (newProfile) => {
     setCreating(true);
     try {
       const token = localStorage.getItem('auth_token');
@@ -280,9 +280,9 @@ export const ProfileProvider = ({ children }) => {
         setCreating(false);
       }
     }
-  };
+  }, [fetchProfiles]);
 
-  const updateProfile = async (id, updatedProfile) => {
+  const updateProfile = useCallback(async (id, updatedProfile) => {
     setUpdating(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, {
@@ -319,11 +319,11 @@ export const ProfileProvider = ({ children }) => {
         setUpdating(false);
       }
     }
-  };
+  }, [fetchProfiles]);
 
-  const getProfileById = (id) => profiles.find(profile => profile._id === id);
+  const getProfileById = useCallback((id) => profiles.find(profile => profile._id === id), [profiles]);
 
-  const fetchMyProfile = async () => {
+  const fetchMyProfile = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/my-profile`, { 
         credentials: 'include',
@@ -341,9 +341,9 @@ export const ProfileProvider = ({ children }) => {
       console.error('Error fetching my profile:', err);
       throw err;
     }
-  };
+  }, []);
 
-  const fetchProfileById = async (id) => {
+  const fetchProfileById = useCallback(async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, { credentials: 'include' });
       if (!response.ok) {
@@ -364,9 +364,9 @@ export const ProfileProvider = ({ children }) => {
       console.error('Error fetching profile:', err);
       throw err;
     }
-  };
+  }, [safeCacheProfiles]);
 
-  const fetchCompleteProfileById = async (id) => {
+  const fetchCompleteProfileById = useCallback(async (id) => {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/complete`, { 
@@ -381,9 +381,9 @@ export const ProfileProvider = ({ children }) => {
       console.error('Error fetching complete profile:', err);
       throw err;
     }
-  };
+  }, []);
 
-  const uploadProfilePicture = async (id, file) => {
+  const uploadProfilePicture = useCallback(async (id, file) => {
     const getApiUrl = () => process.env.REACT_APP_API_URL || '';
     setLoading(true);
     try {
@@ -428,9 +428,9 @@ export const ProfileProvider = ({ children }) => {
         setLoading(false);
       }
     }
-  };
+  }, [safeCacheProfiles]);
 
-  const deleteProfilePicture = async (id) => {
+  const deleteProfilePicture = useCallback(async (id) => {
     const getApiUrl = () => process.env.REACT_APP_API_URL || '';
     setLoading(true);
     try {
@@ -472,7 +472,7 @@ export const ProfileProvider = ({ children }) => {
         setLoading(false);
       }
     }
-  };
+  }, [safeCacheProfiles]);
 
   const [userProfile, setUserProfile] = useState({});
 
@@ -499,7 +499,7 @@ export const ProfileProvider = ({ children }) => {
     }
   }, [user]);
 
-  const updateUserProfile = async (profileData) => {
+  const updateUserProfile = useCallback(async (profileData) => {
     setLoading(true);
     try {
       const updatedData = {
@@ -559,9 +559,9 @@ export const ProfileProvider = ({ children }) => {
         setLoading(false);
       }
     }
-  };
+  }, [user]);
 
-  const value = {
+  const value = useMemo(() => ({
     profiles,
     loading,
     updating,
@@ -581,7 +581,27 @@ export const ProfileProvider = ({ children }) => {
     deleteProfilePicture,
     userProfile,
     updateUserProfile
-  };
+  }), [
+    profiles,
+    loading,
+    updating,
+    creating,
+    deleting,
+    error,
+    addProfile,
+    updateProfile,
+    deleteProfile,
+    refreshProfiles,
+    fetchProfiles,
+    getProfileById,
+    fetchMyProfile,
+    fetchProfileById,
+    fetchCompleteProfileById,
+    uploadProfilePicture,
+    deleteProfilePicture,
+    userProfile,
+    updateUserProfile
+  ]);
 
   return (
     <ProfileContext.Provider value={value}>
