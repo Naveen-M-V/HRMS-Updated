@@ -2969,13 +2969,20 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
       });
       
       try {
+        // jobTitle in Profile schema is a STRING, not array
+        // jobRole in Profile schema is an ARRAY
+        const jobTitleValue = Array.isArray(user.jobTitle) 
+          ? (user.jobTitle.length > 0 ? user.jobTitle[0] : '') 
+          : (user.jobTitle || '');
+        
         profile = await Profile.create({
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
           mobile: user.mobile || '',
           company: user.company || 'VitruX Ltd',
-          jobTitle: Array.isArray(user.jobTitle) ? user.jobTitle : (user.jobTitle ? [user.jobTitle] : []),
+          jobTitle: jobTitleValue,  // STRING
+          jobRole: [],  // ARRAY - empty for now
           staffType: user.staffType || 'Direct',
           role: user.role || 'user',
           dateOfBirth: user.dateOfBirth || null,
@@ -3083,13 +3090,19 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
             });
           }
           
+          // jobTitle in Profile schema is a STRING, not array
+          const jobTitleValue = Array.isArray(user.jobTitle) 
+            ? (user.jobTitle.length > 0 ? user.jobTitle[0] : '') 
+            : (user.jobTitle || '');
+          
           const newProfileData = {
             email: req.user.email,
             firstName: user.firstName,
             lastName: user.lastName,
             mobile: user.mobile || '',
             company: user.company || 'VitruX Ltd',
-            jobTitle: user.jobTitle || [],
+            jobTitle: jobTitleValue,  // STRING
+            jobRole: [],  // ARRAY
             staffType: user.staffType || 'Direct',
             role: user.role || 'admin',
             dateOfBirth: user.dateOfBirth || null,
