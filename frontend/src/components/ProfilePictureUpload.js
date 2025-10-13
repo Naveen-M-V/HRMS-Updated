@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CameraIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const ProfilePictureUpload = ({ 
@@ -11,7 +11,18 @@ const ProfilePictureUpload = ({
   size = 120
 }) => {
   const [previewUrl, setPreviewUrl] = useState(profilePicture);
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
+  const fileReaderRef = useRef(null);
+
+  // Cleanup FileReader on unmount
+  useEffect(() => {
+    return () => {
+      if (fileReaderRef.current) {
+        fileReaderRef.current.abort();
+        fileReaderRef.current = null;
+      }
+    };
+  }, []);
 
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
@@ -28,14 +39,36 @@ const ProfilePictureUpload = ({
       return;
     }
 
+    // Cleanup previous FileReader if exists
+    if (fileReaderRef.current) {
+      fileReaderRef.current.abort();
+    }
+
+    // Create new FileReader
     const reader = new FileReader();
+    fileReaderRef.current = reader;
+    
     reader.onloadend = () => {
-      setPreviewUrl(reader.result);
+      if (fileReaderRef.current === reader) {
+        setPreviewUrl(reader.result);
+      }
+    };
+    reader.onerror = () => {
+      console.error('FileReader error');
+      if (fileReaderRef.current === reader) {
+        reader.abort();
+        fileReaderRef.current = null;
+      }
     };
     reader.readAsDataURL(file);
 
     if (onUpload) {
-      await onUpload(file);
+      try {
+        await onUpload(file);
+      } catch (error) {
+        // Revert preview on error
+        setPreviewUrl(profilePicture);
+      }
     }
 
     event.target.value = '';

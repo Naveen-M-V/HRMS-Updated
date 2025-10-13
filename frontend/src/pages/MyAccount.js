@@ -174,11 +174,35 @@ export default function MyAccount() {
         setImageKey(Date.now());
         success("Profile picture updated successfully!");
       } catch (uploadErr) {
-        // If 404, the profile doesn't exist - force page refresh to recreate it
+        // If 404, the profile doesn't exist - try to fix it
         if (uploadErr.message && uploadErr.message.includes('404')) {
-          console.error('Profile not found (404), refreshing to recreate...');
-          showError('Profile needs to be initialized. Refreshing page...');
-          setTimeout(() => window.location.reload(), 1500);
+          console.error('Profile not found (404), attempting to fix...');
+          showError('Profile not found. Attempting to fix...');
+          
+          try {
+            const fixResponse = await fetch(`${apiUrl}/api/fix-my-profile`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (fixResponse.ok) {
+              const fixData = await fixResponse.json();
+              console.log('Profile fixed:', fixData);
+              showError('Profile fixed! Refreshing...');
+              setTimeout(() => window.location.reload(), 1000);
+            } else {
+              const fixError = await fixResponse.json();
+              console.error('Fix failed:', fixError);
+              showError(`Profile fix failed: ${fixError.message}`);
+            }
+          } catch (fixErr) {
+            console.error('Error fixing profile:', fixErr);
+            showError('Could not fix profile. Please contact support.');
+          }
         } else {
           throw uploadErr;
         }

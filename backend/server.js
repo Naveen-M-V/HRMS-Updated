@@ -2882,6 +2882,86 @@ const authenticateToken = authenticateSession;
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
 
+// Force profile creation/fix endpoint
+app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
+  try {
+    console.log('===== FORCE FIX PROFILE REQUEST =====');
+    console.log('User:', req.user?.email);
+    
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const user = await User.findOne({ email: req.user.email }).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check required fields
+    if (!user.firstName || !user.lastName) {
+      return res.status(400).json({ 
+        message: 'Cannot create profile: First name and last name are required in User record',
+        userData: {
+          email: user.email,
+          firstName: user.firstName || null,
+          lastName: user.lastName || null
+        }
+      });
+    }
+
+    // Delete old stale profile if exists
+    if (user.profileId) {
+      const oldProfile = await Profile.findById(user.profileId);
+      if (!oldProfile) {
+        console.log('Removing stale profileId:', user.profileId);
+        await User.findByIdAndUpdate(user._id, { $unset: { profileId: 1 } });
+      }
+    }
+
+    // Check if profile already exists by email
+    let profile = await Profile.findOne({ email: user.email });
+    
+    if (!profile) {
+      // Create new profile
+      profile = await Profile.create({
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        mobile: user.mobile || '',
+        company: user.company || 'VitruX Ltd',
+        jobTitle: user.jobTitle || [],
+        staffType: user.staffType || 'Direct',
+        role: user.role || 'user',
+        dateOfBirth: user.dateOfBirth || null,
+        gender: user.gender || '',
+        nationality: user.nationality || '',
+        address: user.address || {},
+        emergencyContact: user.emergencyContact || {}
+      });
+      console.log('✅ Profile created:', profile._id);
+    }
+
+    // Update user with correct profileId
+    await User.findByIdAndUpdate(user._id, { profileId: profile._id });
+    console.log('✅ User.profileId updated to:', profile._id);
+
+    res.json({ 
+      success: true, 
+      message: 'Profile fixed successfully',
+      profileId: profile._id.toString(),
+      profile: {
+        _id: profile._id,
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName
+      }
+    });
+  } catch (error) {
+    console.error('Error fixing profile:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get current user's profile (for My Settings page)
 app.get('/api/my-profile', authenticateSession, async (req, res) => {
   try {
@@ -2925,14 +3005,27 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
             await User.findByIdAndUpdate(user._id, { $unset: { profileId: 1 } });
           }
           
+          // Ensure required fields are present
+          if (!user.firstName || !user.lastName) {
+            console.error('❌ Cannot create profile: Missing required firstName or lastName');
+            console.error('User data:', { firstName: user.firstName, lastName: user.lastName });
+            return res.status(400).json({ 
+              message: 'Profile creation failed: First name and last name are required.',
+              missingFields: {
+                firstName: !user.firstName,
+                lastName: !user.lastName
+              }
+            });
+          }
+          
           const newProfileData = {
             email: req.user.email,
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
+            firstName: user.firstName,
+            lastName: user.lastName,
             mobile: user.mobile || '',
-            company: user.company || '',
+            company: user.company || 'VitruX Ltd',
             jobTitle: user.jobTitle || [],
-            staffType: user.staffType || 'Staff',
+            staffType: user.staffType || 'Direct',
             role: user.role || 'admin',
             dateOfBirth: user.dateOfBirth || null,
             gender: user.gender || '',
