@@ -139,24 +139,36 @@ export default function MyAccount() {
       }
 
       const currentProfile = await response.json();
+      
+      console.log('Current profile data:', currentProfile);
+      console.log('Profile ID (for uploads):', currentProfile.profileId);
+      console.log('User ID (_id):', currentProfile._id);
+      console.log('Is Admin:', currentProfile.isAdmin || currentProfile.role === 'admin');
+      
       const profileId = currentProfile.profileId || currentProfile._id;
 
       if (!profileId) {
         throw new Error('Profile ID not found. Please refresh the page and try again.');
       }
 
+      if (currentProfile.isAdmin && !currentProfile.profileId) {
+        throw new Error('Admin profile not set up. Please create your profile first by clicking "Edit Profile" and saving your details.');
+      }
+
       const profilePicturePath = await uploadProfilePicture(profileId, file);
 
       setProfile(prev => ({
         ...prev,
-        profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`
+        profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`,
+        profileId: currentProfile.profileId
       }));
 
       setImageKey(Date.now());
       success("Profile picture updated successfully!");
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
-      showError("Failed to upload profile picture: " + (err.message || "Please try again."));
+      const errorMessage = err.message || "Please try again.";
+      showError("Failed to upload profile picture: " + errorMessage);
       localStorage.removeItem('profiles_cache_optimized');
       localStorage.removeItem('profiles_cache_time');
     } finally {

@@ -1018,21 +1018,12 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
     console.log('Profile picture upload endpoint called');
     console.log('Profile ID:', req.params.id);
     console.log('File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
-    console.log('Request headers:', req.headers);
-    
-    // Check if profile exists first
-    const profileExists = await Profile.findById(req.params.id);
-    console.log('Profile exists check:', !!profileExists);
-    if (!profileExists) {
-      console.log('Profile not found in database for ID:', req.params.id);
-    }
     
     if (!req.file) {
       console.log('No file uploaded');
       return res.status(400).json({ message: 'No file uploaded' });
     }
     
-    // Check file size (10MB limit)
     if (req.file.size > 10 * 1024 * 1024) {
       console.log('File size exceeds limit:', req.file.size);
       return res.status(400).json({ message: 'File size exceeds 10MB limit' });
@@ -1053,7 +1044,10 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
     
     if (!profile) {
       console.log('Profile not found for ID:', req.params.id);
-      return res.status(404).json({ message: 'Profile not found' });
+      return res.status(404).json({ 
+        message: 'Profile not found',
+        details: 'The profile ID does not exist in the database. Please ensure you have a profile created first.'
+      });
     }
     
     console.log('Profile picture uploaded successfully');
@@ -2070,10 +2064,15 @@ app.post('/api/certificate-names/initialize', async (req, res) => {
 
     let addedCount = 0;
     for (const certName of predefinedCertificates) {
-      const existing = await CertificateName.findOne({ name: { $regex: new RegExp(`^${certName}$`, 'i') } });
-      if (!existing) {
-        await new CertificateName({ name: certName, usageCount: 1 }).save();
-        addedCount++;
+      try {
+        const escapedCertName = certName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const existing = await CertificateName.findOne({ name: { $regex: new RegExp(`^${escapedCertName}$`, 'i') } });
+        if (!existing) {
+          await new CertificateName({ name: certName, usageCount: 1 }).save();
+          addedCount++;
+        }
+      } catch (itemError) {
+        console.error(`Error processing certificate name "${certName}":`, itemError.message);
       }
     }
 
