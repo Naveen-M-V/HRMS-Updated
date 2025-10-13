@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
@@ -18,19 +18,6 @@ export const NotificationProvider = ({ children }) => {
   const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
   const [notificationCallbacks, setNotificationCallbacks] = useState([]);
   const { user } = useAuth();
-  
-  const refreshTimeoutRef = useRef(null);
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Define fetchNotifications BEFORE any useEffect that uses it
   const fetchNotifications = useCallback(async () => {
@@ -163,13 +150,8 @@ export const NotificationProvider = ({ children }) => {
   // Function to trigger immediate refresh after actions
   const triggerRefresh = () => {
     setShouldAutoFetch(true);
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    refreshTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        fetchNotifications();
-      }
+    setTimeout(() => {
+      fetchNotifications();
     }, 1000);
   };
 
