@@ -53,6 +53,7 @@ export const CertificateProvider = ({ children }) => {
   const refreshTimeoutRef = useRef(null);
   const isMountedRef = useRef(true);
   const abortControllerRef = useRef(null);
+  const MAX_CERT_CACHE_SIZE = 500 * 1024; // 500KB limit
 
   const incrementLoading = () => setLoadingCount((count) => count + 1);
   const decrementLoading = () => setLoadingCount((count) => Math.max(count - 1, 0));
@@ -63,21 +64,8 @@ export const CertificateProvider = ({ children }) => {
       isMountedRef.current = false;
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  const isMountedRef = useRef(true);
-  const abortControllerRef = useRef(null);
-  const MAX_CERT_CACHE_SIZE = 500 * 1024; // 500KB limit
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
