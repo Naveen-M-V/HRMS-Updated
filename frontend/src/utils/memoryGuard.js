@@ -109,27 +109,89 @@ export const storageGuard = {
  * Initialize memory guard - run on app startup
  */
 export const initMemoryGuard = () => {
-  console.log('Memory Guard: Initializing...');
+  console.log('🛡️ Memory Guard: Initializing...');
   
   // Log current usage
   const usage = storageGuard.getUsage();
-  console.log(`Storage usage: ${usage.mb} MB`);
+  console.log(`📊 Storage usage: ${usage.mb} MB (${usage.kb} KB)`);
   
-  // Clean up old caches
+  // Clean up old caches immediately
   storageGuard.cleanupOldCaches();
   
-  // Set up periodic cleanup (every 10 minutes)
+  // Log usage after cleanup
+  const afterCleanup = storageGuard.getUsage();
+  console.log(`📊 After cleanup: ${afterCleanup.mb} MB`);
+  
+  // Set up periodic cleanup (every 3 minutes for aggressive cleanup)
   const cleanupInterval = setInterval(() => {
-    if (storageGuard.isNearLimit()) {
-      console.warn('Storage near limit, cleaning up...');
+    const currentUsage = storageGuard.getUsage();
+    
+    if (currentUsage.bytes > 3 * 1024 * 1024) {
+      console.warn(`⚠️ Storage high (${currentUsage.mb} MB), cleaning up...`);
       storageGuard.cleanupOldCaches();
+      
+      // If still high after cleanup, clear all caches
+      const afterUsage = storageGuard.getUsage();
+      if (afterUsage.bytes > 3 * 1024 * 1024) {
+        console.error('🚨 Storage critically full, clearing ALL caches');
+        storageGuard.clearCaches();
+      }
     }
-  }, 10 * 60 * 1000);
+  }, 3 * 60 * 1000); // Every 3 minutes
+  
+  // Monitor for quota errors globally
+  const errorHandler = (e) => {
+    if (e.message && (e.message.includes('QuotaExceeded') || e.message.includes('QUOTA'))) {
+      console.error('🚨 Storage quota exceeded! Emergency cleanup...');
+      storageGuard.clearCaches();
+      e.preventDefault();
+    }
+  };
+  
+  window.addEventListener('error', errorHandler);
   
   // Return cleanup function
   return () => {
     clearInterval(cleanupInterval);
+    window.removeEventListener('error', errorHandler);
   };
 };
+
+/**
+ * Emergency memory clear - call this when site is about to crash
+ */
+export const emergencyClear = () => {
+  console.warn('🚨 EMERGENCY: Clearing all caches...');
+  
+  try {
+    // Clear all caches except critical auth data
+    const keysToKeep = ['auth_token', 'rememberedEmail'];
+    const allKeys = Object.keys(localStorage);
+    
+    allKeys.forEach(key => {
+      if (!keysToKeep.includes(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('✅ Emergency cleanup complete');
+    
+    // Force garbage collection if available (Chrome with --js-flags=--expose-gc)
+    if (window.gc) {
+      window.gc();
+      console.log('✅ Garbage collection triggered');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Emergency cleanup failed:', error);
+    return false;
+  }
+};
+
+// Expose emergency clear to window for manual use
+if (typeof window !== 'undefined') {
+  window.emergencyClear = emergencyClear;
+}
 
 export default storageGuard;

@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -14,6 +14,7 @@ import { ProfileProvider } from "./context/ProfileContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { AlertProvider } from "./components/AlertNotification";
+import { initMemoryGuard } from "./utils/memoryGuard";
 
 // Direct imports for faster navigation (no loading spinners)
 import Dashboard from "./pages/Dashboard";
@@ -100,6 +101,32 @@ function UserProtectedRoute({ children }) {
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Initialize memory guard on app mount
+  useEffect(() => {
+    const cleanup = initMemoryGuard();
+    console.log('✅ Memory Guard initialized');
+    
+    // Clear caches when page becomes hidden (user switches tabs)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('📱 Page hidden, performing cleanup...');
+        try {
+          const { storageGuard } = require('./utils/memoryGuard');
+          storageGuard.cleanupOldCaches();
+        } catch (err) {
+          console.warn('Cleanup on hide failed:', err);
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (cleanup) cleanup();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   return (
     <AuthProvider>

@@ -70,7 +70,24 @@ export const CertificateProvider = ({ children }) => {
     };
   }, []);
 
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef(null);
+  const MAX_CERT_CACHE_SIZE = 500 * 1024; // 500KB limit
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
   const fetchCertificates = useCallback(async (page = 1, limit = 50) => {
+    if (!isMountedRef.current) return;
+    
     incrementLoading();
     try {
       const url = buildApiUrl('/certificates');
@@ -85,37 +102,64 @@ export const CertificateProvider = ({ children }) => {
         },
       });
       
-      // Update cache if data has changed
-      if (response.headers.etag) {
-        localStorage.setItem('certificatesEtag', response.headers.etag);
-        localStorage.setItem('certificatesCache', JSON.stringify(response.data));
+      // Update cache if data has changed (with size limit)
+      if (response.headers.etag && isMountedRef.current) {
+        try {
+          const cacheData = JSON.stringify(response.data);
+          if (cacheData.length < MAX_CERT_CACHE_SIZE) {
+            localStorage.setItem('certificatesEtag', response.headers.etag);
+            localStorage.setItem('certificatesCache', cacheData);
+          } else {
+            console.warn(`Certificate cache too large (${(cacheData.length / 1024).toFixed(2)}KB), skipping`);
+            localStorage.removeItem('certificatesCache');
+            localStorage.removeItem('certificatesEtag');
+          }
+        } catch (storageError) {
+          console.warn('Certificate cache error:', storageError);
+          localStorage.removeItem('certificatesCache');
+          localStorage.removeItem('certificatesEtag');
+        }
       }
 
       if (!Array.isArray(response.data)) {
-        setCertificates([]);
-        setError("Invalid data format received from API");
+        if (isMountedRef.current) {
+          setCertificates([]);
+          setError("Invalid data format received from API");
+        }
         return;
       }
-      setCertificates(response.data);
-      setError(null);
+      if (isMountedRef.current) {
+        setCertificates(response.data);
+        setError(null);
+      }
     } catch (error) {
       if (error.response?.status === 304) {
         // Use cached data if available
-        const cachedData = localStorage.getItem('certificatesCache');
-        if (cachedData) {
-          setCertificates(JSON.parse(cachedData));
-          setError(null);
-          return;
+        try {
+          const cachedData = localStorage.getItem('certificatesCache');
+          if (cachedData && isMountedRef.current) {
+            setCertificates(JSON.parse(cachedData));
+            setError(null);
+            return;
+          }
+        } catch (parseError) {
+          console.warn('Cache parse error:', parseError);
         }
       }
-      setError("Failed to fetch certificates");
-      setCertificates([]);
+      if (isMountedRef.current) {
+        setError("Failed to fetch certificates");
+        setCertificates([]);
+      }
     } finally {
-      decrementLoading();
+      if (isMountedRef.current) {
+        decrementLoading();
+      }
     }
   }, []);
 
   const addCertificate = useCallback(async (newCertificate) => {
+    if (!isMountedRef.current) return;
+    
     setCreating(true);
     incrementLoading();
     try {
@@ -150,14 +194,18 @@ export const CertificateProvider = ({ children }) => {
       
       return response.data;
     } catch (err) {
-      setError("Failed to add certificate");
+      if (isMountedRef.current) {
+        setError("Failed to add certificate");
+      }
       console.error('Add certificate error:', err);
       console.error('Error response:', err.response?.data);
       console.error('Error status:', err.response?.status);
       throw err;
     } finally {
-      setCreating(false);
-      decrementLoading();
+      if (isMountedRef.current) {
+        setCreating(false);
+        decrementLoading();
+      }
     }
   }, [fetchCertificates]);
 
@@ -371,8 +419,10 @@ export const CertificateProvider = ({ children }) => {
   );
 
   useEffect(() => {
-    fetchCertificates();
-  }, [fetchCertificates]);
+    if (isMountedRef.current) {
+      fetchCertificates();
+    }
+  }, []);
 
   return <CertificateContext.Provider value={value}>{children}</CertificateContext.Provider>;
 };

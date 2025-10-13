@@ -228,8 +228,10 @@ export const ProfileProvider = ({ children }) => {
   const refreshProfiles = async () => fetchProfiles(true);
 
   useEffect(() => {
-    fetchProfiles();
-  }, [fetchProfiles]);
+    if (isMountedRef.current) {
+      fetchProfiles();
+    }
+  }, []);
 
   const addProfile = async (newProfile) => {
     setCreating(true);
