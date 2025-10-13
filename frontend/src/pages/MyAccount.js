@@ -25,7 +25,7 @@ export default function MyAccount() {
         setLoading(false);
         return;
       }
-      
+
       try {
         setLoading(true);
         const token = localStorage.getItem('auth_token');
@@ -41,18 +41,18 @@ export default function MyAccount() {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
           throw new Error('Server returned non-JSON response');
         }
 
         const data = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(data.message || 'Failed to fetch profile data');
         }
-        
+
         const profileData = data;
         console.log('Profile data loaded:', profileData);
         console.log('Profile ID fields:', {
@@ -62,7 +62,7 @@ export default function MyAccount() {
           email: profileData.email,
           role: profileData.role || user?.role
         });
-        
+
         // If we have a valid profile data
         if (profileData) {
           setProfile({
@@ -121,10 +121,11 @@ export default function MyAccount() {
 
     try {
       setSavingImage(true);
-      
+
       const token = localStorage.getItem('auth_token');
       const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
-      
+
+      // Fetch current profile to get correct ID
       const response = await fetch(`${apiUrl}/api/my-profile`, {
         credentials: 'include',
         headers: {
@@ -132,14 +133,14 @@ export default function MyAccount() {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to verify profile');
       }
-      
+
       const currentProfile = await response.json();
       const profileId = currentProfile.profileId || currentProfile._id;
-      
+
       if (!profileId) {
         throw new Error('Profile ID not found. Please refresh the page and try again.');
       }
@@ -168,7 +169,7 @@ export default function MyAccount() {
     // For admins, we need to find their Profile._id, not User._id
     // For regular users, profile._id is already the Profile._id
     const profileId = profile?.profileId || profile?._id;
-    
+
     if (!profileId) {
       showError('Unable to delete: Missing profile information. Please try refreshing the page.');
       return;

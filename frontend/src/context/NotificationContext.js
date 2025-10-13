@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext();
@@ -18,13 +18,33 @@ export const NotificationProvider = ({ children }) => {
   const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
   const [notificationCallbacks, setNotificationCallbacks] = useState([]);
   const { user } = useAuth();
+  
+  const refreshTimeoutRef = useRef(null);
+  const intervalRef = useRef(null);
+  const isMountedRef = useRef(true);
 
-  // Define fetchNotifications BEFORE any useEffect that uses it
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
   const fetchNotifications = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
     try {
-      setLoading(true);
-      setError(null);
-      
+      if (isMountedRef.current) {
+        setLoading(true);
+        setError(null);
+      }
+
       const token = localStorage.getItem('auth_token');
       if (!token) {
         console.error('No authentication token found');
@@ -46,8 +66,7 @@ export const NotificationProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      
-      // Transform backend notifications to match frontend format
+
       const transformedNotifications = data.notifications.map(notif => ({
         id: notif._id,
         title: notif.title || notif.message,
@@ -61,37 +80,49 @@ export const NotificationProvider = ({ children }) => {
         metadata: notif.metadata || {}
       }));
 
-      setNotifications(transformedNotifications);
+      if (isMountedRef.current) {
+        setNotifications(transformedNotifications);
+      }
     } catch (err) {
       console.error('Error fetching notifications:', err);
-      setError('Failed to fetch notifications');
-      setNotifications([]);
+      if (isMountedRef.current) {
+        setError('Failed to fetch notifications');
+        setNotifications([]);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
-  // Now this useEffect can safely use fetchNotifications
   useEffect(() => {
-    let interval = null;
-    
-    if (user && user.id && shouldAutoFetch) {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (user && user.id && shouldAutoFetch && isMountedRef.current) {
       fetchNotifications();
-      
-      // Set up auto-refresh every 30 seconds only when needed
-      interval = setInterval(() => {
-        fetchNotifications();
+
+      intervalRef.current = setInterval(() => {
+        if (isMountedRef.current) {
+          fetchNotifications();
+        }
       }, 30000);
     }
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [user, shouldAutoFetch, fetchNotifications]);
 
   const markAsRead = async (notificationId) => {
+    if (!isMountedRef.current) return;
+    
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -114,14 +145,15 @@ export const NotificationProvider = ({ children }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, read: true, status: 'Read' }
-            : notif
-        )
-      );
+      if (isMountedRef.current) {
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId 
+              ? { ...notif, read: true, status: 'Read' }
+              : notif
+          )
+        );
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -132,8 +164,11 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const refreshNotifications = () => {
-    fetchNotifications();
+    if (isMountedRef.current) {
+      fetchNotifications();
+    }
   };
+
   const subscribeToNotificationChanges = (callback) => {
     setNotificationCallbacks(prev => [...prev, callback]);
     return () => {
@@ -141,23 +176,31 @@ export const NotificationProvider = ({ children }) => {
     };
   };
 
-  // Notify subscribers when unread count changes
   useEffect(() => {
-    const unreadCount = getUnreadCount();
-    notificationCallbacks.forEach(callback => callback(unreadCount));
+    if (isMountedRef.current) {
+      const unreadCount = getUnreadCount();
+      notificationCallbacks.forEach(callback => callback(unreadCount));
+    }
   }, [notifications, notificationCallbacks]);
 
-  // Function to trigger immediate refresh after actions
   const triggerRefresh = () => {
+    if (!isMountedRef.current) return;
+    
     setShouldAutoFetch(true);
-    setTimeout(() => {
-      fetchNotifications();
+    
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
+    refreshTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        fetchNotifications();
+      }
     }, 1000);
   };
 
-  // Initialize notifications when first accessed
   const initializeNotifications = () => {
-    if (!shouldAutoFetch) {
+    if (!shouldAutoFetch && isMountedRef.current) {
       setShouldAutoFetch(true);
     }
   };

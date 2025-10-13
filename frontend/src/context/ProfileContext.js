@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext();
@@ -28,6 +29,19 @@ export const ProfileProvider = ({ children }) => {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  
+  const refreshTimeoutRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchProfiles = useCallback(async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
     setLoading(true);
@@ -186,8 +200,22 @@ export const ProfileProvider = ({ children }) => {
       const updatedProfiles = [data, ...profiles];
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
+      if (isMountedRef.current) {
+        setProfiles(prev => [data, ...prev]);
+        const updatedProfiles = [data, ...profiles];
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
 
       setTimeout(() => fetchProfiles(true), 500);
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        refreshTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            fetchProfiles(true);
+          }
+        }, 500);
+      }
       return data;
     } catch (err) {
       setError('Failed to create profile');
@@ -215,6 +243,21 @@ export const ProfileProvider = ({ children }) => {
       localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
       localStorage.setItem('profiles_cache_time', Date.now().toString());
       setTimeout(() => fetchProfiles(true), 500);
+      if (isMountedRef.current) {
+        setProfiles(prev => prev.map(profile => profile._id === id ? data : profile));
+        const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
+        
+        if (refreshTimeoutRef.current) {
+          clearTimeout(refreshTimeoutRef.current);
+        }
+        refreshTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            fetchProfiles(true);
+          }
+        }, 500);
+      }
 
       return data;
     } catch (err) {
