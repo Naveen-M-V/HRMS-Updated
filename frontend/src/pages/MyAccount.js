@@ -151,8 +151,20 @@ export default function MyAccount() {
         throw new Error('Profile ID not found. Please refresh the page and try again.');
       }
 
-      if (currentProfile.isAdmin && !currentProfile.profileId) {
-        throw new Error('Admin profile not set up. Please create your profile first by clicking "Edit Profile" and saving your details.');
+      // Verify the profile actually exists before upload
+      const verifyResponse = await fetch(`${apiUrl}/api/profiles/${profileId}`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!verifyResponse.ok) {
+        if (verifyResponse.status === 404) {
+          throw new Error('Your profile data is incomplete. Please refresh the page to initialize your profile, then try again.');
+        }
+        throw new Error('Unable to verify profile. Please try again.');
       }
 
       const profilePicturePath = await uploadProfilePicture(profileId, file);

@@ -2902,9 +2902,33 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
       // Try to merge with Profile collection details if available
       let profileExtras = {};
       try {
-        const prof = await Profile.findOne({ email: req.user.email })
+        let prof = await Profile.findOne({ email: req.user.email })
           .select('-profilePictureData -profilePictureSize -profilePictureMimeType -__v')
           .lean();
+        
+        // If no profile exists for admin, create one
+        if (!prof) {
+          console.log('Creating Profile entry for admin user:', req.user.email);
+          const newProfile = new Profile({
+            email: req.user.email,
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            mobile: user.mobile || '',
+            company: user.company || '',
+            jobTitle: user.jobTitle || [],
+            staffType: user.staffType || 'Staff',
+            role: user.role || 'admin',
+            dateOfBirth: user.dateOfBirth || null,
+            gender: user.gender || '',
+            nationality: user.nationality || '',
+            address: user.address || {},
+            emergencyContact: user.emergencyContact || {}
+          });
+          
+          prof = await newProfile.save();
+          console.log('Profile created for admin with ID:', prof._id);
+        }
+        
         if (prof) {
           profileExtras = {
             profileId: prof._id, // Include Profile._id for photo upload
