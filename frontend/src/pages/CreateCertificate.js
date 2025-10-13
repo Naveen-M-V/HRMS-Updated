@@ -28,17 +28,8 @@ export default function CreateCertificate() {
   const [localLoading, setLocalLoading] = useState(false);
   const fallbackAttempted = useRef(false);
 
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
+  // Fallback function to fetch profiles directly if context fails
   const fetchProfilesDirectly = async () => {
-    if (!isMountedRef.current) return;
     try {
       setLocalLoading(true);
       const response = await fetch('/api/profiles', {
@@ -47,22 +38,16 @@ export default function CreateCertificate() {
       
       if (response.ok) {
         const data = await response.json();
-        if (isMountedRef.current) {
-          setLocalProfiles(data);
-          console.log('Profiles fetched directly:', data);
-        }
+        setLocalProfiles(data);
+        console.log('Profiles fetched directly:', data);
       } else {
         throw new Error(`Failed to fetch profiles: ${response.status}`);
       }
     } catch (error) {
       console.error('Error fetching profiles directly:', error);
-      if (isMountedRef.current) {
-        setPageError(error.message);
-      }
+      setPageError(error.message);
     } finally {
-      if (isMountedRef.current) {
-        setLocalLoading(false);
-      }
+      setLocalLoading(false);
     }
   };
 

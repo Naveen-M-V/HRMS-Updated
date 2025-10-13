@@ -34,23 +34,6 @@ export const ProfileProvider = ({ children }) => {
 
   useEffect(() => {
     isMountedRef.current = true;
-    
-    const cleanupStorage = () => {
-      try {
-        const cacheTime = localStorage.getItem('profiles_cache_time');
-        const cacheAge = Date.now() - parseInt(cacheTime || '0');
-        if (cacheAge > 24 * 60 * 60 * 1000) {
-          localStorage.removeItem('profiles_cache_optimized');
-          localStorage.removeItem('profiles_cache_time');
-          console.log('Cleared old profile cache');
-        }
-      } catch (e) {
-        console.warn('Storage cleanup error:', e);
-      }
-    };
-    
-    cleanupStorage();
-    
     return () => {
       isMountedRef.current = false;
       if (refreshTimeoutRef.current) {
@@ -60,30 +43,20 @@ export const ProfileProvider = ({ children }) => {
   }, []);
 
   const fetchProfiles = useCallback(async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
-    if (!isMountedRef.current) return;
     setLoading(true);
     try {
       console.log('Fetching profiles from API');
 
       if (!forceRefresh && !usePagination) {
-        try {
-          const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
-          const cacheTime = localStorage.getItem('profiles_cache_time');
-          const cacheAge = Date.now() - parseInt(cacheTime || '0');
-          if (cachedProfiles && cacheAge < 5 * 60 * 1000) {
-            console.log('Using cached profiles data');
-            const parsed = JSON.parse(cachedProfiles);
-            if (isMountedRef.current) {
-              setProfiles(parsed);
-              setError(null);
-            }
-            setLoading(false);
-            return;
-          }
-        } catch (cacheError) {
-          console.warn('Cache read error, clearing cache:', cacheError);
-          localStorage.removeItem('profiles_cache_optimized');
-          localStorage.removeItem('profiles_cache_time');
+        const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
+        const cacheTime = localStorage.getItem('profiles_cache_time');
+        const cacheAge = Date.now() - parseInt(cacheTime || '0');
+        if (cachedProfiles && cacheAge < 5 * 60 * 1000) {
+          console.log('Using cached profiles data');
+          setProfiles(JSON.parse(cachedProfiles));
+          setError(null);
+          setLoading(false);
+          return;
         }
       }
 
@@ -108,55 +81,26 @@ export const ProfileProvider = ({ children }) => {
         const data = await response.json();
         const profilesData = usePagination ? data.profiles : data;
 
-        if (isMountedRef.current) {
-          setProfiles(profilesData);
-          setError(null);
-        }
+        setProfiles(profilesData);
+        setError(null);
 
-        if (!usePagination && isMountedRef.current) {
-          try {
-            const cacheData = JSON.stringify(profilesData);
-            if (cacheData.length < 5 * 1024 * 1024) {
-              localStorage.setItem('profiles_cache_optimized', cacheData);
-              localStorage.setItem('profiles_cache_time', Date.now().toString());
-            } else {
-              console.warn('Profile cache too large, skipping localStorage');
-              localStorage.removeItem('profiles_cache_optimized');
-              localStorage.removeItem('profiles_cache_time');
-            }
-          } catch (storageError) {
-            console.warn('Failed to cache profiles:', storageError);
-            localStorage.removeItem('profiles_cache_optimized');
-            localStorage.removeItem('profiles_cache_time');
-          }
+        if (!usePagination) {
+          localStorage.setItem('profiles_cache_optimized', JSON.stringify(profilesData));
+          localStorage.setItem('profiles_cache_time', Date.now().toString());
         }
 
         return usePagination ? data : profilesData;
       } else {
-        if (isMountedRef.current) {
-          setError(`Failed to fetch profiles: ${response.status}`);
-        }
+        setError(`Failed to fetch profiles: ${response.status}`);
       }
     } catch (err) {
-      if (isMountedRef.current) {
-        setError('Failed to fetch profiles');
-      }
+      setError('Failed to fetch profiles');
       console.error('Error fetching profiles:', err);
-      try {
-        const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
-        if (cachedProfiles && isMountedRef.current) {
-          setProfiles(JSON.parse(cachedProfiles));
-        } else if (isMountedRef.current) {
-          setProfiles([]);
-        }
-      } catch (cacheError) {
-        console.warn('Cache recovery failed:', cacheError);
-        if (isMountedRef.current) setProfiles([]);
-      }
+      const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
+      if (cachedProfiles) setProfiles(JSON.parse(cachedProfiles));
+      else setProfiles([]);
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, []);
 
@@ -253,7 +197,10 @@ export const ProfileProvider = ({ children }) => {
 
       if (isMountedRef.current) {
         setProfiles(prev => [data, ...prev]);
-        
+        const updatedProfiles = [data, ...profiles];
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
+
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
         }
@@ -287,6 +234,9 @@ export const ProfileProvider = ({ children }) => {
       const data = await response.json();
       if (isMountedRef.current) {
         setProfiles(prev => prev.map(profile => profile._id === id ? data : profile));
+        const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
         
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
@@ -338,9 +288,10 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const profile = await response.json();
-      if (isMountedRef.current) {
-        setProfiles(prev => prev.map(p => p._id === id ? { ...p, ...profile } : p));
-      }
+      const updatedProfiles = profiles.map(p => p._id === id ? { ...p, ...profile } : p);
+      setProfiles(updatedProfiles);
+      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+      localStorage.setItem('profiles_cache_time', Date.now().toString());
       return profile;
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -386,11 +337,12 @@ export const ProfileProvider = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        if (isMountedRef.current) {
-          setProfiles(prev => prev.map(profile =>
-            profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
-          ));
-        }
+        const updatedProfiles = profiles.map(profile =>
+          profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
+        );
+        setProfiles(updatedProfiles);
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
         return data.profilePicture;
       } else {
         const textResponse = await response.text();
@@ -422,11 +374,12 @@ export const ProfileProvider = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        if (isMountedRef.current) {
-          setProfiles(prev => prev.map(profile =>
-            profile._id === id ? { ...profile, profilePicture: null } : profile
-          ));
-        }
+        const updatedProfiles = profiles.map(profile =>
+          profile._id === id ? { ...profile, profilePicture: null } : profile
+        );
+        setProfiles(updatedProfiles);
+        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
+        localStorage.setItem('profiles_cache_time', Date.now().toString());
         return data;
       } else {
         const textResponse = await response.text();
