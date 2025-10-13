@@ -2081,21 +2081,15 @@ app.post('/api/certificate-names/initialize', async (req, res) => {
 
     let addedCount = 0;
     for (const certName of predefinedCertificates) {
-      try {
-        const escapedCertName = certName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const existing = await CertificateName.findOne({ name: { $regex: new RegExp(`^${escapedCertName}$`, 'i') } });
-        if (!existing) {
-          await new CertificateName({ name: certName, usageCount: 1 }).save();
-          addedCount++;
-        }
-      } catch (itemError) {
-        console.error(`Error processing certificate name "${certName}":`, itemError.message);
+      const existing = await CertificateName.findOne({ name: { $regex: new RegExp(`^${certName}$`, 'i') } });
+      if (!existing) {
+        await new CertificateName({ name: certName, usageCount: 1 }).save();
+        addedCount++;
       }
     }
 
     res.json({ message: `Initialized ${addedCount} new certificate names`, total: predefinedCertificates.length });
   } catch (error) {
-    console.error('Error in certificate-names/initialize:', error);
     res.status(500).json({ message: error.message });
   }
 });

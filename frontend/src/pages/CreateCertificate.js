@@ -88,29 +88,9 @@ export default function CreateCertificate() {
 
   // Load suppliers and certificate names on component mount
   useEffect(() => {
-    let isMounted = true;
-    const abortController = new AbortController();
-
-    const loadData = async () => {
-      try {
-        await Promise.all([
-          fetchSuppliers(isMounted, abortController.signal),
-          fetchCertificateNames(isMounted, abortController.signal),
-          initializeCertificateNames(abortController.signal)
-        ]);
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error loading data:', error);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      isMounted = false;
-      abortController.abort();
-    };
+    fetchSuppliers();
+    fetchCertificateNames();
+    initializeCertificateNames();
   }, []);
 
   // Pre-fill profile if passed from ProfileDetailView
@@ -152,56 +132,45 @@ export default function CreateCertificate() {
     return process.env.REACT_APP_API_URL || 'http://localhost:5003';
   };
 
-  const fetchSuppliers = async (isMounted = true, signal = null) => {
+  const fetchSuppliers = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/suppliers`, { signal });
+      const response = await fetch(`${getApiUrl()}/api/suppliers`);
       if (response.ok) {
         const data = await response.json();
-        if (isMounted) {
-          setSuppliers(data);
-        }
+        setSuppliers(data);
       } else {
         console.error('Failed to fetch suppliers:', response.status, response.statusText);
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Error fetching suppliers:', error);
-      }
+      console.error('Error fetching suppliers:', error);
     }
   };
 
-  const fetchCertificateNames = async (isMounted = true, signal = null) => {
+  const fetchCertificateNames = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/certificate-names`, { signal });
+      const response = await fetch(`${getApiUrl()}/api/certificate-names`);
       if (response.ok) {
         const data = await response.json();
-        if (isMounted) {
-          setCertificateNames(data);
-        }
+        setCertificateNames(data);
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('Error fetching certificate names:', error);
-      }
+      console.error('Error fetching certificate names:', error);
     }
   };
 
-  const initializeCertificateNames = async (signal = null) => {
+  const initializeCertificateNames = async () => {
     try {
       const response = await fetch(`${getApiUrl()}/api/certificate-names/initialize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        signal
       });
       if (!response.ok) {
         console.warn('Certificate names initialization failed, but continuing anyway');
       }
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.warn('Error initializing certificate names (non-critical):', error);
-      }
+      console.warn('Error initializing certificate names (non-critical):', error);
     }
   };
 
