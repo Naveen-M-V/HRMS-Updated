@@ -2885,6 +2885,11 @@ app.use('/api/notifications', authenticateSession, notificationRoutes);
 // Get current user's profile (for My Settings page)
 app.get('/api/my-profile', authenticateSession, async (req, res) => {
   try {
+    console.log('===== /api/my-profile REQUEST =====');
+    console.log('User email:', req.user?.email);
+    console.log('User role:', req.user?.role);
+    console.log('===================================');
+    
     if (!req.user || !req.user.email) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
@@ -2892,8 +2897,11 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
     // For admin users, get from User collection
     if (req.user.role === 'admin') {
       const user = await User.findOne({ email: req.user.email })
-        .select('-password -__v') // Exclude sensitive fields
+        .select('-password -__v')
         .lean();
+      
+      console.log('Admin user found:', !!user);
+      console.log('User has profileId:', user?.profileId);
       
       if (!user) {
         return res.status(404).json({ message: 'Admin profile not found' });
@@ -2907,7 +2915,9 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
         
         // If no profile exists for admin, create one
         if (!prof) {
-          console.log('Creating Profile entry for admin user:', req.user.email);
+          console.log('===== NO PROFILE FOUND, CREATING NEW =====');
+          console.log('Admin email:', req.user.email);
+          console.log('Admin has stale profileId:', user.profileId);
           
           // Clear any stale profileId from User record
           if (user.profileId) {
@@ -2915,7 +2925,7 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
             await User.findByIdAndUpdate(user._id, { $unset: { profileId: 1 } });
           }
           
-          prof = await Profile.create({
+          const newProfileData = {
             email: req.user.email,
             firstName: user.firstName || '',
             lastName: user.lastName || '',
@@ -2929,12 +2939,22 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
             nationality: user.nationality || '',
             address: user.address || {},
             emergencyContact: user.emergencyContact || {}
-          });
-          console.log('Profile created for admin with ID:', prof._id);
+          };
+          
+          console.log('Creating profile with data:', newProfileData);
+          prof = await Profile.create(newProfileData);
+          console.log('✅ Profile created successfully! ID:', prof._id);
           
           // Update User record with new profileId
-          await User.findByIdAndUpdate(user._id, { profileId: prof._id });
-          console.log('Updated User.profileId to:', prof._id);
+          const updated = await User.findByIdAndUpdate(
+            user._id, 
+            { profileId: prof._id },
+            { new: true }
+          );
+          console.log('✅ Updated User.profileId to:', updated.profileId);
+          console.log('==========================================');
+        } else {
+          console.log('✅ Profile found for admin:', prof._id);
         }
         
         if (prof) {

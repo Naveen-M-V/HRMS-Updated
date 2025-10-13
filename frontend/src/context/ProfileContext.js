@@ -195,17 +195,9 @@ export const ProfileProvider = ({ children }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || `Failed to create profile: ${response.status}`);
 
-      setProfiles(prev => [data, ...prev]);
-      const updatedProfiles = [data, ...profiles];
-      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-      localStorage.setItem('profiles_cache_time', Date.now().toString());
       if (isMountedRef.current) {
         setProfiles(prev => [data, ...prev]);
-        const updatedProfiles = [data, ...profiles];
-        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-        localStorage.setItem('profiles_cache_time', Date.now().toString());
-
-      setTimeout(() => fetchProfiles(true), 500);
+        
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
         }
@@ -237,16 +229,8 @@ export const ProfileProvider = ({ children }) => {
       if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
 
       const data = await response.json();
-      setProfiles(prev => prev.map(profile => profile._id === id ? data : profile));
-      const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
-      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-      localStorage.setItem('profiles_cache_time', Date.now().toString());
-      setTimeout(() => fetchProfiles(true), 500);
       if (isMountedRef.current) {
         setProfiles(prev => prev.map(profile => profile._id === id ? data : profile));
-        const updatedProfiles = profiles.map(profile => profile._id === id ? data : profile);
-        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-        localStorage.setItem('profiles_cache_time', Date.now().toString());
         
         if (refreshTimeoutRef.current) {
           clearTimeout(refreshTimeoutRef.current);
