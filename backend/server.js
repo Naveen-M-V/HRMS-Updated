@@ -2908,6 +2908,13 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
         // If no profile exists for admin, create one
         if (!prof) {
           console.log('Creating Profile entry for admin user:', req.user.email);
+          
+          // Clear any stale profileId from User record
+          if (user.profileId) {
+            console.log('Clearing stale profileId from User:', user.profileId);
+            await User.findByIdAndUpdate(user._id, { $unset: { profileId: 1 } });
+          }
+          
           prof = await Profile.create({
             email: req.user.email,
             firstName: user.firstName || '',
@@ -2924,6 +2931,10 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
             emergencyContact: user.emergencyContact || {}
           });
           console.log('Profile created for admin with ID:', prof._id);
+          
+          // Update User record with new profileId
+          await User.findByIdAndUpdate(user._id, { profileId: prof._id });
+          console.log('Updated User.profileId to:', prof._id);
         }
         
         if (prof) {

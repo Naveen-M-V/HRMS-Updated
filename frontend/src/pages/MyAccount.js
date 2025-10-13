@@ -33,13 +33,15 @@ export default function MyAccount() {
           throw new Error('Authentication required');
         }
         const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
-        const response = await fetch(`${apiUrl}/api/my-profile?init=true`, {
+        const response = await fetch(`${apiUrl}/api/my-profile?t=${Date.now()}`, {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
           }
         });
 
@@ -126,12 +128,13 @@ export default function MyAccount() {
       const token = localStorage.getItem('auth_token');
       const apiUrl = process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
 
-      // Fetch current profile to get correct ID
-      const response = await fetch(`${apiUrl}/api/my-profile`, {
+      // Fetch fresh profile data with cache busting
+      const response = await fetch(`${apiUrl}/api/my-profile?t=${Date.now()}`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
       });
 
@@ -154,20 +157,33 @@ export default function MyAccount() {
         return;
       }
 
-      const profilePicturePath = await uploadProfilePicture(profileId, file);
+      try {
+        const profilePicturePath = await uploadProfilePicture(profileId, file);
 
-      setProfile(prev => ({
-        ...prev,
-        profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`,
-        profileId: currentProfile.profileId
-      }));
+        setProfile(prev => ({
+          ...prev,
+          profilePicture: profilePicturePath || `/api/profiles/${profileId}/picture`,
+          profileId: currentProfile.profileId
+        }));
 
-      setImageKey(Date.now());
-      success("Profile picture updated successfully!");
+        setImageKey(Date.now());
+        success("Profile picture updated successfully!");
+      } catch (uploadErr) {
+        // If 404, the profile doesn't exist - force page refresh to recreate it
+        if (uploadErr.message && uploadErr.message.includes('404')) {
+          console.error('Profile not found (404), refreshing to recreate...');
+          showError('Profile needs to be initialized. Refreshing page...');
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          throw uploadErr;
+        }
+      }
     } catch (err) {
       console.error("Failed to upload profile picture:", err);
       const errorMessage = err.message || "Please try again.";
-      showError("Failed to upload profile picture: " + errorMessage);
+      if (!errorMessage.includes('Refreshing')) {
+        showError("Failed to upload profile picture: " + errorMessage);
+      }
       localStorage.removeItem('profiles_cache_optimized');
       localStorage.removeItem('profiles_cache_time');
     } finally {
