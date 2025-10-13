@@ -50,17 +50,22 @@ export const CertificateProvider = ({ children }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   
-  // FIXED: Track pending refresh timeouts for cleanup
   const refreshTimeoutRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef(null);
 
   const incrementLoading = () => setLoadingCount((count) => count + 1);
   const decrementLoading = () => setLoadingCount((count) => Math.max(count - 1, 0));
 
-  // FIXED: Clean up any pending timeouts on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, []);

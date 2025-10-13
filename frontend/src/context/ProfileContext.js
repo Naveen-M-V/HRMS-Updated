@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { storageGuard } from '../utils/memoryGuard';
 
 const ProfileContext = createContext();
 
@@ -31,19 +32,59 @@ export const ProfileProvider = ({ children }) => {
   
   const refreshTimeoutRef = useRef(null);
   const isMountedRef = useRef(true);
+  const abortControllerRef = useRef(null);
+
+  const MAX_CACHE_SIZE = 750 * 1024; // 750KB limit
+
+  const safeCacheProfiles = useCallback((profilesData) => {
+    if (!isMountedRef.current) return;
+    
+    try {
+      const json = JSON.stringify(profilesData);
+      if (json.length > MAX_CACHE_SIZE) {
+        console.warn(`Profile cache too large (${(json.length / 1024).toFixed(2)}KB), skipping`);
+        localStorage.removeItem('profiles_cache_optimized');
+        localStorage.removeItem('profiles_cache_time');
+        return false;
+      }
+      localStorage.setItem('profiles_cache_optimized', json);
+      localStorage.setItem('profiles_cache_time', Date.now().toString());
+      return true;
+    } catch (e) {
+      if (e.name === 'QuotaExceededError') {
+        console.error('Storage quota exceeded, clearing cache');
+        localStorage.removeItem('profiles_cache_optimized');
+        localStorage.removeItem('profiles_cache_time');
+      }
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // Cleanup old cache on mount
+    storageGuard.cleanupOldCaches();
+    
     return () => {
       isMountedRef.current = false;
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
   }, []);
 
   const fetchProfiles = useCallback(async (forceRefresh = false, usePagination = false, page = 1, limit = 20) => {
-    setLoading(true);
+    if (!isMountedRef.current) return;
+    
+    if (isMountedRef.current) {
+      setLoading(true);
+    }
     try {
       console.log('Fetching profiles from API');
 
@@ -81,28 +122,45 @@ export const ProfileProvider = ({ children }) => {
         const data = await response.json();
         const profilesData = usePagination ? data.profiles : data;
 
-        setProfiles(profilesData);
-        setError(null);
+        if (isMountedRef.current) {
+          setProfiles(profilesData);
+          setError(null);
+        }
 
-        if (!usePagination) {
-          localStorage.setItem('profiles_cache_optimized', JSON.stringify(profilesData));
-          localStorage.setItem('profiles_cache_time', Date.now().toString());
+        if (!usePagination && isMountedRef.current) {
+          safeCacheProfiles(profilesData);
         }
 
         return usePagination ? data : profilesData;
       } else {
-        setError(`Failed to fetch profiles: ${response.status}`);
+        if (isMountedRef.current) {
+          setError(`Failed to fetch profiles: ${response.status}`);
+        }
       }
     } catch (err) {
-      setError('Failed to fetch profiles');
+      if (isMountedRef.current) {
+        setError('Failed to fetch profiles');
+      }
       console.error('Error fetching profiles:', err);
-      const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
-      if (cachedProfiles) setProfiles(JSON.parse(cachedProfiles));
-      else setProfiles([]);
+      try {
+        const cachedProfiles = localStorage.getItem('profiles_cache_optimized');
+        if (cachedProfiles && isMountedRef.current) {
+          setProfiles(JSON.parse(cachedProfiles));
+        } else if (isMountedRef.current) {
+          setProfiles([]);
+        }
+      } catch (parseError) {
+        console.warn('Cache parse error:', parseError);
+        if (isMountedRef.current) {
+          setProfiles([]);
+        }
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [safeCacheProfiles]);
 
   const deleteProfile = async (profileId) => {
     setDeleting(true);
@@ -161,7 +219,9 @@ export const ProfileProvider = ({ children }) => {
       }
       throw lastError || new Error('Failed to delete profile - all API endpoints unreachable');
     } finally {
-      setDeleting(false);
+      if (isMountedRef.current) {
+        setDeleting(false);
+      }
     }
   };
 
@@ -209,10 +269,14 @@ export const ProfileProvider = ({ children }) => {
       }
       return data;
     } catch (err) {
-      setError('Failed to create profile');
+      if (isMountedRef.current) {
+        setError('Failed to create profile');
+      }
       throw err;
     } finally {
-      setCreating(false);
+      if (isMountedRef.current) {
+        setCreating(false);
+      }
     }
   };
 
@@ -244,10 +308,14 @@ export const ProfileProvider = ({ children }) => {
 
       return data;
     } catch (err) {
-      setError('Failed to update profile');
+      if (isMountedRef.current) {
+        setError('Failed to update profile');
+      }
       throw err;
     } finally {
-      setUpdating(false);
+      if (isMountedRef.current) {
+        setUpdating(false);
+      }
     }
   };
 
@@ -282,10 +350,13 @@ export const ProfileProvider = ({ children }) => {
       }
 
       const profile = await response.json();
-      const updatedProfiles = profiles.map(p => p._id === id ? { ...p, ...profile } : p);
-      setProfiles(updatedProfiles);
-      localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-      localStorage.setItem('profiles_cache_time', Date.now().toString());
+      if (isMountedRef.current) {
+        setProfiles(prev => {
+          const updated = prev.map(p => p._id === id ? { ...p, ...profile } : p);
+          safeCacheProfiles(updated);
+          return updated;
+        });
+      }
       return profile;
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -331,22 +402,29 @@ export const ProfileProvider = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        const updatedProfiles = profiles.map(profile =>
-          profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
-        );
-        setProfiles(updatedProfiles);
-        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-        localStorage.setItem('profiles_cache_time', Date.now().toString());
+        if (isMountedRef.current) {
+          setProfiles(prev => {
+            const updated = prev.map(profile =>
+              profile._id === id ? { ...profile, profilePicture: data.profilePicture } : profile
+            );
+            safeCacheProfiles(updated);
+            return updated;
+          });
+        }
         return data.profilePicture;
       } else {
         const textResponse = await response.text();
         throw new Error(`Server error (${response.status}): ${textResponse.substring(0, 100)}`);
       }
     } catch (err) {
-      setError('Failed to upload profile picture: ' + err.message);
+      if (isMountedRef.current) {
+        setError('Failed to upload profile picture: ' + err.message);
+      }
       throw err;
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -368,22 +446,29 @@ export const ProfileProvider = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        const updatedProfiles = profiles.map(profile =>
-          profile._id === id ? { ...profile, profilePicture: null } : profile
-        );
-        setProfiles(updatedProfiles);
-        localStorage.setItem('profiles_cache_optimized', JSON.stringify(updatedProfiles));
-        localStorage.setItem('profiles_cache_time', Date.now().toString());
+        if (isMountedRef.current) {
+          setProfiles(prev => {
+            const updated = prev.map(profile =>
+              profile._id === id ? { ...profile, profilePicture: null } : profile
+            );
+            safeCacheProfiles(updated);
+            return updated;
+          });
+        }
         return data;
       } else {
         const textResponse = await response.text();
         throw new Error(`Server error (${response.status}): ${textResponse.substring(0, 100)}`);
       }
     } catch (err) {
-      setError('Failed to delete profile picture: ' + err.message);
+      if (isMountedRef.current) {
+        setError('Failed to delete profile picture: ' + err.message);
+      }
       throw err;
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -458,13 +543,19 @@ export const ProfileProvider = ({ children }) => {
       if (!response.ok) throw new Error(`Failed to update profile: ${response.status}`);
 
       const data = await response.json();
-      setUserProfile(data);
+      if (isMountedRef.current) {
+        setUserProfile(data);
+      }
       return { success: true, data };
     } catch (err) {
-      setError('Failed to update profile: ' + err.message);
+      if (isMountedRef.current) {
+        setError('Failed to update profile: ' + err.message);
+      }
       return { success: false, error: err.message };
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
