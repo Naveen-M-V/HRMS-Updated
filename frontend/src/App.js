@@ -44,6 +44,7 @@ import CreateUser from "./pages/CreateUser";
 import UserCertificateCreate from "./pages/UserCertificateCreate";
 import UserCertificateView from "./pages/UserCertificateView";
 import AdminDetailsModal from "./pages/AdminDetailsModal";
+import RotaShiftManagement from "./pages/RotaShiftManagement";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -308,6 +309,10 @@ function App() {
                                   <Route
                                     path="/dashboard/admin-details"
                                     element={<AdminDetailsModal />}
+                                  />
+                                  <Route
+                                    path="/rota-management"
+                                    element={<RotaShiftManagement />}
                                   />
                                 </Routes>
                             </div>

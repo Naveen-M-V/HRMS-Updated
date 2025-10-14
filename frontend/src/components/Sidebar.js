@@ -14,6 +14,7 @@ import { UserPlusIcon } from "@heroicons/react/24/outline";
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
+import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
@@ -186,6 +187,14 @@ export default function Sidebar({ isOpen }) {
               >
                 <DocumentTextIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Certificates</span>
+              </div>
+
+              <div
+                onClick={() => handleNavigation("/rota-management")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <CalendarDaysIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Rota Shift Management</span>
               </div>
             </div>
           )}

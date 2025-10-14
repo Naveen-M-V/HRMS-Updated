@@ -2518,6 +2518,7 @@ const notificationRoutes = require('./routes/notifications');
 const bulkJobRolesRoutes = require('./routes/bulkJobRoles');
 const jobRolesRoutes = require('./routes/jobRoles');
 const jobLevelsRoutes = require('./routes/jobLevels');
+const rotaRoutes = require('./routes/rotaRoutes');
 
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
@@ -3378,6 +3379,7 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
 app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
+app.use('/api/rota', rotaRoutes);
 
 // Email service handled by utils/emailService.js
 
