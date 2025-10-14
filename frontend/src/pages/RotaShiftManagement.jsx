@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import ShiftTimeline from '../components/ShiftTimeline';
 import { getAllRota, generateRota, initializeShifts } from '../utils/rotaApi';
 import LoadingScreen from '../components/LoadingScreen';
@@ -168,11 +169,13 @@ const RotaShiftManagement = () => {
   }
 
   return (
-    <div className="rota-shift-management-page" style={{
-      padding: '24px',
-      maxWidth: '1600px',
-      margin: '0 auto'
-    }}>
+    <>
+      <ToastContainer position="top-right" autoClose={3000} />
+      <div className="rota-shift-management-page" style={{
+        padding: '24px',
+        maxWidth: '1600px',
+        margin: '0 auto'
+      }}>
       {/* Header */}
       <div style={{
         marginBottom: '32px'
@@ -410,7 +413,8 @@ const RotaShiftManagement = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
