@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import UserClockIns from './UserClockIns';
 import { 
   PencilIcon, 
   PlusIcon, 
@@ -212,6 +213,7 @@ const UserDashboard = () => {
             {[
               { id: 'overview', name: 'Overview', icon: UserCircleIcon },
               { id: 'profile', name: 'My Profile', icon: UserCircleIcon },
+              { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon },
               { id: 'certificates', name: 'My Certificates', icon: DocumentTextIcon },
               { id: 'notifications', name: 'Notifications', icon: BellIcon }
             ].map((tab) => (
@@ -403,6 +405,13 @@ const UserDashboard = () => {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Clock-ins Tab */}
+        {activeTab === 'clock-ins' && (
+          <div style={{ margin: '-32px', padding: '0' }}>
+            <UserClockIns />
           </div>
         )}
 

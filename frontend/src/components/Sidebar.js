@@ -15,6 +15,7 @@ import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import { CalendarDaysIcon } from "@heroicons/react/24/outline";
+import { ClockIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen }) {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function Sidebar({ isOpen }) {
   } = useNotifications();
 
   const [openReporting, setOpenReporting] = useState(false);
+  const [openClockInOut, setOpenClockInOut] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -128,6 +130,65 @@ export default function Sidebar({ isOpen }) {
               >
                 <HomeIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Compliance Dashboard</span>
+              </div>
+            </div>
+          )}
+
+          <div className="border-b border-green-300 mx-2 my-2"></div>
+        </div>
+
+        {/* Clock In/Out Section */}
+        <div>
+          <div
+            onClick={() => {
+              console.log("Clock In/Out clicked");
+              setOpenClockInOut(!openClockInOut);
+            }}
+            className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
+          >
+            <ClockIcon className="h-6 w-6 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm flex-1">Clock In/Out</span>
+                {openClockInOut ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+            {!isOpen && (
+              <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none">
+                Clock In/Out
+              </div>
+            )}
+          </div>
+
+          {/* Clock In/Out Children */}
+          {openClockInOut && isOpen && (
+            <div className="ml-3 pl-5 border-l border-green-800">
+              <div
+                onClick={() => handleNavigation("/clock-overview")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <HomeIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Overview</span>
+              </div>
+
+              <div
+                onClick={() => handleNavigation("/clock-ins")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <ClockIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Clock-ins</span>
+              </div>
+
+              <div
+                onClick={() => handleNavigation("/time-history")}
+                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+              >
+                <DocumentTextIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">History</span>
               </div>
             </div>
           )}
@@ -285,7 +346,7 @@ export default function Sidebar({ isOpen }) {
 
         {/* Version */}
         <div className="pb-2 text-center text-xs text-green-300/50">
-          Talentshield v.0.1
+          {process.env.REACT_APP_NAME || 'Talentshield'} v1.13
         </div>
       </div>
     </div>

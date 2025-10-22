@@ -2519,6 +2519,7 @@ const bulkJobRolesRoutes = require('./routes/bulkJobRoles');
 const jobRolesRoutes = require('./routes/jobRoles');
 const jobLevelsRoutes = require('./routes/jobLevels');
 const rotaRoutes = require('./routes/rotaRoutes');
+const clockRoutes = require('./routes/clockRoutes');
 
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
@@ -3380,6 +3381,7 @@ app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
 app.use('/api/rota', rotaRoutes);
+app.use('/api/clock', authenticateSession, clockRoutes);
 
 // Email service handled by utils/emailService.js
 
@@ -3747,9 +3749,16 @@ app.listen(PORT, () => {
 });
 
 // Ensure API routes are defined before serving the React app
-// Serve React app for all other routes
-app.use(express.static(path.join(__dirname, '../frontend/build')));
-
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-});
+// Serve React app for all other routes (disabled in development)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  
+  app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  });
+} else {
+  // In development, just return a simple message for unmatched routes
+  app.get('*', (req, res) => {
+    res.status(404).json({ message: 'API endpoint not found. Frontend should run on port 3000.' });
+  });
+}
