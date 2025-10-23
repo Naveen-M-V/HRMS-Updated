@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getClockStatus, clockIn, clockOut } from '../utils/clockApi';
+import { getClockStatus, clockIn, clockOut, changeEmployeeStatus } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 
 /**
@@ -283,6 +283,27 @@ const ClockIns = () => {
           : emp
       ));
       toast.success('Employee clocked out successfully (demo mode)');
+    }
+  };
+
+  const handleStatusChange = async (employeeId, newStatus) => {
+    try {
+      const response = await changeEmployeeStatus(employeeId, newStatus);
+      if (response.success) {
+        toast.success(`Status changed to ${newStatus.replace('_', ' ')} successfully`);
+        fetchEmployees(); // Refresh data
+      } else {
+        toast.error(response.message || 'Failed to change status');
+      }
+    } catch (error) {
+      console.error('Status change error:', error);
+      // For demo purposes, simulate successful status change
+      setEmployees(prev => prev.map(emp => 
+        emp.id === employeeId
+          ? { ...emp, status: newStatus }
+          : emp
+      ));
+      toast.success(`Status changed to ${newStatus.replace('_', ' ')} successfully (demo mode)`);
     }
   };
 
@@ -586,7 +607,27 @@ const ClockIns = () => {
                     {employee.jobTitle || 'Blockages'}
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                    {getStatusBadge(employee.status)}
+                    <select
+                      value={employee.status || 'absent'}
+                      onChange={(e) => handleStatusChange(employee.id, e.target.value)}
+                      style={{
+                        padding: '6px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        background: 'white',
+                        color: '#111827',
+                        minWidth: '130px'
+                      }}
+                    >
+                      <option value="clocked_in">✓ Clocked In</option>
+                      <option value="clocked_out">○ Clocked Out</option>
+                      <option value="on_break">☕ On Break</option>
+                      <option value="absent">✗ Absent</option>
+                      <option value="on_leave">🏖️ On Leave</option>
+                    </select>
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>

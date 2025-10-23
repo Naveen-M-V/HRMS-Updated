@@ -2520,6 +2520,7 @@ const jobRolesRoutes = require('./routes/jobRoles');
 const jobLevelsRoutes = require('./routes/jobLevels');
 const rotaRoutes = require('./routes/rotaRoutes');
 const clockRoutes = require('./routes/clockRoutes');
+const leaveRoutes = require('./routes/leaveRoutes');
 
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
@@ -3382,6 +3383,7 @@ app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
 app.use('/api/rota', rotaRoutes);
 app.use('/api/clock', authenticateSession, clockRoutes);
+app.use('/api/leave', authenticateSession, leaveRoutes);
 
 // Email service handled by utils/emailService.js
 

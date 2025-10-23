@@ -1,19 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { storageGuard } from '../utils/memoryGuard';
+import { API_BASE_URL, SERVER_BASE_URL } from '../utils/config';
 
 const ProfileContext = createContext();
 
-const getApiUrl = () => {
-  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
-  if (process.env.REACT_APP_API_BASE_URL) return process.env.REACT_APP_API_BASE_URL;
-  if (window.location.hostname === 'talentshield.co.uk') {
-    return 'https://talentshield.co.uk';
-  }
-  return 'http://localhost:5003';
-};
-
-const API_BASE_URL = getApiUrl();
 
 export const useProfiles = () => {
   const context = useContext(ProfileContext);
@@ -108,7 +99,7 @@ export const ProfileProvider = ({ children }) => {
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('Authentication token not found');
 
-      const response = await fetch(`https://talentshield.co.uk${endpoint}`, {
+      const response = await fetch(`${SERVER_BASE_URL}${endpoint}`, {
         credentials: 'include',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -165,7 +156,7 @@ export const ProfileProvider = ({ children }) => {
   const deleteProfile = async (profileId) => {
     setDeleting(true);
     const possibleUrls = [
-      'https://talentshield.co.uk',
+      SERVER_BASE_URL,
       'http://localhost:5003'
     ];
 
@@ -239,7 +230,7 @@ export const ProfileProvider = ({ children }) => {
       const token = localStorage.getItem('auth_token');
       if (!token) throw new Error('Authentication token not found');
 
-      const response = await fetch('https://talentshield.co.uk/api/profiles', {
+      const response = await fetch(`${API_BASE_URL}/profiles`, {
         method: 'POST',
         headers: { 
           'Accept': 'application/json',
@@ -285,7 +276,7 @@ export const ProfileProvider = ({ children }) => {
   const updateProfile = useCallback(async (id, updatedProfile) => {
     setUpdating(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/profiles/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedProfile),
@@ -325,7 +316,7 @@ export const ProfileProvider = ({ children }) => {
 
   const fetchMyProfile = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/my-profile`, { 
+      const response = await fetch(`${API_BASE_URL}/my-profile`, { 
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -345,7 +336,7 @@ export const ProfileProvider = ({ children }) => {
 
   const fetchProfileById = useCallback(async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}`, { credentials: 'include' });
+      const response = await fetch(`${API_BASE_URL}/profiles/${id}`, { credentials: 'include' });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Failed to fetch profile' }));
         throw new Error(errorData.message || `Failed to fetch profile: ${response.status}`);
@@ -369,7 +360,7 @@ export const ProfileProvider = ({ children }) => {
   const fetchCompleteProfileById = useCallback(async (id) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${id}/complete`, { 
+      const response = await fetch(`${API_BASE_URL}/profiles/${id}/complete`, { 
         credentials: 'include',
         headers: {
           ...(token && { 'Authorization': `Bearer ${token}` })
@@ -532,7 +523,7 @@ export const ProfileProvider = ({ children }) => {
       };
 
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${user._id}`, {
+      const response = await fetch(`${API_BASE_URL}/profiles/${user._id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',

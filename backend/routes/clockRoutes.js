@@ -2,10 +2,13 @@ const express = require('express');
 const router = express.Router();
 const TimeEntry = require('../models/TimeEntry');
 const User = require('../models/User');
+const LeaveRecord = require('../models/LeaveRecord');
+const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
 
 /**
  * Clock Routes
  * Handles time tracking and attendance functionality
+ * Integrated with leave management system
  */
 
 // @route   POST /api/clock/in
@@ -132,7 +135,7 @@ router.post('/out', async (req, res) => {
 });
 
 // @route   GET /api/clock/status
-// @desc    Get current clock status for all employees
+// @desc    Get current clock status for all employees (includes leave status)
 // @access  Private (Admin)
 router.get('/status', async (req, res) => {
   try {
@@ -141,15 +144,25 @@ router.get('/status', async (req, res) => {
 
     // Get all employees
     const employees = await User.find({ role: { $ne: 'admin' } })
-      .select('firstName lastName email department vtid')
+      .select('firstName lastName email department vtid jobTitle')
       .lean();
 
     // Get today's time entries
     const timeEntries = await TimeEntry.find({
       date: { $gte: today }
-    }).populate('employee', 'firstName lastName email department vtid');
+    }).populate('employee', 'firstName lastName email department vtid jobTitle');
 
-    // Create status map
+    // Get today's approved leave records
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const leaveRecords = await LeaveRecord.find({
+      status: 'approved',
+      startDate: { $lte: tomorrow },
+      endDate: { $gte: today }
+    }).populate('user', '_id');
+
+    // Create status map from time entries
     const statusMap = {};
     timeEntries.forEach(entry => {
       if (entry.employee) {
@@ -157,14 +170,51 @@ router.get('/status', async (req, res) => {
           status: entry.status,
           clockIn: entry.clockIn,
           clockOut: entry.clockOut,
-          location: entry.location
+          location: entry.location,
+          workType: entry.workType
+        };
+      }
+    });
+
+    // Create leave map
+    const leaveMap = {};
+    leaveRecords.forEach(record => {
+      if (record.user) {
+        leaveMap[record.user._id.toString()] = {
+          type: record.type,
+          reason: record.reason
         };
       }
     });
 
     // Build response with all employees and their status
     const employeeStatus = employees.map(employee => {
-      const status = statusMap[employee._id.toString()];
+      const empId = employee._id.toString();
+      const status = statusMap[empId];
+      const leave = leaveMap[empId];
+      
+      // If employee has approved leave today, override status
+      if (leave) {
+        return {
+          id: employee._id,
+          name: `${employee.firstName} ${employee.lastName}`,
+          firstName: employee.firstName,
+          lastName: employee.lastName,
+          email: employee.email,
+          department: employee.department,
+          vtid: employee.vtid,
+          jobTitle: employee.jobTitle,
+          status: leave.type === 'absent' ? 'absent' : 'on_leave',
+          clockIn: null,
+          clockOut: null,
+          location: null,
+          workType: null,
+          leaveType: leave.type,
+          leaveReason: leave.reason
+        };
+      }
+      
+      // Otherwise use time entry status or default to absent
       return {
         id: employee._id,
         name: `${employee.firstName} ${employee.lastName}`,
@@ -173,10 +223,12 @@ router.get('/status', async (req, res) => {
         email: employee.email,
         department: employee.department,
         vtid: employee.vtid,
+        jobTitle: employee.jobTitle,
         status: status?.status || 'absent',
         clockIn: status?.clockIn || null,
         clockOut: status?.clockOut || null,
-        location: status?.location || null
+        location: status?.location || null,
+        workType: status?.workType || null
       };
     });
 
@@ -413,6 +465,157 @@ router.post('/entry/:id/break', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error adding break'
+    });
+  }
+});
+
+// @route   POST /api/clock/admin/status
+// @desc    Admin change employee status (clocked_in, clocked_out, on_break, absent, on_leave)
+// @access  Private (Admin)
+router.post('/admin/status', async (req, res) => {
+  try {
+    const { employeeId, status, location, workType, reason } = req.body;
+
+    if (!employeeId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: 'employeeId and status are required'
+      });
+    }
+
+    // Check if employee exists
+    const employee = await User.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let result;
+
+    switch (status) {
+      case 'clocked_in':
+        // Check if already clocked in
+        const existingEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today },
+          status: { $in: ['clocked_in', 'on_break'] }
+        });
+
+        if (existingEntry) {
+          return res.status(400).json({
+            success: false,
+            message: 'Employee is already clocked in today'
+          });
+        }
+
+        // Create new time entry
+        const currentTime = new Date().toTimeString().slice(0, 5);
+        const timeEntry = new TimeEntry({
+          employee: employeeId,
+          date: new Date(),
+          clockIn: currentTime,
+          location: location || 'Work From Office',
+          workType: workType || 'Regular',
+          status: 'clocked_in',
+          isManualEntry: true,
+          createdBy: req.user.id
+        });
+
+        await timeEntry.save();
+        result = { message: 'Employee clocked in successfully', data: timeEntry };
+        break;
+
+      case 'clocked_out':
+        // Find active entry
+        const activeEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today },
+          status: { $in: ['clocked_in', 'on_break'] }
+        });
+
+        if (!activeEntry) {
+          return res.status(400).json({
+            success: false,
+            message: 'No active clock-in found for today'
+          });
+        }
+
+        activeEntry.clockOut = new Date().toTimeString().slice(0, 5);
+        activeEntry.status = 'clocked_out';
+        await activeEntry.save();
+        result = { message: 'Employee clocked out successfully', data: activeEntry };
+        break;
+
+      case 'on_break':
+        // Find today's entry
+        const breakEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today },
+          status: 'clocked_in'
+        });
+
+        if (!breakEntry) {
+          return res.status(400).json({
+            success: false,
+            message: 'Employee must be clocked in to take a break'
+          });
+        }
+
+        const breakStartTime = new Date().toTimeString().slice(0, 5);
+        const breakEndTime = new Date(Date.now() + 30 * 60000).toTimeString().slice(0, 5);
+
+        breakEntry.breaks.push({
+          startTime: breakStartTime,
+          endTime: breakEndTime,
+          duration: 30,
+          type: 'other'
+        });
+        breakEntry.status = 'on_break';
+        await breakEntry.save();
+        result = { message: 'Break started successfully', data: breakEntry };
+        break;
+
+      case 'absent':
+      case 'on_leave':
+        // Create a leave record for today
+        const leaveRecord = new LeaveRecord({
+          user: employeeId,
+          type: status === 'absent' ? 'absent' : 'annual',
+          status: 'approved',
+          startDate: today,
+          endDate: today,
+          days: 1,
+          reason: reason || 'Admin marked',
+          createdBy: req.user.id,
+          approvedBy: req.user.id,
+          approvedAt: new Date()
+        });
+
+        await leaveRecord.save();
+        result = { message: `Employee marked as ${status} successfully`, data: leaveRecord };
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid status. Must be: clocked_in, clocked_out, on_break, absent, or on_leave'
+        });
+    }
+
+    res.json({
+      success: true,
+      ...result
+    });
+
+  } catch (error) {
+    console.error('Admin change status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error changing employee status'
     });
   }
 });

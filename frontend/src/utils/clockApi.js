@@ -251,3 +251,29 @@ export const getUserTimeEntries = async (startDate, endDate) => {
     throw error.response?.data || { message: 'Failed to fetch user time entries' };
   }
 };
+
+/**
+ * Admin change employee status
+ * @param {String} employeeId - Employee user ID
+ * @param {String} status - New status (clocked_in, clocked_out, on_break, absent, on_leave)
+ * @param {Object} options - Additional options (location, workType, reason)
+ * @returns {Promise} API response
+ */
+export const changeEmployeeStatus = async (employeeId, status, options = {}) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl('/clock/admin/status'),
+      {
+        employeeId,
+        status,
+        location: options.location,
+        workType: options.workType,
+        reason: options.reason
+      },
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to change employee status' };
+  }
+};

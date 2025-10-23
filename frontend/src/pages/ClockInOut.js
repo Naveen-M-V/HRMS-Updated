@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getClockStatus } from '../utils/clockApi';
+import { getCurrentUserLeaveBalance, getNextUpcomingLeave } from '../utils/leaveApi';
 import LoadingScreen from '../components/LoadingScreen';
 
 /**
@@ -18,6 +19,8 @@ const ClockInOut = () => {
     onBreak: 0,
     absent: 0
   });
+  const [leaveBalance, setLeaveBalance] = useState(null);
+  const [nextLeave, setNextLeave] = useState(null);
 
   const fetchClockStatus = async () => {
     try {
@@ -62,8 +65,31 @@ const ClockInOut = () => {
     }
   };
 
+  const fetchLeaveData = async () => {
+    try {
+      const balanceResponse = await getCurrentUserLeaveBalance();
+      if (balanceResponse.success && balanceResponse.data) {
+        setLeaveBalance(balanceResponse.data);
+      }
+    } catch (error) {
+      console.error('Error fetching leave balance:', error);
+      // Don't show error to user, just use defaults
+    }
+
+    try {
+      const nextLeaveResponse = await getNextUpcomingLeave();
+      if (nextLeaveResponse.success && nextLeaveResponse.data) {
+        setNextLeave(nextLeaveResponse.data);
+      }
+    } catch (error) {
+      console.error('Error fetching next leave:', error);
+      // Don't show error to user
+    }
+  };
+
   useEffect(() => {
     fetchClockStatus();
+    fetchLeaveData();
     // Set up auto-refresh every 30 seconds
     const interval = setInterval(fetchClockStatus, 30000);
     return () => clearInterval(interval);
@@ -340,7 +366,7 @@ const ClockInOut = () => {
                   fontWeight: '700',
                   color: '#111827'
                 }}>
-                  20 Days
+                  {leaveBalance?.remainingDays ?? 0} Days
                 </div>
                 <div style={{
                   fontSize: '12px',
@@ -362,13 +388,13 @@ const ClockInOut = () => {
                   fontWeight: '600',
                   color: '#111827'
                 }}>
-                  25/12/25
+                  {nextLeave ? new Date(nextLeave.startDate).toLocaleDateString('en-GB') : 'None scheduled'}
                 </div>
                 <div style={{
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Public Holiday
+                  {nextLeave ? (nextLeave.type === 'annual' ? 'Annual Leave' : nextLeave.type) : 'No upcoming leave'}
                 </div>
               </div>
             </div>
