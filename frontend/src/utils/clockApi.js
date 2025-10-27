@@ -318,3 +318,55 @@ export const getAttendanceSummary = async (employeeId, startDate, endDate) => {
     throw error.response?.data || { message: 'Failed to fetch attendance summary' };
   }
 };
+
+/**
+ * Set employee to "On Break" status
+ * @param {String} employeeId - Employee ID
+ * @returns {Promise} API response
+ */
+export const setOnBreak = async (employeeId) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl(`${CLOCK_BASE}/onbreak`),
+      { employeeId },
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to set on break' };
+  }
+};
+
+/**
+ * End employee break
+ * @param {String} employeeId - Employee ID
+ * @returns {Promise} API response
+ */
+export const endBreak = async (employeeId) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl(`${CLOCK_BASE}/endbreak`),
+      { employeeId },
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to end break' };
+  }
+};
+
+/**
+ * Get dashboard statistics
+ * @returns {Promise} Dashboard stats
+ */
+export const getDashboardStats = async () => {
+  try {
+    const response = await axios.get(
+      buildApiUrl(`${CLOCK_BASE}/dashboard`),
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch dashboard stats' };
+  }
+};

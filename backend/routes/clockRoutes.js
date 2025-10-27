@@ -199,6 +199,40 @@ router.post('/out', async (req, res) => {
   }
 });
 
+// @route   GET /api/clock/dashboard
+// @desc    Get dashboard statistics
+// @access  Private (Admin)
+router.get('/dashboard', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get today's time entries
+    const timeEntries = await TimeEntry.find({
+      date: { $gte: today }
+    });
+
+    const stats = {
+      clockedIn: timeEntries.filter(e => e.status === 'clocked_in').length,
+      onBreak: timeEntries.filter(e => e.status === 'on_break').length,
+      clockedOut: timeEntries.filter(e => e.status === 'clocked_out').length,
+      total: timeEntries.length
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Get dashboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching dashboard data'
+    });
+  }
+});
+
 // @route   GET /api/clock/status
 // @desc    Get current clock status for all employees (includes leave status)
 // @access  Private (Admin)
@@ -530,6 +564,154 @@ router.post('/entry/:id/break', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error adding break'
+    });
+  }
+});
+
+// @route   POST /api/clock/onbreak
+// @desc    Set employee to "On Break" status and sync with shift
+// @access  Private (Admin)
+router.post('/onbreak', async (req, res) => {
+  try {
+    const { employeeId } = req.body;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID is required'
+      });
+    }
+
+    // Find today's active time entry
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const timeEntry = await TimeEntry.findOne({
+      employee: employeeId,
+      date: { $gte: today },
+      status: 'clocked_in'
+    }).populate('shiftId');
+
+    if (!timeEntry) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee must be clocked in to take a break'
+      });
+    }
+
+    // Set break status
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    timeEntry.status = 'on_break';
+    timeEntry.onBreakStart = currentTime;
+    
+    await timeEntry.save();
+
+    // Sync shift status to "On Break"
+    if (timeEntry.shiftId) {
+      const ShiftAssignment = require('../models/ShiftAssignment');
+      await ShiftAssignment.findByIdAndUpdate(
+        timeEntry.shiftId._id,
+        { status: 'On Break' },
+        { new: true }
+      );
+      console.log(`Shift ${timeEntry.shiftId._id} set to "On Break"`);
+    }
+
+    res.json({
+      success: true,
+      message: 'Employee is now on break',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('On break error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error setting break status'
+    });
+  }
+});
+
+// @route   POST /api/clock/endbreak
+// @desc    End employee break and resume work
+// @access  Private (Admin)
+router.post('/endbreak', async (req, res) => {
+  try {
+    const { employeeId } = req.body;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID is required'
+      });
+    }
+
+    // Find today's active time entry
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const timeEntry = await TimeEntry.findOne({
+      employee: employeeId,
+      date: { $gte: today },
+      status: 'on_break'
+    }).populate('shiftId');
+
+    if (!timeEntry) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee is not currently on break'
+      });
+    }
+
+    // End break
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    timeEntry.status = 'clocked_in';
+    timeEntry.onBreakEnd = currentTime;
+    
+    // Calculate break duration and add to breaks array
+    if (timeEntry.onBreakStart) {
+      const startParts = timeEntry.onBreakStart.split(':');
+      const endParts = currentTime.split(':');
+      const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+      const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+      const duration = endMinutes - startMinutes;
+      
+      timeEntry.breaks.push({
+        startTime: timeEntry.onBreakStart,
+        endTime: currentTime,
+        duration: duration > 0 ? duration : 0,
+        type: 'other'
+      });
+      
+      // Clear break markers
+      timeEntry.onBreakStart = null;
+      timeEntry.onBreakEnd = null;
+    }
+    
+    await timeEntry.save();
+
+    // Sync shift status back to "In Progress"
+    if (timeEntry.shiftId) {
+      const ShiftAssignment = require('../models/ShiftAssignment');
+      await ShiftAssignment.findByIdAndUpdate(
+        timeEntry.shiftId._id,
+        { status: 'In Progress' },
+        { new: true }
+      );
+      console.log(`Shift ${timeEntry.shiftId._id} resumed to "In Progress"`);
+    }
+
+    res.json({
+      success: true,
+      message: 'Break ended, employee back to work',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('End break error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error ending break'
     });
   }
 });

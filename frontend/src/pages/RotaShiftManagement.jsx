@@ -56,6 +56,13 @@ const RotaShiftManagement = () => {
 
   useEffect(() => {
     fetchData();
+    
+    // Auto-refresh every 15 seconds to sync "On Break" status from Clock-In page
+    const interval = setInterval(() => {
+      fetchData();
+    }, 15000);
+    
+    return () => clearInterval(interval);
   }, [filters]);
 
   const fetchData = async () => {
@@ -140,14 +147,42 @@ const RotaShiftManagement = () => {
     return colors[location] || '#6b7280';
   };
 
+  /**
+   * Format date to UK format: "Fri, 24 Oct 2025"
+   */
+  const formatUKDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString("en-GB", {
+      timeZone: "Europe/London",
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  /**
+   * Format time to UK format: "09:03 AM"
+   */
+  const formatUKTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+  };
+
   const getStatusBadge = (status) => {
     const styles = {
-      'Scheduled': { bg: '#eff6ff', text: '#1e40af', icon: '📅' },
-      'In Progress': { bg: '#fef3c7', text: '#92400e', icon: '🟡' },
-      'Completed': { bg: '#f0fdf4', text: '#166534', icon: '✅' },
-      'Missed': { bg: '#fef2f2', text: '#991b1b', icon: '❌' },
+      'Scheduled': { bg: '#f3f4f6', text: '#374151', icon: '⚪' },
+      'In Progress': { bg: '#d1fae5', text: '#065f46', icon: '🟢' },
+      'On Break': { bg: '#fef3c7', text: '#92400e', icon: '🟡' },
+      'Completed': { bg: '#dbeafe', text: '#1e40af', icon: '✅' },
+      'Missed': { bg: '#fee2e2', text: '#991b1b', icon: '🔴' },
       'Swapped': { bg: '#fef3c7', text: '#92400e', icon: '🔄' },
-      'Cancelled': { bg: '#f3f4f6', text: '#374151', icon: '⛔' }
+      'Cancelled': { bg: '#f3f4f6', text: '#6b7280', icon: '⛔' }
     };
     const style = styles[status] || styles['Scheduled'];
     return (
@@ -155,7 +190,7 @@ const RotaShiftManagement = () => {
         padding: '4px 12px',
         borderRadius: '12px',
         fontSize: '12px',
-        fontWeight: '500',
+        fontWeight: '600',
         background: style.bg,
         color: style.text
       }}>
@@ -205,7 +240,7 @@ const RotaShiftManagement = () => {
             Rota & Shift Management
           </h1>
           <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            Assign, manage, and track employee shift schedules
+            Assign, manage, and track employee shift schedules - Auto-refreshes every 15 seconds
           </p>
         </div>
 
@@ -380,10 +415,10 @@ const RotaShiftManagement = () => {
                         {shift.employeeId?.firstName} {shift.employeeId?.lastName}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                        {new Date(shift.date).toLocaleDateString()}
+                        {formatUKDate(shift.date)}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                        {shift.startTime} - {shift.endTime}
+                        {formatUKTime(shift.startTime)} - {formatUKTime(shift.endTime)}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
                         {shift.actualStartTime || shift.actualEndTime ? (

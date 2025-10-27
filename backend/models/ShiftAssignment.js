@@ -39,7 +39,7 @@ const shiftAssignmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Scheduled', 'In Progress', 'Completed', 'Missed', 'Swapped', 'Cancelled'],
+    enum: ['Scheduled', 'In Progress', 'On Break', 'Completed', 'Missed', 'Swapped', 'Cancelled'],
     default: 'Scheduled'
   },
   actualStartTime: {

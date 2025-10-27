@@ -60,6 +60,17 @@ const timeEntrySchema = new mongoose.Schema({
   },
   // ========================================
   
+  // ========== NEW: ON BREAK TRACKING ==========
+  onBreakStart: {
+    type: String, // Format: "HH:MM" - When current break started
+    default: null
+  },
+  onBreakEnd: {
+    type: String, // Format: "HH:MM" - When current break ended
+    default: null
+  },
+  // ============================================
+  
   breaks: [{
     startTime: {
       type: String, // Format: "HH:MM"
