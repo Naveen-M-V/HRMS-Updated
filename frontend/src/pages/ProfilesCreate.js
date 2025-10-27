@@ -8,6 +8,7 @@ import ModernDatePicker from "../components/ModernDatePicker";
 import ProfilePictureUpload from "../components/ProfilePictureUpload";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
+import { buildApiUrl } from "../utils/apiConfig";
 
 export default function ProfilesCreate() {
   const { success, error } = useAlert();
@@ -78,7 +79,7 @@ export default function ProfilesCreate() {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch('https://talentshield.co.uk/api/job-levels', {
+      const response = await fetch(buildApiUrl('/job-levels'), {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',

@@ -75,8 +75,8 @@ app.use(cors({
     ? ['http://localhost:3000', 'http://localhost:5003']
     : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Accept'],
   exposedHeaders: ['Set-Cookie']
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -3381,7 +3381,7 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
 app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
-app.use('/api/rota', rotaRoutes);
+app.use('/api/rota', authenticateSession, rotaRoutes);
 app.use('/api/clock', authenticateSession, clockRoutes);
 app.use('/api/leave', authenticateSession, leaveRoutes);
 
@@ -3617,6 +3617,29 @@ const createDefaultUser = async () => {
     
     if (superAdminEmails.length === 0) {
       console.warn('⚠️  No super admin emails found in SUPER_ADMIN_EMAIL environment variable');
+    }
+    
+    // Create default test user account
+    console.log('Creating default test user account...');
+    const testUserEmail = 'user@localhost.com';
+    const existingTestUser = await User.findOne({ email: testUserEmail });
+    
+    if (!existingTestUser) {
+      const testUser = new User({
+        firstName: 'Test',
+        lastName: 'Employee',
+        email: testUserEmail,
+        password: 'Password@123',
+        role: 'user',
+        isActive: true,
+        emailVerified: true,
+        adminApprovalStatus: 'approved'
+      });
+      
+      await testUser.save();
+      console.log(`✅ Test user created: ${testUserEmail} (Password: Password@123)`);
+    } else {
+      console.log(`⏭️  Test user already exists: ${testUserEmail}`);
     }
   } catch (error) {
     console.error('Error creating default super admins:', error);

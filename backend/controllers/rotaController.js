@@ -1,37 +1,621 @@
 const Rota = require('../models/Rota');
-const Employee = require('../models/Employee');
 const Shift = require('../models/Shift');
+const ShiftAssignment = require('../models/ShiftAssignment');
+const User = require('../models/User');
+const TimeEntry = require('../models/TimeEntry');
 
-/**
- * Helper function to move to the next day
- * @param {Date} date - Current date
- * @returns {Date} Next day
- */
 const nextDay = (date) => {
   const d = new Date(date);
   d.setDate(d.getDate() + 1);
   return d;
 };
 
-/**
- * Helper function to check if a date is a weekend (Saturday or Sunday)
- * @param {Date} date - Date to check
- * @returns {Boolean} True if weekend
- */
 const isWeekend = (date) => {
   const day = new Date(date).getDay();
-  return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  return day === 0 || day === 6;
 };
 
-/**
- * Generate Rota
- * Auto-generates shift assignments for all employees within a date range
- * Uses round-robin rotation algorithm, skips weekends
- * 
- * @route POST /api/rota/generate
- * @body {String} startDate - Start date (YYYY-MM-DD)
- * @body {String} endDate - End date (YYYY-MM-DD)
- */
+exports.detectShiftConflicts = async (employeeId, startTime, endTime, date, excludeShiftId = null) => {
+  try {
+    const dateStart = new Date(date);
+    dateStart.setHours(0, 0, 0, 0);
+    const dateEnd = new Date(date);
+    dateEnd.setHours(23, 59, 59, 999);
+
+    const query = {
+      employeeId,
+      date: { $gte: dateStart, $lte: dateEnd },
+      status: { $nin: ['Cancelled', 'Swapped'] }
+    };
+
+    if (excludeShiftId) {
+      query._id = { $ne: excludeShiftId };
+    }
+
+    const existingShifts = await ShiftAssignment.find(query);
+
+    const conflicts = existingShifts.filter(shift => {
+      const shiftStart = shift.startTime;
+      const shiftEnd = shift.endTime;
+      return (
+        (startTime >= shiftStart && startTime < shiftEnd) ||
+        (endTime > shiftStart && endTime <= shiftEnd) ||
+        (startTime <= shiftStart && endTime >= shiftEnd)
+      );
+    });
+
+    return conflicts;
+  } catch (error) {
+    console.error('Detect conflicts error:', error);
+    throw error;
+  }
+};
+
+exports.assignShiftToEmployee = async (req, res) => {
+  try {
+    console.log('=== Assign Shift Request ===');
+    console.log('User from session:', req.user);
+    console.log('Session ID:', req.session?.id);
+    
+    const { employeeId, date, startTime, endTime, location, workType, breakDuration, notes } = req.body;
+
+    if (!employeeId || !date || !startTime || !endTime || !location || !workType) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: employeeId, date, startTime, endTime, location, workType'
+      });
+    }
+
+    const assignedByUserId = req.user._id || req.user.userId;
+    
+    if (!req.user || !assignedByUserId) {
+      console.error('Authentication failed - req.user:', req.user);
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. User not found in session.',
+        debug: {
+          hasUser: !!req.user,
+          hasSession: !!req.session,
+          sessionUser: req.session?.user
+        }
+      });
+    }
+
+    const employee = await User.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    const conflicts = await exports.detectShiftConflicts(employeeId, startTime, endTime, date);
+    if (conflicts.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shift conflict detected',
+        conflicts: conflicts.map(c => ({
+          id: c._id,
+          startTime: c.startTime,
+          endTime: c.endTime,
+          location: c.location
+        }))
+      });
+    }
+
+    const shiftAssignment = new ShiftAssignment({
+      employeeId,
+      date: new Date(date),
+      startTime,
+      endTime,
+      location,
+      workType,
+      breakDuration: breakDuration || 0,
+      assignedBy: assignedByUserId,
+      notes: notes || '',
+      status: 'Scheduled'
+    });
+
+    await shiftAssignment.save();
+
+    const populatedShift = await ShiftAssignment.findById(shiftAssignment._id)
+      .populate('employeeId', 'firstName lastName email')
+      .populate('assignedBy', 'firstName lastName');
+
+    res.status(201).json({
+      success: true,
+      message: 'Shift assigned successfully',
+      data: populatedShift
+    });
+
+  } catch (error) {
+    console.error('Assign shift error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to assign shift',
+      error: error.message
+    });
+  }
+};
+
+exports.bulkCreateShifts = async (req, res) => {
+  try {
+    const { shifts } = req.body;
+
+    if (!shifts || !Array.isArray(shifts) || shifts.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shifts array is required'
+      });
+    }
+
+    const assignedByUserId = req.user._id || req.user.userId;
+    if (!assignedByUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const results = {
+      successful: [],
+      failed: []
+    };
+
+    for (const shift of shifts) {
+      try {
+        const { employeeId, date, startTime, endTime, location, workType, breakDuration, notes } = shift;
+
+        const employee = await User.findById(employeeId);
+        if (!employee) {
+          results.failed.push({
+            shift,
+            reason: 'Employee not found'
+          });
+          continue;
+        }
+
+        const conflicts = await exports.detectShiftConflicts(employeeId, startTime, endTime, date);
+        if (conflicts.length > 0) {
+          results.failed.push({
+            shift,
+            reason: 'Shift conflict detected'
+          });
+          continue;
+        }
+
+        const shiftAssignment = new ShiftAssignment({
+          employeeId,
+          date: new Date(date),
+          startTime,
+          endTime,
+          location,
+          workType,
+          breakDuration: breakDuration || 0,
+          assignedBy: assignedByUserId,
+          notes: notes || '',
+          status: 'Scheduled'
+        });
+
+        await shiftAssignment.save();
+        results.successful.push(shiftAssignment._id);
+
+      } catch (error) {
+        results.failed.push({
+          shift,
+          reason: error.message
+        });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Bulk creation completed. ${results.successful.length} successful, ${results.failed.length} failed`,
+      data: results
+    });
+
+  } catch (error) {
+    console.error('Bulk create shifts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk create shifts',
+      error: error.message
+    });
+  }
+};
+
+exports.requestShiftSwap = async (req, res) => {
+  try {
+    const { shiftId, swapWithEmployeeId, reason } = req.body;
+
+    if (!shiftId || !swapWithEmployeeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shift ID and swap target employee ID are required'
+      });
+    }
+
+    const shift = await ShiftAssignment.findById(shiftId);
+    if (!shift) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shift not found'
+      });
+    }
+
+    if (shift.employeeId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only request swap for your own shifts'
+      });
+    }
+
+    if (shift.swapRequest.status === 'Pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'A swap request is already pending for this shift'
+      });
+    }
+
+    const targetEmployee = await User.findById(swapWithEmployeeId);
+    if (!targetEmployee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Target employee not found'
+      });
+    }
+
+    shift.swapRequest = {
+      requestedBy: req.user._id,
+      requestedWith: swapWithEmployeeId,
+      status: 'Pending',
+      reason: reason || '',
+      requestedAt: new Date()
+    };
+
+    await shift.save();
+
+    const populatedShift = await ShiftAssignment.findById(shift._id)
+      .populate('employeeId', 'firstName lastName email')
+      .populate('swapRequest.requestedWith', 'firstName lastName email');
+
+    res.status(200).json({
+      success: true,
+      message: 'Shift swap request submitted',
+      data: populatedShift
+    });
+
+  } catch (error) {
+    console.error('Request shift swap error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to request shift swap',
+      error: error.message
+    });
+  }
+};
+
+exports.approveShiftSwap = async (req, res) => {
+  try {
+    const { shiftId } = req.params;
+    const { status } = req.body;
+
+    if (!['Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be Approved or Rejected'
+      });
+    }
+
+    const shift = await ShiftAssignment.findById(shiftId);
+    if (!shift) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shift not found'
+      });
+    }
+
+    if (shift.swapRequest.status !== 'Pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending swap request for this shift'
+      });
+    }
+
+    if (status === 'Approved') {
+      const originalEmployeeId = shift.employeeId;
+      const swapEmployeeId = shift.swapRequest.requestedWith;
+
+      shift.employeeId = swapEmployeeId;
+      shift.status = 'Swapped';
+      shift.swapRequest.status = 'Approved';
+      shift.swapRequest.reviewedBy = req.user._id;
+      shift.swapRequest.reviewedAt = new Date();
+    } else {
+      shift.swapRequest.status = 'Rejected';
+      shift.swapRequest.reviewedBy = req.user._id;
+      shift.swapRequest.reviewedAt = new Date();
+    }
+
+    await shift.save();
+
+    const populatedShift = await ShiftAssignment.findById(shift._id)
+      .populate('employeeId', 'firstName lastName email')
+      .populate('swapRequest.requestedBy', 'firstName lastName')
+      .populate('swapRequest.requestedWith', 'firstName lastName')
+      .populate('swapRequest.reviewedBy', 'firstName lastName');
+
+    res.status(200).json({
+      success: true,
+      message: `Shift swap ${status.toLowerCase()}`,
+      data: populatedShift
+    });
+
+  } catch (error) {
+    console.error('Approve shift swap error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process shift swap',
+      error: error.message
+    });
+  }
+};
+
+exports.getShiftsByLocation = async (req, res) => {
+  try {
+    const { location } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const query = { location };
+
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    const shifts = await ShiftAssignment.find(query)
+      .populate('employeeId', 'firstName lastName email')
+      .populate('assignedBy', 'firstName lastName')
+      .sort({ date: 1, startTime: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: shifts.length,
+      data: shifts
+    });
+
+  } catch (error) {
+    console.error('Get shifts by location error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch shifts by location',
+      error: error.message
+    });
+  }
+};
+
+exports.getShiftStatistics = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const query = {};
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    const shifts = await ShiftAssignment.find(query);
+
+    const stats = {
+      totalShifts: shifts.length,
+      byLocation: {
+        Office: shifts.filter(s => s.location === 'Office').length,
+        Home: shifts.filter(s => s.location === 'Home').length,
+        Field: shifts.filter(s => s.location === 'Field').length,
+        'Client Site': shifts.filter(s => s.location === 'Client Site').length
+      },
+      byWorkType: {
+        Regular: shifts.filter(s => s.workType === 'Regular').length,
+        Overtime: shifts.filter(s => s.workType === 'Overtime').length,
+        'Weekend overtime': shifts.filter(s => s.workType === 'Weekend overtime').length,
+        'Client side overtime': shifts.filter(s => s.workType === 'Client side overtime').length
+      },
+      byStatus: {
+        Scheduled: shifts.filter(s => s.status === 'Scheduled').length,
+        Completed: shifts.filter(s => s.status === 'Completed').length,
+        Missed: shifts.filter(s => s.status === 'Missed').length,
+        Swapped: shifts.filter(s => s.status === 'Swapped').length,
+        Cancelled: shifts.filter(s => s.status === 'Cancelled').length
+      },
+      totalHours: shifts.reduce((acc, shift) => {
+        const start = new Date(`2000-01-01T${shift.startTime}`);
+        const end = new Date(`2000-01-01T${shift.endTime}`);
+        const hours = (end - start) / (1000 * 60 * 60);
+        return acc + hours - (shift.breakDuration / 60);
+      }, 0).toFixed(2),
+      uniqueEmployees: new Set(shifts.map(s => s.employeeId.toString())).size
+    };
+
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Get shift statistics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch shift statistics',
+      error: error.message
+    });
+  }
+};
+
+exports.getAllShiftAssignments = async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId, location, workType, status } = req.query;
+
+    const query = {};
+
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    if (employeeId) query.employeeId = employeeId;
+    if (location) query.location = location;
+    if (workType) query.workType = workType;
+    if (status) query.status = status;
+
+    const shifts = await ShiftAssignment.find(query)
+      .populate('employeeId', 'firstName lastName email')
+      .populate('assignedBy', 'firstName lastName')
+      .sort({ date: 1, startTime: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: shifts.length,
+      data: shifts
+    });
+
+  } catch (error) {
+    console.error('Get all shift assignments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch shift assignments',
+      error: error.message
+    });
+  }
+};
+
+exports.getEmployeeShifts = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const query = { employeeId };
+
+    if (startDate && endDate) {
+      query.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    const shifts = await ShiftAssignment.find(query)
+      .populate('assignedBy', 'firstName lastName')
+      .sort({ date: 1, startTime: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: shifts.length,
+      data: shifts
+    });
+
+  } catch (error) {
+    console.error('Get employee shifts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch employee shifts',
+      error: error.message
+    });
+  }
+};
+
+exports.updateShiftAssignment = async (req, res) => {
+  try {
+    const { shiftId } = req.params;
+    const { date, startTime, endTime, location, workType, breakDuration, status, notes } = req.body;
+
+    const shift = await ShiftAssignment.findById(shiftId);
+    if (!shift) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shift not found'
+      });
+    }
+
+    if (startTime && endTime && date) {
+      const conflicts = await exports.detectShiftConflicts(
+        shift.employeeId,
+        startTime,
+        endTime,
+        date,
+        shiftId
+      );
+      if (conflicts.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Shift conflict detected',
+          conflicts
+        });
+      }
+    }
+
+    if (date) shift.date = new Date(date);
+    if (startTime) shift.startTime = startTime;
+    if (endTime) shift.endTime = endTime;
+    if (location) shift.location = location;
+    if (workType) shift.workType = workType;
+    if (breakDuration !== undefined) shift.breakDuration = breakDuration;
+    if (status) shift.status = status;
+    if (notes !== undefined) shift.notes = notes;
+
+    await shift.save();
+
+    const populatedShift = await ShiftAssignment.findById(shift._id)
+      .populate('employeeId', 'firstName lastName email')
+      .populate('assignedBy', 'firstName lastName');
+
+    res.status(200).json({
+      success: true,
+      message: 'Shift updated successfully',
+      data: populatedShift
+    });
+
+  } catch (error) {
+    console.error('Update shift assignment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update shift',
+      error: error.message
+    });
+  }
+};
+
+exports.deleteShiftAssignment = async (req, res) => {
+  try {
+    const { shiftId } = req.params;
+
+    const shift = await ShiftAssignment.findByIdAndDelete(shiftId);
+    if (!shift) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shift not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Shift deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete shift assignment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete shift',
+      error: error.message
+    });
+  }
+};
+
 exports.generateRota = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
@@ -53,8 +637,7 @@ exports.generateRota = async (req, res) => {
       });
     }
 
-    // Fetch all active employees and all shifts
-    const employees = await Employee.find({ isActive: true });
+    const employees = await User.find({ isActive: true });
     const shifts = await Shift.find().sort({ name: 1 });
 
     if (employees.length === 0) {
@@ -71,20 +654,16 @@ exports.generateRota = async (req, res) => {
       });
     }
 
-    // Delete existing rotas in the date range to avoid duplicates
     await Rota.deleteMany({
       date: { $gte: start, $lte: end }
     });
 
-    // Round-robin rotation algorithm
     let shiftIndex = 0;
     const rotaEntries = [];
 
     for (let date = new Date(start); date <= end; date = nextDay(date)) {
-      // Skip weekends
       if (isWeekend(date)) continue;
 
-      // Assign shifts to each employee
       for (const emp of employees) {
         const shift = shifts[shiftIndex % shifts.length];
         
@@ -95,19 +674,11 @@ exports.generateRota = async (req, res) => {
           status: 'Assigned'
         });
 
-        // Update employee's last shift
-        emp.lastShift = shift._id;
-        
-        // Move to next shift in rotation
         shiftIndex++;
       }
     }
 
-    // Bulk insert all rota entries
     await Rota.insertMany(rotaEntries);
-
-    // Save all employee last shift updates
-    await Promise.all(employees.map(emp => emp.save()));
 
     res.status(201).json({
       success: true,
@@ -125,13 +696,6 @@ exports.generateRota = async (req, res) => {
   }
 };
 
-/**
- * Get Employee Rota
- * Fetches all rota entries for a specific employee
- * 
- * @route GET /api/rota/:employeeId
- * @param {String} employeeId - Employee ID
- */
 exports.getEmployeeRota = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -144,7 +708,6 @@ exports.getEmployeeRota = async (req, res) => {
       });
     }
 
-    // Build query
     const query = { employee: employeeId };
     
     if (startDate && endDate) {
@@ -154,10 +717,9 @@ exports.getEmployeeRota = async (req, res) => {
       };
     }
 
-    // Fetch rota entries with populated shift details
     const rotas = await Rota.find(query)
       .populate('shift', 'name startTime endTime color')
-      .populate('employee', 'name email department')
+      .populate('employee', 'firstName lastName email')
       .sort({ date: 1 });
 
     res.status(200).json({
@@ -176,20 +738,10 @@ exports.getEmployeeRota = async (req, res) => {
   }
 };
 
-/**
- * Get All Rota
- * Fetches all rota entries (Admin view)
- * Optional: Filter by date range
- * 
- * @route GET /api/rota
- * @query {String} startDate - Optional start date filter
- * @query {String} endDate - Optional end date filter
- */
 exports.getAllRota = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    // Build query
     const query = {};
     
     if (startDate && endDate) {
@@ -199,9 +751,8 @@ exports.getAllRota = async (req, res) => {
       };
     }
 
-    // Fetch all rota entries with populated details
     const rotas = await Rota.find(query)
-      .populate('employee', 'name email department')
+      .populate('employee', 'firstName lastName email')
       .populate('shift', 'name startTime endTime color')
       .sort({ date: 1, employee: 1 });
 
@@ -221,13 +772,6 @@ exports.getAllRota = async (req, res) => {
   }
 };
 
-/**
- * Update Rota Entry
- * Updates a specific rota entry (for manual adjustments)
- * 
- * @route PUT /api/rota/:rotaId
- * @param {String} rotaId - Rota entry ID
- */
 exports.updateRota = async (req, res) => {
   try {
     const { rotaId } = req.params;
@@ -243,7 +787,7 @@ exports.updateRota = async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     )
-      .populate('employee', 'name email department')
+      .populate('employee', 'firstName lastName email')
       .populate('shift', 'name startTime endTime color');
 
     if (!rota) {
@@ -269,13 +813,6 @@ exports.updateRota = async (req, res) => {
   }
 };
 
-/**
- * Delete Rota Entry
- * Deletes a specific rota entry
- * 
- * @route DELETE /api/rota/:rotaId
- * @param {String} rotaId - Rota entry ID
- */
 exports.deleteRota = async (req, res) => {
   try {
     const { rotaId } = req.params;
@@ -304,12 +841,6 @@ exports.deleteRota = async (req, res) => {
   }
 };
 
-/**
- * Initialize Shifts
- * Helper function to create default shifts if they don't exist
- * 
- * @route POST /api/rota/init-shifts
- */
 exports.initializeShifts = async (req, res) => {
   try {
     const existingShifts = await Shift.countDocuments();

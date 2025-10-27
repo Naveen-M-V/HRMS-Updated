@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserPlusIcon, EnvelopeIcon as MailIcon, UserIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const CreateUser = () => {
   const [formData, setFormData] = useState({
@@ -59,7 +60,7 @@ const CreateUser = () => {
     setMessage({ type: '', text: '' });
     
     try {
-      const response = await fetch('/api/users/create', {
+      const response = await fetch(buildApiUrl('/users/create'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

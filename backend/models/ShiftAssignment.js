@@ -1,0 +1,116 @@
+const mongoose = require('mongoose');
+
+const shiftAssignmentSchema = new mongoose.Schema({
+  employeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Employee ID is required']
+  },
+  rotaId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Rota',
+    default: null
+  },
+  date: {
+    type: Date,
+    required: [true, 'Date is required']
+  },
+  startTime: {
+    type: String,
+    required: [true, 'Start time is required'],
+    match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)']
+  },
+  endTime: {
+    type: String,
+    required: [true, 'End time is required'],
+    match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)']
+  },
+  location: {
+    type: String,
+    enum: ['Office', 'Home', 'Field', 'Client Site'],
+    required: [true, 'Location is required'],
+    default: 'Office'
+  },
+  workType: {
+    type: String,
+    enum: ['Regular', 'Overtime', 'Weekend overtime', 'Client side overtime'],
+    required: [true, 'Work type is required'],
+    default: 'Regular'
+  },
+  status: {
+    type: String,
+    enum: ['Scheduled', 'In Progress', 'Completed', 'Missed', 'Swapped', 'Cancelled'],
+    default: 'Scheduled'
+  },
+  actualStartTime: {
+    type: String,
+    default: null
+  },
+  actualEndTime: {
+    type: String,
+    default: null
+  },
+  timeEntryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TimeEntry',
+    default: null
+  },
+  breakDuration: {
+    type: Number,
+    default: 0,
+    min: [0, 'Break duration cannot be negative']
+  },
+  assignedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  swapRequest: {
+    requestedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    requestedWith: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    status: {
+      type: String,
+      enum: ['Pending', 'Approved', 'Rejected', 'None'],
+      default: 'None'
+    },
+    reason: {
+      type: String,
+      default: ''
+    },
+    requestedAt: {
+      type: Date,
+      default: null
+    },
+    reviewedAt: {
+      type: Date,
+      default: null
+    },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    }
+  },
+  notes: {
+    type: String,
+    default: ''
+  }
+}, {
+  timestamps: true
+});
+
+shiftAssignmentSchema.index({ employeeId: 1, date: 1 });
+shiftAssignmentSchema.index({ date: 1 });
+shiftAssignmentSchema.index({ location: 1 });
+shiftAssignmentSchema.index({ workType: 1 });
+shiftAssignmentSchema.index({ status: 1 });
+
+module.exports = mongoose.model('ShiftAssignment', shiftAssignmentSchema);

@@ -2,7 +2,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import UserClockIns from './UserClockIns';
+import { userClockIn, userClockOut, getUserClockStatus } from '../utils/clockApi';
+import ShiftInfoCard from '../components/ShiftInfoCard';
 import { 
   PencilIcon, 
   PlusIcon, 
@@ -25,6 +28,13 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedProfile, setEditedProfile] = useState({});
+  
+  const [clockStatus, setClockStatus] = useState(null);
+  const [location, setLocation] = useState('Work From Office');
+  const [workType, setWorkType] = useState('Regular');
+  const [processing, setProcessing] = useState(false);
+  const [shiftInfo, setShiftInfo] = useState(null);
+  const [attendanceStatus, setAttendanceStatus] = useState(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
@@ -72,8 +82,75 @@ const UserDashboard = () => {
   useEffect(() => {
     if (user?.email) {
       fetchUserData();
+      fetchClockStatus();
     }
   }, [user, fetchUserData]);
+
+  const fetchClockStatus = async () => {
+    try {
+      const response = await getUserClockStatus();
+      if (response.success) {
+        setClockStatus(response.data);
+      }
+    } catch (error) {
+      console.error('Fetch clock status error:', error);
+    }
+  };
+
+  const handleClockIn = async () => {
+    if (!location) {
+      toast.warning('Please select a location');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const response = await userClockIn({ location, workType });
+      
+      if (response.success) {
+        toast.success(response.message || 'Clocked in successfully!');
+        
+        if (response.data) {
+          setShiftInfo(response.data.shift);
+          setAttendanceStatus(response.data.attendanceStatus);
+        }
+        
+        await fetchClockStatus();
+        
+        if (response.data?.attendanceStatus === 'Late') {
+          toast.warning('Late arrival detected', { autoClose: 5000 });
+        }
+      }
+    } catch (error) {
+      console.error('Clock in error:', error);
+      toast.error(error.message || 'Failed to clock in');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleClockOut = async () => {
+    if (!window.confirm('Are you sure you want to clock out?')) return;
+
+    setProcessing(true);
+    try {
+      const response = await userClockOut();
+      
+      if (response.success) {
+        const hours = response.data?.hoursWorked || 0;
+        toast.success(`Clocked out! Hours: ${hours.toFixed(2)}h`, { autoClose: 5000 });
+        
+        setShiftInfo(null);
+        setAttendanceStatus(null);
+        await fetchClockStatus();
+      }
+    } catch (error) {
+      console.error('Clock out error:', error);
+      toast.error(error.message || 'Failed to clock out');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -243,6 +320,76 @@ const UserDashboard = () => {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* Clock In/Out Widget */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <ClockIcon className="h-5 w-5 mr-2" />
+                Clock In / Out
+              </h2>
+              
+              {shiftInfo && attendanceStatus && (
+                <ShiftInfoCard shift={shiftInfo} attendanceStatus={attendanceStatus} validation={null} />
+              )}
+              
+              {clockStatus?.status === 'clocked_in' || clockStatus?.status === 'on_break' ? (
+                <div className="text-center">
+                  <div className="mb-4 inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full font-medium">
+                    🟢 Currently Clocked In
+                  </div>
+                  {clockStatus.clockIn && (
+                    <p className="text-gray-600 mb-6">Clocked in at: <strong>{clockStatus.clockIn}</strong></p>
+                  )}
+                  <button
+                    onClick={handleClockOut}
+                    disabled={processing}
+                    className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {processing ? '⏳ Processing...' : '🚪 Clock Out'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Work From Office">🏢 Work From Office</option>
+                      <option value="Work From Home">🏠 Work From Home</option>
+                      <option value="Field">🌍 Field</option>
+                      <option value="Client Side">🤝 Client Site</option>
+                    </select>
+                  </div>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Work Type
+                    </label>
+                    <select
+                      value={workType}
+                      onChange={(e) => setWorkType(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Regular">⏰ Regular</option>
+                      <option value="Overtime">⏱️ Overtime</option>
+                      <option value="Weekend Overtime">📅 Weekend Overtime</option>
+                      <option value="Client-side Overtime">🤝 Client-side Overtime</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleClockIn}
+                    disabled={processing}
+                    className="w-full px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {processing ? '⏳ Processing...' : '✅ Clock In'}
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white overflow-hidden shadow rounded-lg">

@@ -1,29 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import ShiftTimeline from '../components/ShiftTimeline';
-import { getAllRota, generateRota, initializeShifts } from '../utils/rotaApi';
+import { 
+  getAllShiftAssignments, 
+  assignShift, 
+  bulkCreateShifts, 
+  updateShiftAssignment, 
+  deleteShiftAssignment,
+  requestShiftSwap, 
+  approveShiftSwap, 
+  getShiftStatistics 
+} from '../utils/rotaApi';
+import { getClockStatus } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 
-/**
- * RotaShiftManagement Page
- * Manages employee shift schedules with timeline view
- * Features: Auto-generate rotas, view weekly/monthly schedules
- */
-
 const RotaShiftManagement = () => {
-  const [rotaData, setRotaData] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [view, setView] = useState('week');
-  const [dateRange, setDateRange] = useState({
+  const [statistics, setStatistics] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [viewMode, setViewMode] = useState('list');
+  const [filters, setFilters] = useState({
     startDate: getMonday(new Date()).toISOString().split('T')[0],
-    endDate: getFriday(new Date()).toISOString().split('T')[0]
+    endDate: getFriday(new Date()).toISOString().split('T')[0],
+    employeeId: '',
+    location: '',
+    workType: '',
+    status: ''
+  });
+  const [formData, setFormData] = useState({
+    employeeId: '',
+    date: '',
+    startTime: '09:00',
+    endTime: '17:00',
+    location: 'Office',
+    workType: 'Regular',
+    breakDuration: 60,
+    notes: ''
   });
 
-  /**
-   * Get Monday of current week
-   */
   function getMonday(date) {
     const d = new Date(date);
     const day = d.getDay();
@@ -31,9 +47,6 @@ const RotaShiftManagement = () => {
     return new Date(d.setDate(diff));
   }
 
-  /**
-   * Get Friday of current week
-   */
   function getFriday(date) {
     const monday = getMonday(date);
     const friday = new Date(monday);
@@ -41,379 +54,611 @@ const RotaShiftManagement = () => {
     return friday;
   }
 
-  /**
-   * Fetch rota data on component mount and when date range changes
-   */
   useEffect(() => {
-    fetchRotaData();
-  }, [dateRange]);
+    fetchData();
+  }, [filters]);
 
-  /**
-   * Fetch all rota entries
-   */
-  const fetchRotaData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await getAllRota(dateRange.startDate, dateRange.endDate);
+      const [shiftsRes, employeesRes, statsRes] = await Promise.all([
+        getAllShiftAssignments(filters),
+        getClockStatus(),
+        getShiftStatistics(filters.startDate, filters.endDate)
+      ]);
       
-      if (response.success) {
-        setRotaData(response.data);
-      } else {
-        toast.error(response.message || 'Failed to fetch rota data');
-      }
+      if (shiftsRes.success) setShifts(shiftsRes.data);
+      if (employeesRes.success) setEmployees(employeesRes.data || []);
+      if (statsRes.success) setStatistics(statsRes.data);
     } catch (error) {
-      console.error('Fetch rota error:', error);
-      toast.error(error.message || 'Failed to load shift schedules');
+      console.error('Fetch data error:', error);
+      toast.error(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Handle generate rota button click
-   */
-  const handleGenerateRota = async () => {
-    if (!dateRange.startDate || !dateRange.endDate) {
-      toast.warning('Please select start and end dates');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.employeeId || !formData.date) {
+      toast.warning('Please fill in all required fields');
       return;
     }
 
-    const confirmGenerate = window.confirm(
-      'This will regenerate the rota for the selected date range. Any existing schedules will be replaced. Continue?'
+    setLoading(true);
+    try {
+      const response = await assignShift(formData);
+      if (response.success) {
+        toast.success('Shift assigned successfully');
+        setShowModal(false);
+        setFormData({
+          employeeId: '',
+          date: '',
+          startTime: '09:00',
+          endTime: '17:00',
+          location: 'Office',
+          workType: 'Regular',
+          breakDuration: 60,
+          notes: ''
+        });
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Assign shift error:', error);
+      toast.error(error.message || 'Failed to assign shift');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteShift = async (shiftId) => {
+    if (!window.confirm('Are you sure you want to delete this shift?')) return;
+
+    setLoading(true);
+    try {
+      const response = await deleteShiftAssignment(shiftId);
+      if (response.success) {
+        toast.success('Shift deleted successfully');
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Delete shift error:', error);
+      toast.error(error.message || 'Failed to delete shift');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getLocationColor = (location) => {
+    const colors = {
+      'Office': '#3b82f6',
+      'Home': '#10b981',
+      'Field': '#f59e0b',
+      'Client Site': '#8b5cf6'
+    };
+    return colors[location] || '#6b7280';
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      'Scheduled': { bg: '#eff6ff', text: '#1e40af', icon: '📅' },
+      'In Progress': { bg: '#fef3c7', text: '#92400e', icon: '🟡' },
+      'Completed': { bg: '#f0fdf4', text: '#166534', icon: '✅' },
+      'Missed': { bg: '#fef2f2', text: '#991b1b', icon: '❌' },
+      'Swapped': { bg: '#fef3c7', text: '#92400e', icon: '🔄' },
+      'Cancelled': { bg: '#f3f4f6', text: '#374151', icon: '⛔' }
+    };
+    const style = styles[status] || styles['Scheduled'];
+    return (
+      <span style={{
+        padding: '4px 12px',
+        borderRadius: '12px',
+        fontSize: '12px',
+        fontWeight: '500',
+        background: style.bg,
+        color: style.text
+      }}>
+        {style.icon} {status}
+      </span>
     );
-
-    if (!confirmGenerate) return;
-
-    setGenerating(true);
-    try {
-      const response = await generateRota(dateRange.startDate, dateRange.endDate);
-      
-      if (response.success) {
-        toast.success(response.message || 'Rota generated successfully!');
-        fetchRotaData();
-      } else {
-        toast.error(response.message || 'Failed to generate rota');
-      }
-    } catch (error) {
-      console.error('Generate rota error:', error);
-      toast.error(error.message || 'Failed to generate shift schedules');
-    } finally {
-      setGenerating(false);
-    }
   };
 
-  /**
-   * Handle initialize shifts (one-time setup)
-   */
-  const handleInitializeShifts = async () => {
-    setGenerating(true);
-    try {
-      const response = await initializeShifts();
-      
-      if (response.success) {
-        toast.success(response.message);
-      }
-    } catch (error) {
-      console.error('Initialize shifts error:', error);
-      toast.error(error.message || 'Failed to initialize shifts');
-    } finally {
-      setGenerating(false);
-    }
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  /**
-   * Handle view change (week/month)
-   */
-  const handleViewChange = (newView) => {
-    setView(newView);
+  const exportToCSV = () => {
+    const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
+    const rows = shifts.map(s => [
+      `${s.employeeId?.firstName || ''} ${s.employeeId?.lastName || ''}`,
+      new Date(s.date).toLocaleDateString(),
+      s.startTime,
+      s.endTime,
+      s.location,
+      s.workType,
+      s.status,
+      s.breakDuration
+    ]);
     
-    if (newView === 'month') {
-      const firstDay = new Date();
-      firstDay.setDate(1);
-      const lastDay = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0);
-      
-      setDateRange({
-        startDate: firstDay.toISOString().split('T')[0],
-        endDate: lastDay.toISOString().split('T')[0]
-      });
-    } else {
-      setDateRange({
-        startDate: getMonday(new Date()).toISOString().split('T')[0],
-        endDate: getFriday(new Date()).toISOString().split('T')[0]
-      });
-    }
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shifts_${filters.startDate}_${filters.endDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSV exported successfully');
   };
 
-  /**
-   * Handle event click on timeline
-   */
-  const handleEventClick = (eventData) => {
-    toast.info(
-      `${eventData.employeeName} - ${eventData.title}\n${eventData.shiftTime}`,
-      { autoClose: 3000 }
-    );
-  };
-
-  /**
-   * Handle date range change
-   */
-  const handleDateChange = (field, value) => {
-    setDateRange(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  if (loading && rotaData.length === 0) {
+  if (loading && shifts.length === 0) {
     return <LoadingScreen />;
   }
 
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
-      <div className="rota-shift-management-page" style={{
-        padding: '24px',
-        maxWidth: '1600px',
-        margin: '0 auto'
-      }}>
-      {/* Header */}
-      <div style={{
-        marginBottom: '32px'
-      }}>
-        <h1 style={{
-          fontSize: '28px',
-          fontWeight: '700',
-          color: '#111827',
-          marginBottom: '8px'
-        }}>
-          Rota Shift Management
-        </h1>
-        <p style={{
-          fontSize: '14px',
-          color: '#6b7280'
-        }}>
-          Manage and view employee shift schedules
-        </p>
-      </div>
+      <div style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
+            Rota & Shift Management
+          </h1>
+          <p style={{ fontSize: '14px', color: '#6b7280' }}>
+            Assign, manage, and track employee shift schedules
+          </p>
+        </div>
 
-      {/* Control Panel */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        padding: '24px',
-        marginBottom: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '16px',
-          alignItems: 'flex-end'
-        }}>
-          {/* Date Range Filters */}
-          <div style={{ flex: '1', minWidth: '200px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              marginBottom: '6px'
-            }}>
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => handleDateChange('startDate', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-
-          <div style={{ flex: '1', minWidth: '200px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              marginBottom: '6px'
-            }}>
-              End Date
-            </label>
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => handleDateChange('endDate', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px'
-              }}
-            />
-          </div>
-
-          {/* View Toggle */}
-          <div style={{ flex: '1', minWidth: '200px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              marginBottom: '6px'
-            }}>
-              View
-            </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => handleViewChange('week')}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: '8px',
-                  border: view === 'week' ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                  background: view === 'week' ? '#eff6ff' : '#ffffff',
-                  color: view === 'week' ? '#3b82f6' : '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Week
-              </button>
-              <button
-                onClick={() => handleViewChange('month')}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: '8px',
-                  border: view === 'month' ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                  background: view === 'month' ? '#eff6ff' : '#ffffff',
-                  color: view === 'month' ? '#3b82f6' : '#6b7280',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Month
-              </button>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ 
-            display: 'flex', 
-            gap: '12px',
-            marginLeft: 'auto'
+        {statistics && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            marginBottom: '24px'
           }}>
-            <button
-              onClick={handleInitializeShifts}
-              disabled={generating}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                border: '1px solid #d1d5db',
-                background: '#ffffff',
-                color: '#374151',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: generating ? 'not-allowed' : 'pointer',
-                opacity: generating ? 0.6 : 1,
-                transition: 'all 0.2s'
-              }}
-            >
-              Init Shifts
-            </button>
-            
-            <button
-              onClick={handleGenerateRota}
-              disabled={generating}
-              style={{
-                padding: '10px 24px',
-                borderRadius: '8px',
-                border: 'none',
-                background: generating ? '#9ca3af' : '#3b82f6',
-                color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: generating ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
-              }}
-            >
-              {generating ? 'Generating...' : 'Generate Rota'}
-            </button>
+            <div style={{ background: '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Total Shifts</div>
+              <div style={{ fontSize: '32px', fontWeight: '700', color: '#111827' }}>{statistics.totalShifts}</div>
+            </div>
+            <div style={{ background: '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Total Hours</div>
+              <div style={{ fontSize: '32px', fontWeight: '700', color: '#111827' }}>{statistics.totalHours}</div>
+            </div>
+            <div style={{ background: '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Employees</div>
+              <div style={{ fontSize: '32px', fontWeight: '700', color: '#111827' }}>{statistics.uniqueEmployees}</div>
+            </div>
+            <div style={{ background: '#ffffff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Office</div>
+              <div style={{ fontSize: '32px', fontWeight: '700', color: '#3b82f6' }}>{statistics.byLocation.Office}</div>
+            </div>
+          </div>
+        )}
+
+        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                End Date
+              </label>
+              <input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                Location
+              </label>
+              <select
+                value={filters.location}
+                onChange={(e) => handleFilterChange('location', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">All Locations</option>
+                <option value="Office">Office</option>
+                <option value="Home">Home</option>
+                <option value="Field">Field</option>
+                <option value="Client Site">Client Site</option>
+              </select>
+            </div>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                Work Type
+              </label>
+              <select
+                value={filters.workType}
+                onChange={(e) => handleFilterChange('workType', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">All Types</option>
+                <option value="Regular">Regular</option>
+                <option value="Overtime">Overtime</option>
+                <option value="Weekend overtime">Weekend Overtime</option>
+                <option value="Client side overtime">Client Side Overtime</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowModal(true)}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#3b82f6',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+                }}
+              >
+                + Assign Shift
+              </button>
+              <button
+                onClick={exportToCSV}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Export CSV
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ background: '#ffffff', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ background: '#f9fafb' }}>
+                <tr>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Employee</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Date</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Scheduled Time</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actual Time</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Location</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Work Type</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Status</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shifts.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                      No shifts found. Create your first shift assignment.
+                    </td>
+                  </tr>
+                ) : (
+                  shifts.map((shift) => (
+                    <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                        {shift.employeeId?.firstName} {shift.employeeId?.lastName}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
+                        {new Date(shift.date).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
+                        {shift.startTime} - {shift.endTime}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+                        {shift.actualStartTime || shift.actualEndTime ? (
+                          <div>
+                            <div>{shift.actualStartTime || '--:--'} - {shift.actualEndTime || '--:--'}</div>
+                            {shift.status === 'In Progress' && (
+                              <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px' }}>
+                                ⏳ In progress
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ color: '#d1d5db' }}>Not started</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          background: getLocationColor(shift.location) + '20',
+                          color: getLocationColor(shift.location)
+                        }}>
+                          {shift.location}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
+                        {shift.workType}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {getStatusBadge(shift.status)}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <button
+                          onClick={() => handleDeleteShift(shift._id)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid #fca5a5',
+                            background: '#ffffff',
+                            color: '#dc2626',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      {/* Loading Overlay */}
-      {loading && (
+      {showModal && (
         <div style={{
-          textAlign: 'center',
-          padding: '40px',
-          color: '#6b7280'
-        }}>
-          Loading shift schedules...
-        </div>
-      )}
-
-      {/* Timeline View */}
-      {!loading && (
-        <ShiftTimeline
-          rotaData={rotaData}
-          view={view}
-          onEventClick={handleEventClick}
-        />
-      )}
-
-      {/* Stats Card */}
-      {rotaData.length > 0 && (
-        <div style={{
-          marginTop: '24px',
-          background: '#ffffff',
-          borderRadius: '12px',
-          padding: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
           display: 'flex',
-          gap: '32px',
-          flexWrap: 'wrap'
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
         }}>
-          <div>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
-              Total Shifts
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>
-              {rotaData.length}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
-              Employees
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>
-              {new Set(rotaData.map(r => r.employee._id)).size}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>
-              Date Range
-            </div>
-            <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-              {dateRange.startDate} to {dateRange.endDate}
-            </div>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>
+              Assign New Shift
+            </h2>
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Employee <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <select
+                  value={formData.employeeId}
+                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="">Select Employee</option>
+                  {employees.map(emp => (
+                    <option key={emp.id || emp._id} value={emp.id || emp._id}>
+                      {emp.firstName} {emp.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Date <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Location
+                </label>
+                <select
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="Office">Work From Office</option>
+                  <option value="Home">Work From Home</option>
+                  <option value="Field">Field</option>
+                  <option value="Client Site">Client Site</option>
+                </select>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Work Type
+                </label>
+                <select
+                  value={formData.workType}
+                  onChange={(e) => setFormData({ ...formData, workType: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="Regular">Regular</option>
+                  <option value="Overtime">Overtime</option>
+                  <option value="Weekend overtime">Weekend Overtime</option>
+                  <option value="Client side overtime">Client Side Overtime</option>
+                </select>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Break Duration (minutes)
+                </label>
+                <input
+                  type="number"
+                  value={formData.breakDuration}
+                  onChange={(e) => setFormData({ ...formData, breakDuration: parseInt(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Notes
+                </label>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    border: '1px solid #d1d5db',
+                    background: '#ffffff',
+                    color: '#374151',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: loading ? '#9ca3af' : '#3b82f6',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: loading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? 'Assigning...' : 'Assign Shift'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-      </div>
     </>
   );
 };

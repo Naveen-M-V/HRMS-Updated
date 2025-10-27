@@ -25,41 +25,18 @@ const ClockInOut = () => {
   const fetchClockStatus = async () => {
     try {
       const response = await getClockStatus();
-      if (response.success && response.data && response.data.length > 0) {
-        setClockData(response.data);
-        calculateStats(response.data);
+      if (response.success) {
+        setClockData(response.data || []);
+        calculateStats(response.data || []);
       } else {
-        // Use dummy data when no real data is available
-        const dummyData = [
-          { id: '1', name: 'John Smith', status: 'clocked_in', vtid: '1003', role: 'Operations' },
-          { id: '2', name: 'David Levito', status: 'clocked_in', vtid: '1025', role: 'Engineering' },
-          { id: '3', name: 'Khan Saleem', status: 'clocked_in', vtid: '1032', role: 'Operations' },
-          { id: '4', name: 'Arthur Williams', status: 'clocked_out', vtid: '1087', role: 'Maintenance' },
-          { id: '5', name: 'Sarah Johnson', status: 'clocked_out', vtid: '1045', role: 'Administration' },
-          { id: '6', name: 'Michael Brown', status: 'clocked_out', vtid: '1056', role: 'IT' },
-          { id: '7', name: 'Emma Davis', status: 'clocked_out', vtid: '1067', role: 'Finance' },
-          { id: '8', name: 'James Wilson', status: 'absent', vtid: '1078', role: 'Operations' }
-        ];
-        setClockData(dummyData);
-        calculateStats(dummyData);
-        console.log('Using dummy data for clock status');
+        setClockData([]);
+        calculateStats([]);
       }
     } catch (error) {
       console.error('Clock status error:', error);
-      // Use dummy data on error as well
-      const dummyData = [
-        { id: '1', name: 'John Smith', status: 'clocked_in', vtid: '1003', role: 'Operations' },
-        { id: '2', name: 'David Levito', status: 'clocked_in', vtid: '1025', role: 'Engineering' },
-        { id: '3', name: 'Khan Saleem', status: 'clocked_in', vtid: '1032', role: 'Operations' },
-        { id: '4', name: 'Arthur Williams', status: 'clocked_out', vtid: '1087', role: 'Maintenance' },
-        { id: '5', name: 'Sarah Johnson', status: 'clocked_out', vtid: '1045', role: 'Administration' },
-        { id: '6', name: 'Michael Brown', status: 'clocked_out', vtid: '1056', role: 'IT' },
-        { id: '7', name: 'Emma Davis', status: 'clocked_out', vtid: '1067', role: 'Finance' },
-        { id: '8', name: 'James Wilson', status: 'absent', vtid: '1078', role: 'Operations' }
-      ];
-      setClockData(dummyData);
-      calculateStats(dummyData);
-      toast.info('Using sample data - connect to backend for real data');
+      toast.error('Failed to fetch employee clock status');
+      setClockData([]);
+      calculateStats([]);
     } finally {
       setLoading(false);
     }

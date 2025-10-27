@@ -1,19 +1,8 @@
 import axios from 'axios';
 import { buildApiUrl } from './apiConfig';
 
-/**
- * Rota API Service
- * Handles all API calls related to rota/shift management
- */
-
 const ROTA_BASE = '/rota';
 
-/**
- * Generate rota for a date range
- * @param {String} startDate - Start date (YYYY-MM-DD)
- * @param {String} endDate - End date (YYYY-MM-DD)
- * @returns {Promise} API response
- */
 export const generateRota = async (startDate, endDate) => {
   try {
     const response = await axios.post(
@@ -27,12 +16,6 @@ export const generateRota = async (startDate, endDate) => {
   }
 };
 
-/**
- * Get all rota entries (Admin view)
- * @param {String} startDate - Optional start date filter
- * @param {String} endDate - Optional end date filter
- * @returns {Promise} API response with rota data
- */
 export const getAllRota = async (startDate = null, endDate = null) => {
   try {
     let url = buildApiUrl(ROTA_BASE);
@@ -52,13 +35,6 @@ export const getAllRota = async (startDate = null, endDate = null) => {
   }
 };
 
-/**
- * Get specific employee's rota
- * @param {String} employeeId - Employee ID
- * @param {String} startDate - Optional start date filter
- * @param {String} endDate - Optional end date filter
- * @returns {Promise} API response with employee rota
- */
 export const getEmployeeRota = async (employeeId, startDate = null, endDate = null) => {
   try {
     let url = buildApiUrl(`${ROTA_BASE}/${employeeId}`);
@@ -78,12 +54,6 @@ export const getEmployeeRota = async (employeeId, startDate = null, endDate = nu
   }
 };
 
-/**
- * Update a rota entry
- * @param {String} rotaId - Rota entry ID
- * @param {Object} updateData - Data to update (shift, status, notes)
- * @returns {Promise} API response
- */
 export const updateRota = async (rotaId, updateData) => {
   try {
     const response = await axios.put(
@@ -97,11 +67,6 @@ export const updateRota = async (rotaId, updateData) => {
   }
 };
 
-/**
- * Delete a rota entry
- * @param {String} rotaId - Rota entry ID
- * @returns {Promise} API response
- */
 export const deleteRota = async (rotaId) => {
   try {
     const response = await axios.delete(
@@ -114,10 +79,6 @@ export const deleteRota = async (rotaId) => {
   }
 };
 
-/**
- * Initialize default shifts
- * @returns {Promise} API response
- */
 export const initializeShifts = async () => {
   try {
     const response = await axios.post(
@@ -128,5 +89,175 @@ export const initializeShifts = async () => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to initialize shifts' };
+  }
+};
+
+export const assignShift = async (data) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments`),
+      data,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to assign shift' };
+  }
+};
+
+export const bulkCreateShifts = async (shifts) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments/bulk`),
+      { shifts },
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to bulk create shifts' };
+  }
+};
+
+export const getAllShiftAssignments = async (filters = {}) => {
+  try {
+    let url = buildApiUrl(`${ROTA_BASE}/shift-assignments/all`);
+    
+    const params = new URLSearchParams();
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.employeeId) params.append('employeeId', filters.employeeId);
+    if (filters.location) params.append('location', filters.location);
+    if (filters.workType) params.append('workType', filters.workType);
+    if (filters.status) params.append('status', filters.status);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await axios.get(url, { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch shift assignments' };
+  }
+};
+
+export const getEmployeeShifts = async (employeeId, startDate = null, endDate = null) => {
+  try {
+    let url = buildApiUrl(`${ROTA_BASE}/shift-assignments/employee/${employeeId}`);
+    
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await axios.get(url, { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch employee shifts' };
+  }
+};
+
+export const getShiftsByLocation = async (location, startDate = null, endDate = null) => {
+  try {
+    let url = buildApiUrl(`${ROTA_BASE}/shift-assignments/location/${location}`);
+    
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await axios.get(url, { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch shifts by location' };
+  }
+};
+
+export const getShiftStatistics = async (startDate = null, endDate = null) => {
+  try {
+    let url = buildApiUrl(`${ROTA_BASE}/shift-assignments/statistics`);
+    
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await axios.get(url, { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch shift statistics' };
+  }
+};
+
+export const updateShiftAssignment = async (shiftId, updateData) => {
+  try {
+    const response = await axios.put(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments/${shiftId}`),
+      updateData,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to update shift' };
+  }
+};
+
+export const deleteShiftAssignment = async (shiftId) => {
+  try {
+    const response = await axios.delete(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments/${shiftId}`),
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to delete shift' };
+  }
+};
+
+export const requestShiftSwap = async (shiftId, swapWithEmployeeId, reason) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments/${shiftId}/swap-request`),
+      { shiftId, swapWithEmployeeId, reason },
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to request shift swap' };
+  }
+};
+
+export const approveShiftSwap = async (shiftId, status) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments/${shiftId}/swap-approve`),
+      { status },
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to approve shift swap' };
+  }
+};
+
+export const detectConflicts = async (employeeId, startTime, endTime, date) => {
+  try {
+    const response = await axios.post(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments/detect-conflicts`),
+      { employeeId, startTime, endTime, date },
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to detect conflicts' };
   }
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const JobTitleDropdown = ({ 
   value, 
@@ -15,13 +16,6 @@ const JobTitleDropdown = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newJobTitle, setNewJobTitle] = useState('');
 
-  const getApiUrl = () => {
-    if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_API_URL) {
-      return process.env.REACT_APP_API_URL;
-    }
-    return process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
-  };
-
   // Fetch job titles on component mount
   useEffect(() => {
     fetchJobTitles();
@@ -29,7 +23,7 @@ const JobTitleDropdown = ({
 
   const fetchJobTitles = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-titles`);
+      const response = await fetch(buildApiUrl('/job-titles'));
       if (response.ok) {
         const data = await response.json();
         setJobTitles(data);
@@ -46,7 +40,7 @@ const JobTitleDropdown = ({
     }
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-titles/search?q=${encodeURIComponent(searchTerm)}`);
+      const response = await fetch(buildApiUrl(`/job-titles/search?q=${encodeURIComponent(searchTerm)}`));
       if (response.ok) {
         const data = await response.json();
         setJobTitles(data);
@@ -61,7 +55,7 @@ const JobTitleDropdown = ({
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-titles`, {
+      const response = await fetch(buildApiUrl('/job-titles'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

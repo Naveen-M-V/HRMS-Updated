@@ -1,6 +1,7 @@
 /**
  * API Configuration Utility
  * Handles API URL construction to avoid duplicate /api paths
+ * Auto-detects environment: localhost uses localhost:5003, production uses talentshield.co.uk
  */
 
 /**
@@ -8,19 +9,40 @@
  * @returns {string} Base URL (e.g., 'https://talentshield.co.uk' or 'http://localhost:5003')
  */
 export const getApiBaseUrl = () => {
-  let baseUrl = process.env.REACT_APP_API_BASE_URL || 
-                process.env.REACT_APP_API_URL || 
-                'http://localhost:5003';
-  
-  // Remove trailing slash
-  baseUrl = baseUrl.replace(/\/$/, '');
-  
-  // Remove /api suffix if present (we'll add it in buildApiUrl)
-  if (baseUrl.endsWith('/api')) {
-    baseUrl = baseUrl.slice(0, -4);
+  // Check if we have an environment variable set
+  if (process.env.REACT_APP_API_BASE_URL) {
+    let baseUrl = process.env.REACT_APP_API_BASE_URL;
+    baseUrl = baseUrl.replace(/\/$/, '');
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.slice(0, -4);
+    }
+    return baseUrl;
   }
   
-  return baseUrl;
+  if (process.env.REACT_APP_API_URL) {
+    let baseUrl = process.env.REACT_APP_API_URL;
+    baseUrl = baseUrl.replace(/\/$/, '');
+    if (baseUrl.endsWith('/api')) {
+      baseUrl = baseUrl.slice(0, -4);
+    }
+    return baseUrl;
+  }
+  
+  // Auto-detect based on current hostname
+  const hostname = window.location.hostname;
+  
+  // If running on localhost, use local backend
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5003';
+  }
+  
+  // If running on production domain, use production backend
+  if (hostname === 'talentshield.co.uk' || hostname === 'www.talentshield.co.uk') {
+    return 'https://talentshield.co.uk';
+  }
+  
+  // Default fallback to localhost for development
+  return 'http://localhost:5003';
 };
 
 /**
@@ -70,10 +92,29 @@ export const getImageUrl = (imagePath) => {
   return `${baseUrl}/${cleanPath}`;
 };
 
+/**
+ * Log current API configuration (for debugging)
+ */
+export const logApiConfig = () => {
+  const baseUrl = getApiBaseUrl();
+  console.log('🔧 API Configuration:');
+  console.log('   Current hostname:', window.location.hostname);
+  console.log('   API Base URL:', baseUrl);
+  console.log('   Environment:', window.location.hostname === 'localhost' ? 'LOCAL DEV' : 'PRODUCTION');
+};
+
+// Log on initial load (can be removed in production)
+if (process.env.NODE_ENV === 'development') {
+  console.log('🔧 API Config loaded');
+  console.log('   Hostname:', window.location.hostname);
+  console.log('   Will use API:', window.location.hostname === 'localhost' ? 'http://localhost:5003' : 'https://talentshield.co.uk');
+}
+
 // Export default object with all utilities
 export default {
   getApiBaseUrl,
   buildApiUrl,
   buildDirectUrl,
-  getImageUrl
+  getImageUrl,
+  logApiConfig
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const JobRoleCheckboxPicker = ({ 
   value = [], 
@@ -12,13 +13,6 @@ const JobRoleCheckboxPicker = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  const getApiUrl = () => {
-    if (process.env.NODE_ENV === 'production' && process.env.REACT_APP_API_URL) {
-      return process.env.REACT_APP_API_URL;
-    }
-    return process.env.REACT_APP_API_URL || 'https://talentshield.co.uk';
-  };
-
   // Fetch job roles on component mount
   useEffect(() => {
     fetchJobRoles();
@@ -27,7 +21,7 @@ const JobRoleCheckboxPicker = ({
   const fetchJobRoles = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/job-roles`);
+      const response = await fetch(buildApiUrl('/job-roles'));
       if (response.ok) {
         const data = await response.json();
         console.log('Job roles fetched:', data.length, 'roles');

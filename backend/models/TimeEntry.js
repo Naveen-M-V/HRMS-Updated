@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 /**
  * Time Entry Schema
  * Tracks employee clock in/out times and breaks
+ * NOW LINKED TO SHIFT ASSIGNMENTS
  */
 const timeEntrySchema = new mongoose.Schema({
   employee: {
@@ -33,6 +34,32 @@ const timeEntrySchema = new mongoose.Schema({
     enum: ['Regular', 'Overtime', 'Weekend Overtime', 'Client-side Overtime'],
     default: 'Regular'
   },
+  
+  // ========== NEW: SHIFT LINKING ==========
+  shiftId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShiftAssignment',
+    default: null
+  },
+  attendanceStatus: {
+    type: String,
+    enum: ['On Time', 'Late', 'Early', 'Unscheduled', 'Overtime'],
+    default: 'On Time'
+  },
+  hoursWorked: {
+    type: Number, // Calculated hours (excluding breaks)
+    default: 0
+  },
+  scheduledHours: {
+    type: Number, // Expected hours from shift
+    default: 0
+  },
+  variance: {
+    type: Number, // Difference between scheduled and actual (in hours)
+    default: 0
+  },
+  // ========================================
+  
   breaks: [{
     startTime: {
       type: String, // Format: "HH:MM"
@@ -81,8 +108,12 @@ const timeEntrySchema = new mongoose.Schema({
 timeEntrySchema.index({ employee: 1, date: -1 });
 timeEntrySchema.index({ date: -1 });
 timeEntrySchema.index({ status: 1 });
+timeEntrySchema.index({ shiftId: 1 });
+timeEntrySchema.index({ attendanceStatus: 1 });
 
-// Calculate total hours worked
+/**
+ * Calculate total hours worked (excluding breaks)
+ */
 timeEntrySchema.methods.calculateTotalHours = function() {
   if (!this.clockIn || !this.clockOut) return 0;
   
@@ -99,11 +130,34 @@ timeEntrySchema.methods.calculateTotalHours = function() {
   return Math.max(0, totalMinutes / 60); // Convert to hours
 };
 
+/**
+ * Calculate hours worked and variance from scheduled
+ */
+timeEntrySchema.methods.calculateHoursAndVariance = function() {
+  const hoursWorked = this.calculateTotalHours();
+  this.hoursWorked = hoursWorked;
+  
+  if (this.scheduledHours > 0) {
+    this.variance = hoursWorked - this.scheduledHours;
+  }
+  
+  return {
+    hoursWorked,
+    variance: this.variance
+  };
+};
+
 // Pre-save hook to calculate total hours
 timeEntrySchema.pre('save', function(next) {
   if (this.clockOut) {
     this.totalHours = this.calculateTotalHours();
     this.status = 'clocked_out';
+    
+    // Calculate variance if we have scheduled hours
+    if (this.scheduledHours > 0) {
+      this.hoursWorked = this.totalHours;
+      this.variance = this.totalHours - this.scheduledHours;
+    }
   }
   next();
 });

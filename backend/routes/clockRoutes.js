@@ -4,6 +4,13 @@ const TimeEntry = require('../models/TimeEntry');
 const User = require('../models/User');
 const LeaveRecord = require('../models/LeaveRecord');
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
+const {
+  findMatchingShift,
+  validateClockIn,
+  calculateHoursWorked,
+  calculateScheduledHours,
+  updateShiftStatus
+} = require('../utils/shiftTimeLinker');
 
 /**
  * Clock Routes
@@ -51,25 +58,63 @@ router.post('/in', async (req, res) => {
       });
     }
 
-    // Create new time entry
+    // Get current time
     const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format
+    const createdByUserId = req.user._id || req.user.userId || req.user.id;
     
-    const timeEntry = new TimeEntry({
+    // Find matching shift
+    const shift = await findMatchingShift(employeeId, new Date(), location);
+    
+    let timeEntryData = {
       employee: employeeId,
       date: new Date(),
       clockIn: currentTime,
-      location: location || 'Office - Main',
-      workType: workType || 'Regular Shift',
+      location: location || 'Work From Office',
+      workType: workType || 'Regular',
       status: 'clocked_in',
-      createdBy: req.user.id
-    });
-
+      createdBy: createdByUserId
+    };
+    
+    let attendanceStatus = 'Unscheduled';
+    let validationResult = null;
+    
+    if (shift) {
+      validationResult = validateClockIn(currentTime, shift);
+      attendanceStatus = validationResult.status;
+      
+      timeEntryData.shiftId = shift._id;
+      timeEntryData.attendanceStatus = attendanceStatus;
+      timeEntryData.scheduledHours = calculateScheduledHours(shift);
+    } else {
+      timeEntryData.attendanceStatus = 'Unscheduled';
+      timeEntryData.notes = 'No scheduled shift found for today';
+    }
+    
+    const timeEntry = new TimeEntry(timeEntryData);
     await timeEntry.save();
+    
+    if (shift) {
+      console.log('Updating shift status to In Progress:', shift._id);
+      await updateShiftStatus(shift._id, 'In Progress', {
+        actualStartTime: currentTime,
+        timeEntryId: timeEntry._id
+      });
+      console.log('Shift status updated successfully');
+    }
 
     res.json({
       success: true,
-      message: 'Employee clocked in successfully',
-      data: timeEntry
+      message: validationResult ? validationResult.message : 'Employee clocked in successfully',
+      data: {
+        timeEntry,
+        shift: shift ? {
+          _id: shift._id,
+          startTime: shift.startTime,
+          endTime: shift.endTime,
+          location: shift.location
+        } : null,
+        attendanceStatus
+      }
     });
 
   } catch (error) {
@@ -103,7 +148,7 @@ router.post('/out', async (req, res) => {
       employee: employeeId,
       date: { $gte: today },
       status: { $in: ['clocked_in', 'on_break'] }
-    });
+    }).populate('shiftId');
 
     if (!timeEntry) {
       return res.status(400).json({
@@ -117,12 +162,32 @@ router.post('/out', async (req, res) => {
     timeEntry.clockOut = currentTime;
     timeEntry.status = 'clocked_out';
     
+    const hoursWorked = calculateHoursWorked(timeEntry.clockIn, currentTime, timeEntry.breaks);
+    timeEntry.hoursWorked = hoursWorked;
+    timeEntry.totalHours = hoursWorked;
+    
+    if (timeEntry.scheduledHours > 0) {
+      timeEntry.variance = hoursWorked - timeEntry.scheduledHours;
+    }
+    
     await timeEntry.save();
+    
+    if (timeEntry.shiftId) {
+      console.log('Updating shift status to Completed:', timeEntry.shiftId._id);
+      await updateShiftStatus(timeEntry.shiftId._id, 'Completed', {
+        actualEndTime: currentTime
+      });
+      console.log('Shift marked as completed');
+    }
 
     res.json({
       success: true,
       message: 'Employee clocked out successfully',
-      data: timeEntry
+      data: {
+        timeEntry,
+        hoursWorked,
+        variance: timeEntry.variance
+      }
     });
 
   } catch (error) {
@@ -730,8 +795,15 @@ router.get('/user/status', async (req, res) => {
 // @access  Private (User)
 router.post('/user/in', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const { workType, location } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
     // Check if user is already clocked in today
     const today = new Date();
@@ -750,10 +822,13 @@ router.post('/user/in', async (req, res) => {
       });
     }
 
-    // Create new time entry
+    // Get current time
     const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format
     
-    const timeEntry = new TimeEntry({
+    // Find matching shift
+    const shift = await findMatchingShift(userId, new Date(), location);
+    
+    let timeEntryData = {
       employee: userId,
       date: new Date(),
       clockIn: currentTime,
@@ -761,14 +836,43 @@ router.post('/user/in', async (req, res) => {
       workType: workType || 'Regular',
       status: 'clocked_in',
       createdBy: userId
-    });
-
+    };
+    
+    let attendanceStatus = 'Unscheduled';
+    let validationResult = null;
+    
+    if (shift) {
+      validationResult = validateClockIn(currentTime, shift);
+      attendanceStatus = validationResult.status;
+      
+      timeEntryData.shiftId = shift._id;
+      timeEntryData.attendanceStatus = attendanceStatus;
+      timeEntryData.scheduledHours = calculateScheduledHours(shift);
+    } else {
+      timeEntryData.attendanceStatus = 'Unscheduled';
+      timeEntryData.notes = 'No scheduled shift found for today';
+    }
+    
+    const timeEntry = new TimeEntry(timeEntryData);
     await timeEntry.save();
+    
+    if (shift) {
+      console.log('User clock-in: Updating shift to In Progress:', shift._id);
+      await updateShiftStatus(shift._id, 'In Progress', {
+        actualStartTime: currentTime,
+        timeEntryId: timeEntry._id
+      });
+    }
 
     res.json({
       success: true,
-      message: 'Clocked in successfully',
-      data: timeEntry
+      message: validationResult ? validationResult.message : 'Clocked in successfully',
+      data: {
+        timeEntry,
+        shift: shift ? { _id: shift._id, startTime: shift.startTime, endTime: shift.endTime } : null,
+        attendanceStatus,
+        validation: validationResult
+      }
     });
 
   } catch (error) {
@@ -785,7 +889,14 @@ router.post('/user/in', async (req, res) => {
 // @access  Private (User)
 router.post('/user/out', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
     // Find today's active time entry
     const today = new Date();
@@ -795,7 +906,7 @@ router.post('/user/out', async (req, res) => {
       employee: userId,
       date: { $gte: today },
       status: { $in: ['clocked_in', 'on_break'] }
-    });
+    }).populate('shiftId');
 
     if (!timeEntry) {
       return res.status(400).json({
@@ -809,12 +920,31 @@ router.post('/user/out', async (req, res) => {
     timeEntry.clockOut = currentTime;
     timeEntry.status = 'clocked_out';
     
+    const hoursWorked = calculateHoursWorked(timeEntry.clockIn, currentTime, timeEntry.breaks);
+    timeEntry.hoursWorked = hoursWorked;
+    timeEntry.totalHours = hoursWorked;
+    
+    if (timeEntry.scheduledHours > 0) {
+      timeEntry.variance = hoursWorked - timeEntry.scheduledHours;
+    }
+    
     await timeEntry.save();
+    
+    if (timeEntry.shiftId) {
+      console.log('User clock-out: Marking shift as Completed');
+      await updateShiftStatus(timeEntry.shiftId._id, 'Completed', {
+        actualEndTime: currentTime
+      });
+    }
 
     res.json({
       success: true,
       message: 'Clocked out successfully',
-      data: timeEntry
+      data: {
+        timeEntry,
+        hoursWorked,
+        variance: timeEntry.variance
+      }
     });
 
   } catch (error) {
@@ -831,8 +961,15 @@ router.post('/user/out', async (req, res) => {
 // @access  Private (User)
 router.post('/user/break', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const { duration = 30, type = 'other' } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
     // Find today's active time entry
     const today = new Date();
@@ -842,7 +979,7 @@ router.post('/user/break', async (req, res) => {
       employee: userId,
       date: { $gte: today },
       status: 'clocked_in'
-    });
+    }).populate('shiftId');
 
     if (!timeEntry) {
       return res.status(400).json({
@@ -867,6 +1004,9 @@ router.post('/user/break', async (req, res) => {
     timeEntry.breaks.push(newBreak);
     timeEntry.status = 'on_break';
     await timeEntry.save();
+    
+    // Note: Shift status stays "In Progress" during break
+    // (not changing to "On Break" to keep it simple)
 
     res.json({
       success: true,

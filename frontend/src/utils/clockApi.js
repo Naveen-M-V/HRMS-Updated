@@ -1,17 +1,13 @@
 import axios from 'axios';
 import { buildApiUrl } from './apiConfig';
 
-/**
- * Clock In/Out API Service
- * Handles all API calls related to time tracking and attendance
- */
-
 const CLOCK_BASE = '/clock';
 
 /**
- * Clock in an employee
- * @param {Object} clockData - Clock in data
- * @returns {Promise} API response
+ * Clock in an employee (Admin)
+ * NOW WITH SHIFT LINKING
+ * @param {Object} clockData - { employeeId, location, workType }
+ * @returns {Promise} API response with shift info
  */
 export const clockIn = async (clockData) => {
   try {
@@ -27,9 +23,10 @@ export const clockIn = async (clockData) => {
 };
 
 /**
- * Clock out an employee
- * @param {Object} clockData - Clock out data
- * @returns {Promise} API response
+ * Clock out an employee (Admin)
+ * NOW WITH HOURS CALCULATION
+ * @param {Object} clockData - { employeeId }
+ * @returns {Promise} API response with hours worked
  */
 export const clockOut = async (clockData) => {
   try {
@@ -181,7 +178,12 @@ export const exportTimeEntries = async (startDate, endDate) => {
   }
 };
 
-// User-specific clock functions
+// ========== USER-SPECIFIC FUNCTIONS (EMPLOYEES) ==========
+
+/**
+ * Get user's own clock status
+ * @returns {Promise} API response
+ */
 export const getUserClockStatus = async () => {
   try {
     const response = await axios.get(
@@ -194,6 +196,11 @@ export const getUserClockStatus = async () => {
   }
 };
 
+/**
+ * Clock in current user (with shift linking)
+ * @param {Object} clockData - { location, workType }
+ * @returns {Promise} API response with shift info and validation
+ */
 export const userClockIn = async (clockData) => {
   try {
     const response = await axios.post(
@@ -207,6 +214,10 @@ export const userClockIn = async (clockData) => {
   }
 };
 
+/**
+ * Clock out current user (with hours calculation)
+ * @returns {Promise} API response with hours worked
+ */
 export const userClockOut = async () => {
   try {
     const response = await axios.post(
@@ -220,6 +231,11 @@ export const userClockOut = async () => {
   }
 };
 
+/**
+ * Add break for current user
+ * @param {Object} breakData - Break information
+ * @returns {Promise} API response
+ */
 export const addUserBreak = async (breakData = {}) => {
   try {
     const response = await axios.post(
@@ -233,6 +249,12 @@ export const addUserBreak = async (breakData = {}) => {
   }
 };
 
+/**
+ * Get user's own time entries
+ * @param {String} startDate - Start date
+ * @param {String} endDate - End date
+ * @returns {Promise} API response
+ */
 export const getUserTimeEntries = async (startDate, endDate) => {
   try {
     let url = buildApiUrl('/clock/user/entries');
@@ -255,8 +277,8 @@ export const getUserTimeEntries = async (startDate, endDate) => {
 /**
  * Admin change employee status
  * @param {String} employeeId - Employee user ID
- * @param {String} status - New status (clocked_in, clocked_out, on_break, absent, on_leave)
- * @param {Object} options - Additional options (location, workType, reason)
+ * @param {String} status - New status
+ * @param {Object} options - Additional options
  * @returns {Promise} API response
  */
 export const changeEmployeeStatus = async (employeeId, status, options = {}) => {
@@ -275,5 +297,24 @@ export const changeEmployeeStatus = async (employeeId, status, options = {}) => 
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to change employee status' };
+  }
+};
+
+/**
+ * Get attendance summary for employee
+ * @param {String} employeeId - Employee ID
+ * @param {String} startDate - Start date
+ * @param {String} endDate - End date
+ * @returns {Promise} Attendance statistics
+ */
+export const getAttendanceSummary = async (employeeId, startDate, endDate) => {
+  try {
+    const response = await axios.get(
+      buildApiUrl(`${CLOCK_BASE}/attendance-summary/${employeeId}?startDate=${startDate}&endDate=${endDate}`),
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch attendance summary' };
   }
 };
