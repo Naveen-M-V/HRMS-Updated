@@ -446,7 +446,6 @@ const ClockIns = () => {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>First Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Last Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Email</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Department</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Job Title</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Status</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Actions</th>
@@ -469,9 +468,6 @@ const ClockIns = () => {
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.email || '-'}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {employee.department || '-'}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.jobTitle || '-'}
@@ -592,7 +588,7 @@ const ClockIns = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" style={{
+                  <td colSpan="7" style={{
                     textAlign: 'center',
                     padding: '40px',
                     color: '#6b7280'

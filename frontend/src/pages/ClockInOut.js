@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getClockStatus } from '../utils/clockApi';
+import { getClockStatus, getDashboardStats } from '../utils/clockApi';
 import { getCurrentUserLeaveBalance, getNextUpcomingLeave } from '../utils/leaveApi';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -24,13 +24,22 @@ const ClockInOut = () => {
 
   const fetchClockStatus = async () => {
     try {
-      const response = await getClockStatus();
-      if (response.success) {
-        setClockData(response.data || []);
-        calculateStats(response.data || []);
+      const [statusRes, statsRes] = await Promise.all([
+        getClockStatus(),
+        getDashboardStats()
+      ]);
+      
+      if (statusRes.success) {
+        setClockData(statusRes.data || []);
       } else {
         setClockData([]);
-        calculateStats([]);
+      }
+      
+      // Use API stats if available, otherwise calculate from data
+      if (statsRes.success && statsRes.data) {
+        setStats(statsRes.data);
+      } else {
+        calculateStats(statusRes.data || []);
       }
     } catch (error) {
       console.error('Clock status error:', error);
@@ -148,7 +157,16 @@ const ClockInOut = () => {
             fontSize: '14px',
             color: '#6b7280'
           }}>
-            Last Updated: {new Date().toLocaleTimeString()} - Updates every 30 seconds
+            Last Updated: {new Date().toLocaleString('en-GB', { 
+              timeZone: 'Europe/London',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+              weekday: 'short',
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric'
+            })} (UK Time) - Updates every 30 seconds
           </p>
         </div>
 
