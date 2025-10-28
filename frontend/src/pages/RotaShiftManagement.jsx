@@ -83,15 +83,22 @@ const RotaShiftManagement = () => {
       
       // Map profiles to employee format
       if (profilesResponse.data) {
-        const employeeList = profilesResponse.data.map(profile => ({
-          id: profile.userId || profile._id,
-          _id: profile.userId || profile._id,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          email: profile.email,
-          name: `${profile.firstName} ${profile.lastName}`
-        }));
+        const employeeList = profilesResponse.data.map(profile => {
+          // Ensure we get a string ID, not an object
+          const userId = profile.userId?._id || profile.userId || profile._id;
+          const idString = typeof userId === 'object' ? userId.toString() : userId;
+          
+          return {
+            id: idString,
+            _id: idString,
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            email: profile.email,
+            name: `${profile.firstName} ${profile.lastName}`
+          };
+        });
         console.log(`✅ Loaded ${employeeList.length} employees from profiles`);
+        console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, type: typeof e.id })));
         setEmployees(employeeList);
       }
     } catch (error) {
