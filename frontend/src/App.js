@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { AlertProvider } from "./components/AlertNotification";
 import { initMemoryGuard } from "./utils/memoryGuard";
+import AdminClockInWrapper from "./components/AdminClockInWrapper";
 
 // Direct imports for faster navigation (no loading spinners)
 import Dashboard from "./pages/Dashboard";
@@ -135,8 +136,9 @@ function App() {
   return (
     <AuthProvider>
       <AlertProvider>
-        <Router>
-          <Routes>
+        <AdminClockInWrapper>
+          <Router>
+            <Routes>
             {/* Authentication routes without layout */}
             <Route
               path="/login"
@@ -339,8 +341,9 @@ function App() {
                 </AdminProtectedRoute>
               }
             />
-          </Routes>
-        </Router>
+            </Routes>
+          </Router>
+        </AdminClockInWrapper>
       </AlertProvider>
     </AuthProvider>
   );

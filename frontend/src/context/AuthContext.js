@@ -253,6 +253,26 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setLoading(true);
     try {
+      // Auto clock-out before logout
+      try {
+        const { getUserClockStatus, userClockOut } = require('../utils/clockApi');
+        const statusRes = await getUserClockStatus();
+        
+        if (statusRes.success && statusRes.data) {
+          const currentStatus = statusRes.data.status;
+          
+          // If user is clocked in or on break, auto clock out
+          if (currentStatus === 'clocked_in' || currentStatus === 'on_break') {
+            console.log('🕐 Auto-clocking out before logout...');
+            await userClockOut();
+            console.log('✅ Auto clock-out successful');
+          }
+        }
+      } catch (clockOutError) {
+        console.error('Auto clock-out error:', clockOutError);
+        // Continue with logout even if clock-out fails
+      }
+      
       // Call backend logout endpoint to destroy session
       await axios.post(`${API_BASE_URL}/api/auth/logout`);
     } catch (err) {

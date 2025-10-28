@@ -245,16 +245,43 @@ router.get('/dashboard', async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get today's time entries
+    // Get Profile model to count total active employees
+    const Profile = require('mongoose').model('Profile');
+    
+    // Get only ACTIVE profiles with valid user accounts (same logic as status endpoint)
+    const profiles = await Profile.find({
+      isActive: { $ne: false },
+      userId: { $exists: true, $ne: null }
+    })
+      .populate('userId', 'role')
+      .lean();
+
+    // Filter to only include non-admin users
+    const validProfiles = profiles.filter(profile => 
+      profile.userId && 
+      profile.userId.role !== 'admin'
+    );
+
+    const totalEmployees = validProfiles.length;
+    const allUserIds = validProfiles.map(p => p.userId._id);
+
+    // Get today's time entries for valid employees only
     const timeEntries = await TimeEntry.find({
-      date: { $gte: today }
+      date: { $gte: today },
+      employee: { $in: allUserIds }
     });
 
+    const clockedIn = timeEntries.filter(e => e.status === 'clocked_in').length;
+    const onBreak = timeEntries.filter(e => e.status === 'on_break').length;
+    const clockedOut = timeEntries.filter(e => e.status === 'clocked_out').length;
+    const absent = totalEmployees - timeEntries.length;
+
     const stats = {
-      clockedIn: timeEntries.filter(e => e.status === 'clocked_in').length,
-      onBreak: timeEntries.filter(e => e.status === 'on_break').length,
-      clockedOut: timeEntries.filter(e => e.status === 'clocked_out').length,
-      total: timeEntries.length
+      clockedIn,
+      onBreak,
+      clockedOut,
+      absent,
+      total: totalEmployees
     };
 
     res.json({
@@ -285,21 +312,25 @@ router.get('/status', async (req, res) => {
     const Profile = require('mongoose').model('Profile');
     const ShiftAssignment = require('../models/ShiftAssignment');
 
-    // Get ALL profiles (not just those with shifts)
-    const profiles = await Profile.find({})
+    // Get only ACTIVE profiles with valid user accounts
+    const profiles = await Profile.find({
+      isActive: { $ne: false },  // Only active profiles
+      userId: { $exists: true, $ne: null }  // Must have a userId
+    })
+      .populate('userId', 'firstName lastName email _id role')
       .select('userId firstName lastName email department jobTitle vtid')
       .lean();
 
-    // Get all user IDs from profiles
-    const allUserIds = profiles.map(p => p.userId).filter(Boolean);
+    // Filter profiles to only include those with valid user accounts (non-admin)
+    const validProfiles = profiles.filter(profile => 
+      profile.userId && 
+      profile.userId._id && 
+      profile.userId.role !== 'admin'
+    );
 
-    // Get user details
-    const employees = await User.find({ 
-      _id: { $in: allUserIds },
-      role: { $ne: 'admin' }
-    }).select('firstName lastName email _id').lean();
-
-    const employeeIdSet = new Set(employees.map(e => e._id.toString()));
+    // Get all valid user IDs
+    const allUserIds = validProfiles.map(p => p.userId._id);
+    const employeeIdSet = new Set(allUserIds.map(id => id.toString()));
 
     // Get today's time entries for all employees
     const timeEntries = await TimeEntry.find({
@@ -341,24 +372,20 @@ router.get('/status', async (req, res) => {
       }
     });
 
-    // Build response with ALL employees (from profiles)
-    const employeeStatus = profiles.map(profile => {
-        // Use userId if it exists and matches a user, otherwise use profile._id
-        const empId = (profile.userId && employeeIdSet.has(profile.userId.toString())) 
-          ? profile.userId.toString() 
-          : profile._id.toString();
-        
-        const status = statusMap[empId] || statusMap[profile._id.toString()];
-        const leave = leaveMap[empId] || leaveMap[profile._id.toString()];
+    // Build response with valid employees only
+    const employeeStatus = validProfiles.map(profile => {
+        const empId = profile.userId._id.toString();
+        const status = statusMap[empId];
+        const leave = leaveMap[empId];
       
       // If employee has approved leave today, override status
       if (leave) {
         return {
           id: empId,
-          name: `${profile.firstName} ${profile.lastName}`,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          email: profile.email,
+          name: `${profile.userId.firstName} ${profile.userId.lastName}`,
+          firstName: profile.userId.firstName,
+          lastName: profile.userId.lastName,
+          email: profile.userId.email,
           department: profile.department || '-',
           vtid: profile.vtid || '-',
           jobTitle: profile.jobTitle || '-',
@@ -376,10 +403,10 @@ router.get('/status', async (req, res) => {
       // Otherwise use time entry status or default to absent
       return {
         id: empId,
-        name: `${profile.firstName} ${profile.lastName}`,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        email: profile.email,
+        name: `${profile.userId.firstName} ${profile.userId.lastName}`,
+        firstName: profile.userId.firstName,
+        lastName: profile.userId.lastName,
+        email: profile.userId.email,
         department: profile.department || '-',
         vtid: profile.vtid || '-',
         jobTitle: profile.jobTitle || '-',
