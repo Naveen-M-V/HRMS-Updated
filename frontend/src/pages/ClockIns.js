@@ -94,21 +94,32 @@ const ClockIns = () => {
 
   const handleClockIn = async (employeeId) => {
     if (!employeeId) {
-      toast.error('Invalid employee ID');
+      toast.error('Please select an employee first');
       return;
     }
 
+    console.log('🔵 Clock In - Employee ID:', employeeId);
+    console.log('🔵 Employee ID type:', typeof employeeId);
+
     try {
-      const response = await clockIn({ employeeId });
+      const payload = { employeeId };
+      console.log('📤 Sending clock in request:', payload);
+      
+      const response = await clockIn(payload);
+      console.log('📥 Clock in response:', response);
+      
       if (response.success) {
         toast.success('Employee clocked in successfully');
         fetchData();
+        // Update selected employee status
+        setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
       } else {
         toast.error(response.message || 'Failed to clock in');
       }
     } catch (error) {
-      console.error('Clock in error:', error);
-      toast.error(error.message || 'Failed to clock in');
+      console.error('❌ Clock in error:', error);
+      console.error('Error response:', error.response?.data);
+      toast.error(error.response?.data?.message || error.message || 'Failed to clock in');
     }
   };
 
@@ -291,8 +302,31 @@ const ClockIns = () => {
             </p>
           </div>
           
-          {/* Top Action Buttons */}
-          <div style={{ display: 'flex', gap: '12px' }}>
+          {/* Top Action Buttons - Always Visible */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <select
+              value={selectedEmployee?.id || ''}
+              onChange={(e) => {
+                const emp = employees.find(emp => (emp.id || emp._id) === e.target.value);
+                setSelectedEmployee(emp || null);
+              }}
+              style={{
+                padding: '10px 16px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '14px',
+                minWidth: '200px',
+                fontWeight: '500'
+              }}
+            >
+              <option value="">Select Employee</option>
+              {employees.map(emp => (
+                <option key={emp.id || emp._id} value={emp.id || emp._id}>
+                  {emp.firstName} {emp.lastName}
+                </option>
+              ))}
+            </select>
+            
             {selectedEmployee && selectedEmployee.status === 'clocked_in' && (
               <button
                 onClick={() => handleOnBreak(selectedEmployee.id || selectedEmployee._id)}
@@ -312,54 +346,47 @@ const ClockIns = () => {
               </button>
             )}
             
-            {selectedEmployee ? (
-              selectedEmployee.status === 'clocked_in' || selectedEmployee.status === 'on_break' ? (
-                <button
-                  onClick={() => handleClockOut(selectedEmployee.id || selectedEmployee._id)}
-                  style={{
-                    padding: '10px 24px',
-                    background: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
-                  }}
-                >
-                  🕐 Clock Out
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleClockIn(selectedEmployee.id || selectedEmployee._id)}
-                  style={{
-                    padding: '10px 24px',
-                    background: '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-                  }}
-                >
-                  ✓ Clock In
-                </button>
-              )
+            {selectedEmployee?.status === 'clocked_in' || selectedEmployee?.status === 'on_break' ? (
+              <button
+                onClick={() => handleClockOut(selectedEmployee.id || selectedEmployee._id)}
+                style={{
+                  padding: '10px 24px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                🕐 Clock Out
+              </button>
             ) : (
-              <div style={{
-                padding: '10px 24px',
-                background: '#f3f4f6',
-                color: '#9ca3af',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}>
-                Select an employee from table
-              </div>
+              <button
+                onClick={() => {
+                  if (selectedEmployee) {
+                    handleClockIn(selectedEmployee.id || selectedEmployee._id);
+                  } else {
+                    toast.warning('Please select an employee first');
+                  }
+                }}
+                disabled={!selectedEmployee}
+                style={{
+                  padding: '10px 24px',
+                  background: selectedEmployee ? '#10b981' : '#9ca3af',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: selectedEmployee ? 'pointer' : 'not-allowed',
+                  boxShadow: selectedEmployee ? '0 2px 4px rgba(16, 185, 129, 0.3)' : 'none'
+                }}
+              >
+                ✓ Clock In
+              </button>
             )}
           </div>
         </div>

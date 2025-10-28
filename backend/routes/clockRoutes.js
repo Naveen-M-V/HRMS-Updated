@@ -25,7 +25,11 @@ router.post('/in', async (req, res) => {
   try {
     const { employeeId, location, workType } = req.body;
 
+    console.log('🔵 Clock In Request:', { employeeId, location, workType });
+    console.log('🔵 Employee ID type:', typeof employeeId);
+
     if (!employeeId) {
+      console.error('❌ No employeeId provided');
       return res.status(400).json({
         success: false,
         message: 'Employee ID is required'
@@ -34,10 +38,13 @@ router.post('/in', async (req, res) => {
 
     // Check if employee exists
     const employee = await User.findById(employeeId);
+    console.log('🔍 User lookup result:', employee ? `Found: ${employee.firstName} ${employee.lastName}` : 'Not found');
+    
     if (!employee) {
+      console.error('❌ Employee not found in User collection:', employeeId);
       return res.status(404).json({
         success: false,
-        message: 'Employee not found'
+        message: 'Employee not found in system'
       });
     }
 
