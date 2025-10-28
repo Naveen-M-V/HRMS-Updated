@@ -134,9 +134,13 @@ const RotaShiftManagement = () => {
       }
     } catch (error) {
       console.error('❌ Assign shift error:', error);
-      console.error('Error details:', error.response?.data);
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to assign shift';
-      toast.error(`Error: ${errorMsg}`);
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error message:', error.message);
+      
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to assign shift';
+      toast.error(`Failed to assign shift: ${errorMsg}`);
       
       // Show detailed error in console for debugging
       if (error.response?.data?.details) {
