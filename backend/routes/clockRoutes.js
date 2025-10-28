@@ -64,20 +64,20 @@ router.post('/in', async (req, res) => {
     // Use the actual User ID for clock operations
     const actualEmployeeId = employee._id;
 
-    // Check if employee is already clocked in today
+    // Check if employee is currently clocked in or on break (allow multiple clock-ins per day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const existingEntry = await TimeEntry.findOne({
+    const activeEntry = await TimeEntry.findOne({
       employee: actualEmployeeId,
       date: { $gte: today },
       status: { $in: ['clocked_in', 'on_break'] }
     });
 
-    if (existingEntry) {
+    if (activeEntry) {
       return res.status(400).json({
         success: false,
-        message: 'Employee is already clocked in today'
+        message: `Employee is currently ${activeEntry.status.replace('_', ' ')}. Please clock out first.`
       });
     }
 
@@ -850,11 +850,49 @@ router.post('/admin/status', async (req, res) => {
 
     switch (status) {
       case 'clocked_in':
+        // Check if employee is currently on break - if so, resume work
+        const breakEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today },
+          status: 'on_break'
+        });
+
+        if (breakEntry) {
+          // Resume work from break
+          const currentTime = new Date().toTimeString().slice(0, 5);
+          
+          // End the current break
+          if (breakEntry.breaks && breakEntry.breaks.length > 0) {
+            const lastBreak = breakEntry.breaks[breakEntry.breaks.length - 1];
+            if (!lastBreak.endTime || lastBreak.endTime === lastBreak.startTime) {
+              lastBreak.endTime = currentTime;
+              // Calculate actual break duration
+              const startParts = lastBreak.startTime.split(':');
+              const endParts = currentTime.split(':');
+              const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+              const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+              lastBreak.duration = Math.max(0, endMinutes - startMinutes);
+            }
+          }
+          
+          breakEntry.status = 'clocked_in';
+          await breakEntry.save();
+          
+          // Update shift status to In Progress when resuming work
+          if (breakEntry.shiftId) {
+            console.log('Resume work: Updating shift to In Progress:', breakEntry.shiftId._id);
+            await updateShiftStatus(breakEntry.shiftId._id, 'In Progress');
+          }
+          
+          result = { message: 'Employee resumed work successfully', data: breakEntry };
+          break;
+        }
+
         // Check if already clocked in
         const existingEntry = await TimeEntry.findOne({
           employee: employeeId,
           date: { $gte: today },
-          status: { $in: ['clocked_in', 'on_break'] }
+          status: 'clocked_in'
         });
 
         if (existingEntry) {
@@ -904,13 +942,13 @@ router.post('/admin/status', async (req, res) => {
 
       case 'on_break':
         // Find today's entry
-        const breakEntry = await TimeEntry.findOne({
+        const clockedInEntry = await TimeEntry.findOne({
           employee: employeeId,
           date: { $gte: today },
           status: 'clocked_in'
         });
 
-        if (!breakEntry) {
+        if (!clockedInEntry) {
           return res.status(400).json({
             success: false,
             message: 'Employee must be clocked in to take a break'
@@ -920,15 +958,22 @@ router.post('/admin/status', async (req, res) => {
         const breakStartTime = new Date().toTimeString().slice(0, 5);
         const breakEndTime = new Date(Date.now() + 30 * 60000).toTimeString().slice(0, 5);
 
-        breakEntry.breaks.push({
+        clockedInEntry.breaks.push({
           startTime: breakStartTime,
           endTime: breakEndTime,
           duration: 30,
           type: 'other'
         });
-        breakEntry.status = 'on_break';
-        await breakEntry.save();
-        result = { message: 'Break started successfully', data: breakEntry };
+        clockedInEntry.status = 'on_break';
+        await clockedInEntry.save();
+        
+        // Update shift status to On Break
+        if (clockedInEntry.shiftId) {
+          console.log('Break started: Updating shift to On Break:', clockedInEntry.shiftId._id);
+          await updateShiftStatus(clockedInEntry.shiftId._id, 'On Break');
+        }
+        
+        result = { message: 'Break started successfully', data: clockedInEntry };
         break;
 
       case 'absent':

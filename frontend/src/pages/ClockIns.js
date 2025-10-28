@@ -170,9 +170,13 @@ const ClockIns = () => {
     }
 
     try {
-      const response = await changeEmployeeStatus(employeeId, newStatus);
+      // Handle resume work specially - it should set status to clocked_in
+      const actualStatus = newStatus === 'resume_work' ? 'clocked_in' : newStatus;
+      
+      const response = await changeEmployeeStatus(employeeId, actualStatus);
       if (response.success) {
-        toast.success(`Status changed to ${newStatus.replace('_', ' ')} successfully`);
+        const displayStatus = newStatus === 'resume_work' ? 'resumed work' : actualStatus.replace('_', ' ');
+        toast.success(`Status changed to ${displayStatus} successfully`);
         fetchData();
       } else {
         toast.error(response.message || 'Failed to change status');
@@ -609,6 +613,9 @@ const ClockIns = () => {
                         <option value="clocked_in">✓ Clocked In</option>
                         <option value="clocked_out">○ Clocked Out</option>
                         <option value="on_break">☕ On Break</option>
+                        {employee.status === 'on_break' && (
+                          <option value="resume_work">🔄 Resume Work</option>
+                        )}
                         <option value="absent">✗ Absent</option>
                         <option value="on_leave">🏖️ On Leave</option>
                       </select>

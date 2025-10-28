@@ -14,8 +14,13 @@ const AdminClockInWrapper = ({ children }) => {
   const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
-    // Only check once when user logs in
-    if (isAuthenticated && user && !hasChecked) {
+    // Check if modal was already shown today
+    const today = new Date().toDateString();
+    const lastShown = localStorage.getItem('admin_modal_shown_date');
+    const modalShownToday = lastShown === today;
+    
+    // Only check once when user logs in and modal hasn't been shown today
+    if (isAuthenticated && user && !hasChecked && !modalShownToday) {
       checkAndShowClockInModal();
       setHasChecked(true);
     }
@@ -60,6 +65,9 @@ const AdminClockInWrapper = ({ children }) => {
 
   const handleCloseModal = () => {
     setShowClockInModal(false);
+    // Mark that modal was shown today
+    const today = new Date().toDateString();
+    localStorage.setItem('admin_modal_shown_date', today);
   };
 
   return (
