@@ -64,20 +64,19 @@ router.post('/in', async (req, res) => {
     // Use the actual User ID for clock operations
     const actualEmployeeId = employee._id;
 
-    // Check if employee is currently clocked in or on break (allow multiple clock-ins per day)
+    // Check if employee already has any time entry for today (one clock-in per day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const activeEntry = await TimeEntry.findOne({
+    const existingEntry = await TimeEntry.findOne({
       employee: actualEmployeeId,
-      date: { $gte: today },
-      status: { $in: ['clocked_in', 'on_break'] }
+      date: { $gte: today }
     });
 
-    if (activeEntry) {
+    if (existingEntry) {
       return res.status(400).json({
         success: false,
-        message: `Employee is currently ${activeEntry.status.replace('_', ' ')}. Please clock out first.`
+        message: `Employee already has a time entry for today. Current status: ${existingEntry.status.replace('_', ' ')}`
       });
     }
 
@@ -888,17 +887,16 @@ router.post('/admin/status', async (req, res) => {
           break;
         }
 
-        // Check if already clocked in
+        // Check if employee already has any time entry for today
         const existingEntry = await TimeEntry.findOne({
           employee: employeeId,
-          date: { $gte: today },
-          status: 'clocked_in'
+          date: { $gte: today }
         });
 
         if (existingEntry) {
           return res.status(400).json({
             success: false,
-            message: 'Employee is already clocked in today'
+            message: `Employee already has a time entry for today. Current status: ${existingEntry.status.replace('_', ' ')}`
           });
         }
 

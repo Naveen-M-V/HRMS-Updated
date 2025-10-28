@@ -101,6 +101,15 @@ const ClockIns = () => {
     console.log('🔵 Clock In - Employee ID:', employeeId);
     console.log('🔵 Employee ID type:', typeof employeeId);
 
+    // Optimistic update
+    setEmployees(prevEmployees => 
+      prevEmployees.map(emp => 
+        (emp.id === employeeId || emp._id === employeeId) 
+          ? { ...emp, status: 'clocked_in' }
+          : emp
+      )
+    );
+
     try {
       const payload = { employeeId };
       console.log('📤 Sending clock in request:', payload);
@@ -115,11 +124,13 @@ const ClockIns = () => {
         setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
       } else {
         toast.error(response.message || 'Failed to clock in');
+        fetchData(); // Revert on failure
       }
     } catch (error) {
       console.error('❌ Clock in error:', error);
       console.error('Error response:', error.response?.data);
       toast.error(error.response?.data?.message || error.message || 'Failed to clock in');
+      fetchData(); // Revert on error
     }
   };
 
@@ -129,6 +140,15 @@ const ClockIns = () => {
       return;
     }
 
+    // Optimistic update
+    setEmployees(prevEmployees => 
+      prevEmployees.map(emp => 
+        (emp.id === employeeId || emp._id === employeeId) 
+          ? { ...emp, status: 'clocked_out' }
+          : emp
+      )
+    );
+
     try {
       const response = await clockOut({ employeeId });
       if (response.success) {
@@ -136,10 +156,12 @@ const ClockIns = () => {
         fetchData();
       } else {
         toast.error(response.message || 'Failed to clock out');
+        fetchData(); // Revert on failure
       }
     } catch (error) {
       console.error('Clock out error:', error);
       toast.error(error.message || 'Failed to clock out');
+      fetchData(); // Revert on error
     }
   };
 
@@ -149,6 +171,15 @@ const ClockIns = () => {
       return;
     }
 
+    // Optimistic update
+    setEmployees(prevEmployees => 
+      prevEmployees.map(emp => 
+        (emp.id === employeeId || emp._id === employeeId) 
+          ? { ...emp, status: 'on_break' }
+          : emp
+      )
+    );
+
     try {
       const response = await setOnBreak(employeeId);
       if (response.success) {
@@ -156,10 +187,12 @@ const ClockIns = () => {
         fetchData();
       } else {
         toast.error(response.message || 'Failed to set on break');
+        fetchData(); // Revert on failure
       }
     } catch (error) {
-      console.error('On break error:', error);
+      console.error('Set on break error:', error);
       toast.error(error.message || 'Failed to set on break');
+      fetchData(); // Revert on error
     }
   };
 
@@ -169,21 +202,33 @@ const ClockIns = () => {
       return;
     }
 
+    // Optimistic update - update UI immediately
+    const actualStatus = newStatus === 'resume_work' ? 'clocked_in' : newStatus;
+    setEmployees(prevEmployees => 
+      prevEmployees.map(emp => 
+        (emp.id === employeeId || emp._id === employeeId) 
+          ? { ...emp, status: actualStatus }
+          : emp
+      )
+    );
+
     try {
-      // Handle resume work specially - it should set status to clocked_in
-      const actualStatus = newStatus === 'resume_work' ? 'clocked_in' : newStatus;
-      
       const response = await changeEmployeeStatus(employeeId, actualStatus);
       if (response.success) {
         const displayStatus = newStatus === 'resume_work' ? 'resumed work' : actualStatus.replace('_', ' ');
         toast.success(`Status changed to ${displayStatus} successfully`);
+        // Fetch fresh data to ensure consistency
         fetchData();
       } else {
         toast.error(response.message || 'Failed to change status');
+        // Revert optimistic update on failure
+        fetchData();
       }
     } catch (error) {
       console.error('Status change error:', error);
       toast.error(error.message || 'Failed to change status');
+      // Revert optimistic update on error
+      fetchData();
     }
   };
 
