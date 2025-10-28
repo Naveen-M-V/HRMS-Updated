@@ -342,12 +342,14 @@ router.get('/status', async (req, res) => {
     });
 
     // Build response with ALL employees (from profiles)
-    const employeeStatus = profiles
-      .filter(profile => profile.userId && employeeIdSet.has(profile.userId.toString()))
-      .map(profile => {
-        const empId = profile.userId.toString();
-        const status = statusMap[empId];
-        const leave = leaveMap[empId];
+    const employeeStatus = profiles.map(profile => {
+        // Use userId if it exists and matches a user, otherwise use profile._id
+        const empId = (profile.userId && employeeIdSet.has(profile.userId.toString())) 
+          ? profile.userId.toString() 
+          : profile._id.toString();
+        
+        const status = statusMap[empId] || statusMap[profile._id.toString()];
+        const leave = leaveMap[empId] || leaveMap[profile._id.toString()];
       
       // If employee has approved leave today, override status
       if (leave) {

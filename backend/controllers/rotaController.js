@@ -109,7 +109,7 @@ exports.assignShiftToEmployee = async (req, res) => {
     // Use the actual User ID for shift assignment
     const actualEmployeeId = employee._id;
 
-    const conflicts = await exports.detectShiftConflicts(employeeId, startTime, endTime, date);
+    const conflicts = await exports.detectShiftConflicts(actualEmployeeId, startTime, endTime, date);
     if (conflicts.length > 0) {
       return res.status(400).json({
         success: false,
