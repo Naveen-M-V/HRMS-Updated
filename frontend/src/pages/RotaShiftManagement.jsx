@@ -121,6 +121,9 @@ const RotaShiftManagement = () => {
     setLoading(true);
     try {
       console.log('📤 Assigning shift with data:', formData);
+      console.log('📤 Employee ID type:', typeof formData.employeeId);
+      console.log('📤 Employee ID value:', formData.employeeId);
+      
       const response = await assignShift(formData);
       console.log('📥 Assign shift response:', response);
       

@@ -23,6 +23,8 @@ const ClockIns = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showEntries, setShowEntries] = useState(10);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [myStatus, setMyStatus] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -288,6 +290,78 @@ const ClockIns = () => {
               Last Updated: {getCurrentUKTime()} (UK Time)
             </p>
           </div>
+          
+          {/* Top Action Buttons */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {selectedEmployee && selectedEmployee.status === 'clocked_in' && (
+              <button
+                onClick={() => handleOnBreak(selectedEmployee.id || selectedEmployee._id)}
+                style={{
+                  padding: '10px 24px',
+                  background: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                ☕ Add Break
+              </button>
+            )}
+            
+            {selectedEmployee ? (
+              selectedEmployee.status === 'clocked_in' || selectedEmployee.status === 'on_break' ? (
+                <button
+                  onClick={() => handleClockOut(selectedEmployee.id || selectedEmployee._id)}
+                  style={{
+                    padding: '10px 24px',
+                    background: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                  }}
+                >
+                  🕐 Clock Out
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleClockIn(selectedEmployee.id || selectedEmployee._id)}
+                  style={{
+                    padding: '10px 24px',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  ✓ Clock In
+                </button>
+              )
+            ) : (
+              <div style={{
+                padding: '10px 24px',
+                background: '#f3f4f6',
+                color: '#9ca3af',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}>
+                Select an employee from table
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Statistics Cards - LIVE DATA */}
@@ -454,9 +528,26 @@ const ClockIns = () => {
             <tbody>
               {displayedEmployees.length > 0 ? (
                 displayedEmployees.map((employee, index) => (
-                  <tr key={employee.id || employee._id || index} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
+                  <tr 
+                    key={employee.id || employee._id || index} 
+                    onClick={() => setSelectedEmployee(employee)}
+                    style={{
+                      borderBottom: '1px solid #f3f4f6',
+                      cursor: 'pointer',
+                      background: selectedEmployee?.id === employee.id ? '#f0f9ff' : 'transparent',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedEmployee?.id !== employee.id) {
+                        e.currentTarget.style.background = '#f9fafb';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedEmployee?.id !== employee.id) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.vtid || '-'}
                     </td>

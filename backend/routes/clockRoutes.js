@@ -262,41 +262,26 @@ router.get('/status', async (req, res) => {
     const Profile = require('mongoose').model('Profile');
     const ShiftAssignment = require('../models/ShiftAssignment');
 
-    // Get all employees with shifts assigned for today
-    const todayShifts = await ShiftAssignment.find({
-      date: { $gte: today, $lt: tomorrow },
-      status: { $nin: ['Cancelled'] }
-    }).populate('employeeId', 'firstName lastName email _id').lean();
+    // Get ALL profiles (not just those with shifts)
+    const profiles = await Profile.find({})
+      .select('userId firstName lastName email department jobTitle vtid')
+      .lean();
 
-    // Get employee IDs who have shifts
-    const employeeIdsWithShifts = todayShifts.map(shift => shift.employeeId?._id?.toString()).filter(Boolean);
+    // Get all user IDs from profiles
+    const allUserIds = profiles.map(p => p.userId).filter(Boolean);
 
-    // Get user details for employees with shifts
+    // Get user details
     const employees = await User.find({ 
-      _id: { $in: employeeIdsWithShifts }
+      _id: { $in: allUserIds },
+      role: { $ne: 'admin' }
     }).select('firstName lastName email _id').lean();
 
-    // Get profiles for these employees to fetch department and jobTitle
-    const profiles = await Profile.find({
-      userId: { $in: employeeIdsWithShifts }
-    }).select('userId department jobTitle vtid').lean();
+    const employeeIdSet = new Set(employees.map(e => e._id.toString()));
 
-    // Create profile map
-    const profileMap = {};
-    profiles.forEach(profile => {
-      if (profile.userId) {
-        profileMap[profile.userId.toString()] = {
-          department: profile.department,
-          jobTitle: profile.jobTitle,
-          vtid: profile.vtid
-        };
-      }
-    });
-
-    // Get today's time entries
+    // Get today's time entries for all employees
     const timeEntries = await TimeEntry.find({
       date: { $gte: today },
-      employee: { $in: employeeIdsWithShifts }
+      employee: { $in: allUserIds }
     }).populate('employee', 'firstName lastName email').lean();
 
     // Get today's approved leave records
@@ -304,7 +289,7 @@ router.get('/status', async (req, res) => {
       status: 'approved',
       startDate: { $lte: tomorrow },
       endDate: { $gte: today },
-      user: { $in: employeeIdsWithShifts }
+      user: { $in: allUserIds }
     }).populate('user', '_id').lean();
 
     // Create status map from time entries
@@ -333,21 +318,22 @@ router.get('/status', async (req, res) => {
       }
     });
 
-    // Build response with employees who have shifts assigned
-    const employeeStatus = employees.map(employee => {
-      const empId = employee._id.toString();
-      const status = statusMap[empId];
-      const leave = leaveMap[empId];
-      const profile = profileMap[empId] || {};
+    // Build response with ALL employees (from profiles)
+    const employeeStatus = profiles
+      .filter(profile => profile.userId && employeeIdSet.has(profile.userId.toString()))
+      .map(profile => {
+        const empId = profile.userId.toString();
+        const status = statusMap[empId];
+        const leave = leaveMap[empId];
       
       // If employee has approved leave today, override status
       if (leave) {
         return {
-          id: employee._id,
-          name: `${employee.firstName} ${employee.lastName}`,
-          firstName: employee.firstName,
-          lastName: employee.lastName,
-          email: employee.email,
+          id: empId,
+          name: `${profile.firstName} ${profile.lastName}`,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
           department: profile.department || '-',
           vtid: profile.vtid || '-',
           jobTitle: profile.jobTitle || '-',
@@ -364,11 +350,11 @@ router.get('/status', async (req, res) => {
       
       // Otherwise use time entry status or default to absent
       return {
-        id: employee._id,
-        name: `${employee.firstName} ${employee.lastName}`,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
+        id: empId,
+        name: `${profile.firstName} ${profile.lastName}`,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        email: profile.email,
         department: profile.department || '-',
         vtid: profile.vtid || '-',
         jobTitle: profile.jobTitle || '-',
