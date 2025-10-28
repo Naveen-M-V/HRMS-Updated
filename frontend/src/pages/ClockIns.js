@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getClockStatus, clockIn, clockOut, changeEmployeeStatus } from '../utils/clockApi';
+import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 
 /**
  * Clock-ins Page
  * Shows detailed employee list with clock in/out functionality
+ * NO DEMO DATA - All data from backend with proper error handling
  */
 
 const ClockIns = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    clockedIn: 0,
+    onBreak: 0,
+    clockedOut: 0,
+    total: 0
+  });
   const [filters, setFilters] = useState({
     role: 'All Roles',
     staffType: 'All Staff Types',
@@ -22,90 +29,157 @@ const ClockIns = () => {
   const [showEntries, setShowEntries] = useState(10);
 
   useEffect(() => {
-    fetchEmployees();
+    fetchData();
     // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchEmployees, 30000);
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const fetchEmployees = async () => {
+  const fetchData = async () => {
     try {
-      const response = await getClockStatus();
-      if (response.success) {
-        setEmployees(response.data || []);
+      console.log('🔄 Fetching clock-ins data...');
+      
+      const [employeesRes, statsRes] = await Promise.all([
+        getClockStatus(),
+        getDashboardStats()
+      ]);
+      
+      console.log('👥 Employees Response:', employeesRes);
+      console.log('📊 Stats Response:', statsRes);
+      
+      if (employeesRes.success) {
+        const employeeData = employeesRes.data || [];
+        console.log(`✅ Loaded ${employeeData.length} employees`);
+        setEmployees(employeeData);
       } else {
+        console.warn('⚠️ Employee fetch failed:', employeesRes);
         setEmployees([]);
       }
+      
+      if (statsRes.success) {
+        console.log('✅ Stats loaded:', statsRes.data);
+        setStats(statsRes.data);
+      } else {
+        console.warn('⚠️ Stats fetch failed:', statsRes);
+        // Calculate stats from employees if API fails
+        calculateStatsFromEmployees(employeesRes.data || []);
+      }
     } catch (error) {
-      console.error('Fetch employees error:', error);
-      toast.error('Failed to fetch employees');
+      console.error('❌ Fetch data error:', error);
+      toast.error('Failed to fetch data');
       setEmployees([]);
+      // Try to calculate stats from whatever data we have
+      calculateStatsFromEmployees([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const calculateStatsFromEmployees = (employeeList) => {
+    const calculated = {
+      clockedIn: employeeList.filter(e => e.status === 'clocked_in').length,
+      onBreak: employeeList.filter(e => e.status === 'on_break').length,
+      clockedOut: employeeList.filter(e => e.status === 'clocked_out').length,
+      total: employeeList.length
+    };
+    console.log('📊 Calculated stats from employees:', calculated);
+    setStats(calculated);
+  };
+
   const handleClockIn = async (employeeId) => {
+    if (!employeeId) {
+      toast.error('Invalid employee ID');
+      return;
+    }
+
     try {
       const response = await clockIn({ employeeId });
       if (response.success) {
         toast.success('Employee clocked in successfully');
-        fetchEmployees(); // Refresh data
+        fetchData();
       } else {
         toast.error(response.message || 'Failed to clock in');
       }
     } catch (error) {
       console.error('Clock in error:', error);
-      // For demo purposes, simulate successful clock in with dummy data
-      setEmployees(prev => prev.map(emp => 
-        emp.id === employeeId || `emp_${prev.indexOf(emp)}` === employeeId
-          ? { ...emp, status: 'clocked_in' }
-          : emp
-      ));
-      toast.success('Employee clocked in successfully (demo mode)');
+      toast.error(error.message || 'Failed to clock in');
     }
   };
 
   const handleClockOut = async (employeeId) => {
+    if (!employeeId) {
+      toast.error('Invalid employee ID');
+      return;
+    }
+
     try {
       const response = await clockOut({ employeeId });
       if (response.success) {
         toast.success('Employee clocked out successfully');
-        fetchEmployees(); // Refresh data
+        fetchData();
       } else {
         toast.error(response.message || 'Failed to clock out');
       }
     } catch (error) {
       console.error('Clock out error:', error);
-      // For demo purposes, simulate successful clock out with dummy data
-      setEmployees(prev => prev.map(emp => 
-        emp.id === employeeId || `emp_${prev.indexOf(emp)}` === employeeId
-          ? { ...emp, status: 'clocked_out' }
-          : emp
-      ));
-      toast.success('Employee clocked out successfully (demo mode)');
+      toast.error(error.message || 'Failed to clock out');
+    }
+  };
+
+  const handleOnBreak = async (employeeId) => {
+    if (!employeeId) {
+      toast.error('Invalid employee ID');
+      return;
+    }
+
+    try {
+      const response = await setOnBreak(employeeId);
+      if (response.success) {
+        toast.success('Employee is now on break');
+        fetchData();
+      } else {
+        toast.error(response.message || 'Failed to set on break');
+      }
+    } catch (error) {
+      console.error('On break error:', error);
+      toast.error(error.message || 'Failed to set on break');
     }
   };
 
   const handleStatusChange = async (employeeId, newStatus) => {
+    if (!employeeId) {
+      toast.error('Invalid employee ID');
+      return;
+    }
+
     try {
       const response = await changeEmployeeStatus(employeeId, newStatus);
       if (response.success) {
         toast.success(`Status changed to ${newStatus.replace('_', ' ')} successfully`);
-        fetchEmployees(); // Refresh data
+        fetchData();
       } else {
         toast.error(response.message || 'Failed to change status');
       }
     } catch (error) {
       console.error('Status change error:', error);
-      // For demo purposes, simulate successful status change
-      setEmployees(prev => prev.map(emp => 
-        emp.id === employeeId
-          ? { ...emp, status: newStatus }
-          : emp
-      ));
-      toast.success(`Status changed to ${newStatus.replace('_', ' ')} successfully (demo mode)`);
+      toast.error(error.message || 'Failed to change status');
     }
+  };
+
+  /**
+   * Get current UK time for "Last Updated"
+   */
+  const getCurrentUKTime = () => {
+    const now = new Date();
+    return now.toLocaleString("en-GB", {
+      timeZone: "Europe/London",
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short'
+    });
   };
 
   const getStatusBadge = (status) => {
@@ -113,14 +187,16 @@ const ClockIns = () => {
       clocked_in: { background: '#10b981', color: 'white' },
       clocked_out: { background: '#3b82f6', color: 'white' },
       on_break: { background: '#f59e0b', color: 'white' },
-      absent: { background: '#ef4444', color: 'white' }
+      absent: { background: '#ef4444', color: 'white' },
+      on_leave: { background: '#8b5cf6', color: 'white' }
     };
 
     const labels = {
       clocked_in: 'Clocked In',
       clocked_out: 'Clocked Out',
       on_break: 'On Break',
-      absent: 'Absent'
+      absent: 'Absent',
+      on_leave: 'On Leave'
     };
 
     return (
@@ -137,13 +213,17 @@ const ClockIns = () => {
   };
 
   const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.vtid?.toString().includes(searchTerm);
-    // Add more filter logic here as needed
+    const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
+                         employee.vtid?.toString().includes(searchTerm) ||
+                         employee.email?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
   const displayedEmployees = filteredEmployees.slice(0, showEntries);
+
+  // Calculate absent count
+  const absentCount = employees.filter(e => e.status === 'absent' || !e.status).length;
 
   if (loading) {
     return <LoadingScreen />;
@@ -177,38 +257,12 @@ const ClockIns = () => {
               fontSize: '14px',
               color: '#6b7280'
             }}>
-              Last Updated: {new Date().toLocaleTimeString()} - Mon 13 Oct
+              Last Updated: {getCurrentUKTime()} (UK Time)
             </p>
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button style={{
-              padding: '10px 20px',
-              background: '#06b6d4',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
-              Add a break
-            </button>
-            <button style={{
-              padding: '10px 20px',
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
-              Clock Out
-            </button>
           </div>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistics Cards - LIVE DATA */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
@@ -222,7 +276,7 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>13</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>{stats.clockedIn}</div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked In</div>
           </div>
           <div style={{
@@ -232,7 +286,7 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>7</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>{stats.clockedOut}</div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked Out</div>
           </div>
           <div style={{
@@ -242,7 +296,7 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>0</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>{stats.onBreak}</div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>On a break</div>
           </div>
           <div style={{
@@ -252,7 +306,7 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827' }}>1</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#ef4444' }}>{absentCount}</div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Absent</div>
           </div>
         </div>
@@ -275,7 +329,7 @@ const ClockIns = () => {
             <div style={{ flex: '1', minWidth: '200px' }}>
               <input
                 type="text"
-                placeholder="Search employees..."
+                placeholder="Search by name, VTID or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -313,24 +367,6 @@ const ClockIns = () => {
             flexWrap: 'wrap',
             gap: '12px'
           }}>
-            {Object.entries(filters).map(([key, value]) => (
-              <select
-                key={key}
-                value={value}
-                onChange={(e) => setFilters(prev => ({ ...prev, [key]: e.target.value }))}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  minWidth: '150px'
-                }}
-              >
-                <option value={`All ${key.charAt(0).toUpperCase() + key.slice(1)}s`}>
-                  {`All ${key.charAt(0).toUpperCase() + key.slice(1)}s`}
-                </option>
-              </select>
-            ))}
             <button
               onClick={() => {
                 setFilters({
@@ -371,127 +407,166 @@ const ClockIns = () => {
             }}>
               <tr>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>VTID</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Role</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>First Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Last Name</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Staff Type</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Company</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Email</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Department</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Job Title</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Status</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {displayedEmployees.map((employee, index) => (
-                <tr key={employee.id || index} style={{
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {employee.vtid || '1003'}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {employee.role || 'Admin'}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {employee.firstName || employee.name?.split(' ')[0] || 'John'}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {employee.lastName || employee.name?.split(' ')[1] || 'Smith'}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {employee.staffType || 'Direct'}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {employee.company || 'Vitrux Ltd'}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {employee.jobTitle || 'Blockages'}
-                  </td>
-                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                    <select
-                      value={employee.status || 'absent'}
-                      onChange={(e) => handleStatusChange(employee.id, e.target.value)}
-                      style={{
-                        padding: '6px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        background: 'white',
-                        color: '#111827',
-                        minWidth: '130px'
-                      }}
-                    >
-                      <option value="clocked_in">✓ Clocked In</option>
-                      <option value="clocked_out">○ Clocked Out</option>
-                      <option value="on_break">☕ On Break</option>
-                      <option value="absent">✗ Absent</option>
-                      <option value="on_leave">🏖️ On Leave</option>
-                    </select>
-                  </td>
-                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      {employee.status !== 'clocked_in' && employee.status !== 'on_break' ? (
-                        <button
-                          onClick={() => handleClockIn(employee.id || `emp_${index}`)}
-                          style={{
-                            padding: '6px 12px',
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            fontWeight: '500'
-                          }}
-                        >
-                          Clock In
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleClockOut(employee.id || `emp_${index}`)}
-                          style={{
-                            padding: '6px 12px',
-                            background: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            fontWeight: '500'
-                          }}
-                        >
-                          Clock Out
-                        </button>
-                      )}
-                    </div>
+              {displayedEmployees.length > 0 ? (
+                displayedEmployees.map((employee, index) => (
+                  <tr key={employee.id || employee._id || index} style={{
+                    borderBottom: '1px solid #f3f4f6'
+                  }}>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.vtid || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.firstName || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.lastName || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.email || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.department || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.jobTitle || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      <select
+                        value={employee.status || 'absent'}
+                        onChange={(e) => handleStatusChange(employee.id || employee._id, e.target.value)}
+                        style={{
+                          padding: '6px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          background: 'white',
+                          color: '#111827',
+                          minWidth: '130px'
+                        }}
+                      >
+                        <option value="clocked_in">✓ Clocked In</option>
+                        <option value="clocked_out">○ Clocked Out</option>
+                        <option value="on_break">☕ On Break</option>
+                        <option value="absent">✗ Absent</option>
+                        <option value="on_leave">🏖️ On Leave</option>
+                      </select>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        {employee.status === 'clocked_in' ? (
+                          <>
+                            <button
+                              onClick={() => handleOnBreak(employee.id || employee._id)}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#f59e0b',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Break
+                            </button>
+                            <button
+                              onClick={() => handleClockOut(employee.id || employee._id)}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Clock Out
+                            </button>
+                          </>
+                        ) : employee.status === 'on_break' ? (
+                          <button
+                            onClick={() => handleClockOut(employee.id || employee._id)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Clock Out
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleClockIn(employee.id || employee._id)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: '500'
+                            }}
+                          >
+                            Clock In
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8" style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    color: '#6b7280'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>👥</div>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
+                      No Employees Found
+                    </h3>
+                    <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                      {searchTerm ? 'Try adjusting your search criteria' : 'No employees in the system'}
+                    </p>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
-
-          {displayedEmployees.length === 0 && (
-            <div style={{
-              textAlign: 'center',
-              padding: '40px',
-              color: '#6b7280'
-            }}>
-              No employees found matching your criteria.
-            </div>
-          )}
         </div>
 
         {/* Pagination Info */}
-        <div style={{
-          marginTop: '16px',
-          fontSize: '14px',
-          color: '#6b7280',
-          textAlign: 'center'
-        }}>
-          Showing {Math.min(showEntries, filteredEmployees.length)} of {filteredEmployees.length} entries
-        </div>
+        {displayedEmployees.length > 0 && (
+          <div style={{
+            marginTop: '16px',
+            fontSize: '14px',
+            color: '#6b7280',
+            textAlign: 'center'
+          }}>
+            Showing {Math.min(showEntries, filteredEmployees.length)} of {filteredEmployees.length} entries
+          </div>
+        )}
       </div>
     </>
   );
