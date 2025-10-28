@@ -113,7 +113,10 @@ const RotaShiftManagement = () => {
 
     setLoading(true);
     try {
+      console.log('📤 Assigning shift with data:', formData);
       const response = await assignShift(formData);
+      console.log('📥 Assign shift response:', response);
+      
       if (response.success) {
         toast.success('Shift assigned successfully');
         setShowModal(false);
@@ -130,8 +133,15 @@ const RotaShiftManagement = () => {
         fetchData();
       }
     } catch (error) {
-      console.error('Assign shift error:', error);
-      toast.error(error.message || 'Failed to assign shift');
+      console.error('❌ Assign shift error:', error);
+      console.error('Error details:', error.response?.data);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to assign shift';
+      toast.error(`Error: ${errorMsg}`);
+      
+      // Show detailed error in console for debugging
+      if (error.response?.data?.details) {
+        console.error('Backend stack trace:', error.response.data.details);
+      }
     } finally {
       setLoading(false);
     }
