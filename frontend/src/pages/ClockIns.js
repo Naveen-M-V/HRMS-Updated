@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak } from '../utils/clockApi';
+import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 
 /**
@@ -163,6 +163,30 @@ const ClockIns = () => {
     } catch (error) {
       console.error('Status change error:', error);
       toast.error(error.message || 'Failed to change status');
+    }
+  };
+
+  const handleDeleteTimeEntry = async (timeEntryId, employeeName) => {
+    if (!timeEntryId) {
+      toast.error('No time entry to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete the time entry for ${employeeName}?\n\nThis will:\n- Delete the clock-in/out record\n- Reset the shift status to "Scheduled"\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await deleteTimeEntry(timeEntryId);
+      if (response.success) {
+        toast.success('Time entry deleted successfully');
+        fetchData();
+      } else {
+        toast.error(response.message || 'Failed to delete time entry');
+      }
+    } catch (error) {
+      console.error('Delete time entry error:', error);
+      toast.error(error.message || 'Failed to delete time entry');
     }
   };
 
@@ -464,7 +488,7 @@ const ClockIns = () => {
                       </select>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                         {employee.status === 'clocked_in' ? (
                           <>
                             <button
@@ -529,6 +553,25 @@ const ClockIns = () => {
                             }}
                           >
                             Clock In
+                          </button>
+                        )}
+                        {/* Delete Button - Only show if employee has a time entry */}
+                        {employee.timeEntryId && (
+                          <button
+                            onClick={() => handleDeleteTimeEntry(employee.timeEntryId, employee.name)}
+                            style={{
+                              padding: '6px 12px',
+                              background: '#ffffff',
+                              color: '#dc2626',
+                              border: '1px solid #dc2626',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: '500'
+                            }}
+                            title="Delete time entry"
+                          >
+                            🗑️ Delete
                           </button>
                         )}
                       </div>

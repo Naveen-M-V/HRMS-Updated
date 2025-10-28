@@ -370,3 +370,20 @@ export const getDashboardStats = async () => {
     throw error.response?.data || { message: 'Failed to fetch dashboard stats' };
   }
 };
+
+/**
+ * Delete time entry (admin only)
+ * @param {String} timeEntryId - Time entry ID to delete
+ * @returns {Promise} API response
+ */
+export const deleteTimeEntry = async (timeEntryId) => {
+  try {
+    const response = await axios.delete(
+      buildApiUrl(`${CLOCK_BASE}/entry/${timeEntryId}`),
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to delete time entry' };
+  }
+};

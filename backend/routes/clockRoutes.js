@@ -100,6 +100,21 @@ router.post('/in', async (req, res) => {
         timeEntryId: timeEntry._id
       });
       console.log('Shift status updated successfully');
+    } else {
+      // Check if employee has a shift today even if no match by time
+      const ShiftAssignment = require('../models/ShiftAssignment');
+      const todayShift = await ShiftAssignment.findOne({
+        employeeId: employeeId,
+        date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
+      });
+      
+      if (todayShift) {
+        todayShift.status = 'In Progress';
+        todayShift.actualStartTime = currentTime;
+        todayShift.timeEntryId = timeEntry._id;
+        await todayShift.save();
+        console.log('Shift status updated to In Progress (unscheduled time)');
+      }
     }
 
     res.json({
@@ -240,26 +255,57 @@ router.get('/status', async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get all employees
-    const employees = await User.find({ role: { $ne: 'admin' } })
-      .select('firstName lastName email department vtid jobTitle')
-      .lean();
+    // Get Profile model from server.js (since it's defined there)
+    const Profile = require('mongoose').model('Profile');
+    const ShiftAssignment = require('../models/ShiftAssignment');
+
+    // Get all employees with shifts assigned for today
+    const todayShifts = await ShiftAssignment.find({
+      date: { $gte: today, $lt: tomorrow },
+      status: { $nin: ['Cancelled'] }
+    }).populate('employeeId', 'firstName lastName email _id').lean();
+
+    // Get employee IDs who have shifts
+    const employeeIdsWithShifts = todayShifts.map(shift => shift.employeeId?._id?.toString()).filter(Boolean);
+
+    // Get user details for employees with shifts
+    const employees = await User.find({ 
+      _id: { $in: employeeIdsWithShifts }
+    }).select('firstName lastName email _id').lean();
+
+    // Get profiles for these employees to fetch department and jobTitle
+    const profiles = await Profile.find({
+      userId: { $in: employeeIdsWithShifts }
+    }).select('userId department jobTitle vtid').lean();
+
+    // Create profile map
+    const profileMap = {};
+    profiles.forEach(profile => {
+      if (profile.userId) {
+        profileMap[profile.userId.toString()] = {
+          department: profile.department,
+          jobTitle: profile.jobTitle,
+          vtid: profile.vtid
+        };
+      }
+    });
 
     // Get today's time entries
     const timeEntries = await TimeEntry.find({
-      date: { $gte: today }
-    }).populate('employee', 'firstName lastName email department vtid jobTitle');
+      date: { $gte: today },
+      employee: { $in: employeeIdsWithShifts }
+    }).populate('employee', 'firstName lastName email').lean();
 
     // Get today's approved leave records
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
     const leaveRecords = await LeaveRecord.find({
       status: 'approved',
       startDate: { $lte: tomorrow },
-      endDate: { $gte: today }
-    }).populate('user', '_id');
+      endDate: { $gte: today },
+      user: { $in: employeeIdsWithShifts }
+    }).populate('user', '_id').lean();
 
     // Create status map from time entries
     const statusMap = {};
@@ -270,7 +316,8 @@ router.get('/status', async (req, res) => {
           clockIn: entry.clockIn,
           clockOut: entry.clockOut,
           location: entry.location,
-          workType: entry.workType
+          workType: entry.workType,
+          timeEntryId: entry._id
         };
       }
     });
@@ -286,11 +333,12 @@ router.get('/status', async (req, res) => {
       }
     });
 
-    // Build response with all employees and their status
+    // Build response with employees who have shifts assigned
     const employeeStatus = employees.map(employee => {
       const empId = employee._id.toString();
       const status = statusMap[empId];
       const leave = leaveMap[empId];
+      const profile = profileMap[empId] || {};
       
       // If employee has approved leave today, override status
       if (leave) {
@@ -300,16 +348,17 @@ router.get('/status', async (req, res) => {
           firstName: employee.firstName,
           lastName: employee.lastName,
           email: employee.email,
-          department: employee.department,
-          vtid: employee.vtid,
-          jobTitle: employee.jobTitle,
-          status: leave.type === 'absent' ? 'absent' : 'on_leave',
+          department: profile.department || '-',
+          vtid: profile.vtid || '-',
+          jobTitle: profile.jobTitle || '-',
+          status: 'on_leave',
           clockIn: null,
           clockOut: null,
           location: null,
           workType: null,
           leaveType: leave.type,
-          leaveReason: leave.reason
+          leaveReason: leave.reason,
+          timeEntryId: null
         };
       }
       
@@ -320,14 +369,15 @@ router.get('/status', async (req, res) => {
         firstName: employee.firstName,
         lastName: employee.lastName,
         email: employee.email,
-        department: employee.department,
-        vtid: employee.vtid,
-        jobTitle: employee.jobTitle,
+        department: profile.department || '-',
+        vtid: profile.vtid || '-',
+        jobTitle: profile.jobTitle || '-',
         status: status?.status || 'absent',
         clockIn: status?.clockIn || null,
         clockOut: status?.clockOut || null,
         location: status?.location || null,
-        workType: status?.workType || null
+        workType: status?.workType || null,
+        timeEntryId: status?.timeEntryId || null
       };
     });
 
@@ -503,7 +553,7 @@ router.delete('/entry/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const timeEntry = await TimeEntry.findByIdAndDelete(id);
+    const timeEntry = await TimeEntry.findById(id);
 
     if (!timeEntry) {
       return res.status(404).json({
@@ -511,6 +561,23 @@ router.delete('/entry/:id', async (req, res) => {
         message: 'Time entry not found'
       });
     }
+
+    // If this time entry is linked to a shift, reset the shift status
+    if (timeEntry.shiftId) {
+      const ShiftAssignment = require('../models/ShiftAssignment');
+      const shift = await ShiftAssignment.findById(timeEntry.shiftId);
+      
+      if (shift) {
+        shift.status = 'Scheduled';
+        shift.actualStartTime = null;
+        shift.actualEndTime = null;
+        shift.timeEntryId = null;
+        await shift.save();
+        console.log(`Shift ${shift._id} reset to Scheduled after time entry deletion`);
+      }
+    }
+
+    await TimeEntry.findByIdAndDelete(id);
 
     res.json({
       success: true,
