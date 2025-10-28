@@ -36,24 +36,40 @@ router.post('/in', async (req, res) => {
       });
     }
 
-    // Check if employee exists
-    const employee = await User.findById(employeeId);
+    // Check if employee exists in User collection OR Profile collection
+    let employee = await User.findById(employeeId);
     console.log('🔍 User lookup result:', employee ? `Found: ${employee.firstName} ${employee.lastName}` : 'Not found');
     
     if (!employee) {
-      console.error('❌ Employee not found in User collection:', employeeId);
+      // Check if this is a Profile ID instead
+      const Profile = require('mongoose').model('Profile');
+      const profile = await Profile.findById(employeeId);
+      console.log('🔍 Profile lookup result:', profile ? `Found: ${profile.firstName} ${profile.lastName}` : 'Not found');
+      
+      if (profile && profile.userId) {
+        // Use the profile's userId
+        employee = await User.findById(profile.userId);
+        console.log('🔄 Found profile, looking up user:', profile.userId);
+      }
+    }
+    
+    if (!employee) {
+      console.error('❌ Employee not found in User or Profile:', employeeId);
       return res.status(404).json({
         success: false,
-        message: 'Employee not found in system'
+        message: 'Employee not found in system. Please ensure user account exists.'
       });
     }
+    
+    // Use the actual User ID for clock operations
+    const actualEmployeeId = employee._id;
 
     // Check if employee is already clocked in today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const existingEntry = await TimeEntry.findOne({
-      employee: employeeId,
+      employee: actualEmployeeId,
       date: { $gte: today },
       status: { $in: ['clocked_in', 'on_break'] }
     });
@@ -70,10 +86,10 @@ router.post('/in', async (req, res) => {
     const createdByUserId = req.user._id || req.user.userId || req.user.id;
     
     // Find matching shift
-    const shift = await findMatchingShift(employeeId, new Date(), location);
+    const shift = await findMatchingShift(actualEmployeeId, new Date(), location);
     
     let timeEntryData = {
-      employee: employeeId,
+      employee: actualEmployeeId,
       date: new Date(),
       clockIn: currentTime,
       location: location || 'Work From Office',
@@ -111,7 +127,7 @@ router.post('/in', async (req, res) => {
       // Check if employee has a shift today even if no match by time
       const ShiftAssignment = require('../models/ShiftAssignment');
       const todayShift = await ShiftAssignment.findOne({
-        employeeId: employeeId,
+        employeeId: actualEmployeeId,
         date: { $gte: today, $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) }
       });
       

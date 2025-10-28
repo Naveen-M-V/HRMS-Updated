@@ -83,13 +83,31 @@ exports.assignShiftToEmployee = async (req, res) => {
       });
     }
 
-    const employee = await User.findById(employeeId);
+    // Check if employee exists in User collection OR Profile collection
+    let employee = await User.findById(employeeId);
+    
     if (!employee) {
+      // Check if this is a Profile ID instead
+      const Profile = require('mongoose').model('Profile');
+      const profile = await Profile.findById(employeeId);
+      
+      if (profile && profile.userId) {
+        // Use the profile's userId
+        employee = await User.findById(profile.userId);
+        console.log('🔄 Found profile, looking up user:', profile.userId);
+      }
+    }
+    
+    if (!employee) {
+      console.error('❌ Employee not found in User or Profile:', employeeId);
       return res.status(404).json({
         success: false,
-        message: 'Employee not found'
+        message: 'Employee not found in system'
       });
     }
+    
+    // Use the actual User ID for shift assignment
+    const actualEmployeeId = employee._id;
 
     const conflicts = await exports.detectShiftConflicts(employeeId, startTime, endTime, date);
     if (conflicts.length > 0) {
@@ -106,7 +124,7 @@ exports.assignShiftToEmployee = async (req, res) => {
     }
 
     const shiftAssignment = new ShiftAssignment({
-      employeeId,
+      employeeId: actualEmployeeId,
       date: new Date(date),
       startTime,
       endTime,
