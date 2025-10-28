@@ -11,7 +11,8 @@ import {
   approveShiftSwap, 
   getShiftStatistics 
 } from '../utils/rotaApi';
-import { getClockStatus } from '../utils/clockApi';
+import axios from 'axios';
+import { buildApiUrl } from '../utils/apiConfig';
 import LoadingScreen from '../components/LoadingScreen';
 
 const RotaShiftManagement = () => {
@@ -68,18 +69,42 @@ const RotaShiftManagement = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [shiftsRes, employeesRes, statsRes] = await Promise.all([
+      console.log('🔄 Fetching rota data...');
+      
+      // Fetch profiles instead of clock status for employee list
+      const profilesResponse = await axios.get(
+        buildApiUrl('/profiles'),
+        { withCredentials: true }
+      );
+      
+      const [shiftsRes, statsRes] = await Promise.all([
         getAllShiftAssignments(filters),
-        getClockStatus(),
         getShiftStatistics(filters.startDate, filters.endDate)
       ]);
       
-      if (shiftsRes.success) setShifts(shiftsRes.data);
-      if (employeesRes.success) setEmployees(employeesRes.data || []);
+      console.log('📋 Profiles Response:', profilesResponse.data);
+      console.log('📅 Shifts Response:', shiftsRes);
+      
+      if (shiftsRes.success) setShifts(shiftsRes.data || []);
       if (statsRes.success) setStatistics(statsRes.data);
+      
+      // Map profiles to employee format
+      if (profilesResponse.data) {
+        const employeeList = profilesResponse.data.map(profile => ({
+          id: profile.userId || profile._id,
+          _id: profile.userId || profile._id,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
+          name: `${profile.firstName} ${profile.lastName}`
+        }));
+        console.log(`✅ Loaded ${employeeList.length} employees from profiles`);
+        setEmployees(employeeList);
+      }
     } catch (error) {
-      console.error('Fetch data error:', error);
+      console.error('❌ Fetch data error:', error);
       toast.error(error.message || 'Failed to load data');
+      setEmployees([]);
     } finally {
       setLoading(false);
     }

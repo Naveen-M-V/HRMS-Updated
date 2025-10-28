@@ -13,12 +13,8 @@ import LoadingScreen from '../components/LoadingScreen';
 const ClockIns = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    clockedIn: 0,
-    onBreak: 0,
-    clockedOut: 0,
-    total: 0
-  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({
     role: 'All Roles',
     staffType: 'All Staff Types',
@@ -38,6 +34,7 @@ const ClockIns = () => {
   const fetchData = async () => {
     try {
       console.log('🔄 Fetching clock-ins data...');
+      setStatsLoading(true);
       
       const [employeesRes, statsRes] = await Promise.all([
         getClockStatus(),
@@ -51,25 +48,31 @@ const ClockIns = () => {
         const employeeData = employeesRes.data || [];
         console.log(`✅ Loaded ${employeeData.length} employees`);
         setEmployees(employeeData);
+        
+        // Calculate stats from employees if dashboard API fails
+        if (!statsRes.success) {
+          calculateStatsFromEmployees(employeeData);
+        }
       } else {
         console.warn('⚠️ Employee fetch failed:', employeesRes);
         setEmployees([]);
+        setStats({ clockedIn: 0, onBreak: 0, clockedOut: 0, total: 0 });
       }
       
-      if (statsRes.success) {
-        console.log('✅ Stats loaded:', statsRes.data);
+      if (statsRes.success && statsRes.data) {
+        console.log('✅ Stats loaded from API:', statsRes.data);
         setStats(statsRes.data);
+        setStatsLoading(false);
       } else {
-        console.warn('⚠️ Stats fetch failed:', statsRes);
-        // Calculate stats from employees if API fails
+        console.warn('⚠️ Stats fetch failed, calculating from employee list');
         calculateStatsFromEmployees(employeesRes.data || []);
       }
     } catch (error) {
       console.error('❌ Fetch data error:', error);
       toast.error('Failed to fetch data');
       setEmployees([]);
-      // Try to calculate stats from whatever data we have
-      calculateStatsFromEmployees([]);
+      setStats({ clockedIn: 0, onBreak: 0, clockedOut: 0, total: 0 });
+      setStatsLoading(false);
     } finally {
       setLoading(false);
     }
@@ -84,6 +87,7 @@ const ClockIns = () => {
     };
     console.log('📊 Calculated stats from employees:', calculated);
     setStats(calculated);
+    setStatsLoading(false);
   };
 
   const handleClockIn = async (employeeId) => {
@@ -300,7 +304,9 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>{stats.clockedIn}</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
+              {statsLoading ? '...' : (stats?.clockedIn ?? 0)}
+            </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked In</div>
           </div>
           <div style={{
@@ -310,7 +316,9 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>{stats.clockedOut}</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>
+              {statsLoading ? '...' : (stats?.clockedOut ?? 0)}
+            </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked Out</div>
           </div>
           <div style={{
@@ -320,7 +328,9 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>{stats.onBreak}</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>
+              {statsLoading ? '...' : (stats?.onBreak ?? 0)}
+            </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>On a break</div>
           </div>
           <div style={{
@@ -330,7 +340,9 @@ const ClockIns = () => {
             textAlign: 'center',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#ef4444' }}>{absentCount}</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#ef4444' }}>
+              {statsLoading ? '...' : (employees.filter(e => e.status === 'absent' || !e.status).length)}
+            </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Absent</div>
           </div>
         </div>
