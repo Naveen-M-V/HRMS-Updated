@@ -66,17 +66,19 @@ exports.assignShiftToEmployee = async (req, res) => {
       });
     }
 
-    const assignedByUserId = req.user._id || req.user.userId;
+    const assignedByUserId = req.user?._id || req.user?.userId || req.user?.id;
     
     if (!req.user || !assignedByUserId) {
       console.error('Authentication failed - req.user:', req.user);
+      console.error('Available user fields:', Object.keys(req.user || {}));
       return res.status(401).json({
         success: false,
         message: 'Authentication required. User not found in session.',
         debug: {
           hasUser: !!req.user,
           hasSession: !!req.session,
-          sessionUser: req.session?.user
+          sessionUser: req.session?.user,
+          userKeys: Object.keys(req.user || {})
         }
       });
     }
@@ -129,11 +131,18 @@ exports.assignShiftToEmployee = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Assign shift error:', error);
+    console.error('======= Assign Shift Error =======');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Request body:', req.body);
+    console.error('User info:', req.user);
+    console.error('===================================');
+    
     res.status(500).json({
       success: false,
       message: 'Failed to assign shift',
-      error: error.message
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

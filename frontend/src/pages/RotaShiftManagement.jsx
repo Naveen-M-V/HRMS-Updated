@@ -57,13 +57,6 @@ const RotaShiftManagement = () => {
 
   useEffect(() => {
     fetchData();
-    
-    // Auto-refresh every 15 seconds to sync "On Break" status from Clock-In page
-    const interval = setInterval(() => {
-      fetchData();
-    }, 15000);
-    
-    return () => clearInterval(interval);
   }, [filters]);
 
   const fetchData = async () => {
@@ -260,13 +253,31 @@ const RotaShiftManagement = () => {
     <>
       <ToastContainer position="top-right" autoClose={3000} />
       <div style={{ padding: '24px', maxWidth: '1600px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
-            Rota & Shift Management
-          </h1>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            Assign, manage, and track employee shift schedules - Auto-refreshes every 15 seconds
-          </p>
+        <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
+              Rota & Shift Management
+            </h1>
+            <p style={{ fontSize: '14px', color: '#6b7280' }}>
+              Assign, manage, and track employee shift schedules
+            </p>
+          </div>
+          <button
+            onClick={() => fetchData()}
+            disabled={loading}
+            style={{
+              padding: '10px 20px',
+              background: loading ? '#9ca3af' : '#10b981',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {loading ? '🔄 Refreshing...' : '🔄 Refresh'}
+          </button>
         </div>
 
         {statistics && (
