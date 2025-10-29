@@ -62,14 +62,18 @@ const UserDashboard = () => {
           setCertificates(certificatesData);
         }
 
-        // Fetch user notifications
-        const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications/user/${profileData._id}`, {
+        // Fetch user notifications from session-based endpoint
+        const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications?limit=10`, {
           credentials: 'include'
         });
         
         if (notificationsResponse.ok) {
           const notificationsData = await notificationsResponse.json();
-          setNotifications(notificationsData.slice(0, 10)); // Show latest 10
+          console.log('User notifications:', notificationsData);
+          setNotifications(notificationsData.notifications || []); // Use notifications array from response
+        } else {
+          console.error('Failed to fetch notifications:', notificationsResponse.status);
+          setNotifications([]);
         }
       }
     } catch (error) {

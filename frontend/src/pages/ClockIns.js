@@ -25,6 +25,9 @@ const ClockIns = () => {
   const [showEntries, setShowEntries] = useState(10);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [myStatus, setMyStatus] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [editForm, setEditForm] = useState({ date: '', clockIn: '', clockOut: '' });
 
   useEffect(() => {
     fetchData();
@@ -253,6 +256,47 @@ const ClockIns = () => {
     } catch (error) {
       console.error('Delete time entry error:', error);
       toast.error(error.message || 'Failed to delete time entry');
+    }
+  };
+
+  const handleEditEntry = (employee) => {
+    if (!employee.timeEntryId) {
+      toast.error('No time entry to edit');
+      return;
+    }
+    
+    setEditingEntry(employee);
+    setEditForm({
+      date: new Date().toISOString().split('T')[0],
+      clockIn: employee.clockIn || '09:00',
+      clockOut: employee.clockOut || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTimeEntry = async (e) => {
+    e.preventDefault();
+    
+    if (!editingEntry?.timeEntryId) return;
+
+    try {
+      const { updateTimeEntry } = await import('../utils/clockApi');
+      const response = await updateTimeEntry(editingEntry.timeEntryId, {
+        clockIn: editForm.clockIn,
+        clockOut: editForm.clockOut,
+        date: editForm.date
+      });
+
+      if (response.success) {
+        toast.success('Time entry updated successfully');
+        setShowEditModal(false);
+        fetchData();
+      } else {
+        toast.error(response.message || 'Failed to update');
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update time entry');
     }
   };
 
@@ -735,22 +779,40 @@ const ClockIns = () => {
                         )}
                         {/* Delete Button - Only show if employee has a time entry */}
                         {employee.timeEntryId && (
-                          <button
-                            onClick={() => handleDeleteTimeEntry(employee.timeEntryId, employee.name)}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#ffffff',
-                              color: '#dc2626',
-                              border: '1px solid #dc2626',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              fontWeight: '500'
-                            }}
-                            title="Delete time entry"
-                          >
-                             Delete
-                          </button>
+                        <>
+                        <button
+                          onClick={() => handleEditEntry(employee)}
+                        style={{
+                          padding: '6px 12px',
+                          background: '#ffffff',
+                          color: '#3b82f6',
+                          border: '1px solid #3b82f6',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                            fontWeight: '500'
+                          }}
+                            title="Edit time entry"
+                        >
+                            Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTimeEntry(employee.timeEntryId, employee.name)}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#ffffff',
+                                color: '#dc2626',
+                                border: '1px solid #dc2626',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                              title="Delete time entry"
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -789,6 +851,70 @@ const ClockIns = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Time Entry Modal */}
+      {showEditModal && editingEntry && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '500px', width: '90%' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>
+              Edit Time Entry - {editingEntry.name}
+            </h2>
+            <form onSubmit={handleUpdateTimeEntry}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={editForm.date}
+                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                  style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Clock In Time
+                  </label>
+                  <input
+                    type="time"
+                    value={editForm.clockIn}
+                    onChange={(e) => setEditForm({ ...editForm, clockIn: e.target.value })}
+                    required
+                    style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Clock Out Time
+                  </label>
+                  <input
+                    type="time"
+                    value={editForm.clockOut}
+                    onChange={(e) => setEditForm({ ...editForm, clockOut: e.target.value })}
+                    style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#ffffff', color: '#374151', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#ffffff', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  Update
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };
