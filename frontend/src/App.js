@@ -217,7 +217,7 @@ function App() {
                     <CertificateProvider>
                       <NotificationProvider>
                         <div className="flex min-h-screen bg-gray-50">
-                          <Sidebar isOpen={isSidebarOpen} />
+                          <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
                           <div
                             className={`flex-1 flex flex-col transition-all duration-300 ${
                               isSidebarOpen ? "ml-64" : "ml-16"

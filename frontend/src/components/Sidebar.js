@@ -17,7 +17,7 @@ import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 import { ClockIcon } from "@heroicons/react/24/outline";
 
-export default function Sidebar({ isOpen }) {
+export default function Sidebar({ isOpen, toggleSidebar }) {
   const navigate = useNavigate();
   const { logout, loading, user } = useAuth();
   const {
@@ -77,7 +77,12 @@ export default function Sidebar({ isOpen }) {
 
   const handleNavigation = (path) => {
     console.log("Navigating to:", path);
+    if (toggleSidebar && !isOpen) toggleSidebar();
     navigate(path);
+  };
+
+  const handleIconClick = () => {
+    if (toggleSidebar && !isOpen) toggleSidebar();
   };
 
   return (
@@ -99,6 +104,7 @@ export default function Sidebar({ isOpen }) {
           <div
             onClick={() => {
               console.log("Reporting clicked");
+              handleIconClick();
               setOpenReporting(!openReporting);
             }}
             className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
@@ -142,6 +148,7 @@ export default function Sidebar({ isOpen }) {
           <div
             onClick={() => {
               console.log("Clock In/Out clicked");
+              handleIconClick();
               setOpenClockInOut(!openClockInOut);
             }}
             className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
@@ -201,6 +208,7 @@ export default function Sidebar({ isOpen }) {
           <div
             onClick={() => {
               console.log("Training clicked");
+              handleIconClick();
               setOpenTraining(!openTraining);
             }}
             className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
