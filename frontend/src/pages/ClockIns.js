@@ -391,7 +391,7 @@ const ClockIns = () => {
                   boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
                 }}
               >
-                ☕ Add Break
+                 Add Break
               </button>
             )}
             
@@ -410,7 +410,7 @@ const ClockIns = () => {
                   boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
                 }}
               >
-                🕐 Clock Out
+                 Clock Out
               </button>
             ) : (
               <button
@@ -434,7 +434,7 @@ const ClockIns = () => {
                   boxShadow: selectedEmployee ? '0 2px 4px rgba(16, 185, 129, 0.3)' : 'none'
                 }}
               >
-                ✓ Clock In
+                 Clock In
               </button>
             )}
           </div>
@@ -655,14 +655,14 @@ const ClockIns = () => {
                           minWidth: '130px'
                         }}
                       >
-                        <option value="clocked_in">✓ Clocked In</option>
-                        <option value="clocked_out">○ Clocked Out</option>
-                        <option value="on_break">☕ On Break</option>
+                        <option value="clocked_in"> Clocked In</option>
+                        <option value="clocked_out"> Clocked Out</option>
+                        <option value="on_break"> On Break</option>
                         {employee.status === 'on_break' && (
-                          <option value="resume_work">🔄 Resume Work</option>
+                          <option value="resume_work"> Resume Work</option>
                         )}
-                        <option value="absent">✗ Absent</option>
-                        <option value="on_leave">🏖️ On Leave</option>
+                        <option value="absent"> Absent</option>
+                        <option value="on_leave"> On Leave</option>
                       </select>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
@@ -749,7 +749,7 @@ const ClockIns = () => {
                             }}
                             title="Delete time entry"
                           >
-                            🗑️ Delete
+                             Delete
                           </button>
                         )}
                       </div>
