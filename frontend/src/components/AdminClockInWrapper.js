@@ -44,21 +44,21 @@ const AdminClockInWrapper = ({ children }) => {
         
         // Show modal if not clocked in yet
         if (currentStatus === 'not_clocked_in' || currentStatus === 'clocked_out') {
-          console.log('⏰ User not clocked in, showing clock-in modal');
+          console.log('User not clocked in, showing clock-in modal');
           setShowClockInModal(true);
         } else {
-          console.log(`✅ User already ${currentStatus}`);
+          console.log(`User already ${currentStatus}`);
         }
       }
     } catch (error) {
       console.error('Check clock status error:', error);
-      // Show modal anyway if we can't check
-      setShowClockInModal(true);
+      // Don't show modal if there's an error - user can clock in manually
+      console.log('Skipping auto clock-in modal due to error');
     }
   };
 
   const handleClockIn = (data) => {
-    console.log('✅ Admin clocked in:', data);
+    console.log('Admin clocked in:', data);
     localStorage.setItem('admin_clocked_in', 'true');
     localStorage.setItem('admin_clock_in_time', new Date().toISOString());
   };

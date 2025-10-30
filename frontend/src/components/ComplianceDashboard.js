@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCertificates } from '../context/CertificateContext';
+import { useAuth } from '../context/AuthContext';
 import ComplianceInsights from './ComplianceInsights';
+import AdminClockInModal from './AdminClockInModal';
 import { ClockIcon } from '@heroicons/react/24/outline';
 
 const ComplianceDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     certificates,
     loading,
@@ -17,6 +20,7 @@ const ComplianceDashboard = () => {
   } = useCertificates();
 
   const [selectedTimeframe, setSelectedTimeframe] = useState(30);
+  const [showAdminClockInModal, setShowAdminClockInModal] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     activeCount: 0,
     expiringCertificates: [],
@@ -112,11 +116,11 @@ const ComplianceDashboard = () => {
         <h1 className="text-3xl font-bold text-gray-900">Compliance Dashboard</h1>
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => navigate('/clock-ins')}
+            onClick={() => setShowAdminClockInModal(true)}
             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200"
           >
             <ClockIcon className="h-5 w-5 mr-2" />
-            Admin Clock-In
+            Clock In
           </button>
           <div className="flex items-center space-x-2">
             <label className="text-sm font-medium text-gray-700">Expiry Alert Period:</label>
@@ -137,6 +141,16 @@ const ComplianceDashboard = () => {
       {/* Compliance Insights Section */}
       <ComplianceInsights />
 
+      {/* Admin Clock-In Modal */}
+      {showAdminClockInModal && (
+        <AdminClockInModal
+          user={user}
+          onClose={() => setShowAdminClockInModal(false)}
+          onClockIn={() => {
+            setShowAdminClockInModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

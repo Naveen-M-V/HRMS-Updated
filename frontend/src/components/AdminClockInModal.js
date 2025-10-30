@@ -62,12 +62,6 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            fontSize: '48px',
-            marginBottom: '16px'
-          }}>
-            👋
-          </div>
           <h2 style={{
             fontSize: '28px',
             fontWeight: '700',
@@ -137,10 +131,10 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
               onFocus={(e) => e.target.style.borderColor = '#667eea'}
               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
             >
-              <option value="Work From Office">🏢 Work From Office</option>
-              <option value="Work From Home">🏠 Work From Home</option>
-              <option value="Field">🚗 Field</option>
-              <option value="Client Side">👔 Client Side</option>
+              <option value="Work From Office">Work From Office</option>
+              <option value="Work From Home">Work From Home</option>
+              <option value="Field">Field</option>
+              <option value="Client Side">Client Side</option>
             </select>
           </div>
 
@@ -171,10 +165,10 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
               onFocus={(e) => e.target.style.borderColor = '#667eea'}
               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
             >
-              <option value="Regular">⏰ Regular</option>
-              <option value="Overtime">⚡ Overtime</option>
-              <option value="Weekend Overtime">📅 Weekend Overtime</option>
-              <option value="Client-side Overtime">💼 Client-side Overtime</option>
+              <option value="Regular">Regular</option>
+              <option value="Overtime">Overtime</option>
+              <option value="Weekend Overtime">Weekend Overtime</option>
+              <option value="Client-side Overtime">Client-side Overtime</option>
             </select>
           </div>
 
@@ -203,7 +197,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
               if (!loading) e.target.style.transform = 'scale(1)';
             }}
           >
-            {loading ? '⏳ Clocking In...' : '✓ Clock In Now'}
+            {loading ? 'Clocking In...' : 'Clock In Now'}
           </button>
 
           <button
@@ -245,7 +239,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
           textAlign: 'center',
           lineHeight: '1.6'
         }}>
-          💡 Your work hours will be tracked automatically.<br />
+          Your work hours will be tracked automatically.<br />
           Remember to clock out at the end of your shift!
         </p>
       </div>
