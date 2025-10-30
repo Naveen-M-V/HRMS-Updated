@@ -1187,20 +1187,8 @@ router.post('/user/in', async (req, res) => {
       });
     }
     
-    // Check if user already clocked out today (prevent multiple entries per day)
-    const clockedOutEntry = await TimeEntry.findOne({
-      employee: userId,
-      date: { $gte: today },
-      status: 'clocked_out'
-    });
-    
-    if (clockedOutEntry) {
-      console.log('User already clocked out today, cannot clock in again');
-      return res.status(400).json({
-        success: false,
-        message: 'You have already clocked out today. Multiple clock-ins per day are not allowed.'
-      });
-    }
+    // Allow multiple clock-ins per day - user can clock in again after clocking out
+    // This is useful for split shifts or multiple work sessions in a day
 
     // Get current time
     const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format

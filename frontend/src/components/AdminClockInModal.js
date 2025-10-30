@@ -30,7 +30,8 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
           setAlreadyClockedIn(true);
           setClockStatus(response.data);
         }
-        // If clocked out, user can clock in again (don't set alreadyClockedIn)
+        // If clocked out or not clocked in, user can clock in (don't set alreadyClockedIn)
+        // This allows multiple clock-ins per day for split shifts
       }
     } catch (error) {
       console.error('Error checking clock status:', error);

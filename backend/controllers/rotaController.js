@@ -3,6 +3,7 @@ const Shift = require('../models/Shift');
 const ShiftAssignment = require('../models/ShiftAssignment');
 const User = require('../models/User');
 const TimeEntry = require('../models/TimeEntry');
+const mongoose = require('mongoose');
 
 const nextDay = (date) => {
   const d = new Date(date);
@@ -84,30 +85,43 @@ exports.assignShiftToEmployee = async (req, res) => {
     }
 
     // Check if employee exists in User collection OR Profile collection
+    console.log('Looking up employee with ID:', employeeId);
     let employee = await User.findById(employeeId);
+    let actualEmployeeId = employeeId;
     
     if (!employee) {
+      console.log('Not found in User collection, checking Profile collection...');
       // Check if this is a Profile ID instead
-      const Profile = require('mongoose').model('Profile');
+      const Profile = mongoose.model('Profile');
       const profile = await Profile.findById(employeeId);
+      console.log('Profile lookup result:', profile ? 'Found' : 'Not found');
       
       if (profile && profile.userId) {
         // Use the profile's userId
+        console.log('Found profile, looking up user with userId:', profile.userId);
         employee = await User.findById(profile.userId);
-        console.log('Found profile, looking up user:', profile.userId);
+        actualEmployeeId = profile.userId;
+        console.log('User lookup result:', employee ? 'Found' : 'Not found');
       }
+    } else {
+      console.log('Found employee in User collection');
     }
     
     if (!employee) {
       console.error('Employee not found in User or Profile:', employeeId);
       return res.status(404).json({
         success: false,
-        message: 'Employee not found in system'
+        message: 'Employee not found in system',
+        debug: {
+          searchedId: employeeId,
+          checkedUser: true,
+          checkedProfile: true
+        }
       });
     }
     
-    // Use the actual User ID for shift assignment
-    const actualEmployeeId = employee._id;
+    // actualEmployeeId is already set above
+    console.log('Using employee ID for shift assignment:', actualEmployeeId);
 
     const conflicts = await exports.detectShiftConflicts(actualEmployeeId, startTime, endTime, date);
     if (conflicts.length > 0) {
