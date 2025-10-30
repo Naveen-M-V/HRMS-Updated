@@ -276,6 +276,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div
             onClick={() => {
               console.log("Settings clicked");
+              handleIconClick();
               setOpenSettings(!openSettings);
             }}
             className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"

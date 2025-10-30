@@ -745,21 +745,49 @@ const ClockIns = () => {
                             </button>
                           </>
                         ) : employee.status === 'on_break' ? (
-                          <button
-                            onClick={() => handleClockOut(employee.id || employee._id)}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#ef4444',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              fontWeight: '500'
-                            }}
-                          >
-                            Clock Out
-                          </button>
+                          <>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const { endBreak } = await import('../utils/clockApi');
+                                  const response = await endBreak(employee.id || employee._id);
+                                  if (response.success) {
+                                    toast.success('Work resumed successfully');
+                                    fetchData();
+                                  }
+                                } catch (error) {
+                                  toast.error('Failed to resume work');
+                                }
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Resume Work
+                            </button>
+                            <button
+                              onClick={() => handleClockOut(employee.id || employee._id)}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Clock Out
+                            </button>
+                          </>
                         ) : (
                           <button
                             onClick={() => handleClockIn(employee.id || employee._id)}
