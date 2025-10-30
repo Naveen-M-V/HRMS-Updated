@@ -24,7 +24,10 @@ export default function Notifications() {
         {notifications.map((note) => (
           <div
             key={note.id}
-            className="flex items-start justify-between bg-white shadow rounded-lg p-4 border"
+            onClick={() => !note.read && handleOpenNotification(note)}
+            className={`flex items-start justify-between bg-white shadow rounded-lg p-4 border ${
+              !note.read ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''
+            }`}
           >
             {/* Left side - icon + content */}
             <div className="flex items-start gap-4">
@@ -36,19 +39,16 @@ export default function Notifications() {
               </div>
             </div>
 
-            {/* Status Button (opens modal) or Tick if read */}
+            {/* Status Badge */}
             {note.read ? (
               <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded text-sm">
                 <Check className="w-4 h-4" />
                 <span>Read</span>
               </div>
             ) : (
-              <button
-                onClick={() => handleOpenNotification(note)}
-                className="px-3 py-1 rounded text-sm shadow bg-green-600 text-white hover:bg-green-700"
-              >
-                Open
-              </button>
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm">
+                <span>Unread</span>
+              </div>
             )}
           </div>
         ))}

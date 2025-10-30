@@ -82,16 +82,30 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   };
 
   const handleIconClick = () => {
-    if (toggleSidebar && !isOpen) toggleSidebar();
+    if (toggleSidebar && !isOpen) {
+      toggleSidebar();
+    }
+  };
+
+  const handleMenuClick = () => {
+    if (toggleSidebar && !isOpen) {
+      toggleSidebar();
+    }
   };
 
   return (
     <div
-      className={`fixed left-0 top-0 h-screen bg-green-900 text-white overflow-y-auto z-50 transition-all duration-300 ${
+      className={`fixed left-0 top-0 h-screen bg-green-900 text-white overflow-y-auto z-50 transition-all duration-300 flex flex-col ${
         isOpen ? "w-64" : "w-16"
       }`}
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
-      <div className="py-4 space-y-2">
+      <style>{`
+        .sidebar-container::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      <div className="py-4 space-y-2 flex-1">
         {/* Header */}
         {isOpen && (
           <div className="px-4 pb-2 text-xs uppercase font-bold tracking-wider text-green-300">
@@ -104,7 +118,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div
             onClick={() => {
               console.log("Reporting clicked");
-              handleIconClick();
+              handleMenuClick();
               setOpenReporting(!openReporting);
             }}
             className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
@@ -148,7 +162,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div
             onClick={() => {
               console.log("Clock In/Out clicked");
-              handleIconClick();
+              handleMenuClick();
               setOpenClockInOut(!openClockInOut);
             }}
             className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
@@ -208,7 +222,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div
             onClick={() => {
               console.log("Training clicked");
-              handleIconClick();
+              handleMenuClick();
               setOpenTraining(!openTraining);
             }}
             className="relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none"
@@ -333,8 +347,17 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div className="border-b border-green-300 mx-2 my-2"></div>
         </div>
 
+        {/* Version */}
+        {isOpen && (
+          <div className="px-4 py-3 text-center text-xs text-green-300/70 border-t border-green-800">
+            <div className="font-semibold mb-1">TalentShield</div>
+            <div>Version Updates</div>
+            <div className="text-green-300/50 mt-1">v{process.env.REACT_APP_VERSION || '1.14'}</div>
+          </div>
+        )}
+
         {/* Logout Button */}
-        <div className="mt-auto pt-4">
+        <div className="pt-4">
           <div
             onClick={handleLogout}
             className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none ${
@@ -353,11 +376,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Version */}
-        <div className="pb-2 text-center text-xs text-green-300/50">
-          {process.env.REACT_APP_NAME || 'Talentshield'} v1.13
         </div>
       </div>
     </div>

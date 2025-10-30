@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ComplianceInsights from './ComplianceInsights';
 import AdminClockInModal from './AdminClockInModal';
 import { ClockIcon } from '@heroicons/react/24/outline';
-import { getUserClockStatus, userClockOut } from '../utils/clockApi';
+import { getUserClockStatus, userClockOut, userStartBreak, userResumeWork } from '../utils/clockApi';
 import { toast } from 'react-toastify';
 
 const ComplianceDashboard = () => {
@@ -132,6 +132,42 @@ const ComplianceDashboard = () => {
     }
   };
 
+  const handleStartBreak = async () => {
+    setClockLoading(true);
+    try {
+      const response = await userStartBreak();
+      if (response.success) {
+        toast.success('Break started');
+        await fetchClockStatus();
+      } else {
+        toast.error(response.message || 'Failed to start break');
+      }
+    } catch (error) {
+      console.error('Start break error:', error);
+      toast.error('Failed to start break');
+    } finally {
+      setClockLoading(false);
+    }
+  };
+
+  const handleResumeWork = async () => {
+    setClockLoading(true);
+    try {
+      const response = await userResumeWork();
+      if (response.success) {
+        toast.success('Work resumed');
+        await fetchClockStatus();
+      } else {
+        toast.error(response.message || 'Failed to resume work');
+      }
+    } catch (error) {
+      console.error('Resume work error:', error);
+      toast.error('Failed to resume work');
+    } finally {
+      setClockLoading(false);
+    }
+  };
+
   const isClockedIn = clockStatus?.status === 'clocked_in' || clockStatus?.status === 'on_break';
 
   if (loading) {
@@ -155,14 +191,35 @@ const ComplianceDashboard = () => {
         <h1 className="text-3xl font-bold text-gray-900">Compliance Dashboard</h1>
         <div className="flex items-center space-x-4">
           {isClockedIn ? (
-            <button
-              onClick={handleClockOut}
-              disabled={clockLoading}
-              className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ClockIcon className="h-5 w-5 mr-2" />
-              {clockLoading ? 'Clocking Out...' : 'Clock Out'}
-            </button>
+            <>
+              {clockStatus?.status === 'on_break' ? (
+                <button
+                  onClick={handleResumeWork}
+                  disabled={clockLoading}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ClockIcon className="h-5 w-5 mr-2" />
+                  {clockLoading ? 'Resuming...' : 'Resume Work'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleStartBreak}
+                  disabled={clockLoading}
+                  className="inline-flex items-center px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ClockIcon className="h-5 w-5 mr-2" />
+                  {clockLoading ? 'Starting...' : 'Add Break'}
+                </button>
+              )}
+              <button
+                onClick={handleClockOut}
+                disabled={clockLoading}
+                className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ClockIcon className="h-5 w-5 mr-2" />
+                {clockLoading ? 'Clocking Out...' : 'Clock Out'}
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setShowAdminClockInModal(true)}

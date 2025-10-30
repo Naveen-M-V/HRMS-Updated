@@ -103,13 +103,15 @@ export const NotificationProvider = ({ children }) => {
     }
 
     if (user && user.id && shouldAutoFetch && isMountedRef.current) {
+      // Fetch immediately
       fetchNotifications();
 
+      // Poll every 15 seconds for better responsiveness
       intervalRef.current = setInterval(() => {
         if (isMountedRef.current) {
           fetchNotifications();
         }
-      }, 30000);
+      }, 15000);
     }
 
     return () => {

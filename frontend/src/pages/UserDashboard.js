@@ -791,11 +791,13 @@ const UserDashboard = () => {
                           return (
                             <tr key={certificate._id}>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900">{certificate.certificate}</div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {certificate.certificate || certificate.certificateName || 'Certificate'}
+                                </div>
                                 <div className="text-sm text-gray-500">{certificate.provider || 'N/A'}</div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {certificate.category}
+                                {certificate.category || 'General'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

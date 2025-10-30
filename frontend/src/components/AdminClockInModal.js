@@ -79,36 +79,75 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(0, 0, 0, 0.6)',
+      background: 'linear-gradient(135deg, rgba(255, 107, 0, 0.9) 0%, rgba(255, 69, 96, 0.8) 100%)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 10000,
-      backdropFilter: 'blur(4px)'
+      backdropFilter: 'blur(8px)'
     }}>
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '20px',
+        background: '#ffffff',
+        borderRadius: '24px',
         padding: '40px',
-        maxWidth: '500px',
+        maxWidth: '560px',
         width: '90%',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-        animation: 'slideDown 0.3s ease-out'
+        boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)',
+        animation: 'slideDown 0.3s ease-out',
+        position: 'relative'
       }}>
+        {/* Info Icon & Close Button */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            background: 'rgba(99, 102, 241, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+            </svg>
+          </div>
+          <button onClick={onClose} style={{
+            width: '32px',
+            height: '32px',
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s',
+            borderRadius: '8px'
+          }}
+          onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
+          onMouseLeave={(e) => e.target.style.background = 'transparent'}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ marginBottom: '28px' }}>
           <h2 style={{
-            fontSize: '28px',
+            fontSize: '26px',
             fontWeight: '700',
-            color: '#ffffff',
-            marginBottom: '8px'
+            color: '#1f2937',
+            marginBottom: '12px'
           }}>
             Welcome Back, {user?.firstName || 'Admin'}!
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255, 255, 255, 0.9)',
-            lineHeight: '1.5'
+            fontSize: '15px',
+            color: '#6b7280',
+            lineHeight: '1.6'
           }}>
             {new Date().toLocaleString('en-GB', {
               timeZone: 'Europe/London',
@@ -123,19 +162,14 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
         </div>
 
         {/* Clock In Form */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.95)',
-          borderRadius: '16px',
-          padding: '32px',
-          marginBottom: '24px'
-        }}>
+        <div>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '20px' }}>
               <div style={{
                 width: '40px',
                 height: '40px',
                 border: '4px solid #f3f3f3',
-                borderTop: '4px solid #667eea',
+                borderTop: '4px solid #6366F1',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
                 margin: '0 auto 16px'
@@ -177,170 +211,199 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                 style={{
                   width: '100%',
                   padding: '12px 24px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: '#6366F1',
                   color: '#ffffff',
                   border: 'none',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                  transition: 'background 0.2s'
                 }}
+                onMouseEnter={(e) => e.target.style.background = '#5558E3'}
+                onMouseLeave={(e) => e.target.style.background = '#6366F1'}
               >
                 Continue to Dashboard
               </button>
             </div>
           ) : (
             <>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                marginBottom: '20px',
-                textAlign: 'center'
-              }}>
-                Ready to start your day?
-              </h3>
+              {/* Work Location Field */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Label
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <svg style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <select
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '14px 48px 14px 48px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontWeight: '400',
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s',
+                      appearance: 'none'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#6366F1'}
+                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  >
+                    <option value="Work From Office">Work From Office</option>
+                    <option value="Work From Home">Work From Home</option>
+                    <option value="Field">Field</option>
+                    <option value="Client Side">Client Side</option>
+                  </select>
+                  <svg style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </div>
+              </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              marginBottom: '8px'
-            }}>
-              Work Location
-            </label>
-            <select
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: '500',
-                background: '#ffffff',
-                cursor: 'pointer',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-            >
-              <option value="Work From Office">Work From Office</option>
-              <option value="Work From Home">Work From Home</option>
-              <option value="Field">Field</option>
-              <option value="Client Side">Client Side</option>
-            </select>
-          </div>
+              {/* Work Type Field */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Label
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <svg style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <select
+                    value={workType}
+                    onChange={(e) => setWorkType(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '14px 48px 14px 48px',
+                      border: '2px solid #6366F1',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontWeight: '400',
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s',
+                      appearance: 'none'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#6366F1'}
+                    onBlur={(e) => e.target.style.borderColor = '#6366F1'}
+                  >
+                    <option value="Regular">Regular</option>
+                    <option value="Overtime">Overtime</option>
+                    <option value="Weekend Overtime">Weekend Overtime</option>
+                    <option value="Client-side Overtime">Client-side Overtime</option>
+                  </select>
+                  <svg style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </div>
+              </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              marginBottom: '8px'
-            }}>
-              Work Type
-            </label>
-            <select
-              value={workType}
-              onChange={(e) => setWorkType(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: '500',
-                background: '#ffffff',
-                cursor: 'pointer',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-            >
-              <option value="Regular">Regular</option>
-              <option value="Overtime">Overtime</option>
-              <option value="Weekend Overtime">Weekend Overtime</option>
-              <option value="Client-side Overtime">Client-side Overtime</option>
-            </select>
-          </div>
+              {/* Validation Progress Bar */}
+              <div style={{ marginBottom: '28px' }}>
+                <div style={{ 
+                  height: '4px', 
+                  background: '#e5e7eb', 
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  marginBottom: '8px'
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: '75%',
+                    background: 'linear-gradient(90deg, #10b981 0%, #34d399 100%)',
+                    transition: 'width 0.3s'
+                  }}></div>
+                </div>
+                <p style={{ fontSize: '13px', color: '#10b981', fontWeight: '500' }}>
+                  This is a validation text.
+                </p>
+              </div>
 
-          <button
-            onClick={handleClockIn}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px 24px',
-              background: loading ? '#9ca3af' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '10px',
-              fontSize: '16px',
-              fontWeight: '700',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              boxShadow: loading ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.4)',
-              transition: 'all 0.3s',
-              transform: loading ? 'scale(1)' : 'scale(1)',
-              marginBottom: '12px'
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) e.target.style.transform = 'scale(1.02)';
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.target.style.transform = 'scale(1)';
-            }}
-          >
-            {loading ? 'Clocking In...' : 'Clock In Now'}
-          </button>
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={handleSkip}
+                  disabled={loading}
+                  style={{
+                    padding: '12px 28px',
+                    background: '#ffffff',
+                    color: '#6b7280',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.color = '#374151';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.color = '#6b7280';
+                    }
+                  }}
+                >
+                  Cancel
+                </button>
 
-          <button
-            onClick={handleSkip}
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px 24px',
-              background: 'transparent',
-              color: '#6b7280',
-              border: '2px solid #e5e7eb',
-              borderRadius: '10px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.target.style.borderColor = '#9ca3af';
-                e.target.style.color = '#111827';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.color = '#6b7280';
-              }
-            }}
-          >
-            I'll clock in later
-          </button>
+                <button
+                  onClick={handleClockIn}
+                  disabled={loading}
+                  style={{
+                    padding: '12px 28px',
+                    background: loading ? '#9ca3af' : '#6366F1',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: loading ? 'none' : '0 4px 12px rgba(99, 102, 241, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) e.target.style.background = '#5558E3';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!loading) e.target.style.background = '#6366F1';
+                  }}
+                >
+                  {loading ? 'Processing...' : 'Accept'}
+                </button>
+              </div>
             </>
           )}
         </div>
 
-        {/* Info */}
-        <p style={{
-          fontSize: '13px',
-          color: 'rgba(255, 255, 255, 0.8)',
-          textAlign: 'center',
-          lineHeight: '1.6'
-        }}>
-          Your work hours will be tracked automatically.<br />
-          Remember to clock out at the end of your shift!
-        </p>
       </div>
 
       <style>{`

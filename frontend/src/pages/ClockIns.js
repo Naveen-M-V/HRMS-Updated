@@ -33,7 +33,8 @@ const ClockIns = () => {
 
   useEffect(() => {
     fetchData();
-    // Auto-refresh every 10 seconds for more real-time updates
+    // Auto-refresh every 10 seconds for real-time sync with user dashboard
+    // This ensures admin sees clock-ins from users immediately
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -664,6 +665,7 @@ const ClockIns = () => {
               background: '#f9fafb'
             }}>
               <tr>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb', width: '60px' }}>SI No.</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>VTID</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>First Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Last Name</th>
@@ -696,6 +698,9 @@ const ClockIns = () => {
                       }
                     }}
                   >
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
+                      {index + 1}
+                    </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.vtid || '-'}
                     </td>
@@ -712,30 +717,7 @@ const ClockIns = () => {
                       {employee.jobTitle || '-'}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <select
-                        value={employee.status || 'absent'}
-                        onChange={(e) => handleStatusChange(employee.id || employee._id, e.target.value)}
-                        style={{
-                          padding: '6px 12px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          background: 'white',
-                          color: '#111827',
-                          minWidth: '130px'
-                        }}
-                      >
-                        <option value="clocked_in"> Clocked In</option>
-                        <option value="clocked_out"> Clocked Out</option>
-                        <option value="on_break"> On Break</option>
-                        {employee.status === 'on_break' && (
-                          <option value="resume_work"> Resume Work</option>
-                        )}
-                        <option value="absent"> Absent</option>
-                        <option value="on_leave"> On Leave</option>
-                      </select>
+                      {getStatusBadge(employee.status || 'absent')}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -876,7 +858,7 @@ const ClockIns = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" style={{
+                  <td colSpan="8" style={{
                     textAlign: 'center',
                     padding: '40px',
                     color: '#6b7280'
