@@ -30,8 +30,15 @@ if (mongoose.models.Notification) {
         'certificate_updated',
         'system',
         'welcome',
-        'profile_created', // Add existing types from server
-        'certificate_created'
+        'profile_created',
+        'certificate_created',
+        'clock_in',
+        'clock_out',
+        'break_started',
+        'work_resumed',
+        'shift_assigned',
+        'admin_clock_in',
+        'admin_clock_out'
       ]
     },
     title: {

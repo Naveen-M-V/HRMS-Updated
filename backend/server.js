@@ -889,7 +889,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         `Welcome to the HRMS system! Your profile has been created successfully.\n\nPlease login at: ${loginUrl}`,
         'success'
       );
-      console.log('✅ Profile creation email sent to user:', savedProfile.email);
+      console.log('Profile creation email sent to user:', savedProfile.email);
       
       // 2. Send notification to all admins
       const adminUsers = await User.find({ role: 'admin' });
@@ -906,10 +906,10 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
           'info'
         );
       }
-      console.log('✅ Admin notifications sent for profile creation');
+      console.log('Admin notifications sent for profile creation');
       
     } catch (emailError) {
-      console.error('❌ Error sending profile creation emails:', emailError);
+      console.error('Error sending profile creation emails:', emailError);
       console.error('Email error stack:', emailError.stack);
     }
     
@@ -918,10 +918,10 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       const newUser = await User.findOne({ profileId: savedProfile._id });
       if (newUser) {
         await notifyUserCreation(newUser, savedProfile, req.session?.user?.userId);
-        console.log('✅ User creation notifications sent');
+        console.log('User creation notifications sent');
       }
     } catch (notificationError) {
-      console.error('❌ Error creating user creation notifications:', notificationError);
+      console.error('Error creating user creation notifications:', notificationError);
     }
     
     res.status(201).json(savedProfile);
@@ -1000,10 +1000,10 @@ app.put('/api/profiles/:id', async (req, res) => {
       
       if (Object.keys(updatedFields).length > 0) {
         await notifyProfileUpdate(updatedProfile, updatedFields, req.session?.user?.userId);
-        console.log('✅ Profile update notifications sent');
+        console.log('Profile update notifications sent');
       }
     } catch (notificationError) {
-      console.error('❌ Error creating profile update notifications:', notificationError);
+      console.error('Error creating profile update notifications:', notificationError);
     }
     
     res.json(updatedProfile);
@@ -1391,10 +1391,10 @@ app.get('/api/certificates/:id', async (req, res) => {
 // Create new certificate with file upload
 app.post('/api/certificates', upload.single('certificateFile'), validateCertificateInput, async (req, res) => {
   try {
-    console.log('🔥 Certificate creation endpoint called');
-    console.log('📋 Request body:', req.body);
-    console.log('📎 File uploaded:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
-    console.log('🔍 Headers:', req.headers['content-type']);
+    console.log('Certificate creation endpoint called');
+    console.log('Request body:', req.body);
+    console.log('File uploaded:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
+    console.log('Headers:', req.headers['content-type']);
     
     const certificateData = { ...req.body };
     
@@ -1446,7 +1446,7 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
             `A new certificate has been added to your profile.\n\nCertificate: ${savedCertificate.certificate}\nCategory: ${savedCertificate.category}\nIssue Date: ${savedCertificate.issueDate}\nExpiry Date: ${savedCertificate.expiryDate || 'N/A'}`,
             'success'
           );
-          console.log('✅ Certificate added email sent to user:', profile.email);
+          console.log('Certificate added email sent to user:', profile.email);
           
           // Send notification to admins
           const adminUsers = await User.find({ role: 'admin' });
@@ -1462,16 +1462,16 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
               'success'
             );
           }
-          console.log('✅ Admin notifications sent for certificate addition');
+          console.log('Admin notifications sent for certificate addition');
         } else {
-          console.log('❌ Profile not found for certificate email notification');
+          console.log('Profile not found for certificate email notification');
         }
       } catch (emailError) {
-        console.error('❌ Error sending certificate creation emails:', emailError);
+        console.error('Error sending certificate creation emails:', emailError);
         console.error('Email error stack:', emailError.stack);
       }
     } else {
-      console.log('⚠️ No profileId provided, skipping email notifications');
+      console.log('No profileId provided, skipping email notifications');
     }
     
     // Create in-app notifications using new notification service
@@ -1480,16 +1480,16 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
         const profile = await Profile.findById(certificateData.profileId);
         if (profile) {
           await notifyCertificateAdded(savedCertificate, profile, req.session?.user?.userId);
-          console.log('✅ Certificate added notifications sent');
+          console.log('Certificate added notifications sent');
         }
       }
     } catch (notificationError) {
-      console.error('❌ Error creating certificate added notifications:', notificationError);
+      console.error('Error creating certificate added notifications:', notificationError);
     }
     
     res.status(201).json(savedCertificate);
   } catch (error) {
-    console.error('❌ Certificate creation error:', error);
+    console.error('Certificate creation error:', error);
     console.error('Error details:', {
       message: error.message,
       stack: error.stack,

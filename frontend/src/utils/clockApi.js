@@ -250,6 +250,40 @@ export const addUserBreak = async (breakData = {}) => {
 };
 
 /**
+ * Start break for current user
+ * @returns {Promise} API response
+ */
+export const userStartBreak = async () => {
+  try {
+    const response = await axios.post(
+      buildApiUrl('/clock/user/start-break'),
+      {},
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to start break' };
+  }
+};
+
+/**
+ * Resume work from break for current user
+ * @returns {Promise} API response
+ */
+export const userResumeWork = async () => {
+  try {
+    const response = await axios.post(
+      buildApiUrl('/clock/user/resume-work'),
+      {},
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to resume work' };
+  }
+};
+
+/**
  * Get user's own time entries
  * @param {String} startDate - Start date
  * @param {String} endDate - End date

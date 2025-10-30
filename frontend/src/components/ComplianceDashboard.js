@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCertificates } from '../context/CertificateContext';
 import ComplianceInsights from './ComplianceInsights';
+import { ClockIcon } from '@heroicons/react/24/outline';
 
 const ComplianceDashboard = () => {
+  const navigate = useNavigate();
   const {
     certificates,
     loading,
@@ -108,18 +110,27 @@ const ComplianceDashboard = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Compliance Dashboard</h1>
-        <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Expiry Alert Period:</label>
-          <select
-            value={selectedTimeframe}
-            onChange={(e) => setSelectedTimeframe(parseInt(e.target.value))}
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => navigate('/clock-ins')}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200"
           >
-            <option value={7}>7 days</option>
-            <option value={30}>30 days</option>
-            <option value={60}>60 days</option>
-            <option value={90}>90 days</option>
-          </select>
+            <ClockIcon className="h-5 w-5 mr-2" />
+            Admin Clock-In
+          </button>
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">Expiry Alert Period:</label>
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => setSelectedTimeframe(parseInt(e.target.value))}
+              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value={7}>7 days</option>
+              <option value={30}>30 days</option>
+              <option value={60}>60 days</option>
+              <option value={90}>90 days</option>
+            </select>
+          </div>
         </div>
       </div>
 

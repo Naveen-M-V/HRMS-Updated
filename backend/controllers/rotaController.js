@@ -94,12 +94,12 @@ exports.assignShiftToEmployee = async (req, res) => {
       if (profile && profile.userId) {
         // Use the profile's userId
         employee = await User.findById(profile.userId);
-        console.log('🔄 Found profile, looking up user:', profile.userId);
+        console.log('Found profile, looking up user:', profile.userId);
       }
     }
     
     if (!employee) {
-      console.error('❌ Employee not found in User or Profile:', employeeId);
+      console.error('Employee not found in User or Profile:', employeeId);
       return res.status(404).json({
         success: false,
         message: 'Employee not found in system'
@@ -141,6 +141,34 @@ exports.assignShiftToEmployee = async (req, res) => {
     const populatedShift = await ShiftAssignment.findById(shiftAssignment._id)
       .populate('employeeId', 'firstName lastName email')
       .populate('assignedBy', 'firstName lastName');
+
+    // Create notification for shift assignment
+    try {
+      const Notification = require('../models/Notification');
+      const assignedByName = populatedShift.assignedBy 
+        ? `${populatedShift.assignedBy.firstName} ${populatedShift.assignedBy.lastName}`
+        : 'Admin';
+      
+      await Notification.create({
+        userId: actualEmployeeId,
+        type: 'system',
+        title: 'Shift Assigned',
+        message: `New shift assigned by ${assignedByName} on ${new Date(date).toLocaleDateString()} from ${startTime} to ${endTime} at ${location}`,
+        priority: 'medium',
+        metadata: {
+          shiftId: shiftAssignment._id,
+          date: date,
+          startTime: startTime,
+          endTime: endTime,
+          location: location,
+          assignedBy: assignedByName,
+          assignedAt: new Date().toISOString()
+        }
+      });
+      console.log('Shift assignment notification created for user:', actualEmployeeId);
+    } catch (notifError) {
+      console.error('Failed to create shift assignment notification:', notifError);
+    }
 
     res.status(201).json({
       success: true,

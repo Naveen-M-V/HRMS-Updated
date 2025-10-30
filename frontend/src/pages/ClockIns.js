@@ -28,6 +28,8 @@ const ClockIns = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', clockIn: '', clockOut: '' });
+  const [showClockInModal, setShowClockInModal] = useState(false);
+  const [clockInEmployee, setClockInEmployee] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -95,14 +97,19 @@ const ClockIns = () => {
     setStatsLoading(false);
   };
 
-  const handleClockIn = async (employeeId) => {
-    if (!employeeId) {
-      toast.error('Please select an employee first');
-      return;
-    }
+  const openClockInModal = (employee) => {
+    setClockInEmployee(employee);
+    setShowClockInModal(true);
+  };
 
-    console.log('🔵 Clock In - Employee ID:', employeeId);
-    console.log('🔵 Employee ID type:', typeof employeeId);
+  const confirmClockIn = async () => {
+    if (!clockInEmployee) return;
+    
+    const employeeId = clockInEmployee.id || clockInEmployee._id;
+    setShowClockInModal(false);
+    
+    console.log('Clock In - Employee ID:', employeeId);
+    console.log('Employee ID type:', typeof employeeId);
 
     // Optimistic update
     setEmployees(prevEmployees => 
@@ -460,7 +467,7 @@ const ClockIns = () => {
               <button
                 onClick={() => {
                   if (selectedEmployee) {
-                    handleClockIn(selectedEmployee.id || selectedEmployee._id);
+                    openClockInModal(selectedEmployee);
                   } else {
                     toast.warning('Please select an employee first');
                   }
@@ -790,7 +797,7 @@ const ClockIns = () => {
                           </>
                         ) : (
                           <button
-                            onClick={() => handleClockIn(employee.id || employee._id)}
+                            onClick={() => openClockInModal(employee)}
                             style={{
                               padding: '6px 12px',
                               background: '#10b981',
@@ -940,6 +947,190 @@ const ClockIns = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Clock-In Modal */}
+      {showClockInModal && clockInEmployee && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '24px',
+            padding: '0',
+            maxWidth: '520px',
+            width: '90%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden'
+          }}>
+            {/* Header Image Section */}
+            <div style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              padding: '48px 32px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Grid Pattern Background */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `
+                  linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+                `,
+                backgroundSize: '20px 20px',
+                opacity: 0.3
+              }}></div>
+              
+              {/* Placeholder for Image - Will be replaced */}
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '200px'
+              }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  borderRadius: '16px',
+                  padding: '32px',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '36px',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    boxShadow: '0 8px 16px rgba(59, 130, 246, 0.4)'
+                  }}>
+                    {clockInEmployee.firstName?.[0]}{clockInEmployee.lastName?.[0]}
+                  </div>
+                  <div style={{
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '24px',
+                      fontWeight: '700',
+                      color: '#1e293b',
+                      marginBottom: '4px'
+                    }}>
+                      {clockInEmployee.firstName} {clockInEmployee.lastName}
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#64748b',
+                      fontWeight: '500'
+                    }}>
+                      {clockInEmployee.department || 'Employee'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Section */}
+            <div style={{ padding: '32px' }}>
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#111827',
+                marginBottom: '12px',
+                textAlign: 'center'
+              }}>
+                Clock In Confirmation
+              </h2>
+              <p style={{
+                fontSize: '15px',
+                color: '#6b7280',
+                textAlign: 'center',
+                lineHeight: '1.6',
+                marginBottom: '32px'
+              }}>
+                You are about to clock in <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong>.
+                <br />
+                This action will be recorded with a timestamp.
+              </p>
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'center'
+              }}>
+                <button
+                  onClick={() => setShowClockInModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '14px 24px',
+                    borderRadius: '12px',
+                    border: '2px solid #e5e7eb',
+                    background: '#ffffff',
+                    color: '#374151',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#f9fafb';
+                    e.target.style.borderColor = '#d1d5db';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#ffffff';
+                    e.target.style.borderColor = '#e5e7eb';
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmClockIn}
+                  style={{
+                    flex: 1,
+                    padding: '14px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                    color: '#ffffff',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+                  }}
+                >
+                  Confirm Clock In
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

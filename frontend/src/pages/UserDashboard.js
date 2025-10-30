@@ -4,8 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import UserClockIns from './UserClockIns';
-import { userClockIn, userClockOut, getUserClockStatus } from '../utils/clockApi';
+import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
+import { jobRoleCertificateMapping } from '../data/new';
 import { 
   PencilIcon, 
   PlusIcon, 
@@ -120,6 +121,7 @@ const UserDashboard = () => {
         }
         
         await fetchClockStatus();
+        await fetchUserData(); // Refresh notifications
         
         if (response.data?.attendanceStatus === 'Late') {
           toast.warning('Late arrival detected', { autoClose: 5000 });
@@ -147,10 +149,47 @@ const UserDashboard = () => {
         setShiftInfo(null);
         setAttendanceStatus(null);
         await fetchClockStatus();
+        await fetchUserData(); // Refresh notifications
       }
     } catch (error) {
       console.error('Clock out error:', error);
       toast.error(error.message || 'Failed to clock out');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStartBreak = async () => {
+    setProcessing(true);
+    try {
+      const response = await userStartBreak();
+      
+      if (response.success) {
+        toast.success('Break started');
+        await fetchClockStatus();
+        await fetchUserData(); // Refresh notifications
+      }
+    } catch (error) {
+      console.error('Start break error:', error);
+      toast.error(error.message || 'Failed to start break');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleResumeWork = async () => {
+    setProcessing(true);
+    try {
+      const response = await userResumeWork();
+      
+      if (response.success) {
+        toast.success('Work resumed');
+        await fetchClockStatus();
+        await fetchUserData(); // Refresh notifications
+      }
+    } catch (error) {
+      console.error('Resume work error:', error);
+      toast.error(error.message || 'Failed to resume work');
     } finally {
       setProcessing(false);
     }
@@ -180,14 +219,14 @@ const UserDashboard = () => {
         const updatedProfile = await response.json();
         setUserProfile(updatedProfile);
         setIsEditingProfile(false);
-        // Show success message
-        alert('Profile updated successfully!');
+        toast.success('Profile updated successfully!');
+        await fetchUserData(); // Refresh to get new notification
       } else {
-        alert('Failed to update profile. Please try again.');
+        toast.error('Failed to update profile. Please try again.');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Error updating profile. Please try again.');
+      toast.error('Error updating profile. Please try again.');
     }
   };
 
@@ -234,6 +273,24 @@ const UserDashboard = () => {
       default:
         return <BellIcon className="h-5 w-5 text-gray-500" />;
     }
+  };
+
+  const getRequiredCertificates = () => {
+    if (!userProfile?.jobRole) return null;
+    
+    // Handle jobRole as array or string
+    const jobRole = Array.isArray(userProfile.jobRole) 
+      ? userProfile.jobRole[0] 
+      : userProfile.jobRole;
+    
+    return jobRoleCertificateMapping[jobRole] || null;
+  };
+
+  const checkCertificateStatus = (certCode) => {
+    // Check if user has this certificate
+    return certificates.some(cert => 
+      cert.certificate && cert.certificate.includes(certCode)
+    );
   };
 
   if (loading) {
@@ -325,78 +382,108 @@ const UserDashboard = () => {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Clock In/Out Widget */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <ClockIcon className="h-5 w-5 mr-2" />
-                Clock In / Out
+            <div className="bg-white shadow-md rounded-lg p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <ClockIcon className="h-6 w-6 mr-3 text-blue-600" />
+                Time Tracking
               </h2>
               
               {shiftInfo && attendanceStatus && (
-                <ShiftInfoCard shift={shiftInfo} attendanceStatus={attendanceStatus} validation={null} />
+                <div className="mb-6">
+                  <ShiftInfoCard shift={shiftInfo} attendanceStatus={attendanceStatus} validation={null} />
+                </div>
               )}
               
               {clockStatus?.status === 'clocked_in' || clockStatus?.status === 'on_break' ? (
-                <div className="text-center">
-                  <div className="mb-4 inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full font-medium">
-                    🟢 Currently Clocked In
+                <div className="space-y-4">
+                  <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                    <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full font-semibold text-sm mb-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                      {clockStatus.status === 'on_break' ? 'On Break' : 'Currently Clocked In'}
+                    </div>
+                    {clockStatus.clockIn && (
+                      <p className="text-gray-700 text-sm mt-2">
+                        Clocked in at: <strong className="text-gray-900">{clockStatus.clockIn}</strong>
+                      </p>
+                    )}
                   </div>
-                  {clockStatus.clockIn && (
-                    <p className="text-gray-600 mb-6">Clocked in at: <strong>{clockStatus.clockIn}</strong></p>
-                  )}
-                  <button
-                    onClick={handleClockOut}
-                    disabled={processing}
-                    className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {processing ? '⏳ Processing...' : '🚪 Clock Out'}
-                  </button>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    {clockStatus.status === 'on_break' ? (
+                      <button
+                        onClick={handleResumeWork}
+                        disabled={processing}
+                        className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        {processing ? 'Processing...' : 'Resume Work'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleStartBreak}
+                        disabled={processing}
+                        className="w-full px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        {processing ? 'Processing...' : 'Start Break'}
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={handleClockOut}
+                      disabled={processing}
+                      className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      {processing ? 'Processing...' : 'Clock Out'}
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="Work From Office">🏢 Work From Office</option>
-                      <option value="Work From Home">🏠 Work From Home</option>
-                      <option value="Field">🌍 Field</option>
-                      <option value="Client Side">🤝 Client Site</option>
-                    </select>
-                  </div>
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Work Type
-                    </label>
-                    <select
-                      value={workType}
-                      onChange={(e) => setWorkType(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="Regular">⏰ Regular</option>
-                      <option value="Overtime">⏱️ Overtime</option>
-                      <option value="Weekend Overtime">📅 Weekend Overtime</option>
-                      <option value="Client-side Overtime">🤝 Client-side Overtime</option>
-                    </select>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Location <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      >
+                        <option value="Work From Office">Work From Office</option>
+                        <option value="Work From Home">Work From Home</option>
+                        <option value="Field">Field</option>
+                        <option value="Client Side">Client Site</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Work Type
+                      </label>
+                      <select
+                        value={workType}
+                        onChange={(e) => setWorkType(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                      >
+                        <option value="Regular">Regular</option>
+                        <option value="Overtime">Overtime</option>
+                        <option value="Weekend Overtime">Weekend Overtime</option>
+                        <option value="Client-side Overtime">Client-side Overtime</option>
+                      </select>
+                    </div>
                   </div>
                   <button
                     onClick={handleClockIn}
                     disabled={processing}
-                    className="w-full px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-lg"
                   >
-                    {processing ? '⏳ Processing...' : '✅ Clock In'}
+                    {processing ? 'Processing...' : 'Clock In'}
                   </button>
                 </div>
               )}
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -412,7 +499,7 @@ const UserDashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -434,7 +521,7 @@ const UserDashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
                 <div className="p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
@@ -569,6 +656,60 @@ const UserDashboard = () => {
         {/* Certificates Tab */}
         {activeTab === 'certificates' && (
           <div className="space-y-6">
+            {/* Required Certificates Section */}
+            {getRequiredCertificates() && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-blue-900 mb-4">
+                  Required Certificates for {Array.isArray(userProfile.jobRole) ? userProfile.jobRole[0] : userProfile.jobRole}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(getRequiredCertificates()).map(([category, certs]) => {
+                    if (category === 'optional' || !Array.isArray(certs)) return null;
+                    const categoryName = category.replace('mandatory', '').replace(/([A-Z])/g, ' $1').trim();
+                    return (
+                      <div key={category} className="bg-white rounded-lg p-4 shadow-sm">
+                        <h4 className="font-semibold text-gray-900 mb-2 capitalize">{categoryName}</h4>
+                        <ul className="space-y-1">
+                          {certs.map(cert => (
+                            <li key={cert} className="flex items-center text-sm">
+                              {checkCertificateStatus(cert) ? (
+                                <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
+                              ) : (
+                                <ExclamationTriangleIcon className="h-4 w-4 text-red-500 mr-2" />
+                              )}
+                              <span className={checkCertificateStatus(cert) ? 'text-green-700' : 'text-red-700'}>
+                                {cert}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+                {getRequiredCertificates().optional && (
+                  <div className="mt-4 bg-white rounded-lg p-4 shadow-sm">
+                    <h4 className="font-semibold text-gray-900 mb-2">Optional Certificates</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {getRequiredCertificates().optional.map(cert => (
+                        <span 
+                          key={cert}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            checkCertificateStatus(cert) 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {checkCertificateStatus(cert) && <CheckCircleIcon className="h-3 w-3 mr-1" />}
+                          {cert}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <div className="flex justify-between items-center mb-6">

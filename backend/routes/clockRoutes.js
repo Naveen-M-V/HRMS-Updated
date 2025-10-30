@@ -25,11 +25,11 @@ router.post('/in', async (req, res) => {
   try {
     const { employeeId, location, workType } = req.body;
 
-    console.log('🔵 Clock In Request:', { employeeId, location, workType });
-    console.log('🔵 Employee ID type:', typeof employeeId);
+    console.log('Clock In Request:', { employeeId, location, workType });
+    console.log('Employee ID type:', typeof employeeId);
 
     if (!employeeId) {
-      console.error('❌ No employeeId provided');
+      console.error('No employeeId provided');
       return res.status(400).json({
         success: false,
         message: 'Employee ID is required'
@@ -38,23 +38,23 @@ router.post('/in', async (req, res) => {
 
     // Check if employee exists in User collection OR Profile collection
     let employee = await User.findById(employeeId);
-    console.log('🔍 User lookup result:', employee ? `Found: ${employee.firstName} ${employee.lastName}` : 'Not found');
+    console.log('User lookup result:', employee ? `Found: ${employee.firstName} ${employee.lastName}` : 'Not found');
     
     if (!employee) {
       // Check if this is a Profile ID instead
       const Profile = require('mongoose').model('Profile');
       const profile = await Profile.findById(employeeId);
-      console.log('🔍 Profile lookup result:', profile ? `Found: ${profile.firstName} ${profile.lastName}` : 'Not found');
+      console.log('Profile lookup result:', profile ? `Found: ${profile.firstName} ${profile.lastName}` : 'Not found');
       
       if (profile && profile.userId) {
         // Use the profile's userId
         employee = await User.findById(profile.userId);
-        console.log('🔄 Found profile, looking up user:', profile.userId);
+        console.log('Found profile, looking up user:', profile.userId);
       }
     }
     
     if (!employee) {
-      console.error('❌ Employee not found in User or Profile:', employeeId);
+      console.error('Employee not found in User or Profile:', employeeId);
       return res.status(404).json({
         success: false,
         message: 'Employee not found in system. Please ensure user account exists.'
@@ -139,6 +139,23 @@ router.post('/in', async (req, res) => {
       }
     }
 
+    // Create notification for admin clock-in
+    try {
+      const Notification = require('../models/Notification');
+      const adminUser = await User.findById(createdByUserId);
+      const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+      
+      await Notification.create({
+        userId: actualEmployeeId,
+        type: 'system',
+        title: 'Clocked In by Admin',
+        message: `${adminName} clocked you in at ${currentTime} - ${location}`,
+        priority: 'medium'
+      });
+    } catch (notifError) {
+      console.error('Failed to create admin clock-in notification:', notifError);
+    }
+
     res.json({
       success: true,
       message: validationResult ? validationResult.message : 'Employee clocked in successfully',
@@ -210,11 +227,28 @@ router.post('/out', async (req, res) => {
     await timeEntry.save();
     
     if (timeEntry.shiftId) {
-      console.log('Updating shift status to Completed:', timeEntry.shiftId._id);
+      console.log('Marking shift as Completed');
       await updateShiftStatus(timeEntry.shiftId._id, 'Completed', {
         actualEndTime: currentTime
       });
-      console.log('Shift marked as completed');
+    }
+
+    // Create notification for admin clock-out
+    try {
+      const Notification = require('../models/Notification');
+      const adminUserId = req.user._id || req.user.userId || req.user.id;
+      const adminUser = await User.findById(adminUserId);
+      const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+      
+      await Notification.create({
+        userId: employeeId,
+        type: 'system',
+        title: 'Clocked Out by Admin',
+        message: `${adminName} clocked you out at ${currentTime}. Hours worked: ${hoursWorked.toFixed(2)}h`,
+        priority: 'medium'
+      });
+    } catch (notifError) {
+      console.error('Failed to create admin clock-out notification:', notifError);
     }
 
     res.json({
@@ -1194,6 +1228,20 @@ router.post('/user/in', async (req, res) => {
       });
     }
 
+    // Create notification for clock-in
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Clocked In',
+        message: `You clocked in at ${currentTime} - ${location}`,
+        priority: 'medium'
+      });
+    } catch (notifError) {
+      console.error('Failed to create clock-in notification:', notifError);
+    }
+
     res.json({
       success: true,
       message: validationResult ? validationResult.message : 'Clocked in successfully',
@@ -1265,6 +1313,20 @@ router.post('/user/out', async (req, res) => {
       await updateShiftStatus(timeEntry.shiftId._id, 'Completed', {
         actualEndTime: currentTime
       });
+    }
+
+    // Create notification for clock-out
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Clocked Out',
+        message: `You clocked out at ${currentTime}. Hours worked: ${hoursWorked.toFixed(2)}h`,
+        priority: 'medium'
+      });
+    } catch (notifError) {
+      console.error('Failed to create clock-out notification:', notifError);
     }
 
     res.json({
@@ -1349,6 +1411,157 @@ router.post('/user/break', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error adding break'
+    });
+  }
+});
+
+// @route   POST /api/clock/user/start-break
+// @desc    Start break for current user
+// @access  Private (User)
+router.post('/user/start-break', async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.userId || req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find today's active time entry
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today },
+      status: 'clocked_in'
+    }).populate('employee', 'firstName lastName email');
+
+    if (!timeEntry) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must be clocked in to start a break'
+      });
+    }
+
+    // Set break status
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    timeEntry.status = 'on_break';
+    timeEntry.onBreakStart = currentTime;
+    
+    await timeEntry.save();
+
+    // Create notification
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Break Started',
+        message: `Break started at ${currentTime}`,
+        priority: 'low'
+      });
+    } catch (notifError) {
+      console.error('Failed to create break notification:', notifError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Break started successfully',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('Start break error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error starting break'
+    });
+  }
+});
+
+// @route   POST /api/clock/user/resume-work
+// @desc    Resume work from break for current user
+// @access  Private (User)
+router.post('/user/resume-work', async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.userId || req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find today's active time entry
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today },
+      status: 'on_break'
+    }).populate('employee', 'firstName lastName email');
+
+    if (!timeEntry) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are not currently on break'
+      });
+    }
+
+    // Calculate break duration
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    const breakStart = timeEntry.onBreakStart;
+    
+    if (breakStart) {
+      const [startHour, startMin] = breakStart.split(':').map(Number);
+      const [endHour, endMin] = currentTime.split(':').map(Number);
+      const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      
+      // Add break to breaks array
+      timeEntry.breaks.push({
+        startTime: breakStart,
+        endTime: currentTime,
+        duration: duration > 0 ? duration : 0,
+        type: 'other'
+      });
+    }
+
+    // Resume work status
+    timeEntry.status = 'clocked_in';
+    timeEntry.onBreakStart = null;
+    
+    await timeEntry.save();
+
+    // Create notification
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Work Resumed',
+        message: `Work resumed at ${currentTime}`,
+        priority: 'low'
+      });
+    } catch (notifError) {
+      console.error('Failed to create resume notification:', notifError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Work resumed successfully',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('Resume work error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error resuming work'
     });
   }
 });
