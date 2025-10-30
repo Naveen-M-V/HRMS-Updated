@@ -46,27 +46,34 @@ const TimeHistory = () => {
   const fetchEmployees = async () => {
     try {
       const response = await axios.get(buildApiUrl('/profiles'), { withCredentials: true });
-      console.log('Raw profiles response:', response.data);
+      console.log('📋 Raw profiles response:', response.data);
       
       if (response.data) {
-        // Map all profiles, using userId if available, otherwise use _id
+        // Map profiles to employee format (same as RotaShiftManagement)
         const employeeList = response.data
           .filter(profile => profile.firstName && profile.lastName) // Only include profiles with names
-          .map(profile => ({
-            id: profile.userId || profile._id,
-            firstName: profile.firstName,
-            lastName: profile.lastName,
-            email: profile.email,
-            vtid: profile.vtid,
-            hasUserId: !!profile.userId
-          }));
+          .map(profile => {
+            // Ensure we get a string ID, not an object
+            const userId = profile.userId?._id || profile.userId || profile._id;
+            const idString = typeof userId === 'object' ? userId.toString() : userId;
+            
+            return {
+              id: idString,
+              _id: idString,
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              email: profile.email,
+              vtid: profile.vtid,
+              name: `${profile.firstName} ${profile.lastName}`
+            };
+          });
         
-        console.log('Fetched employees:', employeeList);
-        console.log(`Total: ${employeeList.length}, With userId: ${employeeList.filter(e => e.hasUserId).length}, Without userId: ${employeeList.filter(e => !e.hasUserId).length}`);
+        console.log(`✅ Loaded ${employeeList.length} employees from profiles`);
+        console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, type: typeof e.id })));
         setEmployees(employeeList);
       }
     } catch (error) {
-      console.error('Fetch employees error:', error);
+      console.error('❌ Fetch employees error:', error);
       toast.error('Failed to fetch employees');
     }
   };
@@ -97,9 +104,15 @@ const TimeHistory = () => {
       return;
     }
 
+    setLoading(true);
     try {
-      console.log('Assigning shift with data:', formData);
+      console.log('📤 Assigning shift with data:', formData);
+      console.log('📤 Employee ID type:', typeof formData.employeeId);
+      console.log('📤 Employee ID value:', formData.employeeId);
+      
       const response = await assignShift(formData);
+      console.log('📥 Assign shift response:', response);
+      
       if (response.success) {
         toast.success('Shift assigned successfully');
         setShowAssignModal(false);
@@ -116,9 +129,16 @@ const TimeHistory = () => {
         fetchTimeEntries();
       }
     } catch (error) {
-      console.error('Assign shift error:', error);
-      console.error('Error details:', error.response?.data);
-      toast.error(error.response?.data?.message || error.message || 'Failed to assign shift');
+      console.error('❌ Assign shift error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error message:', error.message);
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to assign shift';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
