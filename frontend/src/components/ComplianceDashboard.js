@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import ComplianceInsights from './ComplianceInsights';
 import AdminClockInModal from './AdminClockInModal';
 import { ClockIcon } from '@heroicons/react/24/outline';
+import { getUserClockStatus, userClockOut } from '../utils/clockApi';
+import { toast } from 'react-toastify';
 
 const ComplianceDashboard = () => {
   const navigate = useNavigate();
@@ -21,6 +23,8 @@ const ComplianceDashboard = () => {
 
   const [selectedTimeframe, setSelectedTimeframe] = useState(30);
   const [showAdminClockInModal, setShowAdminClockInModal] = useState(false);
+  const [clockStatus, setClockStatus] = useState(null);
+  const [clockLoading, setClockLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     activeCount: 0,
     expiringCertificates: [],
@@ -28,6 +32,21 @@ const ComplianceDashboard = () => {
     categoryCounts: {},
     jobRoleCounts: {}
   });
+
+ useEffect(() => {
+  fetchClockStatus();
+}, []);
+
+ const fetchClockStatus = async () => {
+  try {
+    const response = await getUserClockStatus();
+    if (response.success && response.data) {
+      setClockStatus(response.data);
+    }
+  } catch (error) {
+    console.error('Error fetching clock status:', error);
+  }
+};
 
  useEffect(() => {
   const getDashboardData = async () => {
@@ -95,6 +114,26 @@ const ComplianceDashboard = () => {
     return 'text-green-600 bg-green-50';
   };
 
+  const handleClockOut = async () => {
+    setClockLoading(true);
+    try {
+      const response = await userClockOut();
+      if (response.success) {
+        toast.success('Successfully clocked out!');
+        await fetchClockStatus();
+      } else {
+        toast.error(response.message || 'Failed to clock out');
+      }
+    } catch (error) {
+      console.error('Clock out error:', error);
+      toast.error('Failed to clock out');
+    } finally {
+      setClockLoading(false);
+    }
+  };
+
+  const isClockedIn = clockStatus?.status === 'clocked_in' || clockStatus?.status === 'on_break';
+
   if (loading) {
     return (
       <div className="p-6">
@@ -115,13 +154,25 @@ const ComplianceDashboard = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Compliance Dashboard</h1>
         <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setShowAdminClockInModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200"
-          >
-            <ClockIcon className="h-5 w-5 mr-2" />
-            Clock In
-          </button>
+          {isClockedIn ? (
+            <button
+              onClick={handleClockOut}
+              disabled={clockLoading}
+              className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ClockIcon className="h-5 w-5 mr-2" />
+              {clockLoading ? 'Clocking Out...' : 'Clock Out'}
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAdminClockInModal(true)}
+              disabled={clockLoading}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ClockIcon className="h-5 w-5 mr-2" />
+              {clockLoading ? 'Loading...' : 'Clock In'}
+            </button>
+          )}
           <div className="flex items-center space-x-2">
             <label className="text-sm font-medium text-gray-700">Expiry Alert Period:</label>
             <select
@@ -146,8 +197,9 @@ const ComplianceDashboard = () => {
         <AdminClockInModal
           user={user}
           onClose={() => setShowAdminClockInModal(false)}
-          onClockIn={() => {
+          onClockIn={async () => {
             setShowAdminClockInModal(false);
+            await fetchClockStatus();
           }}
         />
       )}

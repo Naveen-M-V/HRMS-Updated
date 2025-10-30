@@ -46,15 +46,23 @@ const TimeHistory = () => {
   const fetchEmployees = async () => {
     try {
       const response = await axios.get(buildApiUrl('/profiles'), { withCredentials: true });
+      console.log('Raw profiles response:', response.data);
+      
       if (response.data) {
-        const employeeList = response.data.map(profile => ({
-          id: profile.userId || profile._id,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          email: profile.email,
-          vtid: profile.vtid
-        }));
+        // Map all profiles, using userId if available, otherwise use _id
+        const employeeList = response.data
+          .filter(profile => profile.firstName && profile.lastName) // Only include profiles with names
+          .map(profile => ({
+            id: profile.userId || profile._id,
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            email: profile.email,
+            vtid: profile.vtid,
+            hasUserId: !!profile.userId
+          }));
+        
         console.log('Fetched employees:', employeeList);
+        console.log(`Total: ${employeeList.length}, With userId: ${employeeList.filter(e => e.hasUserId).length}, Without userId: ${employeeList.filter(e => !e.hasUserId).length}`);
         setEmployees(employeeList);
       }
     } catch (error) {
