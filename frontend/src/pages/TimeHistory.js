@@ -12,6 +12,7 @@ const TimeHistory = () => {
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [selectedEntries, setSelectedEntries] = useState([]);
   const [formData, setFormData] = useState({
     employeeId: '',
     date: '',
@@ -50,12 +51,15 @@ const TimeHistory = () => {
           id: profile.userId || profile._id,
           firstName: profile.firstName,
           lastName: profile.lastName,
-          email: profile.email
+          email: profile.email,
+          vtid: profile.vtid
         }));
+        console.log('Fetched employees:', employeeList);
         setEmployees(employeeList);
       }
     } catch (error) {
       console.error('Fetch employees error:', error);
+      toast.error('Failed to fetch employees');
     }
   };
 
@@ -86,6 +90,7 @@ const TimeHistory = () => {
     }
 
     try {
+      console.log('Assigning shift with data:', formData);
       const response = await assignShift(formData);
       if (response.success) {
         toast.success('Shift assigned successfully');
@@ -104,7 +109,51 @@ const TimeHistory = () => {
       }
     } catch (error) {
       console.error('Assign shift error:', error);
-      toast.error(error.response?.data?.message || 'Failed to assign shift');
+      console.error('Error details:', error.response?.data);
+      toast.error(error.response?.data?.message || error.message || 'Failed to assign shift');
+    }
+  };
+
+  const handleSelectEntry = (entryId) => {
+    setSelectedEntries(prev => {
+      if (prev.includes(entryId)) {
+        return prev.filter(id => id !== entryId);
+      } else {
+        return [...prev, entryId];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedEntries.length === timeEntries.length) {
+      setSelectedEntries([]);
+    } else {
+      setSelectedEntries(timeEntries.map(entry => entry._id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedEntries.length === 0) {
+      toast.warning('Please select entries to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedEntries.length} time ${selectedEntries.length === 1 ? 'entry' : 'entries'}?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = selectedEntries.map(entryId =>
+        axios.delete(buildApiUrl(`/clock/entries/${entryId}`), { withCredentials: true })
+      );
+      
+      await Promise.all(deletePromises);
+      toast.success(`Successfully deleted ${selectedEntries.length} ${selectedEntries.length === 1 ? 'entry' : 'entries'}`);
+      setSelectedEntries([]);
+      fetchTimeEntries();
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete entries');
     }
   };
 
@@ -217,10 +266,32 @@ const TimeHistory = () => {
           </div>
         </div>
 
+        {selectedEntries.length > 0 && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '14px', color: '#991b1b', fontWeight: '500' }}>
+              {selectedEntries.length} {selectedEntries.length === 1 ? 'entry' : 'entries'} selected
+            </span>
+            <button 
+              onClick={handleDeleteSelected}
+              style={{ padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+            >
+              Delete Selected
+            </button>
+          </div>
+        )}
+
         <div style={{ background: '#ffffff', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: '#f9fafb' }}>
               <tr>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb', width: '40px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedEntries.length === filteredEntries.length && filteredEntries.length > 0}
+                    onChange={handleSelectAll}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                </th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Employee Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Clock In</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Clock Out</th>
@@ -231,7 +302,15 @@ const TimeHistory = () => {
             <tbody>
               {filteredEntries.length > 0 ? (
                 filteredEntries.map((entry, index) => (
-                  <tr key={entry._id || index} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <tr key={entry._id || index} style={{ borderBottom: '1px solid #f3f4f6', background: selectedEntries.includes(entry._id) ? '#f0f9ff' : 'transparent' }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedEntries.includes(entry._id)}
+                        onChange={() => handleSelectEntry(entry._id)}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      />
+                    </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {entry.employee ? `${entry.employee.firstName} ${entry.employee.lastName}` : '-'}
                     </td>
@@ -253,7 +332,7 @@ const TimeHistory = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
                     <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>No Time Entries Found</h3>
                     <p style={{ fontSize: '14px', color: '#6b7280' }}>Try adjusting your date range or filters</p>
@@ -275,7 +354,9 @@ const TimeHistory = () => {
                 <select value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} required style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}>
                   <option value="">Select Employee</option>
                   {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
+                    <option key={emp.id} value={emp.id}>
+                      {emp.firstName} {emp.lastName} {emp.vtid ? `(${emp.vtid})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>

@@ -1109,7 +1109,7 @@ router.get('/export', async (req, res) => {
 // @access  Private (User)
 router.get('/user/status', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id || req.user.userId;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1169,7 +1169,7 @@ router.post('/user/in', async (req, res) => {
       });
     }
 
-    // Check if user is already clocked in today
+    // Check if user is already clocked in today (active status only)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -1180,9 +1180,25 @@ router.post('/user/in', async (req, res) => {
     });
 
     if (existingEntry) {
+      console.log('User already has active clock-in:', existingEntry.status);
       return res.status(400).json({
         success: false,
-        message: 'You are already clocked in today'
+        message: `You are already clocked in today (Status: ${existingEntry.status})`
+      });
+    }
+    
+    // Check if user already clocked out today (prevent multiple entries per day)
+    const clockedOutEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today },
+      status: 'clocked_out'
+    });
+    
+    if (clockedOutEntry) {
+      console.log('User already clocked out today, cannot clock in again');
+      return res.status(400).json({
+        success: false,
+        message: 'You have already clocked out today. Multiple clock-ins per day are not allowed.'
       });
     }
 
@@ -1561,7 +1577,7 @@ router.post('/user/resume-work', async (req, res) => {
     console.error('Resume work error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error resuming work'
+      message: 'Server error starting break'
     });
   }
 });
@@ -1571,7 +1587,7 @@ router.post('/user/resume-work', async (req, res) => {
 // @access  Private (User)
 router.get('/user/entries', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.userId || req.user.id;
     const { startDate, endDate } = req.query;
     
     let query = { employee: userId };
@@ -1602,6 +1618,40 @@ router.get('/user/entries', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error fetching time entries'
+    });
+  }
+});
+
+// @route   DELETE /api/clock/entries/:id
+// @desc    Delete a time entry (Admin only)
+// @access  Private (Admin)
+router.delete('/entries/:id', async (req, res) => {
+  try {
+    const entryId = req.params.id;
+    
+    // Find the time entry
+    const timeEntry = await TimeEntry.findById(entryId);
+    
+    if (!timeEntry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Time entry not found'
+      });
+    }
+    
+    // Delete the time entry
+    await TimeEntry.findByIdAndDelete(entryId);
+    
+    res.json({
+      success: true,
+      message: 'Time entry deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Delete time entry error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error deleting time entry'
     });
   }
 });

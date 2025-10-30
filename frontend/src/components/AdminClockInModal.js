@@ -8,9 +8,36 @@ import { toast } from 'react-toastify';
  */
 
 const AdminClockInModal = ({ user, onClose, onClockIn }) => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState('Work From Office');
   const [workType, setWorkType] = useState('Regular');
+  const [alreadyClockedIn, setAlreadyClockedIn] = useState(false);
+  const [clockStatus, setClockStatus] = useState(null);
+
+  useEffect(() => {
+    checkClockStatus();
+  }, []);
+
+  const checkClockStatus = async () => {
+    try {
+      const response = await getUserClockStatus();
+      console.log('Clock status response:', response);
+      if (response.success && response.data) {
+        const status = response.data.status;
+        console.log('Current clock status:', status);
+        // Check if already clocked in or on break
+        if (status === 'clocked_in' || status === 'on_break') {
+          setAlreadyClockedIn(true);
+          setClockStatus(response.data);
+        }
+        // If clocked out, user can clock in again (don't set alreadyClockedIn)
+      }
+    } catch (error) {
+      console.error('Error checking clock status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleClockIn = async () => {
     setLoading(true);
@@ -26,7 +53,14 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       }
     } catch (error) {
       console.error('Admin clock in error:', error);
-      toast.error(error.response?.data?.message || 'Failed to clock in');
+      const errorMessage = error.message || error.response?.data?.message || 'Failed to clock in';
+      toast.error(errorMessage);
+      
+      // If already clocked in, update state
+      if (errorMessage.includes('already clocked in')) {
+        setAlreadyClockedIn(true);
+        await checkClockStatus();
+      }
     } finally {
       setLoading(false);
     }
@@ -94,15 +128,77 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
           padding: '32px',
           marginBottom: '24px'
         }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#111827',
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            Ready to start your day?
-          </h3>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '4px solid #f3f3f3',
+                borderTop: '4px solid #667eea',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                margin: '0 auto 16px'
+              }}></div>
+              <p style={{ color: '#6b7280' }}>Checking clock status...</p>
+            </div>
+          ) : alreadyClockedIn ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                background: '#10b981',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <span style={{ fontSize: '32px' }}>✓</span>
+              </div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#111827',
+                marginBottom: '12px'
+              }}>
+                You're Already Clocked In!
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                marginBottom: '20px'
+              }}>
+                Clocked in at: {clockStatus?.clockIn || 'N/A'}<br />
+                Status: {clockStatus?.status === 'on_break' ? 'On Break' : 'Working'}
+              </p>
+              <button
+                onClick={onClose}
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Continue to Dashboard
+              </button>
+            </div>
+          ) : (
+            <>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#111827',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                Ready to start your day?
+              </h3>
 
           <div style={{ marginBottom: '20px' }}>
             <label style={{
@@ -230,6 +326,8 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
           >
             I'll clock in later
           </button>
+            </>
+          )}
         </div>
 
         {/* Info */}
@@ -254,6 +352,10 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}</style>
     </div>

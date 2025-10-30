@@ -64,16 +64,27 @@ const UserDashboard = () => {
         }
 
         // Fetch user notifications from session-based endpoint
-        const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications?limit=10`, {
-          credentials: 'include'
-        });
-        
-        if (notificationsResponse.ok) {
-          const notificationsData = await notificationsResponse.json();
-          console.log('User notifications:', notificationsData);
-          setNotifications(notificationsData.notifications || []); // Use notifications array from response
-        } else {
-          console.error('Failed to fetch notifications:', notificationsResponse.status);
+        try {
+          const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications?limit=10`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (notificationsResponse.ok) {
+            const notificationsData = await notificationsResponse.json();
+            console.log('User notifications:', notificationsData);
+            setNotifications(notificationsData.notifications || []); // Use notifications array from response
+          } else if (notificationsResponse.status === 401) {
+            console.warn('Notifications: Authentication required, skipping...');
+            setNotifications([]);
+          } else {
+            console.error('Failed to fetch notifications:', notificationsResponse.status);
+            setNotifications([]);
+          }
+        } catch (notifError) {
+          console.error('Error fetching notifications:', notifError);
           setNotifications([]);
         }
       }
@@ -88,6 +99,14 @@ const UserDashboard = () => {
     if (user?.email) {
       fetchUserData();
       fetchClockStatus();
+      
+      // Poll for updates every 10 seconds to catch admin actions and new notifications
+      const interval = setInterval(() => {
+        fetchClockStatus();
+        fetchUserData(); // This will also refresh notifications
+      }, 10000);
+      
+      return () => clearInterval(interval);
     }
   }, [user, fetchUserData]);
 
@@ -120,7 +139,12 @@ const UserDashboard = () => {
           setAttendanceStatus(response.data.attendanceStatus);
         }
         
-        await fetchClockStatus();
+        // Fetch updated clock status to update UI
+        const statusResponse = await getUserClockStatus();
+        if (statusResponse.success) {
+          setClockStatus(statusResponse.data);
+        }
+        
         await fetchUserData(); // Refresh notifications
         
         if (response.data?.attendanceStatus === 'Late') {
@@ -148,7 +172,13 @@ const UserDashboard = () => {
         
         setShiftInfo(null);
         setAttendanceStatus(null);
-        await fetchClockStatus();
+        
+        // Fetch updated clock status to update UI
+        const statusResponse = await getUserClockStatus();
+        if (statusResponse.success) {
+          setClockStatus(statusResponse.data);
+        }
+        
         await fetchUserData(); // Refresh notifications
       }
     } catch (error) {
@@ -166,7 +196,13 @@ const UserDashboard = () => {
       
       if (response.success) {
         toast.success('Break started');
-        await fetchClockStatus();
+        
+        // Fetch updated clock status to update UI
+        const statusResponse = await getUserClockStatus();
+        if (statusResponse.success) {
+          setClockStatus(statusResponse.data);
+        }
+        
         await fetchUserData(); // Refresh notifications
       }
     } catch (error) {
@@ -184,7 +220,13 @@ const UserDashboard = () => {
       
       if (response.success) {
         toast.success('Work resumed');
-        await fetchClockStatus();
+        
+        // Fetch updated clock status to update UI
+        const statusResponse = await getUserClockStatus();
+        if (statusResponse.success) {
+          setClockStatus(statusResponse.data);
+        }
+        
         await fetchUserData(); // Refresh notifications
       }
     } catch (error) {

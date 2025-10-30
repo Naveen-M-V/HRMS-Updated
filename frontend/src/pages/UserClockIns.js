@@ -45,6 +45,14 @@ const UserClockIns = () => {
   useEffect(() => {
     fetchUserStatus();
     fetchUserEntries();
+    
+    // Poll for updates every 10 seconds to catch admin actions
+    const interval = setInterval(() => {
+      fetchUserStatus();
+      fetchUserEntries();
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchUserStatus = async () => {
@@ -82,8 +90,9 @@ const UserClockIns = () => {
       
       if (response.success) {
         toast.success('Clocked in successfully!');
-        fetchUserStatus();
-        fetchUserEntries();
+        // Immediately fetch updated status and entries
+        await fetchUserStatus();
+        await fetchUserEntries();
       } else {
         toast.error(response.message || 'Failed to clock in');
       }
@@ -102,8 +111,9 @@ const UserClockIns = () => {
       
       if (response.success) {
         toast.success('Clocked out successfully!');
-        fetchUserStatus();
-        fetchUserEntries();
+        // Immediately fetch updated status and entries
+        await fetchUserStatus();
+        await fetchUserEntries();
       } else {
         toast.error(response.message || 'Failed to clock out');
       }
@@ -121,8 +131,9 @@ const UserClockIns = () => {
       
       if (response.success) {
         toast.success('Break added successfully!');
-        fetchUserStatus();
-        fetchUserEntries();
+        // Immediately fetch updated status and entries
+        await fetchUserStatus();
+        await fetchUserEntries();
       } else {
         toast.error(response.message || 'Failed to add break');
       }
@@ -534,7 +545,7 @@ const UserClockIns = () => {
                   borderBottom: '1px solid #f3f4f6'
                 }}>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {user?.vtid || '1003'}
+                    {user?.vtid || entry.employee?.vtid || '-'}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                     {formatDate(entry.date)}
@@ -561,49 +572,15 @@ const UserClockIns = () => {
                     {entry.workType || 'Regular'}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                    {entry.location || 'Field'}
+                    {entry.location || 'Work From Office'}
                   </td>
                 </tr>
               )) : (
-                // Sample data when no entries exist
-                [
-                  { vtid: '1003', date: '11/05/25', clockIn: '13:23', clockOut: '21:13', breaks: '0hrs 12mins', workType: 'Regular', location: 'Field' },
-                  { vtid: '1003', date: '10/05/25', clockIn: '13:34', clockOut: '20:54', breaks: '0hrs 31mins', workType: 'Regular', location: 'Field' },
-                  { vtid: '1003', date: '09/05/25', clockIn: '12:45', clockOut: '22:15', breaks: '1hrs 02mins', workType: 'Regular', location: 'Field' },
-                  { vtid: '1003', date: '07/05/25', clockIn: '13:27', clockOut: '21:17', breaks: '0hrs 47mins', workType: 'Overtime', location: 'Field' }
-                ].map((entry, index) => (
-                  <tr key={index} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {entry.vtid}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {entry.date}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      <div>{entry.clockIn}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                        {entry.date}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      <div>{entry.clockOut}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                        {entry.date}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {entry.breaks}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {entry.workType}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {entry.location}
-                    </td>
-                  </tr>
-                ))
+                <tr>
+                  <td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+                    No time entries found. Clock in to start tracking your time.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

@@ -13,7 +13,7 @@ const {
 // Get unread notification count
 router.get('/unread-count', async (req, res) => {
   try {
-    const userId = req.session?.user?.userId;
+    const userId = req.user?.userId || req.user?.id || req.session?.user?.userId;
     
     if (!userId) {
       console.warn("No user session found for notification count");
@@ -48,7 +48,7 @@ router.get('/:userId/unread-count', async (req, res) => {
 // Get all notifications for user
 router.get('/', async (req, res) => {
   try {
-    const userId = req.session?.user?.userId;
+    const userId = req.user?.userId || req.user?.id || req.session?.user?.userId;
     
     if (!userId) {
       console.warn("No user session found for notifications");
@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
 router.put('/:id/read', async (req, res) => {
   try {
     const notificationId = req.params.id;
-    const userId = req.session?.user?.userId;
+    const userId = req.user?.userId || req.user?.id || req.session?.user?.userId;
     
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -98,7 +98,7 @@ router.put('/:id/read', async (req, res) => {
 // Mark all notifications as read
 router.put('/mark-all-read', async (req, res) => {
   try {
-    const userId = req.session?.user?.userId;
+    const userId = req.user?.userId || req.user?.id || req.session?.user?.userId;
     
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
