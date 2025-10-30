@@ -79,111 +79,201 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(0, 0, 0, 0.6)',
+      background: 'rgba(15, 23, 42, 0.75)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 10000,
-      backdropFilter: 'blur(4px)'
+      backdropFilter: 'blur(8px)',
+      padding: '20px'
     }}>
+      {/* Close Button */}
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          top: '24px',
+          right: '24px',
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: 'none',
+          color: '#ffffff',
+          fontSize: '20px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.2s',
+          backdropFilter: 'blur(10px)'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+          e.target.style.transform = 'scale(1.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+          e.target.style.transform = 'scale(1)';
+        }}
+      >
+        ✕
+      </button>
+
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '20px',
-        padding: '40px',
-        maxWidth: '500px',
-        width: '90%',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-        animation: 'slideDown 0.3s ease-out'
+        background: '#ffffff',
+        borderRadius: '24px',
+        padding: '0',
+        maxWidth: '520px',
+        width: '100%',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+        animation: 'modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        overflow: 'hidden'
       }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        {/* Header with Gradient */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '48px 40px 40px',
+          textAlign: 'center',
+          position: 'relative'
+        }}>
+          {/* Decorative Icon */}
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 24px',
+            backdropFilter: 'blur(10px)',
+            border: '3px solid rgba(255, 255, 255, 0.3)'
+          }}>
+            <span style={{ fontSize: '40px' }}>👋</span>
+          </div>
+
           <h2 style={{
-            fontSize: '28px',
+            fontSize: '32px',
             fontWeight: '700',
             color: '#ffffff',
-            marginBottom: '8px'
+            marginBottom: '12px',
+            letterSpacing: '-0.5px'
           }}>
-            Welcome Back, {user?.firstName || 'Admin'}!
+            Welcome Back!
           </h2>
           <p style={{
-            fontSize: '16px',
-            color: 'rgba(255, 255, 255, 0.9)',
-            lineHeight: '1.5'
+            fontSize: '18px',
+            fontWeight: '600',
+            color: 'rgba(255, 255, 255, 0.95)',
+            marginBottom: '8px'
+          }}>
+            {user?.firstName || 'Admin'}
+          </p>
+          <p style={{
+            fontSize: '14px',
+            color: 'rgba(255, 255, 255, 0.8)',
+            lineHeight: '1.6'
           }}>
             {new Date().toLocaleString('en-GB', {
               timeZone: 'Europe/London',
               weekday: 'long',
               day: 'numeric',
               month: 'long',
-              year: 'numeric',
+              year: 'numeric'
+            })}<br />
+            {new Date().toLocaleString('en-GB', {
+              timeZone: 'Europe/London',
               hour: '2-digit',
               minute: '2-digit'
-            })} (UK Time)
+            })} UK Time
           </p>
         </div>
 
         {/* Clock In Form */}
         <div style={{
-          background: 'rgba(255, 255, 255, 0.95)',
-          borderRadius: '16px',
-          padding: '32px',
-          marginBottom: '24px'
+          padding: '40px',
+          background: '#ffffff'
         }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
               <div style={{
-                width: '40px',
-                height: '40px',
-                border: '4px solid #f3f3f3',
+                width: '48px',
+                height: '48px',
+                border: '4px solid #f3f4f6',
                 borderTop: '4px solid #667eea',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
-                margin: '0 auto 16px'
+                margin: '0 auto 20px'
               }}></div>
-              <p style={{ color: '#6b7280' }}>Checking clock status...</p>
+              <p style={{ color: '#6b7280', fontSize: '15px', fontWeight: '500' }}>Checking your status...</p>
             </div>
           ) : alreadyClockedIn ? (
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{
-                width: '60px',
-                height: '60px',
-                background: '#10b981',
+                width: '80px',
+                height: '80px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 16px'
+                margin: '0 auto 24px',
+                boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)'
               }}>
-                <span style={{ fontSize: '32px' }}>✓</span>
+                <span style={{ fontSize: '40px' }}>✓</span>
               </div>
               <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
+                fontSize: '22px',
+                fontWeight: '700',
                 color: '#111827',
-                marginBottom: '12px'
+                marginBottom: '12px',
+                letterSpacing: '-0.3px'
               }}>
-                You're Already Clocked In!
+                You're All Set!
               </h3>
               <p style={{
-                fontSize: '14px',
+                fontSize: '15px',
                 color: '#6b7280',
-                marginBottom: '20px'
+                marginBottom: '8px',
+                lineHeight: '1.6'
               }}>
-                Clocked in at: {clockStatus?.clockIn || 'N/A'}<br />
-                Status: {clockStatus?.status === 'on_break' ? 'On Break' : 'Working'}
+                Clocked in at <strong style={{ color: '#111827' }}>{clockStatus?.clockIn || 'N/A'}</strong>
               </p>
+              <div style={{
+                display: 'inline-block',
+                padding: '8px 16px',
+                background: clockStatus?.status === 'on_break' ? '#fef3c7' : '#d1fae5',
+                color: clockStatus?.status === 'on_break' ? '#92400e' : '#065f46',
+                borderRadius: '20px',
+                fontSize: '13px',
+                fontWeight: '600',
+                marginBottom: '32px'
+              }}>
+                {clockStatus?.status === 'on_break' ? '☕ On Break' : '💼 Working'}
+              </div>
               <button
                 onClick={onClose}
                 style={{
                   width: '100%',
-                  padding: '12px 24px',
+                  padding: '16px 24px',
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: '#ffffff',
                   border: 'none',
-                  borderRadius: '10px',
+                  borderRadius: '14px',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(102, 126, 234, 0.4)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 14px rgba(102, 126, 234, 0.4)';
                 }}
               >
                 Continue to Dashboard
@@ -192,41 +282,61 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
           ) : (
             <>
               <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
+                fontSize: '20px',
+                fontWeight: '700',
                 color: '#111827',
-                marginBottom: '20px',
+                marginBottom: '8px',
+                textAlign: 'center',
+                letterSpacing: '-0.3px'
+              }}>
+                Ready to Start Your Day?
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                marginBottom: '32px',
                 textAlign: 'center'
               }}>
-                Ready to start your day?
-              </h3>
+                Let us know where you'll be working today
+              </p>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '24px' }}>
             <label style={{
               display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
+              fontSize: '13px',
+              fontWeight: '600',
               color: '#374151',
-              marginBottom: '8px'
+              marginBottom: '10px',
+              letterSpacing: '0.3px',
+              textTransform: 'uppercase'
             }}>
-              Work Location
+              📍 Work Location
             </label>
             <select
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               style={{
                 width: '100%',
-                padding: '12px 16px',
+                padding: '14px 16px',
                 border: '2px solid #e5e7eb',
-                borderRadius: '10px',
-                fontSize: '14px',
+                borderRadius: '12px',
+                fontSize: '15px',
                 fontWeight: '500',
-                background: '#ffffff',
+                background: '#f9fafb',
                 cursor: 'pointer',
-                transition: 'border-color 0.2s'
+                transition: 'all 0.2s',
+                color: '#111827'
               }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#667eea';
+                e.target.style.background = '#ffffff';
+                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.background = '#f9fafb';
+                e.target.style.boxShadow = 'none';
+              }}
             >
               <option value="Work From Office">Work From Office</option>
               <option value="Work From Home">Work From Home</option>
@@ -235,32 +345,43 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
             </select>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '32px' }}>
             <label style={{
               display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
+              fontSize: '13px',
+              fontWeight: '600',
               color: '#374151',
-              marginBottom: '8px'
+              marginBottom: '10px',
+              letterSpacing: '0.3px',
+              textTransform: 'uppercase'
             }}>
-              Work Type
+              💼 Work Type
             </label>
             <select
               value={workType}
               onChange={(e) => setWorkType(e.target.value)}
               style={{
                 width: '100%',
-                padding: '12px 16px',
+                padding: '14px 16px',
                 border: '2px solid #e5e7eb',
-                borderRadius: '10px',
-                fontSize: '14px',
+                borderRadius: '12px',
+                fontSize: '15px',
                 fontWeight: '500',
-                background: '#ffffff',
+                background: '#f9fafb',
                 cursor: 'pointer',
-                transition: 'border-color 0.2s'
+                transition: 'all 0.2s',
+                color: '#111827'
               }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#667eea';
+                e.target.style.background = '#ffffff';
+                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.background = '#f9fafb';
+                e.target.style.boxShadow = 'none';
+              }}
             >
               <option value="Regular">Regular</option>
               <option value="Overtime">Overtime</option>
@@ -274,27 +395,33 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
             disabled={loading}
             style={{
               width: '100%',
-              padding: '14px 24px',
-              background: loading ? '#9ca3af' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              padding: '16px 24px',
+              background: loading ? '#d1d5db' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '10px',
+              borderRadius: '14px',
               fontSize: '16px',
               fontWeight: '700',
               cursor: loading ? 'not-allowed' : 'pointer',
               boxShadow: loading ? 'none' : '0 4px 14px rgba(16, 185, 129, 0.4)',
-              transition: 'all 0.3s',
-              transform: loading ? 'scale(1)' : 'scale(1)',
-              marginBottom: '12px'
+              transition: 'all 0.2s',
+              marginBottom: '12px',
+              letterSpacing: '0.3px'
             }}
             onMouseEnter={(e) => {
-              if (!loading) e.target.style.transform = 'scale(1.02)';
+              if (!loading) {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.5)';
+              }
             }}
             onMouseLeave={(e) => {
-              if (!loading) e.target.style.transform = 'scale(1)';
+              if (!loading) {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.4)';
+              }
             }}
           >
-            {loading ? 'Clocking In...' : 'Clock In Now'}
+            {loading ? '⏳ Clocking In...' : '✓ Clock In Now'}
           </button>
 
           <button
@@ -302,24 +429,26 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
             disabled={loading}
             style={{
               width: '100%',
-              padding: '12px 24px',
-              background: 'transparent',
+              padding: '14px 24px',
+              background: '#f9fafb',
               color: '#6b7280',
               border: '2px solid #e5e7eb',
-              borderRadius: '10px',
-              fontSize: '14px',
+              borderRadius: '14px',
+              fontSize: '15px',
               fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => {
               if (!loading) {
-                e.target.style.borderColor = '#9ca3af';
-                e.target.style.color = '#111827';
+                e.target.style.background = '#ffffff';
+                e.target.style.borderColor = '#d1d5db';
+                e.target.style.color = '#374151';
               }
             }}
             onMouseLeave={(e) => {
               if (!loading) {
+                e.target.style.background = '#f9fafb';
                 e.target.style.borderColor = '#e5e7eb';
                 e.target.style.color = '#6b7280';
               }
@@ -331,27 +460,33 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
           )}
         </div>
 
-        {/* Info */}
-        <p style={{
-          fontSize: '13px',
-          color: 'rgba(255, 255, 255, 0.8)',
-          textAlign: 'center',
-          lineHeight: '1.6'
+        {/* Footer Info */}
+        <div style={{
+          padding: '24px 40px',
+          background: '#f9fafb',
+          borderTop: '1px solid #e5e7eb'
         }}>
-          Your work hours will be tracked automatically.<br />
-          Remember to clock out at the end of your shift!
-        </p>
+          <p style={{
+            fontSize: '13px',
+            color: '#6b7280',
+            textAlign: 'center',
+            lineHeight: '1.7',
+            margin: 0
+          }}>
+            💡 <strong style={{ color: '#374151' }}>Tip:</strong> Your work hours will be tracked automatically. Remember to clock out at the end of your shift!
+          </p>
+        </div>
       </div>
 
       <style>{`
-        @keyframes slideDown {
+        @keyframes modalSlideIn {
           from {
             opacity: 0;
-            transform: translateY(-30px);
+            transform: translateY(20px) scale(0.95);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
         @keyframes spin {

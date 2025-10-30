@@ -96,12 +96,41 @@ exports.assignShiftToEmployee = async (req, res) => {
       const profile = await Profile.findById(employeeId);
       console.log('Profile lookup result:', profile ? 'Found' : 'Not found');
       
-      if (profile && profile.userId) {
-        // Use the profile's userId
-        console.log('Found profile, looking up user with userId:', profile.userId);
-        employee = await User.findById(profile.userId);
-        actualEmployeeId = profile.userId;
-        console.log('User lookup result:', employee ? 'Found' : 'Not found');
+      if (profile) {
+        if (profile.userId) {
+          // Use the profile's userId
+          console.log('Found profile, looking up user with userId:', profile.userId);
+          employee = await User.findById(profile.userId);
+          actualEmployeeId = profile.userId;
+          console.log('User lookup result:', employee ? 'Found' : 'Not found');
+        } else {
+          // Profile exists but no userId - create a temporary user reference
+          console.log('Profile found but no userId. Creating user reference...');
+          try {
+            // Create a basic user for this profile
+            const newUser = new User({
+              email: profile.email,
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              role: 'employee',
+              password: Math.random().toString(36).slice(-8) // Temporary password
+            });
+            await newUser.save();
+            
+            // Update profile with new userId
+            profile.userId = newUser._id;
+            await profile.save();
+            
+            employee = newUser;
+            actualEmployeeId = newUser._id;
+            console.log('Created new user:', newUser._id);
+          } catch (createError) {
+            console.error('Error creating user for profile:', createError);
+            // If user creation fails, just use the profile ID
+            actualEmployeeId = employeeId;
+            employee = { _id: employeeId, email: profile.email, firstName: profile.firstName, lastName: profile.lastName };
+          }
+        }
       }
     } else {
       console.log('Found employee in User collection');
