@@ -100,11 +100,10 @@ const UserDashboard = () => {
       fetchUserData();
       fetchClockStatus();
       
-      // Poll for updates every 10 seconds to catch admin actions and new notifications
+      // Poll for updates every 60 seconds for notifications only (reduced frequency)
       const interval = setInterval(() => {
-        fetchClockStatus();
-        fetchUserData(); // This will also refresh notifications
-      }, 10000);
+        fetchUserData(); // Only refresh notifications, not clock status
+      }, 60000);
       
       return () => clearInterval(interval);
     }
@@ -139,13 +138,8 @@ const UserDashboard = () => {
           setAttendanceStatus(response.data.attendanceStatus);
         }
         
-        // Fetch updated clock status to update UI
-        const statusResponse = await getUserClockStatus();
-        if (statusResponse.success) {
-          setClockStatus(statusResponse.data);
-        }
-        
-        await fetchUserData(); // Refresh notifications
+        // Fetch updated clock status to update UI immediately
+        await fetchClockStatus();
         
         if (response.data?.attendanceStatus === 'Late') {
           toast.warning('Late arrival detected', { autoClose: 5000 });
@@ -173,13 +167,8 @@ const UserDashboard = () => {
         setShiftInfo(null);
         setAttendanceStatus(null);
         
-        // Fetch updated clock status to update UI
-        const statusResponse = await getUserClockStatus();
-        if (statusResponse.success) {
-          setClockStatus(statusResponse.data);
-        }
-        
-        await fetchUserData(); // Refresh notifications
+        // Fetch updated clock status to update UI immediately
+        await fetchClockStatus();
       }
     } catch (error) {
       console.error('Clock out error:', error);
@@ -197,13 +186,8 @@ const UserDashboard = () => {
       if (response.success) {
         toast.success('Break started');
         
-        // Fetch updated clock status to update UI
-        const statusResponse = await getUserClockStatus();
-        if (statusResponse.success) {
-          setClockStatus(statusResponse.data);
-        }
-        
-        await fetchUserData(); // Refresh notifications
+        // Fetch updated clock status to update UI immediately
+        await fetchClockStatus();
       }
     } catch (error) {
       console.error('Start break error:', error);
@@ -221,13 +205,8 @@ const UserDashboard = () => {
       if (response.success) {
         toast.success('Work resumed');
         
-        // Fetch updated clock status to update UI
-        const statusResponse = await getUserClockStatus();
-        if (statusResponse.success) {
-          setClockStatus(statusResponse.data);
-        }
-        
-        await fetchUserData(); // Refresh notifications
+        // Fetch updated clock status to update UI immediately
+        await fetchClockStatus();
       }
     } catch (error) {
       console.error('Resume work error:', error);

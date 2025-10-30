@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { userClockIn, userClockOut, getUserClockStatus } from '../utils/clockApi';
+import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -116,6 +116,40 @@ const UserClockInOut = () => {
     } catch (error) {
       console.error('Clock out error:', error);
       toast.error(error.message || 'Failed to clock out');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStartBreak = async () => {
+    setProcessing(true);
+    try {
+      const response = await userStartBreak();
+      
+      if (response.success) {
+        toast.success('Break started');
+        await fetchClockStatus();
+      }
+    } catch (error) {
+      console.error('Start break error:', error);
+      toast.error(error.message || 'Failed to start break');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleResumeWork = async () => {
+    setProcessing(true);
+    try {
+      const response = await userResumeWork();
+      
+      if (response.success) {
+        toast.success('Work resumed');
+        await fetchClockStatus();
+      }
+    } catch (error) {
+      console.error('Resume work error:', error);
+      toast.error(error.message || 'Failed to resume work');
     } finally {
       setProcessing(false);
     }
@@ -288,14 +322,14 @@ const UserClockInOut = () => {
             <div style={{
               display: 'inline-block',
               padding: '8px 20px',
-              background: '#d1fae5',
-              color: '#065f46',
+              background: clockStatus?.status === 'on_break' ? '#fef3c7' : '#d1fae5',
+              color: clockStatus?.status === 'on_break' ? '#92400e' : '#065f46',
               borderRadius: '20px',
               fontSize: '16px',
               fontWeight: '600',
               marginBottom: '24px'
             }}>
-              🟢 Clocked In
+              {clockStatus?.status === 'on_break' ? '⏸️ On Break' : '🟢 Clocked In'}
             </div>
 
             {clockStatus?.clockIn && (
@@ -308,25 +342,69 @@ const UserClockInOut = () => {
               </div>
             )}
 
-            <button
-              onClick={handleClockOut}
-              disabled={processing}
-              style={{
-                width: '100%',
-                padding: '16px',
-                background: processing ? '#9ca3af' : '#ef4444',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: '18px',
-                fontWeight: '600',
-                cursor: processing ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 6px rgba(239, 68, 68, 0.3)',
-                transition: 'all 0.2s'
-              }}
-            >
-              {processing ? '⏳ Clocking Out...' : '🚪 Clock Out'}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {clockStatus?.status === 'on_break' ? (
+                <button
+                  onClick={handleResumeWork}
+                  disabled={processing}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    background: processing ? '#9ca3af' : '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    cursor: processing ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {processing ? '⏳ Resuming...' : '▶️ Resume Work'}
+                </button>
+              ) : (
+                <button
+                  onClick={handleStartBreak}
+                  disabled={processing}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    background: processing ? '#9ca3af' : '#f59e0b',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    cursor: processing ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 6px rgba(245, 158, 11, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {processing ? '⏳ Starting Break...' : '⏸️ Add Break'}
+                </button>
+              )}
+              
+              <button
+                onClick={handleClockOut}
+                disabled={processing}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  background: processing ? '#9ca3af' : '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  cursor: processing ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 6px rgba(239, 68, 68, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {processing ? '⏳ Clocking Out...' : '🚪 Clock Out'}
+              </button>
+            </div>
           </div>
         )}
 

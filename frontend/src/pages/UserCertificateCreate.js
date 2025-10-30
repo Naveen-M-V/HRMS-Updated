@@ -108,9 +108,9 @@ const UserCertificateCreate = () => {
         newErrors.certificateFile = 'Only PDF, JPEG, and PNG files are allowed';
       }
       
-      const maxSize = 10 * 1024 * 1024; // 10MB
+      const maxSize = 5 * 1024 * 1024; // 5MB
       if (formData.certificateFile.size > maxSize) {
-        newErrors.certificateFile = 'File size must be less than 10MB';
+        newErrors.certificateFile = 'File size must be less than 5MB';
       }
     }
     
@@ -342,7 +342,7 @@ const UserCertificateCreate = () => {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PDF, PNG, JPG up to 10MB</p>
+                    <p className="text-xs text-gray-500">PDF, PNG, JPG up to 5MB</p>
                     {formData.certificateFile && (
                       <p className="text-sm text-green-600">
                         Selected: {formData.certificateFile.name}

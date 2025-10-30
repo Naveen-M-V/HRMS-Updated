@@ -108,6 +108,9 @@ const ClockInOut = () => {
       }
     });
 
+    // Ensure absent count is never negative
+    stats.absent = Math.max(0, stats.absent);
+
     setStats(stats);
   };
 

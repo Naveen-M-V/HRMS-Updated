@@ -307,7 +307,8 @@ router.get('/dashboard', async (req, res) => {
     const clockedIn = timeEntries.filter(e => e.status === 'clocked_in').length;
     const onBreak = timeEntries.filter(e => e.status === 'on_break').length;
     const clockedOut = timeEntries.filter(e => e.status === 'clocked_out').length;
-    const absent = totalEmployees - timeEntries.length;
+    // Ensure absent count is never negative
+    const absent = Math.max(0, totalEmployees - timeEntries.length);
 
     const stats = {
       clockedIn,

@@ -33,8 +33,8 @@ const ClockIns = () => {
 
   useEffect(() => {
     fetchData();
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
+    // Auto-refresh every 10 seconds for more real-time updates
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -159,6 +159,13 @@ const ClockIns = () => {
       )
     );
 
+    // Also update selected employee if it matches
+    setSelectedEmployee(prev => 
+      prev && (prev.id === employeeId || prev._id === employeeId) 
+        ? { ...prev, status: 'clocked_out' }
+        : prev
+    );
+
     try {
       const response = await clockOut({ employeeId });
       if (response.success) {
@@ -188,6 +195,13 @@ const ClockIns = () => {
           ? { ...emp, status: 'on_break' }
           : emp
       )
+    );
+
+    // Also update selected employee if it matches
+    setSelectedEmployee(prev => 
+      prev && (prev.id === employeeId || prev._id === employeeId) 
+        ? { ...prev, status: 'on_break' }
+        : prev
     );
 
     try {
@@ -220,6 +234,13 @@ const ClockIns = () => {
           ? { ...emp, status: actualStatus }
           : emp
       )
+    );
+
+    // Also update selected employee if it matches
+    setSelectedEmployee(prev => 
+      prev && (prev.id === employeeId || prev._id === employeeId) 
+        ? { ...prev, status: actualStatus }
+        : prev
     );
 
     try {
