@@ -30,6 +30,7 @@ const ClockIns = () => {
   const [editForm, setEditForm] = useState({ date: '', clockIn: '', clockOut: '' });
   const [showClockInModal, setShowClockInModal] = useState(false);
   const [clockInEmployee, setClockInEmployee] = useState(null);
+  const [statusFilter, setStatusFilter] = useState(null); // null means show all
 
   useEffect(() => {
     fetchData();
@@ -375,7 +376,20 @@ const ClockIns = () => {
     );
   };
 
-  const filteredEmployees = employees.filter(employee => {
+  // Apply status filter first, then other filters
+  const filteredEmployees = employees
+    .filter(employee => {
+      // Status filter
+      if (statusFilter) {
+        if (statusFilter === 'absent') {
+          if (employee.status !== 'absent' && employee.status) return false;
+        } else {
+          if (employee.status !== statusFilter) return false;
+        }
+      }
+      return true;
+    })
+    .filter(employee => {
     const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
                          employee.vtid?.toString().includes(searchTerm) ||
@@ -513,56 +527,84 @@ const ClockIns = () => {
           </div>
         </div>
 
-        {/* Statistics Cards - LIVE DATA */}
+        {/* Statistics Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '16px',
           marginBottom: '24px'
         }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '8px',
-            padding: '16px',
-            textAlign: 'center',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setStatusFilter(statusFilter === 'clocked_in' ? null : 'clocked_in')}
+            style={{
+              background: statusFilter === 'clocked_in' ? '#d1fae5' : '#ffffff',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+              border: statusFilter === 'clocked_in' ? '2px solid #10b981' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
               {statsLoading ? '...' : (stats?.clockedIn ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked In</div>
           </div>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '8px',
-            padding: '16px',
-            textAlign: 'center',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setStatusFilter(statusFilter === 'clocked_out' ? null : 'clocked_out')}
+            style={{
+              background: statusFilter === 'clocked_out' ? '#dbeafe' : '#ffffff',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+              border: statusFilter === 'clocked_out' ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>
               {statsLoading ? '...' : (stats?.clockedOut ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked Out</div>
           </div>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '8px',
-            padding: '16px',
-            textAlign: 'center',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setStatusFilter(statusFilter === 'on_break' ? null : 'on_break')}
+            style={{
+              background: statusFilter === 'on_break' ? '#fef3c7' : '#ffffff',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+              border: statusFilter === 'on_break' ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>
               {statsLoading ? '...' : (stats?.onBreak ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>On a break</div>
           </div>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '8px',
-            padding: '16px',
-            textAlign: 'center',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setStatusFilter(statusFilter === 'absent' ? null : 'absent')}
+            style={{
+              background: statusFilter === 'absent' ? '#fee2e2' : '#ffffff',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+              border: statusFilter === 'absent' ? '2px solid #ef4444' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#ef4444' }}>
               {statsLoading ? '...' : (employees.filter(e => e.status === 'absent' || !e.status).length)}
             </div>

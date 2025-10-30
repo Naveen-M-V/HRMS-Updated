@@ -21,6 +21,7 @@ const ClockInOut = () => {
   });
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [nextLeave, setNextLeave] = useState(null);
+  const [selectedFilter, setSelectedFilter] = useState(null); // null means show all
 
   const fetchClockStatus = async () => {
     try {
@@ -180,13 +181,20 @@ const ClockInOut = () => {
           gap: '20px',
           marginBottom: '32px'
         }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setSelectedFilter(selectedFilter === 'clocked_in' ? null : 'clocked_in')}
+            style={{
+              background: selectedFilter === 'clocked_in' ? '#d1fae5' : '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: selectedFilter === 'clocked_in' ? '2px solid #10b981' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -216,13 +224,20 @@ const ClockInOut = () => {
             </div>
           </div>
 
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setSelectedFilter(selectedFilter === 'clocked_out' ? null : 'clocked_out')}
+            style={{
+              background: selectedFilter === 'clocked_out' ? '#dbeafe' : '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: selectedFilter === 'clocked_out' ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -252,13 +267,20 @@ const ClockInOut = () => {
             </div>
           </div>
 
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setSelectedFilter(selectedFilter === 'on_break' ? null : 'on_break')}
+            style={{
+              background: selectedFilter === 'on_break' ? '#fef3c7' : '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: selectedFilter === 'on_break' ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -288,13 +310,20 @@ const ClockInOut = () => {
             </div>
           </div>
 
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            border: '1px solid #e5e7eb'
-          }}>
+          <div 
+            onClick={() => setSelectedFilter(selectedFilter === 'absent' ? null : 'absent')}
+            style={{
+              background: selectedFilter === 'absent' ? '#fee2e2' : '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: selectedFilter === 'absent' ? '2px solid #ef4444' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -444,21 +473,42 @@ const ClockInOut = () => {
           }}>
             <div style={{
               padding: '20px',
-              borderBottom: '1px solid #e5e7eb'
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
             }}>
               <h3 style={{
                 fontSize: '18px',
                 fontWeight: '600',
                 color: '#111827'
               }}>
-                Employee Status
+                {selectedFilter ? `${getStatusText(selectedFilter)} Employees` : 'Employee Status'}
               </h3>
+              {selectedFilter && (
+                <button
+                  onClick={() => setSelectedFilter(null)}
+                  style={{
+                    padding: '6px 12px',
+                    background: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  Show All
+                </button>
+              )}
             </div>
             <div style={{
               maxHeight: '400px',
               overflowY: 'auto'
             }}>
-              {clockData.map((employee, index) => (
+              {clockData
+                .filter(employee => !selectedFilter || employee.status === selectedFilter || (selectedFilter === 'absent' && (!employee.status || employee.status === 'absent')))
+                .map((employee, index, filteredArray) => (
                 <div key={employee.id || index} style={{
                   display: 'flex',
                   alignItems: 'center',

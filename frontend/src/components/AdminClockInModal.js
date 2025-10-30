@@ -79,12 +79,12 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'linear-gradient(135deg, rgba(255, 107, 0, 0.9) 0%, rgba(255, 69, 96, 0.8) 100%)',
+      background: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 10000,
-      backdropFilter: 'blur(8px)'
+      backdropFilter: 'blur(4px)'
     }}>
       <div style={{
         background: '#ffffff',
@@ -92,7 +92,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
         padding: '40px',
         maxWidth: '560px',
         width: '90%',
-        boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)',
+        boxShadow: '0 24px 48px rgba(0, 0, 0, 0.3)',
         animation: 'slideDown 0.3s ease-out',
         position: 'relative'
       }}>

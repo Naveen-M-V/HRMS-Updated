@@ -1,6 +1,6 @@
 // src/components/Sidebar.js
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { ClipboardDocumentIcon as ClipboardIcon } from "@heroicons/react/24/outline";
@@ -19,6 +19,7 @@ import { ClockIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen, toggleSidebar }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, loading, user } = useAuth();
   const {
     getUnreadCount,
@@ -79,6 +80,10 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
     console.log("Navigating to:", path);
     if (toggleSidebar && !isOpen) toggleSidebar();
     navigate(path);
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path;
   };
 
   const handleIconClick = () => {
@@ -145,8 +150,10 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           {openReporting && isOpen && (
             <div className="ml-3 pl-5 border-l border-green-800">
               <div
-                onClick={() => handleNavigation("/")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                onClick={() => handleNavigation("/dashboard")}
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/dashboard') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <HomeIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Compliance Dashboard</span>
@@ -190,7 +197,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             <div className="ml-3 pl-5 border-l border-green-800">
               <div
                 onClick={() => handleNavigation("/clock-overview")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/clock-overview') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <HomeIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Overview</span>
@@ -198,7 +207,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
               <div
                 onClick={() => handleNavigation("/clock-ins")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/clock-ins') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <ClockIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Clock-ins</span>
@@ -206,7 +217,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
               <div
                 onClick={() => handleNavigation("/time-history")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/time-history') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <DocumentTextIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">History</span>
@@ -249,8 +262,10 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           {openTraining && isOpen && (
             <div className="ml-3 pl-5 border-l border-green-800">
               <div
-                onClick={() => handleNavigation("/reporting/profiles")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                onClick={() => handleNavigation("/profiles")}
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/profiles') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <UserIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Profiles</span>
@@ -258,7 +273,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
               <div
                 onClick={() => handleNavigation("/create-user")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/create-user') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <UserPlusIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Create User</span>
@@ -266,15 +283,19 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
               <div
                 onClick={() => handleNavigation("/certificates")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/certificates') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <DocumentTextIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Certificates</span>
               </div>
 
               <div
-                onClick={() => handleNavigation("/rota-management")}
-                className="relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md"
+                onClick={() => handleNavigation("/rota-shift-management")}
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/rota-shift-management') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
               >
                 <CalendarDaysIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">Rota Shift Management</span>
@@ -347,9 +368,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div className="border-b border-green-300 mx-2 my-2"></div>
         </div>
 
-        {/* Version */}
+        {/* Version - Always at bottom */}
         {isOpen && (
-          <div className="px-4 py-3 text-center text-xs text-green-300/70 border-t border-green-800">
+          <div className="mt-auto px-4 py-3 text-center text-xs text-green-300/70 border-t border-green-800">
             <div className="font-semibold mb-1">TalentShield</div>
             <div>Version Updates</div>
             <div className="text-green-300/50 mt-1">v{process.env.REACT_APP_VERSION || '1.14'}</div>
