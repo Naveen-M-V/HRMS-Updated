@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../utils/apiConfig';
 import { toast, ToastContainer } from 'react-toastify';
+import MUIDatePicker from '../components/MUIDatePicker';
+import MUITimePicker from '../components/MUITimePicker';
+import dayjs from 'dayjs';
 import 'react-toastify/dist/ReactToastify.css';
 import { getTimeEntries, exportTimeEntries } from '../utils/clockApi';
 import { assignShift } from '../utils/rotaApi';
 import axios from 'axios';
-import { buildApiUrl } from '../utils/apiConfig';
 import LoadingScreen from '../components/LoadingScreen';
 
 const TimeHistory = () => {
@@ -281,12 +285,19 @@ const TimeHistory = () => {
               <input type="text" placeholder="Select Location" value={filters.locationSearch} onChange={(e) => setFilters(prev => ({ ...prev, locationSearch: e.target.value }))} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
             </div>
             <div style={{ flex: '1', minWidth: '200px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Start Date</label>
-              <input type="date" value={filters.dateRange.start} onChange={(e) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, start: e.target.value } }))} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+              <MUIDatePicker
+                label="Start Date"
+                value={filters.dateRange.start || null}
+                onChange={(date) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, start: date ? date.format('YYYY-MM-DD') : '' } }))}
+              />
             </div>
             <div style={{ flex: '1', minWidth: '200px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>End Date</label>
-              <input type="date" value={filters.dateRange.end} onChange={(e) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, end: e.target.value } }))} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
+              <MUIDatePicker
+                label="End Date"
+                value={filters.dateRange.end || null}
+                onChange={(date) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, end: date ? date.format('YYYY-MM-DD') : '' } }))}
+                minDate={filters.dateRange.start || undefined}
+              />
             </div>
             <button onClick={() => setShowAssignModal(true)} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               + Assign Shift
@@ -389,17 +400,27 @@ const TimeHistory = () => {
                 </select>
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Date <span style={{ color: '#dc2626' }}>*</span></label>
-                <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} required style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
+                <MUIDatePicker
+                  label="Date *"
+                  value={formData.date || null}
+                  onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
+                  required
+                />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Start Time</label>
-                  <input type="time" value={formData.startTime} onChange={(e) => setFormData({ ...formData, startTime: e.target.value })} style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
+                  <MUITimePicker
+                    label="Start Time"
+                    value={formData.startTime}
+                    onChange={(time) => setFormData({ ...formData, startTime: time ? time.format('HH:mm') : '' })}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>End Time</label>
-                  <input type="time" value={formData.endTime} onChange={(e) => setFormData({ ...formData, endTime: e.target.value })} style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }} />
+                  <MUITimePicker
+                    label="End Time"
+                    value={formData.endTime}
+                    onChange={(time) => setFormData({ ...formData, endTime: time ? time.format('HH:mm') : '' })}
+                  />
                 </div>
               </div>
               <div style={{ marginBottom: '20px' }}>

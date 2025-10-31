@@ -12,6 +12,8 @@ import {
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useAlert } from "../components/AlertNotification";
 import { getCertificatesForMultipleJobRoles, allCertificates } from '../data/certificateJobRoleMapping';
+import MUIDatePicker from '../components/MUIDatePicker';
+import dayjs from 'dayjs';
 
 const UserCertificateCreate = () => {
   const { user } = useAuth();
@@ -368,33 +370,21 @@ const UserCertificateCreate = () => {
               {/* Dates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="issueDate" className="block text-sm font-medium text-gray-700">
-                    Issue Date *
-                  </label>
-                  <input
-                    type="date"
-                    id="issueDate"
-                    name="issueDate"
-                    value={formData.issueDate}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  <MUIDatePicker
+                    label="Issue Date *"
+                    value={formData.issueDate || null}
+                    onChange={(date) => handleInputChange({ target: { name: 'issueDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
+                    error={!!errors.issueDate}
+                    helperText={errors.issueDate}
                   />
-                  {errors.issueDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.issueDate}</p>
-                  )}
                 </div>
 
                 <div>
-                  <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700">
-                    Expiry Date
-                  </label>
-                  <input
-                    type="date"
-                    id="expiryDate"
-                    name="expiryDate"
-                    value={formData.expiryDate}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  <MUIDatePicker
+                    label="Expiry Date"
+                    value={formData.expiryDate || null}
+                    onChange={(date) => handleInputChange({ target: { name: 'expiryDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
+                    minDate={formData.issueDate || undefined}
                   />
                 </div>
               </div>

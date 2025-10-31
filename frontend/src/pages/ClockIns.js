@@ -3,7 +3,10 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
-import EmployeeProfileModal from '../components/EmployeeProfileModal';
+import EmployeeTimesheetModal from '../components/EmployeeTimesheetModal';
+import MUIDatePicker from '../components/MUIDatePicker';
+import MUITimePicker from '../components/MUITimePicker';
+import dayjs from 'dayjs';
 
 /**
  * Clock-ins Page
@@ -953,38 +956,26 @@ const ClockIns = () => {
             </h2>
             <form onSubmit={handleUpdateTimeEntry}>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={editForm.date}
-                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                <MUIDatePicker
+                  label="Date"
+                  value={editForm.date || null}
+                  onChange={(date) => setEditForm({ ...editForm, date: date ? date.format('YYYY-MM-DD') : '' })}
                 />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Clock In Time
-                  </label>
-                  <input
-                    type="time"
+                  <MUITimePicker
+                    label="Clock In Time"
                     value={editForm.clockIn}
-                    onChange={(e) => setEditForm({ ...editForm, clockIn: e.target.value })}
+                    onChange={(time) => setEditForm({ ...editForm, clockIn: time ? time.format('HH:mm') : '' })}
                     required
-                    style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Clock Out Time
-                  </label>
-                  <input
-                    type="time"
+                  <MUITimePicker
+                    label="Clock Out Time"
                     value={editForm.clockOut}
-                    onChange={(e) => setEditForm({ ...editForm, clockOut: e.target.value })}
-                    style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                    onChange={(time) => setEditForm({ ...editForm, clockOut: time ? time.format('HH:mm') : '' })}
                   />
                 </div>
               </div>
@@ -1192,9 +1183,9 @@ const ClockIns = () => {
         </div>
       )}
 
-      {/* Employee Profile Modal */}
+      {/* Employee Timesheet Modal */}
       {selectedEmployee && (
-        <EmployeeProfileModal
+        <EmployeeTimesheetModal
           employee={selectedEmployee}
           onClose={() => setSelectedEmployee(null)}
         />

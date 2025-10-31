@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import MultiJobRoleSelector from '../components/MultiJobRoleSelector';
 import { useAlert } from "../components/AlertNotification";
+import MUIDatePicker from '../components/MUIDatePicker';
+import dayjs from 'dayjs';
 
 export default function EditUserProfile() {
   console.log('EditUserProfile component loaded');
@@ -328,14 +330,10 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <input
-                  id="dateOfBirth"
-                  type="date"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                <MUIDatePicker
+                  label="Date of Birth"
+                  value={formData.dateOfBirth || null}
+                  onChange={(date) => handleChange({ target: { name: 'dateOfBirth', value: date ? date.format('YYYY-MM-DD') : '' } })}
                 />
               </div>
               <div>
@@ -471,14 +469,10 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                <input
-                  id="startDate"
-                  type="date"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                <MUIDatePicker
+                  label="Start Date"
+                  value={formData.startDate || null}
+                  onChange={(date) => handleChange({ target: { name: 'startDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
                 />
               </div>
             </div>

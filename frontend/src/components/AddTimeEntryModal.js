@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { addTimeEntry } from '../utils/clockApi';
+import MUIDatePicker from './MUIDatePicker';
+import MUITimePicker from './MUITimePicker';
+import dayjs from 'dayjs';
 
 /**
  * Add Time Entry Modal
@@ -288,30 +291,18 @@ const AddTimeEntryModal = ({ onClose, onSuccess }) => {
                   Clock In
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="date"
-                    value={formData.clockIn.date}
-                    onChange={(e) => handleInputChange('clockIn.date', e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  />
-                  <input
-                    type="time"
-                    value={formData.clockIn.time}
-                    onChange={(e) => handleInputChange('clockIn.time', e.target.value)}
-                    style={{
-                      width: '120px',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  />
+                  <div style={{ flex: 1 }}>
+                    <MUIDatePicker
+                      value={formData.clockIn.date || null}
+                      onChange={(date) => handleInputChange('clockIn.date', date ? date.format('YYYY-MM-DD') : '')}
+                    />
+                  </div>
+                  <div style={{ width: '140px' }}>
+                    <MUITimePicker
+                      value={formData.clockIn.time}
+                      onChange={(time) => handleInputChange('clockIn.time', time ? time.format('HH:mm') : '')}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -327,30 +318,18 @@ const AddTimeEntryModal = ({ onClose, onSuccess }) => {
                   Clock Out
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="date"
-                    value={formData.clockOut.date}
-                    onChange={(e) => handleInputChange('clockOut.date', e.target.value)}
-                    style={{
-                      flex: 1,
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  />
-                  <input
-                    type="time"
-                    value={formData.clockOut.time}
-                    onChange={(e) => handleInputChange('clockOut.time', e.target.value)}
-                    style={{
-                      width: '120px',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  />
+                  <div style={{ flex: 1 }}>
+                    <MUIDatePicker
+                      value={formData.clockOut.date || null}
+                      onChange={(date) => handleInputChange('clockOut.date', date ? date.format('YYYY-MM-DD') : '')}
+                    />
+                  </div>
+                  <div style={{ width: '140px' }}>
+                    <MUITimePicker
+                      value={formData.clockOut.time}
+                      onChange={(time) => handleInputChange('clockOut.time', time ? time.format('HH:mm') : '')}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
