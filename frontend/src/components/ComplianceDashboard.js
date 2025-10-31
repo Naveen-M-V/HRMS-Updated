@@ -4,6 +4,7 @@ import { useCertificates } from '../context/CertificateContext';
 import { useAuth } from '../context/AuthContext';
 import ComplianceInsights from './ComplianceInsights';
 import AdminClockInModal from './AdminClockInModal';
+import AdminClockOutModal from './AdminClockOutModal';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import { getUserClockStatus, userClockOut, userStartBreak, userResumeWork } from '../utils/clockApi';
 import { toast } from 'react-toastify';
@@ -23,6 +24,7 @@ const ComplianceDashboard = () => {
 
   const [selectedTimeframe, setSelectedTimeframe] = useState(30);
   const [showAdminClockInModal, setShowAdminClockInModal] = useState(false);
+  const [showAdminClockOutModal, setShowAdminClockOutModal] = useState(false);
   const [clockStatus, setClockStatus] = useState(null);
   const [clockLoading, setClockLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState({
@@ -115,21 +117,11 @@ const ComplianceDashboard = () => {
   };
 
   const handleClockOut = async () => {
-    setClockLoading(true);
-    try {
-      const response = await userClockOut();
-      if (response.success) {
-        toast.success('Successfully clocked out!');
-        await fetchClockStatus();
-      } else {
-        toast.error(response.message || 'Failed to clock out');
-      }
-    } catch (error) {
-      console.error('Clock out error:', error);
-      toast.error('Failed to clock out');
-    } finally {
-      setClockLoading(false);
-    }
+    setShowAdminClockOutModal(true);
+  };
+
+  const onClockOutComplete = async () => {
+    await fetchClockStatus();
   };
 
   const handleStartBreak = async () => {
@@ -213,11 +205,10 @@ const ComplianceDashboard = () => {
               )}
               <button
                 onClick={handleClockOut}
-                disabled={clockLoading}
-                className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200"
               >
                 <ClockIcon className="h-5 w-5 mr-2" />
-                {clockLoading ? 'Clocking Out...' : 'Clock Out'}
+                Clock Out
               </button>
             </>
           ) : (
@@ -256,6 +247,18 @@ const ComplianceDashboard = () => {
           onClose={() => setShowAdminClockInModal(false)}
           onClockIn={async () => {
             setShowAdminClockInModal(false);
+            await fetchClockStatus();
+          }}
+        />
+      )}
+
+      {/* Admin Clock-Out Modal */}
+      {showAdminClockOutModal && (
+        <AdminClockOutModal
+          user={user}
+          onClose={() => setShowAdminClockOutModal(false)}
+          onClockOut={async () => {
+            setShowAdminClockOutModal(false);
             await fetchClockStatus();
           }}
         />

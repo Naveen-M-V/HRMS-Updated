@@ -761,11 +761,14 @@ const ClockIns = () => {
                       {getStatusBadge(employee.status || 'absent')}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
                         {employee.status === 'clocked_in' ? (
                           <>
                             <button
-                              onClick={() => handleOnBreak(employee.id || employee._id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOnBreak(employee.id || employee._id);
+                              }}
                               style={{
                                 padding: '6px 12px',
                                 background: '#f59e0b',
@@ -798,7 +801,8 @@ const ClockIns = () => {
                         ) : employee.status === 'on_break' ? (
                           <>
                             <button
-                              onClick={async () => {
+                              onClick={async (e) => {
+                                e.stopPropagation();
                                 try {
                                   const { endBreak } = await import('../utils/clockApi');
                                   const response = await endBreak(employee.id || employee._id);
@@ -841,7 +845,10 @@ const ClockIns = () => {
                           </>
                         ) : (
                           <button
-                            onClick={() => openClockInModal(employee)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openClockInModal(employee);
+                            }}
                             style={{
                               padding: '6px 12px',
                               background: '#10b981',
@@ -860,7 +867,10 @@ const ClockIns = () => {
                         {employee.timeEntryId && (
                         <>
                         <button
-                          onClick={() => handleEditEntry(employee)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditEntry(employee);
+                          }}
                         style={{
                           padding: '6px 12px',
                           background: '#ffffff',
@@ -876,7 +886,10 @@ const ClockIns = () => {
                             Edit
                             </button>
                             <button
-                              onClick={() => handleDeleteTimeEntry(employee.timeEntryId, employee.name)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTimeEntry(employee.timeEntryId, employee.name);
+                              }}
                               style={{
                                 padding: '6px 12px',
                                 background: '#ffffff',

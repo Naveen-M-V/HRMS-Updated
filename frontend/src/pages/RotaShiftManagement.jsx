@@ -562,7 +562,7 @@ const RotaShiftManagement = () => {
                 <div>
                   <MUITimePicker
                     label="Start Time"
-                    value={formData.startTime ? new Date(`2000-01-01T${formData.startTime}`) : null}
+                    value={formData.startTime}
                     onChange={(time) => {
                       if (time) {
                         const hours = time.getHours().toString().padStart(2, '0');
@@ -578,7 +578,7 @@ const RotaShiftManagement = () => {
                 <div>
                   <MUITimePicker
                     label="End Time"
-                    value={formData.endTime ? new Date(`2000-01-01T${formData.endTime}`) : null}
+                    value={formData.endTime}
                     onChange={(time) => {
                       if (time) {
                         const hours = time.getHours().toString().padStart(2, '0');
