@@ -22,10 +22,14 @@ async function getAllAdminUsers() {
 }
 
 // Helper function to get user profile
-async function getUserProfile(userId) {
+async function getUserProfile(userIdOrProfileId) {
   try {
     const Profile = mongoose.model('Profile');
-    const profile = await Profile.findOne({ userId }).select('_id email firstName lastName vtid');
+    // Try to find by userId first, then by _id (profileId)
+    let profile = await Profile.findOne({ userId: userIdOrProfileId }).select('_id email firstName lastName vtid userId');
+    if (!profile) {
+      profile = await Profile.findById(userIdOrProfileId).select('_id email firstName lastName vtid userId');
+    }
     return profile;
   } catch (error) {
     console.error('Error fetching user profile:', error);

@@ -36,6 +36,7 @@ const UserDashboard = () => {
   const [processing, setProcessing] = useState(false);
   const [shiftInfo, setShiftInfo] = useState(null);
   const [attendanceStatus, setAttendanceStatus] = useState(null);
+  const [expandedCard, setExpandedCard] = useState(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
@@ -502,60 +503,192 @@ const UserDashboard = () => {
               )}
             </div>
 
-            {/* Quick Stats */}
+            {/* Quick Stats - Clickable Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-              <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <DocumentTextIcon className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Total Certificates</dt>
-                        <dd className="text-lg font-medium text-gray-900">{certificates.length}</dd>
-                      </dl>
+              {/* Total Certificates Card */}
+              <div>
+                <button
+                  onClick={() => setExpandedCard(expandedCard === 'certificates' ? null : 'certificates')}
+                  className="w-full bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-all hover:scale-105 cursor-pointer"
+                >
+                  <div className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center flex-1">
+                        <div className="flex-shrink-0">
+                          <DocumentTextIcon className="h-6 w-6 text-blue-500" />
+                        </div>
+                        <div className="ml-5 w-0 flex-1">
+                          <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">Total Certificates</dt>
+                            <dd className="text-lg font-semibold text-gray-900">{certificates.length}</dd>
+                          </dl>
+                        </div>
+                      </div>
+                      <svg className={`h-5 w-5 text-gray-400 transition-transform ${expandedCard === 'certificates' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
                   </div>
-                </div>
+                </button>
+                {expandedCard === 'certificates' && (
+                  <div className="mt-2 bg-white shadow rounded-lg p-4 animate-fadeIn">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Your Certificates</h4>
+                    {certificates.length === 0 ? (
+                      <p className="text-sm text-gray-500">No certificates found</p>
+                    ) : (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {certificates.map((cert, idx) => {
+                          const expiryDate = cert.expiryDate ? new Date(cert.expiryDate) : null;
+                          const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                          return (
+                            <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{cert.certificate || cert.certificateName}</p>
+                                <p className="text-xs text-gray-500">{cert.category || 'General'}</p>
+                              </div>
+                              <div className="text-right">
+                                {daysUntilExpiry === null ? (
+                                  <span className="text-xs text-gray-500">No expiry</span>
+                                ) : daysUntilExpiry < 0 ? (
+                                  <span className="text-xs text-red-600 font-medium">Expired</span>
+                                ) : daysUntilExpiry <= 30 ? (
+                                  <span className="text-xs text-yellow-600 font-medium">{daysUntilExpiry}d left</span>
+                                ) : (
+                                  <span className="text-xs text-green-600 font-medium">Valid</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <ExclamationTriangleIcon className="h-6 w-6 text-yellow-400" />
+              {/* Expiring Soon Card */}
+              <div>
+                <button
+                  onClick={() => setExpandedCard(expandedCard === 'expiring' ? null : 'expiring')}
+                  className="w-full bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-all hover:scale-105 cursor-pointer"
+                >
+                  <div className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center flex-1">
+                        <div className="flex-shrink-0">
+                          <ExclamationTriangleIcon className="h-6 w-6 text-yellow-500" />
+                        </div>
+                        <div className="ml-5 w-0 flex-1">
+                          <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">Expiring Soon</dt>
+                            <dd className="text-lg font-semibold text-gray-900">
+                              {certificates.filter(cert => {
+                                if (!cert.expiryDate) return false;
+                                const daysUntilExpiry = Math.ceil((new Date(cert.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                                return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+                              }).length}
+                            </dd>
+                          </dl>
+                        </div>
+                      </div>
+                      <svg className={`h-5 w-5 text-gray-400 transition-transform ${expandedCard === 'expiring' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">Expiring Soon</dt>
-                        <dd className="text-lg font-medium text-gray-900">
-                          {certificates.filter(cert => {
+                  </div>
+                </button>
+                {expandedCard === 'expiring' && (
+                  <div className="mt-2 bg-white shadow rounded-lg p-4 animate-fadeIn">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Certificates Expiring Within 30 Days</h4>
+                    {certificates.filter(cert => {
+                      if (!cert.expiryDate) return false;
+                      const daysUntilExpiry = Math.ceil((new Date(cert.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                      return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
+                    }).length === 0 ? (
+                      <p className="text-sm text-gray-500">No certificates expiring soon</p>
+                    ) : (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {certificates
+                          .filter(cert => {
                             if (!cert.expiryDate) return false;
                             const daysUntilExpiry = Math.ceil((new Date(cert.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
                             return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
-                          }).length}
-                        </dd>
-                      </dl>
-                    </div>
+                          })
+                          .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate))
+                          .map((cert, idx) => {
+                            const daysUntilExpiry = Math.ceil((new Date(cert.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                            return (
+                              <div key={idx} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{cert.certificate || cert.certificateName}</p>
+                                  <p className="text-xs text-gray-600">Expires: {new Date(cert.expiryDate).toLocaleDateString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                                    daysUntilExpiry <= 7 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {daysUntilExpiry} {daysUntilExpiry === 1 ? 'day' : 'days'} left
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
 
-              <div className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <BellIcon className="h-6 w-6 text-blue-400" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">New Notifications</dt>
-                        <dd className="text-lg font-medium text-gray-900">{notifications.length}</dd>
-                      </dl>
+              {/* Notifications Card */}
+              <div>
+                <button
+                  onClick={() => setExpandedCard(expandedCard === 'notifications' ? null : 'notifications')}
+                  className="w-full bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-all hover:scale-105 cursor-pointer"
+                >
+                  <div className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center flex-1">
+                        <div className="flex-shrink-0">
+                          <BellIcon className="h-6 w-6 text-blue-500" />
+                        </div>
+                        <div className="ml-5 w-0 flex-1">
+                          <dl>
+                            <dt className="text-sm font-medium text-gray-500 truncate">New Notifications</dt>
+                            <dd className="text-lg font-semibold text-gray-900">{notifications.length}</dd>
+                          </dl>
+                        </div>
+                      </div>
+                      <svg className={`h-5 w-5 text-gray-400 transition-transform ${expandedCard === 'notifications' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </div>
                   </div>
-                </div>
+                </button>
+                {expandedCard === 'notifications' && (
+                  <div className="mt-2 bg-white shadow rounded-lg p-4 animate-fadeIn">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Recent Notifications</h4>
+                    {notifications.length === 0 ? (
+                      <p className="text-sm text-gray-500">No new notifications</p>
+                    ) : (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {notifications.slice(0, 10).map((notification, idx) => (
+                          <div key={idx} className="flex items-start space-x-3 p-2 bg-blue-50 rounded hover:bg-blue-100">
+                            <div className="flex-shrink-0 mt-1">
+                              {getNotificationIcon(notification.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900">{notification.title || 'Notification'}</p>
+                              <p className="text-xs text-gray-600 truncate">{notification.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(notification.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

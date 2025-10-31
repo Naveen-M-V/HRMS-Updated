@@ -100,7 +100,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   return (
     <div
-      className={`fixed left-0 top-0 h-screen bg-green-900 text-white overflow-y-auto z-50 transition-all duration-300 flex flex-col ${
+      className={`fixed left-0 top-0 h-screen bg-green-900 text-white z-50 transition-all duration-300 flex flex-col ${
         isOpen ? "w-64" : "w-16"
       }`}
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -110,7 +110,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           display: none;
         }
       `}</style>
-      <div className="py-4 space-y-2 flex-1">
+      <div className="py-4 space-y-2 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {/* Header */}
         {isOpen && (
           <div className="px-4 pb-2 text-xs uppercase font-bold tracking-wider text-green-300">
@@ -367,18 +367,19 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
           <div className="border-b border-green-300 mx-2 my-2"></div>
         </div>
+      </div>
 
-        {/* Version - Always at bottom */}
+      {/* Bottom section - Version and Logout */}
+      <div className="mt-auto border-t border-green-800">
+        {/* Version Display */}
         {isOpen && (
-          <div className="mt-auto px-4 py-3 text-center text-xs text-green-300/70 border-t border-green-800">
-            <div className="font-semibold mb-1">TalentShield</div>
-            <div>Version Updates</div>
-            <div className="text-green-300/50 mt-1">v{process.env.REACT_APP_VERSION || '1.14'}</div>
+          <div className="px-4 py-3 text-center text-xs text-green-300/70">
+            <div className="font-semibold">TalentShield V 1.14</div>
           </div>
         )}
 
         {/* Logout Button */}
-        <div className="pt-4">
+        <div className="pb-4 px-2">
           <div
             onClick={handleLogout}
             className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none ${

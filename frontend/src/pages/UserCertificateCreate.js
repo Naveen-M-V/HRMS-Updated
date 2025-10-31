@@ -5,10 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { 
   DocumentIcon, 
   ArrowLeftIcon,
-  CloudArrowUpIcon
+  CloudArrowUpIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useAlert } from "../components/AlertNotification";
+import { getCertificatesForMultipleJobRoles, allCertificates } from '../data/certificateJobRoleMapping';
 
 const UserCertificateCreate = () => {
   const { user } = useAuth();
@@ -26,6 +29,8 @@ const UserCertificateCreate = () => {
     certificateFile: null
   });
   const [errors, setErrors] = useState({});
+  const [suggestedCertificates, setSuggestedCertificates] = useState({ mandatory: [], alternative: [] });
+  const [profileJobRoles, setProfileJobRoles] = useState([]);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
@@ -44,6 +49,22 @@ const UserCertificateCreate = () => {
       if (response.ok) {
         const profileData = await response.json();
         setUserProfile(profileData);
+        
+        // Get job roles and suggested certificates
+        let jobRoles = [];
+        if (profileData.jobRole) {
+          jobRoles = Array.isArray(profileData.jobRole) ? profileData.jobRole : [profileData.jobRole];
+          jobRoles = jobRoles.filter(Boolean);
+        }
+        setProfileJobRoles(jobRoles);
+        
+        if (jobRoles.length > 0) {
+          const certificates = getCertificatesForMultipleJobRoles(jobRoles);
+          setSuggestedCertificates({
+            mandatory: certificates.mandatory || [],
+            alternative: certificates.alternative || []
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -208,6 +229,83 @@ const UserCertificateCreate = () => {
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Job Role Info */}
+              {profileJobRoles.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-blue-900 mb-2">Your Job Role(s)</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {profileJobRoles.map((role, idx) => (
+                      <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Suggested Certificates */}
+              {(suggestedCertificates.mandatory.length > 0 || suggestedCertificates.alternative.length > 0) && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Suggested Certificates for Your Role</h3>
+                  
+                  {/* Mandatory Certificates */}
+                  {suggestedCertificates.mandatory.length > 0 && (
+                    <div className="mb-4">
+                      <div className="flex items-center mb-2">
+                        <ExclamationCircleIcon className="h-5 w-5 text-red-500 mr-2" />
+                        <h4 className="text-sm font-medium text-red-700">Mandatory Certificates</h4>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {suggestedCertificates.mandatory.map((certCode, idx) => {
+                          const certInfo = allCertificates[certCode];
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, certificate: certInfo?.name || certCode }))}
+                              className="text-left px-3 py-2 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors"
+                            >
+                              <div className="text-xs font-medium text-red-900">{certCode}</div>
+                              <div className="text-xs text-red-700">{certInfo?.name || 'Unknown Certificate'}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Alternative Certificates */}
+                  {suggestedCertificates.alternative.length > 0 && (
+                    <div>
+                      <div className="flex items-center mb-2">
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
+                        <h4 className="text-sm font-medium text-green-700">Alternative Certificates</h4>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {suggestedCertificates.alternative.map((certCode, idx) => {
+                          const certInfo = allCertificates[certCode];
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, certificate: certInfo?.name || certCode }))}
+                              className="text-left px-3 py-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 transition-colors"
+                            >
+                              <div className="text-xs font-medium text-green-900">{certCode}</div>
+                              <div className="text-xs text-green-700">{certInfo?.name || 'Unknown Certificate'}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-gray-500 mt-3">
+                    Click on a certificate to auto-fill the name, or enter a custom certificate below.
+                  </p>
+                </div>
+              )}
+
               {/* Certificate Name */}
               <div>
                 <label htmlFor="certificate" className="block text-sm font-medium text-gray-700">

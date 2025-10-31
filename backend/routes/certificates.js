@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Certificate = require('../models/Certificate'); // adjust path if your model is elsewhere
+const {
+  notifyCertificateAdded,
+  notifyCertificateDeleted,
+  notifyCertificateUpdated,
+  getUserProfile
+} = require('../utils/notificationService');
 
 // ----------------------
 // Dashboard Stats
@@ -103,6 +109,21 @@ router.post('/', async (req, res) => {
     console.log('Creating certificate with data:', req.body);
     const newCert = new Certificate(req.body);
     const savedCert = await newCert.save();
+    
+    // Send notification for certificate creation
+    try {
+      if (savedCert.profileId) {
+        const profileData = await getUserProfile(savedCert.profileId);
+        if (profileData) {
+          const addedByUserId = req.session?.user?.userId || req.user?.userId || req.user?.id;
+          await notifyCertificateAdded(savedCert, profileData, addedByUserId);
+          console.log('Certificate added notification sent');
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send certificate added notification:', notifError);
+    }
+    
     res.status(201).json(savedCert);
   } catch (error) {
     console.error("Error creating certificate:", error);
@@ -134,10 +155,36 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ message: 'Invalid certificate ID' });
     }
 
+    const originalCert = await Certificate.findById(id);
     const updatedCert = await Certificate.findByIdAndUpdate(id, req.body, { new: true });
     if (!updatedCert) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
+    
+    // Send notification for certificate update
+    try {
+      if (updatedCert.profileId && originalCert) {
+        const profileData = await getUserProfile(updatedCert.profileId);
+        if (profileData) {
+          // Detect changed fields
+          const updatedFields = {};
+          Object.keys(req.body).forEach(key => {
+            if (originalCert[key] !== updatedCert[key]) {
+              updatedFields[key] = updatedCert[key];
+            }
+          });
+          
+          if (Object.keys(updatedFields).length > 0) {
+            const updatedByUserId = req.session?.user?.userId || req.user?.userId || req.user?.id;
+            await notifyCertificateUpdated(updatedCert, profileData, updatedFields, updatedByUserId);
+            console.log('Certificate updated notification sent');
+          }
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send certificate updated notification:', notifError);
+    }
+    
     res.json(updatedCert);
   } catch (error) {
     console.error("Error updating certificate:", error);
@@ -159,6 +206,21 @@ router.delete('/:id', async (req, res) => {
     if (!deletedCert) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
+    
+    // Send notification for certificate deletion
+    try {
+      if (deletedCert.profileId) {
+        const profileData = await getUserProfile(deletedCert.profileId);
+        if (profileData) {
+          const deletedByUserId = req.session?.user?.userId || req.user?.userId || req.user?.id;
+          await notifyCertificateDeleted(deletedCert, profileData, deletedByUserId);
+          console.log('Certificate deleted notification sent');
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to send certificate deleted notification:', notifError);
+    }
+    
     res.json({ message: 'Certificate deleted successfully' });
   } catch (error) {
     console.error("Error deleting certificate:", error);

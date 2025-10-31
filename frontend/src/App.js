@@ -320,6 +320,10 @@ function App() {
                                     element={<RotaShiftManagement />}
                                   />
                                   <Route
+                                    path="/rota-shift-management"
+                                    element={<RotaShiftManagement />}
+                                  />
+                                  <Route
                                     path="/clock-overview"
                                     element={<ClockInOut />}
                                   />
