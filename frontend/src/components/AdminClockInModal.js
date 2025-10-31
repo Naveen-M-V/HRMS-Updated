@@ -238,7 +238,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  Label
+                  Location
                 </label>
                 <div style={{ position: 'relative' }}>
                   <svg style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
@@ -285,7 +285,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  Label
+                  Shift
                 </label>
                 <div style={{ position: 'relative' }}>
                   <svg style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
@@ -322,27 +322,6 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                 </div>
               </div>
 
-              {/* Validation Progress Bar */}
-              <div style={{ marginBottom: '28px' }}>
-                <div style={{ 
-                  height: '4px', 
-                  background: '#e5e7eb', 
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                  marginBottom: '8px'
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: '75%',
-                    background: 'linear-gradient(90deg, #10b981 0%, #34d399 100%)',
-                    transition: 'width 0.3s'
-                  }}></div>
-                </div>
-                <p style={{ fontSize: '13px', color: '#10b981', fontWeight: '500' }}>
-                  This is a validation text.
-                </p>
-              </div>
-
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button
@@ -372,7 +351,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                     }
                   }}
                 >
-                  Cancel
+                  Not now
                 </button>
 
                 <button
@@ -397,7 +376,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                     if (!loading) e.target.style.background = '#6366F1';
                   }}
                 >
-                  {loading ? 'Processing...' : 'Accept'}
+                  {loading ? 'Processing...' : 'Clock-in'}
                 </button>
               </div>
             </>
