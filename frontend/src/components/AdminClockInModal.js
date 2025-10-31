@@ -338,8 +338,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                 <MUITimePicker
                   label="Select Time"
                   value={clockInTime}
-                  onChange={setClockInTime}
-                  orientation="landscape"
+                  onChange={(time) => setClockInTime(time ? time.toDate() : new Date())}
                 />
               </div>
 

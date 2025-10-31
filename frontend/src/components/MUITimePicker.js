@@ -12,14 +12,16 @@ const MUITimePicker = ({
   helperText,
   disabled = false,
   required = false,
-  orientation = 'portrait', // 'portrait' or 'landscape'
   ...props 
 }) => {
   // Convert value to dayjs object
   const getDayjsValue = () => {
     if (!value) return null;
     
-    // If value is already a Date object
+    // If value is already a dayjs object
+    if (dayjs.isDayjs(value)) return value;
+    
+    // If value is a Date object
     if (value instanceof Date) {
       return dayjs(value);
     }
@@ -41,11 +43,10 @@ const MUITimePicker = ({
         value={getDayjsValue()}
         onChange={(newValue) => {
           if (onChange) {
-            onChange(newValue ? newValue.toDate() : null);
+            onChange(newValue);
           }
         }}
         disabled={disabled}
-        orientation={orientation}
         slotProps={{
           textField: {
             fullWidth: true,

@@ -319,16 +319,16 @@ const RotaShiftManagement = () => {
             <div style={{ flex: '1', minWidth: '200px' }}>
               <MUIDatePicker
                 label="Start Date"
-                value={filters.startDate ? new Date(filters.startDate) : null}
-                onChange={(date) => handleFilterChange('startDate', date ? date.toISOString().split('T')[0] : '')}
+                value={filters.startDate || null}
+                onChange={(date) => handleFilterChange('startDate', date ? date.format('YYYY-MM-DD') : '')}
               />
             </div>
             <div style={{ flex: '1', minWidth: '200px' }}>
               <MUIDatePicker
                 label="End Date"
-                value={filters.endDate ? new Date(filters.endDate) : null}
-                onChange={(date) => handleFilterChange('endDate', date ? date.toISOString().split('T')[0] : '')}
-                minDate={filters.startDate ? new Date(filters.startDate) : undefined}
+                value={filters.endDate || null}
+                onChange={(date) => handleFilterChange('endDate', date ? date.format('YYYY-MM-DD') : '')}
+                minDate={filters.startDate || undefined}
               />
             </div>
             <div style={{ flex: '1', minWidth: '150px' }}>
@@ -553,8 +553,8 @@ const RotaShiftManagement = () => {
               <div style={{ marginBottom: '20px' }}>
                 <MUIDatePicker
                   label="Date *"
-                  value={formData.date ? new Date(formData.date) : null}
-                  onChange={(date) => setFormData({ ...formData, date: date ? date.toISOString().split('T')[0] : '' })}
+                  value={formData.date || null}
+                  onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
                   required
                 />
               </div>
@@ -565,14 +565,11 @@ const RotaShiftManagement = () => {
                     value={formData.startTime}
                     onChange={(time) => {
                       if (time) {
-                        const hours = time.getHours().toString().padStart(2, '0');
-                        const minutes = time.getMinutes().toString().padStart(2, '0');
-                        setFormData({ ...formData, startTime: `${hours}:${minutes}` });
+                        setFormData({ ...formData, startTime: time.format('HH:mm') });
                       } else {
                         setFormData({ ...formData, startTime: '' });
                       }
                     }}
-                    orientation="landscape"
                   />
                 </div>
                 <div>
@@ -581,14 +578,11 @@ const RotaShiftManagement = () => {
                     value={formData.endTime}
                     onChange={(time) => {
                       if (time) {
-                        const hours = time.getHours().toString().padStart(2, '0');
-                        const minutes = time.getMinutes().toString().padStart(2, '0');
-                        setFormData({ ...formData, endTime: `${hours}:${minutes}` });
+                        setFormData({ ...formData, endTime: time.format('HH:mm') });
                       } else {
                         setFormData({ ...formData, endTime: '' });
                       }
                     }}
-                    orientation="landscape"
                   />
                 </div>
               </div>

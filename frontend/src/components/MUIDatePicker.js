@@ -3,7 +3,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { TextField } from '@mui/material';
 
 const MUIDatePicker = ({ 
   label, 
@@ -17,14 +16,21 @@ const MUIDatePicker = ({
   required = false,
   ...props 
 }) => {
+  // Convert value to dayjs
+  const getDayjsValue = () => {
+    if (!value) return null;
+    if (dayjs.isDayjs(value)) return value;
+    return dayjs(value);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DatePicker
         label={label}
-        value={value ? dayjs(value) : null}
+        value={getDayjsValue()}
         onChange={(newValue) => {
           if (onChange) {
-            onChange(newValue ? newValue.toDate() : null);
+            onChange(newValue);
           }
         }}
         minDate={minDate ? dayjs(minDate) : undefined}

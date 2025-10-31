@@ -33,22 +33,45 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
   const fetchEmployeeDetails = async () => {
     setLoading(true);
     try {
+      const employeeId = employee._id || employee.id;
+      console.log('Fetching details for employee:', employeeId);
+
       // Fetch certificates
-      const certResponse = await fetch(buildApiUrl(`/api/certificates/profile/${employee._id || employee.id}`), {
-        credentials: 'include'
-      });
-      if (certResponse.ok) {
-        const certData = await certResponse.json();
-        setCertificates(certData);
+      try {
+        const certResponse = await fetch(buildApiUrl(`/api/certificates/profile/${employeeId}`), {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (certResponse.ok) {
+          const certData = await certResponse.json();
+          console.log('Certificates data:', certData);
+          setCertificates(Array.isArray(certData) ? certData : []);
+        } else {
+          console.error('Failed to fetch certificates:', certResponse.status);
+        }
+      } catch (err) {
+        console.error('Error fetching certificates:', err);
       }
 
       // Fetch recent time entries
-      const timeResponse = await fetch(buildApiUrl(`/api/clock/history/${employee._id || employee.id}?limit=5`), {
-        credentials: 'include'
-      });
-      if (timeResponse.ok) {
-        const timeData = await timeResponse.json();
-        setTimeEntries(timeData.entries || []);
+      try {
+        const timeResponse = await fetch(buildApiUrl(`/api/clock/history/${employeeId}?limit=10`), {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        if (timeResponse.ok) {
+          const timeData = await timeResponse.json();
+          console.log('Time entries data:', timeData);
+          setTimeEntries(timeData.entries || timeData || []);
+        } else {
+          console.error('Failed to fetch time entries:', timeResponse.status);
+        }
+      } catch (err) {
+        console.error('Error fetching time entries:', err);
       }
     } catch (error) {
       console.error('Error fetching employee details:', error);

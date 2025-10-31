@@ -367,23 +367,25 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
                   </div>
                 )}
               </div>
-
-              {/* Logout Button inside Settings */}
-              <div
-                onClick={handleLogout}
-                className={`relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ${
-                  loading ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                <ArrowRightOnRectangleIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
-                <span className="text-sm">
-                  {loading ? "Logging out..." : "Logout"}
-                </span>
-              </div>
             </div>
           )}
 
           <div className="border-b border-green-300 mx-2 my-2"></div>
+
+          {/* Logout Button - Outside Settings */}
+          <div
+            onClick={handleLogout}
+            className={`relative group flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          >
+            <ArrowRightOnRectangleIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+            {isOpen && (
+              <span className="text-sm">
+                {loading ? "Logging out..." : "Logout"}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
