@@ -113,13 +113,16 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         const clockIn = dayEntry.clockIn;
         const clockOut = dayEntry.clockOut;
         
-        let hours = 0;
-        if (clockIn && clockOut) {
-          const diff = new Date(clockOut) - new Date(clockIn);
-          hours = diff / (1000 * 60 * 60);
-          totalHours += hours;
-        }
+        // Parse hours from backend calculation
+        const hours = parseFloat(dayEntry.hoursWorked || 0);
+        const overtime = parseFloat(dayEntry.overtime || 0);
+        const negativeHours = parseFloat(dayEntry.negativeHours || 0);
+        
+        totalHours += hours;
+        totalOvertime += overtime;
+        totalNegative += negativeHours;
 
+        // Format clock in/out times
         const clockInTime = new Date(clockIn).toLocaleTimeString('en-US', { 
           hour: '2-digit', 
           minute: '2-digit',
@@ -131,14 +134,27 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           hour12: false 
         }) : 'Present';
 
+        // Calculate break time display
+        let breakInfo = '';
+        if (dayEntry.breaks && dayEntry.breaks.length > 0) {
+          const totalBreakMinutes = dayEntry.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
+          if (totalBreakMinutes > 0) {
+            const breakHours = Math.floor(totalBreakMinutes / 60);
+            const breakMins = totalBreakMinutes % 60;
+            breakInfo = ` (Break: ${breakHours}h ${breakMins}m)`;
+          }
+        }
+
         weekEntries.push({
           date: date,
           dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
           dayNumber: date.getDate().toString().padStart(2, '0'),
-          clockedHours: `${clockInTime} - ${clockOutTime}`,
-          negativeHours: '--',
-          overtime: '--',
-          totalHours: formatHours(hours)
+          clockedHours: `${clockInTime} - ${clockOutTime}${breakInfo}`,
+          negativeHours: negativeHours > 0 ? formatHours(negativeHours) : '--',
+          overtime: overtime > 0 ? formatHours(overtime) : '--',
+          totalHours: formatHours(hours),
+          location: dayEntry.location || 'N/A',
+          workType: dayEntry.workType || 'Regular'
         });
       } else {
         weekEntries.push({
@@ -148,17 +164,29 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           clockedHours: null,
           negativeHours: '--',
           overtime: '--',
-          totalHours: '00:00'
+          totalHours: '00:00',
+          location: null,
+          workType: null
         });
       }
     }
 
     setWeekData(weekEntries);
-    setStatistics({
-      hoursWorked: totalHours.toFixed(2),
-      overtime: totalOvertime.toFixed(2),
-      negativeHours: totalNegative.toFixed(2)
-    });
+    
+    // Use statistics from backend if available
+    if (data.statistics) {
+      setStatistics({
+        hoursWorked: parseFloat(data.statistics.totalHoursWorked || 0).toFixed(2),
+        overtime: parseFloat(data.statistics.totalOvertime || 0).toFixed(2),
+        negativeHours: parseFloat(data.statistics.totalNegativeHours || 0).toFixed(2)
+      });
+    } else {
+      setStatistics({
+        hoursWorked: totalHours.toFixed(2),
+        overtime: totalOvertime.toFixed(2),
+        negativeHours: totalNegative.toFixed(2)
+      });
+    }
   };
 
   const formatHours = (hours) => {
@@ -208,8 +236,11 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           maxWidth: '1100px',
           width: '100%',
           maxHeight: '90vh',
-          overflow: 'auto',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+          overflow: 'hidden',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid #e5e7eb'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -320,7 +351,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               >
                 <ChevronLeftIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </button>
-              <div style={{ minWidth: '220px' }}>
+              <div style={{ width: '240px' }}>
                 <MUIDatePicker
                   value={dayjs(currentDate)}
                   onChange={(date) => {
@@ -372,7 +403,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         </div>
 
         {/* Timesheet Table */}
-        <div style={{ padding: '0 40px 40px' }}>
+        <div style={{ 
+          padding: '0 40px 40px',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          flex: 1,
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -474,6 +512,19 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           </table>
         </div>
       </div>
+
+      <style>{`
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        div[style*="overflowY: auto"]::-webkit-scrollbar {
+          display: none;
+        }
+        
+        /* Hide scrollbar for IE, Edge and Firefox */
+        div[style*="overflowY: auto"] {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

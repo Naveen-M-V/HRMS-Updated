@@ -1645,4 +1645,117 @@ router.delete('/entries/:id', async (req, res) => {
   }
 });
 
+// @route   GET /api/clock/timesheet/:employeeId
+// @desc    Get weekly timesheet data for an employee
+// @access  Private (Admin)
+router.get('/timesheet/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    console.log('📊 Fetching timesheet for employee:', employeeId);
+    console.log('📅 Date range:', startDate, 'to', endDate);
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date and end date are required'
+      });
+    }
+
+    // Parse dates
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    // Fetch time entries for the employee within the date range
+    const timeEntries = await TimeEntry.find({
+      employee: employeeId,
+      date: {
+        $gte: start,
+        $lte: end
+      }
+    })
+    .populate('employee', 'firstName lastName email vtid')
+    .populate('shiftId', 'startTime endTime location')
+    .sort({ date: 1 })
+    .lean();
+
+    console.log(`✅ Found ${timeEntries.length} time entries`);
+
+    // Calculate statistics
+    let totalHoursWorked = 0;
+    let totalOvertime = 0;
+    let totalNegativeHours = 0;
+
+    const processedEntries = timeEntries.map(entry => {
+      let hoursWorked = 0;
+      let overtime = 0;
+      let negativeHours = 0;
+
+      // Calculate hours worked
+      if (entry.clockIn && entry.clockOut) {
+        const clockInTime = new Date(entry.clockIn);
+        const clockOutTime = new Date(entry.clockOut);
+        const diffMs = clockOutTime - clockInTime;
+        hoursWorked = diffMs / (1000 * 60 * 60); // Convert to hours
+
+        // Subtract break time if any
+        if (entry.breaks && entry.breaks.length > 0) {
+          const totalBreakMinutes = entry.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
+          hoursWorked -= totalBreakMinutes / 60;
+        }
+
+        totalHoursWorked += hoursWorked;
+
+        // Calculate overtime (if worked more than 8 hours)
+        if (hoursWorked > 8) {
+          overtime = hoursWorked - 8;
+          totalOvertime += overtime;
+        }
+
+        // Calculate negative hours (if worked less than expected shift hours)
+        if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+          const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
+          const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
+          const expectedHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+          
+          if (hoursWorked < expectedHours) {
+            negativeHours = expectedHours - hoursWorked;
+            totalNegativeHours += negativeHours;
+          }
+        }
+      }
+
+      return {
+        ...entry,
+        hoursWorked: hoursWorked.toFixed(2),
+        overtime: overtime.toFixed(2),
+        negativeHours: negativeHours.toFixed(2)
+      };
+    });
+
+    res.json({
+      success: true,
+      entries: processedEntries,
+      statistics: {
+        totalHoursWorked: totalHoursWorked.toFixed(2),
+        totalOvertime: totalOvertime.toFixed(2),
+        totalNegativeHours: totalNegativeHours.toFixed(2),
+        totalDays: timeEntries.length
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Fetch timesheet error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
