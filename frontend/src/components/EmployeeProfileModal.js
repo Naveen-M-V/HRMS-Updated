@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from '@heroicons/react/24/outline';
-import { buildApiUrl } from '../utils/apiConfig';
 import { 
-  XMarkIcon, 
+  XMarkIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PrinterIcon,
   EnvelopeIcon, 
   PhoneIcon, 
   MapPinIcon,
