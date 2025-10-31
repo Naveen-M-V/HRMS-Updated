@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { userClockIn, getUserClockStatus } from '../utils/clockApi';
 import { toast } from 'react-toastify';
+import MUITimePicker from './MUITimePicker';
 
 /**
  * Admin Clock-In Floating Modal
@@ -11,6 +12,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState('Work From Office');
   const [workType, setWorkType] = useState('Regular');
+  const [clockInTime, setClockInTime] = useState(new Date());
   const [alreadyClockedIn, setAlreadyClockedIn] = useState(false);
   const [clockStatus, setClockStatus] = useState(null);
 
@@ -320,6 +322,25 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                 </div>
+              </div>
+
+              {/* Clock-In Time Picker */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Clock-In Time
+                </label>
+                <MUITimePicker
+                  label="Select Time"
+                  value={clockInTime}
+                  onChange={setClockInTime}
+                  orientation="landscape"
+                />
               </div>
 
               {/* Action Buttons */}

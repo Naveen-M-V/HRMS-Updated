@@ -14,6 +14,8 @@ import {
 import axios from 'axios';
 import { buildApiUrl } from '../utils/apiConfig';
 import LoadingScreen from '../components/LoadingScreen';
+import MUIDatePicker from '../components/MUIDatePicker';
+import MUITimePicker from '../components/MUITimePicker';
 
 const RotaShiftManagement = () => {
   const [shifts, setShifts] = useState([]);
@@ -314,38 +316,19 @@ const RotaShiftManagement = () => {
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
-            <div style={{ flex: '1', minWidth: '150px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
+            <div style={{ flex: '1', minWidth: '200px' }}>
+              <MUIDatePicker
+                label="Start Date"
+                value={filters.startDate ? new Date(filters.startDate) : null}
+                onChange={(date) => handleFilterChange('startDate', date ? date.toISOString().split('T')[0] : '')}
               />
             </div>
-            <div style={{ flex: '1', minWidth: '150px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
-                End Date
-              </label>
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
+            <div style={{ flex: '1', minWidth: '200px' }}>
+              <MUIDatePicker
+                label="End Date"
+                value={filters.endDate ? new Date(filters.endDate) : null}
+                onChange={(date) => handleFilterChange('endDate', date ? date.toISOString().split('T')[0] : '')}
+                minDate={filters.startDate ? new Date(filters.startDate) : undefined}
               />
             </div>
             <div style={{ flex: '1', minWidth: '150px' }}>
@@ -568,56 +551,44 @@ const RotaShiftManagement = () => {
                 </select>
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Date <span style={{ color: '#dc2626' }}>*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                <MUIDatePicker
+                  label="Date *"
+                  value={formData.date ? new Date(formData.date) : null}
+                  onChange={(date) => setFormData({ ...formData, date: date ? date.toISOString().split('T')[0] : '' })}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
                 />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Start Time
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
+                  <MUITimePicker
+                    label="Start Time"
+                    value={formData.startTime ? new Date(`2000-01-01T${formData.startTime}`) : null}
+                    onChange={(time) => {
+                      if (time) {
+                        const hours = time.getHours().toString().padStart(2, '0');
+                        const minutes = time.getMinutes().toString().padStart(2, '0');
+                        setFormData({ ...formData, startTime: `${hours}:${minutes}` });
+                      } else {
+                        setFormData({ ...formData, startTime: '' });
+                      }
                     }}
+                    orientation="landscape"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    End Time
-                  </label>
-                  <input
-                    type="time"
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
+                  <MUITimePicker
+                    label="End Time"
+                    value={formData.endTime ? new Date(`2000-01-01T${formData.endTime}`) : null}
+                    onChange={(time) => {
+                      if (time) {
+                        const hours = time.getHours().toString().padStart(2, '0');
+                        const minutes = time.getMinutes().toString().padStart(2, '0');
+                        setFormData({ ...formData, endTime: `${hours}:${minutes}` });
+                      } else {
+                        setFormData({ ...formData, endTime: '' });
+                      }
                     }}
+                    orientation="landscape"
                   />
                 </div>
               </div>

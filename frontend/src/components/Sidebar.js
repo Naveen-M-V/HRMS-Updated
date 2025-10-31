@@ -100,9 +100,14 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   return (
     <div
+      onClick={() => {
+        if (!isOpen && toggleSidebar) {
+          toggleSidebar();
+        }
+      }}
       className={`fixed left-0 top-0 h-screen bg-green-900 text-white z-50 transition-all duration-300 flex flex-col ${
         isOpen ? "w-64" : "w-16"
-      }`}
+      } cursor-pointer`}
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
       <style>{`
@@ -362,6 +367,19 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
                   </div>
                 )}
               </div>
+
+              {/* Logout Button inside Settings */}
+              <div
+                onClick={handleLogout}
+                className={`relative group flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-green-800 rounded-md ${
+                  loading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                <ArrowRightOnRectangleIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">
+                  {loading ? "Logging out..." : "Logout"}
+                </span>
+              </div>
             </div>
           )}
 
@@ -369,7 +387,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
         </div>
       </div>
 
-      {/* Bottom section - Version and Logout */}
+      {/* Bottom section - Version Display */}
       <div className="mt-auto border-t border-green-800">
         {/* Version Display */}
         {isOpen && (
@@ -377,28 +395,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             <div className="font-semibold">TalentShield V 1.14</div>
           </div>
         )}
-
-        {/* Logout Button */}
-        <div className="pb-4 px-2">
-          <div
-            onClick={handleLogout}
-            className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-green-800 rounded-md select-none ${
-              loading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            <ArrowRightOnRectangleIcon className="h-6 w-6 flex-shrink-0" />
-            {isOpen && (
-              <span className="text-sm flex-1">
-                {loading ? "Logging out..." : "Logout"}
-              </span>
-            )}
-            {!isOpen && (
-              <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap pointer-events-none">
-                Logout
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

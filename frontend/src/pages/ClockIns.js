@@ -3,6 +3,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
+import EmployeeProfileModal from '../components/EmployeeProfileModal';
 
 /**
  * Clock-ins Page
@@ -348,11 +349,11 @@ const ClockIns = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      clocked_in: { background: '#10b981', color: 'white' },
-      clocked_out: { background: '#3b82f6', color: 'white' },
-      on_break: { background: '#f59e0b', color: 'white' },
-      absent: { background: '#ef4444', color: 'white' },
-      on_leave: { background: '#8b5cf6', color: 'white' }
+      clocked_in: { color: '#10b981' },
+      clocked_out: { color: '#3b82f6' },
+      on_break: { color: '#f59e0b' },
+      absent: { color: '#ef4444' },
+      on_leave: { color: '#8b5cf6' }
     };
 
     const labels = {
@@ -366,9 +367,7 @@ const ClockIns = () => {
     return (
       <span style={{
         ...styles[status] || styles.absent,
-        padding: '4px 12px',
-        borderRadius: '12px',
-        fontSize: '12px',
+        fontSize: '13px',
         fontWeight: '500'
       }}>
         {labels[status] || 'Unknown'}
@@ -1178,6 +1177,14 @@ const ClockIns = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Employee Profile Modal */}
+      {selectedEmployee && (
+        <EmployeeProfileModal
+          employee={selectedEmployee}
+          onClose={() => setSelectedEmployee(null)}
+        />
       )}
     </>
   );
