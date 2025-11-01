@@ -78,7 +78,8 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   const handleNavigation = (path) => {
     console.log("Navigating to:", path);
-    if (toggleSidebar && !isOpen) toggleSidebar();
+    // Close sidebar after navigation if it's open
+    if (toggleSidebar && isOpen) toggleSidebar();
     navigate(path);
   };
 

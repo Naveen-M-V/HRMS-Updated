@@ -37,6 +37,11 @@ const UserDashboard = () => {
   const [shiftInfo, setShiftInfo] = useState(null);
   const [attendanceStatus, setAttendanceStatus] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
+  
+  // GPS location state
+  const [gpsCoordinates, setGpsCoordinates] = useState(null);
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
+  const [gpsError, setGpsError] = useState(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
@@ -132,8 +137,82 @@ const UserDashboard = () => {
     }
 
     setProcessing(true);
+    setGpsError(null);
+    
     try {
-      const response = await userClockIn({ location, workType });
+      // ========== GPS LOCATION CAPTURE ==========
+      // Request GPS coordinates using browser's Geolocation API
+      let gpsData = {};
+      
+      if (navigator.geolocation) {
+        try {
+          // Show loading toast while getting location
+          const locationToast = toast.info('Getting your location...', { autoClose: false });
+          
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true, // Request high accuracy GPS
+                timeout: 10000, // 10 second timeout
+                maximumAge: 0 // Don't use cached position
+              }
+            );
+          });
+          
+          // Extract GPS coordinates
+          gpsData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          // Update state for display
+          setGpsCoordinates({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          setLocationAccuracy(Math.round(position.coords.accuracy));
+          
+          // Dismiss location toast
+          toast.dismiss(locationToast);
+          
+          console.log('GPS captured:', gpsData);
+        } catch (gpsError) {
+          console.error('GPS error:', gpsError);
+          
+          // Handle specific GPS errors
+          if (gpsError.code === 1) {
+            setGpsError('Location permission denied. Please enable location access.');
+            toast.error('Location permission denied! Please enable location access in your browser settings.', {
+              autoClose: 7000
+            });
+            setProcessing(false);
+            return; // Stop clock-in if GPS is required
+          } else if (gpsError.code === 2) {
+            setGpsError('Location unavailable. Please check your device settings.');
+            toast.warning('Location unavailable. Clocking in without GPS data.');
+          } else if (gpsError.code === 3) {
+            setGpsError('Location request timeout.');
+            toast.warning('Location timeout. Clocking in without GPS data.');
+          }
+          
+          // Continue with clock-in even if GPS fails (optional - can be made mandatory)
+          console.warn('Continuing clock-in without GPS data');
+        }
+      } else {
+        setGpsError('Geolocation not supported by browser');
+        toast.warning('GPS not supported. Clocking in without location data.');
+      }
+      // ==========================================
+      
+      // Send clock-in request with GPS data
+      const response = await userClockIn({ 
+        location, 
+        workType,
+        ...gpsData // Spread GPS coordinates (latitude, longitude, accuracy)
+      });
       
       if (response.success) {
         toast.success(response.message || 'Clocked in successfully!');
@@ -503,6 +582,31 @@ const UserDashboard = () => {
                   >
                     {processing ? 'Processing...' : 'Clock In'}
                   </button>
+                  
+                  {/* GPS Location Accuracy Display */}
+                  {locationAccuracy && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800 flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <strong>Location accuracy:</strong> {locationAccuracy} meters
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* GPS Error Display */}
+                  {gpsError && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-800 flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        {gpsError}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

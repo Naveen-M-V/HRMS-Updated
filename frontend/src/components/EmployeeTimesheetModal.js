@@ -189,7 +189,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
           workType: dayEntry.workType || 'Regular',
-          selected: false
+          selected: false,
+          // GPS location data for admin view
+          gpsLocation: dayEntry.gpsLocation || null
         });
       } else {
         weekEntries.push({
@@ -575,6 +577,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 }}>Overtime</th>
                 <th style={{ 
                   padding: '16px 12px', 
+                  textAlign: 'left', 
+                  fontSize: '13px', 
+                  fontWeight: '500', 
+                  color: '#6b7280' 
+                }}>GPS Location</th>
+                <th style={{ 
+                  padding: '16px 12px', 
                   textAlign: 'right', 
                   fontSize: '13px', 
                   fontWeight: '500', 
@@ -585,7 +594,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                  <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                     Loading timesheet...
                   </td>
                 </tr>
@@ -627,6 +636,45 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                     </td>
                     <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
                       {day.overtime}
+                    </td>
+                    <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
+                      {/* GPS Location Display with Google Maps Link */}
+                      {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ fontSize: '12px', color: '#111827' }}>
+                            {day.gpsLocation.latitude.toFixed(6)}, {day.gpsLocation.longitude.toFixed(6)}
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps?q=${day.gpsLocation.latitude},${day.gpsLocation.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: '#2563eb',
+                              textDecoration: 'none',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
+                            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
+                          >
+                            <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Open Map
+                          </a>
+                          {day.gpsLocation.accuracy && (
+                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                              Accuracy: {Math.round(day.gpsLocation.accuracy)}m
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '13px' }}>No location</span>
+                      )}
                     </td>
                     <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '600', textAlign: 'right' }}>
                       {day.totalHours}

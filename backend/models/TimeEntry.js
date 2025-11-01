@@ -35,6 +35,32 @@ const timeEntrySchema = new mongoose.Schema({
     default: 'Regular'
   },
   
+  // ========== GPS LOCATION TRACKING ==========
+  // Captures GPS coordinates during clock-in for attendance verification
+  gpsLocation: {
+    latitude: {
+      type: Number,
+      default: null
+    },
+    longitude: {
+      type: Number,
+      default: null
+    },
+    accuracy: {
+      type: Number, // Accuracy in meters
+      default: null
+    },
+    address: {
+      type: String, // Reverse geocoded address from OpenStreetMap
+      default: null
+    },
+    capturedAt: {
+      type: Date,
+      default: null
+    }
+  },
+  // ==========================================
+  
   // ========== NEW: SHIFT LINKING ==========
   shiftId: {
     type: mongoose.Schema.Types.ObjectId,

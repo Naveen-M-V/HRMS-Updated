@@ -18,6 +18,54 @@ const {
  * Integrated with leave management system
  */
 
+/**
+ * Reverse Geocoding Helper Function
+ * Converts GPS coordinates to human-readable address using OpenStreetMap Nominatim API
+ * @param {Number} latitude - GPS latitude
+ * @param {Number} longitude - GPS longitude
+ * @returns {Promise<String>} - Formatted address or null if failed
+ */
+async function reverseGeocode(latitude, longitude) {
+  try {
+    const https = require('https');
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+    
+    return new Promise((resolve, reject) => {
+      https.get(url, {
+        headers: {
+          'User-Agent': 'HRMS-App/1.0' // Required by OpenStreetMap
+        }
+      }, (response) => {
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          try {
+            const result = JSON.parse(data);
+            if (result && result.display_name) {
+              resolve(result.display_name);
+            } else {
+              resolve(null);
+            }
+          } catch (e) {
+            console.error('Error parsing geocoding response:', e);
+            resolve(null);
+          }
+        });
+      }).on('error', (err) => {
+        console.error('Reverse geocoding error:', err);
+        resolve(null);
+      });
+    });
+  } catch (error) {
+    console.error('Reverse geocoding failed:', error);
+    return null;
+  }
+}
+
 // @route   POST /api/clock/in
 // @desc    Clock in an employee
 // @access  Private (Admin)
@@ -1161,7 +1209,8 @@ router.get('/user/status', async (req, res) => {
 router.post('/user/in', async (req, res) => {
   try {
     const userId = req.user._id || req.user.userId || req.user.id;
-    const { workType, location } = req.body;
+    // Extract GPS coordinates from request body
+    const { workType, location, latitude, longitude, accuracy } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -1206,6 +1255,33 @@ router.post('/user/in', async (req, res) => {
       status: 'clocked_in',
       createdBy: userId
     };
+    
+    // ========== GPS LOCATION PROCESSING ==========
+    // If GPS coordinates are provided, save them and attempt reverse geocoding
+    if (latitude && longitude) {
+      console.log('GPS coordinates received:', { latitude, longitude, accuracy });
+      
+      // Initialize GPS location object
+      timeEntryData.gpsLocation = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        accuracy: accuracy ? parseFloat(accuracy) : null,
+        capturedAt: new Date()
+      };
+      
+      // Attempt reverse geocoding to get address (non-blocking)
+      try {
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) {
+          timeEntryData.gpsLocation.address = address;
+          console.log('Reverse geocoded address:', address);
+        }
+      } catch (geocodeError) {
+        console.error('Reverse geocoding failed, continuing without address:', geocodeError);
+        // Don't fail the clock-in if geocoding fails
+      }
+    }
+    // ============================================
     
     let attendanceStatus = 'Unscheduled';
     let validationResult = null;
