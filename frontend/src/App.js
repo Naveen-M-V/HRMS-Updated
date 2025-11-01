@@ -49,7 +49,7 @@ import RotaShiftManagement from "./pages/RotaShiftManagement";
 import ClockInOut from "./pages/ClockInOut";
 import ClockIns from "./pages/ClockIns";
 import TimeHistory from "./pages/TimeHistory";
-import LocationTracking from "./pages/LocationTracking";
+import LocationTracking from "./pages/LocationTracking1";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
