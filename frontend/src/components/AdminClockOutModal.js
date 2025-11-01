@@ -222,8 +222,18 @@ const AdminClockOutModal = ({ user, onClose, onClockOut }) => {
                     <strong>Clocked in at:</strong> {(() => {
                       const clockInTime = clockStatus.clockIn || clockStatus.clockInTime || clockStatus.clock_in;
                       if (!clockInTime) return 'N/A';
+                      
+                      // If it's already in HH:mm format, return as is
+                      if (typeof clockInTime === 'string' && /^\d{2}:\d{2}$/.test(clockInTime)) {
+                        return clockInTime;
+                      }
+                      
+                      // Otherwise try to parse as date
                       try {
                         const date = new Date(clockInTime);
+                        if (isNaN(date.getTime())) {
+                          return clockInTime; // Return original if invalid date
+                        }
                         return date.toLocaleTimeString('en-GB', { 
                           hour: '2-digit', 
                           minute: '2-digit',

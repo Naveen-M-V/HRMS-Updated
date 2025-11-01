@@ -52,7 +52,7 @@ export const jobRoleCertifications = {
     "SA001",
     "N020",
     "SA002",
-    ,"K008","SA005",
+    "K008","SA005",
     "N023",
     "NRSWA Certificate O1"],
     Alternative: [

@@ -40,9 +40,11 @@ const UserDashboard = () => {
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
-  const fetchUserData = useCallback(async () => {
+  const fetchUserData = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       
       // Fetch user profile by email
       const profileResponse = await fetch(`${API_BASE_URL}/api/profiles/by-email/${user.email}`, {
@@ -92,7 +94,9 @@ const UserDashboard = () => {
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [API_BASE_URL, user.email]);
 
@@ -103,7 +107,7 @@ const UserDashboard = () => {
       
       // Poll for updates every 60 seconds for notifications only (reduced frequency)
       const interval = setInterval(() => {
-        fetchUserData(); // Only refresh notifications, not clock status
+        fetchUserData(false); // Background refresh without loading screen
       }, 60000);
       
       return () => clearInterval(interval);
@@ -242,7 +246,7 @@ const UserDashboard = () => {
         setUserProfile(updatedProfile);
         setIsEditingProfile(false);
         toast.success('Profile updated successfully!');
-        await fetchUserData(); // Refresh to get new notification
+        await fetchUserData(false); // Background refresh to get new notification
       } else {
         toast.error('Failed to update profile. Please try again.');
       }

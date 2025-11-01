@@ -9,6 +9,7 @@ import {
 import { buildApiUrl } from '../utils/apiConfig';
 import MUIDatePicker from './MUIDatePicker';
 import dayjs from 'dayjs';
+import axios from 'axios';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -60,25 +61,23 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       const employeeId = employee._id || employee.id;
       console.log('Fetching timesheet for employee ID:', employeeId);
 
-      const response = await fetch(
+      const response = await axios.get(
         buildApiUrl(`/clock/timesheet/${employeeId}?startDate=${monday.toISOString().split('T')[0]}&endDate=${sunday.toISOString().split('T')[0]}`),
-        {
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
-        }
+        { withCredentials: true }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Timesheet data received:', data);
-        processTimesheetData(data);
+      if (response.data && response.data.success) {
+        console.log('Timesheet data received:', response.data);
+        processTimesheetData(response.data);
       } else {
         console.warn('No timesheet data, generating empty week');
-        // Generate empty week if no data
         generateEmptyWeek();
       }
     } catch (error) {
       console.error('Error fetching timesheet:', error);
+      if (error.response?.status === 401) {
+        console.error('Unauthorized - user may need to log in again');
+      }
       generateEmptyWeek();
     } finally {
       setLoading(false);
@@ -97,7 +96,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
         dayNumber: date.getDate().toString().padStart(2, '0'),
         clockedHours: null,
-        negativeHours: '--',
+        location: '--',
         overtime: '--',
         totalHours: '00:00',
         selected: false
@@ -166,10 +165,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
           dayNumber: date.getDate().toString().padStart(2, '0'),
           clockedHours: `${clockInTime} - ${clockOutTime}${breakInfo}`,
-          negativeHours: negativeHours > 0 ? formatHours(negativeHours) : '--',
+          location: dayEntry.location || 'N/A',
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
-          location: dayEntry.location || 'N/A',
           workType: dayEntry.workType || 'Regular',
           selected: false
         });
@@ -179,10 +177,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
           dayNumber: date.getDate().toString().padStart(2, '0'),
           clockedHours: null,
-          negativeHours: '--',
+          location: '--',
           overtime: '--',
           totalHours: '00:00',
-          location: null,
           workType: null,
           selected: false
         });
@@ -494,7 +491,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   fontSize: '13px', 
                   fontWeight: '500', 
                   color: '#6b7280' 
-                }}>Negative hours</th>
+                }}>Location</th>
                 <th style={{ 
                   padding: '16px 12px', 
                   textAlign: 'left', 
@@ -552,7 +549,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       )}
                     </td>
                     <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
-                      {day.negativeHours}
+                      {day.location || '--'}
                     </td>
                     <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
                       {day.overtime}
