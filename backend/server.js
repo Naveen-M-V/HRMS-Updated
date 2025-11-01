@@ -3384,7 +3384,6 @@ app.use('/api/job-levels', jobLevelsRoutes);
 app.use('/api/rota', authenticateSession, rotaRoutes);
 app.use('/api/clock', authenticateSession, clockRoutes);
 app.use('/api/leave', authenticateSession, leaveRoutes);
-app.use('/api/location', authenticateSession, require('./routes/locationRoutes'));
 
 // Email service handled by utils/emailService.js
 

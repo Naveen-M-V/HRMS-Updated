@@ -29,29 +29,6 @@ const timeEntrySchema = new mongoose.Schema({
     enum: ['Work From Office', 'Work From Home', 'Field', 'Client Side'],
     default: 'Work From Office'
   },
-  // GPS coordinates for location tracking
-  gpsCoordinates: {
-    latitude: {
-      type: Number,
-      default: null
-    },
-    longitude: {
-      type: Number,
-      default: null
-    },
-    accuracy: {
-      type: Number, // GPS accuracy in meters
-      default: null
-    },
-    timestamp: {
-      type: Date,
-      default: null
-    }
-  },
-  address: {
-    type: String,
-    default: ''
-  },
   workType: {
     type: String,
     enum: ['Regular', 'Overtime', 'Weekend Overtime', 'Client-side Overtime'],
