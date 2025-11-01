@@ -179,9 +179,11 @@ function App() {
               path="/user-dashboard"
               element={
                 <UserProtectedRoute>
-                  <ErrorBoundary>
-                    <UserDashboard />
-                  </ErrorBoundary>
+                  <ClockStatusProvider>
+                    <ErrorBoundary>
+                      <UserDashboard />
+                    </ErrorBoundary>
+                  </ClockStatusProvider>
                 </UserProtectedRoute>
               }
             />
