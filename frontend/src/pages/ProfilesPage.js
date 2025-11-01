@@ -282,6 +282,7 @@ This will also delete any associated certificates and user account. This action 
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">SI No.</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">VTID</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">First name</th>
@@ -294,8 +295,9 @@ This will also delete any associated certificates and user account. This action 
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProfiles.slice(0, rowsPerPage).map((p) => (
+                {filteredProfiles.slice(0, rowsPerPage).map((p, index) => (
                   <tr key={p._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{index + 1}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{generateVTID(p)}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{p.role}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{p.firstName}</td>

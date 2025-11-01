@@ -78,8 +78,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   const handleNavigation = (path) => {
     console.log("Navigating to:", path);
-    // Close sidebar after navigation if it's open
-    if (toggleSidebar && isOpen) toggleSidebar();
+    // Navigate without closing sidebar
     navigate(path);
   };
 
@@ -101,8 +100,10 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   return (
     <div
-      onClick={() => {
-        if (!isOpen && toggleSidebar) {
+      onClick={(e) => {
+        // Toggle sidebar when clicking on empty space (the sidebar background itself)
+        // Only if clicking directly on the sidebar div, not its children
+        if (e.target === e.currentTarget && toggleSidebar) {
           toggleSidebar();
         }
       }}
@@ -116,7 +117,16 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           display: none;
         }
       `}</style>
-      <div className="py-4 space-y-2 flex-1 overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div 
+        onClick={(e) => {
+          // Allow clicking empty space in the scrollable area to toggle sidebar
+          if (e.target === e.currentTarget && toggleSidebar && isOpen) {
+            toggleSidebar();
+          }
+        }}
+        className="py-4 space-y-2 flex-1 overflow-y-auto" 
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         {/* Header */}
         {isOpen && (
           <div className="px-4 pb-2 text-xs uppercase font-bold tracking-wider text-green-300">

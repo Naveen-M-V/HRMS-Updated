@@ -307,7 +307,7 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                 </div>
               </div>
 
-              {/* Clock-In Time Picker */}
+              {/* Clock-In Time Display (Read-only) */}
               <div style={{ marginBottom: '24px' }}>
                 <label style={{
                   display: 'block',
@@ -318,11 +318,23 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                 }}>
                   Clock-In Time
                 </label>
-                <MUITimePicker
-                  label="Select Time"
-                  value={clockInTime}
-                  onChange={(time) => setClockInTime(time ? time.toDate() : new Date())}
-                />
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#111827',
+                  textAlign: 'center'
+                }}>
+                  {clockInTime.toLocaleTimeString('en-GB', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false,
+                    timeZone: 'Europe/London'
+                  })}
+                </div>
               </div>
 
               {/* Action Buttons */}

@@ -3,6 +3,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getClockStatus, getDashboardStats } from '../utils/clockApi';
 import { getCurrentUserLeaveBalance, getNextUpcomingLeave } from '../utils/leaveApi';
+import { useAuth } from '../context/AuthContext';
 import LoadingScreen from '../components/LoadingScreen';
 
 /**
@@ -11,6 +12,7 @@ import LoadingScreen from '../components/LoadingScreen';
  */
 
 const ClockInOut = () => {
+  const { user } = useAuth(); // Get current logged-in user
   const [clockData, setClockData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -354,115 +356,6 @@ const ClockInOut = () => {
           </div>
         </div>
 
-        {/* My Summary and E-Learning sections */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '24px',
-          marginBottom: '32px'
-        }}>
-          {/* My Summary */}
-          <div style={{
-            background: '#dcfce7',
-            borderRadius: '12px',
-            padding: '24px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              marginBottom: '16px'
-            }}>
-              My Summary
-            </h3>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <div style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  marginBottom: '4px'
-                }}>
-                  Annual Leave
-                </div>
-                <div style={{
-                  fontSize: '24px',
-                  fontWeight: '700',
-                  color: '#111827'
-                }}>
-                  {leaveBalance?.remainingDays ?? 0} Days
-                </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: '#6b7280'
-                }}>
-                  Remaining
-                </div>
-              </div>
-              <div>
-                <div style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                  marginBottom: '4px'
-                }}>
-                  Next Up
-                </div>
-                <div style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#111827'
-                }}>
-                  {nextLeave ? new Date(nextLeave.startDate).toLocaleDateString('en-GB') : 'None scheduled'}
-                </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: '#6b7280'
-                }}>
-                  {nextLeave ? (nextLeave.type === 'annual' ? 'Annual Leave' : nextLeave.type) : 'No upcoming leave'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* E-Learning */}
-          <div style={{
-            background: '#dcfce7',
-            borderRadius: '12px',
-            padding: '24px'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              marginBottom: '16px'
-            }}>
-              E Learning
-            </h3>
-            <div style={{
-              textAlign: 'center',
-              padding: '20px'
-            }}>
-              <div style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#111827',
-                marginBottom: '8px'
-              }}>
-                No Courses Assigned
-              </div>
-              <div style={{
-                fontSize: '14px',
-                color: '#6b7280'
-              }}>
-                Courses assigned to you will appear here
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Employee List */}
         {clockData.length > 0 && (
           <div style={{
@@ -535,9 +428,26 @@ const ClockInOut = () => {
                       fontSize: '14px',
                       fontWeight: '600',
                       color: '#111827',
-                      marginBottom: '2px'
+                      marginBottom: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
                       {employee.name || 'Unknown User'}
+                      {/* Show "ME" badge if this is the current user's profile */}
+                      {user?.email && employee.email && user.email.toLowerCase() === employee.email.toLowerCase() && (
+                        <span style={{
+                          background: '#3b82f6',
+                          color: '#ffffff',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          letterSpacing: '0.5px'
+                        }}>
+                          ME
+                        </span>
+                      )}
                     </div>
                     <div style={{
                       fontSize: '12px',

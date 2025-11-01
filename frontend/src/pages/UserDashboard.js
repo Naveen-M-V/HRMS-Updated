@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import UserClockIns from './UserClockIns';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
+import LocationMap from '../components/LocationMap';
 import { jobRoleCertificateMapping } from '../data/new';
 import { 
   PencilIcon, 
@@ -130,82 +131,86 @@ const UserDashboard = () => {
     }
   };
 
+  // Separate function to request GPS location
+  const requestLocation = async () => {
+    setGpsError(null);
+    
+    if (!navigator.geolocation) {
+      setGpsError('Geolocation is not supported by your browser');
+      toast.error('Geolocation not supported by your browser');
+      return;
+    }
+
+    try {
+      const locationToast = toast.info('Getting your location...', { autoClose: false });
+      
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          reject,
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      });
+      
+      // Update state with GPS coordinates
+      setGpsCoordinates({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      });
+      setLocationAccuracy(Math.round(position.coords.accuracy));
+      
+      toast.dismiss(locationToast);
+      toast.success('Location captured successfully!');
+      
+      console.log('GPS captured:', {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      });
+    } catch (error) {
+      console.error('GPS error:', error);
+      
+      if (error.code === 1) {
+        setGpsError('Location permission denied. Please enable location access in your browser settings.');
+        toast.error('Location permission denied! Please enable location access.', { autoClose: 7000 });
+      } else if (error.code === 2) {
+        setGpsError('Location unavailable. Please check your device GPS settings.');
+        toast.error('Location unavailable. Please check your device settings.');
+      } else if (error.code === 3) {
+        setGpsError('Location request timeout. Please try again.');
+        toast.error('Location timeout. Please try again.');
+      } else {
+        setGpsError('Failed to get location. Please try again.');
+        toast.error('Failed to get location.');
+      }
+    }
+  };
+
   const handleClockIn = async () => {
     if (!location) {
       toast.warning('Please select a location');
       return;
     }
 
+    // Check if GPS coordinates are captured
+    if (!gpsCoordinates) {
+      toast.warning('Please get your location first by clicking "Get My Location"');
+      return;
+    }
+
     setProcessing(true);
-    setGpsError(null);
     
     try {
-      // ========== GPS LOCATION CAPTURE ==========
-      // Request GPS coordinates using browser's Geolocation API
-      let gpsData = {};
-      
-      if (navigator.geolocation) {
-        try {
-          // Show loading toast while getting location
-          const locationToast = toast.info('Getting your location...', { autoClose: false });
-          
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              resolve,
-              reject,
-              {
-                enableHighAccuracy: true, // Request high accuracy GPS
-                timeout: 10000, // 10 second timeout
-                maximumAge: 0 // Don't use cached position
-              }
-            );
-          });
-          
-          // Extract GPS coordinates
-          gpsData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          
-          // Update state for display
-          setGpsCoordinates({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          setLocationAccuracy(Math.round(position.coords.accuracy));
-          
-          // Dismiss location toast
-          toast.dismiss(locationToast);
-          
-          console.log('GPS captured:', gpsData);
-        } catch (gpsError) {
-          console.error('GPS error:', gpsError);
-          
-          // Handle specific GPS errors
-          if (gpsError.code === 1) {
-            setGpsError('Location permission denied. Please enable location access.');
-            toast.error('Location permission denied! Please enable location access in your browser settings.', {
-              autoClose: 7000
-            });
-            setProcessing(false);
-            return; // Stop clock-in if GPS is required
-          } else if (gpsError.code === 2) {
-            setGpsError('Location unavailable. Please check your device settings.');
-            toast.warning('Location unavailable. Clocking in without GPS data.');
-          } else if (gpsError.code === 3) {
-            setGpsError('Location request timeout.');
-            toast.warning('Location timeout. Clocking in without GPS data.');
-          }
-          
-          // Continue with clock-in even if GPS fails (optional - can be made mandatory)
-          console.warn('Continuing clock-in without GPS data');
-        }
-      } else {
-        setGpsError('Geolocation not supported by browser');
-        toast.warning('GPS not supported. Clocking in without location data.');
-      }
-      // ==========================================
+      // Use already captured GPS coordinates
+      const gpsData = {
+        latitude: gpsCoordinates.latitude,
+        longitude: gpsCoordinates.longitude,
+        accuracy: locationAccuracy
+      };
       
       // Send clock-in request with GPS data
       const response = await userClockIn({ 
@@ -575,30 +580,46 @@ const UserDashboard = () => {
                       </select>
                     </div>
                   </div>
+                  
+                  {/* Get Location Button */}
                   <button
-                    onClick={handleClockIn}
-                    disabled={processing}
-                    className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-lg"
+                    onClick={requestLocation}
+                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
                   >
-                    {processing ? 'Processing...' : 'Clock In'}
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Get My Location
                   </button>
+                  
+                  {/* Map Display - Shows user location */}
+                  {gpsCoordinates && (
+                    <div className="mb-4">
+                      <LocationMap 
+                        latitude={gpsCoordinates.latitude}
+                        longitude={gpsCoordinates.longitude}
+                        accuracy={locationAccuracy}
+                      />
+                    </div>
+                  )}
                   
                   {/* GPS Location Accuracy Display */}
                   {locationAccuracy && (
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-800 flex items-center">
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800 flex items-center justify-center">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <strong>Location accuracy:</strong> {locationAccuracy} meters
+                        <strong>Location accuracy:</strong>&nbsp;{locationAccuracy} meters
                       </p>
                     </div>
                   )}
                   
                   {/* GPS Error Display */}
                   {gpsError && (
-                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                       <p className="text-sm text-red-800 flex items-center">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -607,6 +628,14 @@ const UserDashboard = () => {
                       </p>
                     </div>
                   )}
+                  
+                  <button
+                    onClick={handleClockIn}
+                    disabled={processing}
+                    className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-lg"
+                  >
+                    {processing ? 'Processing...' : 'Clock In'}
+                  </button>
                 </div>
               )}
             </div>

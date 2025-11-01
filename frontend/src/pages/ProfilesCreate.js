@@ -9,6 +9,7 @@ import ProfilePictureUpload from "../components/ProfilePictureUpload";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
 import { buildApiUrl } from "../utils/apiConfig";
+import { validateTextOnly, validateNumberOnly, validatePhoneNumber, validateEmail } from "../utils/inputValidation";
 
 export default function ProfilesCreate() {
   const { success, error } = useAlert();
@@ -254,7 +255,10 @@ export default function ProfilesCreate() {
                 name="firstName"
                 placeholder="First Name (required)"
                 value={formData.firstName}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const validValue = validateTextOnly(e.target.value);
+                  setFormData(prev => ({ ...prev, firstName: validValue }));
+                }}
                 className="mt-1 block w-full border rounded p-2"
                 required
               />
@@ -266,7 +270,10 @@ export default function ProfilesCreate() {
                 name="lastName"
                 placeholder="Last Name (required)"
                 value={formData.lastName}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const validValue = validateTextOnly(e.target.value);
+                  setFormData(prev => ({ ...prev, lastName: validValue }));
+                }}
                 className="mt-1 block w-full border rounded p-2"
                 required
               />
@@ -399,7 +406,10 @@ export default function ProfilesCreate() {
               type="text"
               name="mobile"
               value={formData.mobile}
-              onChange={handleChange}
+              onChange={(e) => {
+                const validValue = validatePhoneNumber(e.target.value);
+                setFormData(prev => ({ ...prev, mobile: validValue }));
+              }}
               placeholder="Mobile number"
               className="mt-1 block w-full border rounded p-2"
             />
@@ -470,7 +480,10 @@ export default function ProfilesCreate() {
               type="text"
               name="nationality"
               value={formData.nationality}
-              onChange={handleChange}
+              onChange={(e) => {
+                const validValue = validateTextOnly(e.target.value);
+                setFormData(prev => ({ ...prev, nationality: validValue }));
+              }}
               placeholder="Nationality"
               className="mt-1 block w-full border rounded p-2"
             />
@@ -484,8 +497,11 @@ export default function ProfilesCreate() {
                 type="text"
                 name="circetUIN"
                 value={formData.circetUIN}
-                onChange={handleChange}
-                placeholder="Circet UIN"
+                onChange={(e) => {
+                  const validValue = validateNumberOnly(e.target.value);
+                  setFormData(prev => ({ ...prev, circetUIN: validValue }));
+                }}
+                placeholder="Circet UIN (numbers only)"
                 className="mt-1 block w-full border rounded p-2"
               />
             </div>
@@ -495,8 +511,11 @@ export default function ProfilesCreate() {
                 type="text"
                 name="circetSCID"
                 value={formData.circetSCID}
-                onChange={handleChange}
-                placeholder="Circet SCID"
+                onChange={(e) => {
+                  const validValue = validateNumberOnly(e.target.value);
+                  setFormData(prev => ({ ...prev, circetSCID: validValue }));
+                }}
+                placeholder="Circet SCID (numbers only)"
                 className="mt-1 block w-full border rounded p-2"
               />
             </div>
