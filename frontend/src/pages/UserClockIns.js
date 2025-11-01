@@ -8,6 +8,7 @@ import {
   userClockIn, 
   userClockOut, 
   addUserBreak,
+  userResumeWork,
   getUserTimeEntries 
 } from '../utils/clockApi';
 
@@ -125,21 +126,39 @@ const UserClockIns = () => {
     }
   };
 
-  const handleAddBreak = async () => {
+  const handleStartBreak = async () => {
     try {
       const response = await addUserBreak();
       
       if (response.success) {
-        toast.success('Break added successfully!');
+        toast.success('Break started successfully!');
         // Immediately fetch updated status and entries
         await fetchUserStatus();
         await fetchUserEntries();
       } else {
-        toast.error(response.message || 'Failed to add break');
+        toast.error(response.message || 'Failed to start break');
       }
     } catch (error) {
-      console.error('Add break error:', error);
-      toast.error(error.message || 'Failed to add break');
+      console.error('Start break error:', error);
+      toast.error(error.message || 'Failed to start break');
+    }
+  };
+
+  const handleResumeWork = async () => {
+    try {
+      const response = await userResumeWork();
+      
+      if (response.success) {
+        toast.success('Work resumed successfully!');
+        // Immediately fetch updated status and entries
+        await fetchUserStatus();
+        await fetchUserEntries();
+      } else {
+        toast.error(response.message || 'Failed to resume work');
+      }
+    } catch (error) {
+      console.error('Resume work error:', error);
+      toast.error(error.message || 'Failed to resume work');
     }
   };
 
@@ -336,21 +355,41 @@ const UserClockIns = () => {
                 )}
                 
                 {isCurrentlyClockedIn && (
-                  <button
-                    onClick={handleAddBreak}
-                    style={{
-                      padding: '12px 24px',
-                      background: '#06b6d4',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Start Break
-                  </button>
+                  currentStatus?.status === 'on_break' ? (
+                    <button
+                      onClick={handleResumeWork}
+                      disabled={clockingIn}
+                      style={{
+                        padding: '12px 24px',
+                        background: clockingIn ? '#9ca3af' : '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        cursor: clockingIn ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {clockingIn ? 'Resuming...' : 'Resume Work'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStartBreak}
+                      disabled={clockingIn}
+                      style={{
+                        padding: '12px 24px',
+                        background: clockingIn ? '#9ca3af' : '#06b6d4',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        cursor: clockingIn ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {clockingIn ? 'Starting Break...' : 'Start Break'}
+                    </button>
+                  )
                 )}
               </div>
             </div>

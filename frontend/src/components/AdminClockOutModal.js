@@ -23,6 +23,8 @@ const AdminClockOutModal = ({ user, onClose, onClockOut }) => {
       if (response.success && response.data) {
         const status = response.data.status;
         console.log('Current clock status:', status);
+        console.log('Clock status data:', response.data);
+        console.log('clockIn field:', response.data.clockIn);
         setClockStatus(response.data);
         
         // Check if not clocked in or already clocked out
@@ -217,12 +219,22 @@ const AdminClockOutModal = ({ user, onClose, onClockOut }) => {
                 </div>
                 <div style={{ fontSize: '14px', color: '#78350F', lineHeight: 1.6 }}>
                   <p style={{ margin: '4px 0' }}>
-                    <strong>Clocked in at:</strong> {clockStatus.clockIn ? new Date(clockStatus.clockIn).toLocaleTimeString('en-GB', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: false,
-                      timeZone: 'Europe/London'
-                    }) : 'N/A'}
+                    <strong>Clocked in at:</strong> {(() => {
+                      const clockInTime = clockStatus.clockIn || clockStatus.clockInTime || clockStatus.clock_in;
+                      if (!clockInTime) return 'N/A';
+                      try {
+                        const date = new Date(clockInTime);
+                        return date.toLocaleTimeString('en-GB', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: false,
+                          timeZone: 'Europe/London'
+                        });
+                      } catch (e) {
+                        console.error('Error formatting clock in time:', e);
+                        return clockInTime;
+                      }
+                    })()}
                   </p>
                   <p style={{ margin: '4px 0' }}>
                     <strong>Location:</strong> {clockStatus.location || 'N/A'}

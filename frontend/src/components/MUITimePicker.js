@@ -61,6 +61,9 @@ const MUITimePicker = ({
           },
           popper: {
             placement: 'bottom-start',
+            sx: {
+              zIndex: 10001
+            },
             modifiers: [
               {
                 name: 'flip',

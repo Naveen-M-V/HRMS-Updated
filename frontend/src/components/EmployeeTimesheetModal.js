@@ -61,7 +61,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       console.log('Fetching timesheet for employee ID:', employeeId);
 
       const response = await fetch(
-        buildApiUrl(`/api/clock/timesheet/${employeeId}?startDate=${monday.toISOString().split('T')[0]}&endDate=${sunday.toISOString().split('T')[0]}`),
+        buildApiUrl(`/clock/timesheet/${employeeId}?startDate=${monday.toISOString().split('T')[0]}&endDate=${sunday.toISOString().split('T')[0]}`),
         {
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' }

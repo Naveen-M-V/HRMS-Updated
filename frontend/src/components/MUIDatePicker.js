@@ -44,6 +44,11 @@ const MUIDatePicker = ({
             required: required,
             variant: 'outlined',
             size: 'medium'
+          },
+          popper: {
+            sx: {
+              zIndex: 10001
+            }
           }
         }}
         {...props}
