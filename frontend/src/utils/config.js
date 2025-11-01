@@ -53,9 +53,8 @@ export const getServerBaseUrl = () => {
   return _serverBaseUrl;
 };
 
-// For backward compatibility with code that imports these as constants
-// Note: These are evaluated at module load time with safe fallback values
-// Components should prefer using getApiBaseUrl() and getServerBaseUrl() functions
+// Export constants - these will use fallback values initially,
+// then update after safeInit runs
 export const API_BASE_URL = _apiBaseUrl;
 export const SERVER_BASE_URL = _serverBaseUrl;
 
