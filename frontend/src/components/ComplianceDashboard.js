@@ -98,7 +98,8 @@ const ComplianceDashboard = () => {
     return date.toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Europe/London'
     });
   };
 
@@ -303,7 +304,7 @@ const ComplianceDashboard = () => {
                 fontWeight: '600',
                 color: '#111827'
               }}>
-                {nextLeave ? new Date(nextLeave.startDate).toLocaleDateString('en-GB') : 'None scheduled'}
+                {nextLeave ? new Date(nextLeave.startDate).toLocaleDateString('en-GB', { timeZone: 'Europe/London' }) : 'None scheduled'}
               </div>
               <div style={{
                 fontSize: '12px',

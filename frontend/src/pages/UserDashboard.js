@@ -1,6 +1,7 @@
 // src/pages/UserDashboard.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useClockStatus } from '../context/ClockStatusContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import UserClockIns from './UserClockIns';
@@ -22,6 +23,7 @@ import {
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
+  const { triggerClockRefresh } = useClockStatus();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
@@ -131,64 +133,6 @@ const UserDashboard = () => {
     }
   };
 
-  // Separate function to request GPS location
-  const requestLocation = async () => {
-    setGpsError(null);
-    
-    if (!navigator.geolocation) {
-      setGpsError('Geolocation is not supported by your browser');
-      toast.error('Geolocation not supported by your browser');
-      return;
-    }
-
-    try {
-      const locationToast = toast.info('Getting your location...', { autoClose: false });
-      
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-          }
-        );
-      });
-      
-      // Update state with GPS coordinates
-      setGpsCoordinates({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude
-      });
-      setLocationAccuracy(Math.round(position.coords.accuracy));
-      
-      toast.dismiss(locationToast);
-      toast.success('Location captured successfully!');
-      
-      console.log('GPS captured:', {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy
-      });
-    } catch (error) {
-      console.error('GPS error:', error);
-      
-      if (error.code === 1) {
-        setGpsError('Location permission denied. Please enable location access in your browser settings.');
-        toast.error('Location permission denied! Please enable location access.', { autoClose: 7000 });
-      } else if (error.code === 2) {
-        setGpsError('Location unavailable. Please check your device GPS settings.');
-        toast.error('Location unavailable. Please check your device settings.');
-      } else if (error.code === 3) {
-        setGpsError('Location request timeout. Please try again.');
-        toast.error('Location timeout. Please try again.');
-      } else {
-        setGpsError('Failed to get location. Please try again.');
-        toast.error('Failed to get location.');
-      }
-    }
-  };
 
   const handleClockIn = async () => {
     if (!location) {
@@ -196,21 +140,76 @@ const UserDashboard = () => {
       return;
     }
 
-    // Check if GPS coordinates are captured
-    if (!gpsCoordinates) {
-      toast.warning('Please get your location first by clicking "Get My Location"');
-      return;
-    }
-
     setProcessing(true);
+    setGpsError(null);
     
     try {
-      // Use already captured GPS coordinates
-      const gpsData = {
-        latitude: gpsCoordinates.latitude,
-        longitude: gpsCoordinates.longitude,
-        accuracy: locationAccuracy
-      };
+      // ========== GPS LOCATION CAPTURE ==========
+      // Request GPS coordinates using browser's Geolocation API
+      let gpsData = {};
+      
+      if (navigator.geolocation) {
+        try {
+          // Show loading toast while getting location
+          const locationToast = toast.info('Requesting location access...', { autoClose: false });
+          
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true, // Request high accuracy GPS
+                timeout: 10000, // 10 second timeout
+                maximumAge: 0 // Don't use cached position
+              }
+            );
+          });
+          
+          // Extract GPS coordinates
+          gpsData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          // Update state for display
+          setGpsCoordinates({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          setLocationAccuracy(Math.round(position.coords.accuracy));
+          
+          // Dismiss location toast
+          toast.dismiss(locationToast);
+          
+          console.log('GPS captured:', gpsData);
+        } catch (gpsError) {
+          console.error('GPS error:', gpsError);
+          
+          // Handle specific GPS errors
+          if (gpsError.code === 1) {
+            setGpsError('Location permission denied. Please enable location access.');
+            toast.error('Location permission denied! Please enable location access in your browser settings.', {
+              autoClose: 7000
+            });
+            setProcessing(false);
+            return; // Stop clock-in if GPS is required
+          } else if (gpsError.code === 2) {
+            setGpsError('Location unavailable. Please check your device settings.');
+            toast.warning('Location unavailable. Clocking in without GPS data.');
+          } else if (gpsError.code === 3) {
+            setGpsError('Location request timeout.');
+            toast.warning('Location timeout. Clocking in without GPS data.');
+          }
+          
+          // Continue with clock-in even if GPS fails (optional - can be made mandatory)
+          console.warn('Continuing clock-in without GPS data');
+        }
+      } else {
+        setGpsError('Geolocation not supported by browser');
+        toast.warning('GPS not supported. Clocking in without location data.');
+      }
+      // ==========================================
       
       // Send clock-in request with GPS data
       const response = await userClockIn({ 
@@ -229,6 +228,9 @@ const UserDashboard = () => {
         
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
+        
+        // Trigger refresh in admin dashboard for immediate update
+        triggerClockRefresh();
         
         if (response.data?.attendanceStatus === 'Late') {
           toast.warning('Late arrival detected', { autoClose: 5000 });
@@ -258,6 +260,9 @@ const UserDashboard = () => {
         
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
+        
+        // Trigger refresh in admin dashboard for immediate update
+        triggerClockRefresh();
       }
     } catch (error) {
       console.error('Clock out error:', error);
@@ -277,6 +282,9 @@ const UserDashboard = () => {
         
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
+        
+        // Trigger refresh in admin dashboard for immediate update
+        triggerClockRefresh();
       }
     } catch (error) {
       console.error('Start break error:', error);
@@ -296,6 +304,9 @@ const UserDashboard = () => {
         
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
+        
+        // Trigger refresh in admin dashboard for immediate update
+        triggerClockRefresh();
       }
     } catch (error) {
       console.error('Resume work error:', error);
@@ -580,18 +591,6 @@ const UserDashboard = () => {
                       </select>
                     </div>
                   </div>
-                  
-                  {/* Get Location Button */}
-                  <button
-                    onClick={requestLocation}
-                    className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Get My Location
-                  </button>
                   
                   {/* Map Display - Shows user location */}
                   {gpsCoordinates && (

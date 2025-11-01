@@ -13,6 +13,7 @@ import { CertificateProvider } from "./context/CertificateContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
+import { ClockStatusProvider } from "./context/ClockStatusContext";
 import { AlertProvider } from "./components/AlertNotification";
 import { initMemoryGuard } from "./utils/memoryGuard";
 import AdminClockInWrapper from "./components/AdminClockInWrapper";
@@ -216,20 +217,21 @@ function App() {
                   <ProfileProvider>
                     <CertificateProvider>
                       <NotificationProvider>
-                        <div className="flex min-h-screen bg-gray-50">
-                          <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-                          <div
-                            className={`flex-1 flex flex-col transition-all duration-300 ${
-                              isSidebarOpen ? "ml-64" : "ml-16"
-                            }`}
-                          >
-                            <Topbar
-                              toggleSidebar={() =>
-                                setIsSidebarOpen(!isSidebarOpen)
-                              }
-                            />
-                            <div className="p-6 flex-1">
-                              <Routes>
+                        <ClockStatusProvider>
+                          <div className="flex min-h-screen bg-gray-50">
+                            <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+                            <div
+                              className={`flex-1 flex flex-col transition-all duration-300 ${
+                                isSidebarOpen ? "ml-64" : "ml-16"
+                              }`}
+                            >
+                              <Topbar
+                                toggleSidebar={() =>
+                                  setIsSidebarOpen(!isSidebarOpen)
+                                }
+                              />
+                              <div className="p-6 flex-1">
+                                <Routes>
                                   <Route path="/" element={<Dashboard />} />
                                   <Route
                                     path="/dashboard"
@@ -336,9 +338,10 @@ function App() {
                                     element={<TimeHistory />}
                                   />
                                 </Routes>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        </ClockStatusProvider>
                       </NotificationProvider>
                     </CertificateProvider>
                   </ProfileProvider>

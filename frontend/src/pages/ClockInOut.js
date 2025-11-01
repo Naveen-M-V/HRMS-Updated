@@ -4,6 +4,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { getClockStatus, getDashboardStats } from '../utils/clockApi';
 import { getCurrentUserLeaveBalance, getNextUpcomingLeave } from '../utils/leaveApi';
 import { useAuth } from '../context/AuthContext';
+import { useClockStatus } from '../context/ClockStatusContext';
+import { formatUKDateTime } from '../utils/timeUtils';
 import LoadingScreen from '../components/LoadingScreen';
 
 /**
@@ -13,6 +15,7 @@ import LoadingScreen from '../components/LoadingScreen';
 
 const ClockInOut = () => {
   const { user } = useAuth(); // Get current logged-in user
+  const { refreshTrigger } = useClockStatus(); // Listen for clock status changes
   const [clockData, setClockData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -24,6 +27,7 @@ const ClockInOut = () => {
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [nextLeave, setNextLeave] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState(null); // null means show all
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const fetchClockStatus = async () => {
     try {
@@ -76,12 +80,26 @@ const ClockInOut = () => {
     }
   };
 
+  // Fetch initial data
   useEffect(() => {
     fetchClockStatus();
     fetchLeaveData();
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(fetchClockStatus, 30000);
-    return () => clearInterval(interval);
+  }, []);
+
+  // Update when refreshTrigger changes (immediate updates from user actions)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchClockStatus();
+    }
+  }, [refreshTrigger]);
+
+  // Update current time every second for accurate UK time display
+  useEffect(() => {
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    
+    return () => clearInterval(timeInterval);
   }, []);
 
   const calculateStats = (data) => {
@@ -163,16 +181,17 @@ const ClockInOut = () => {
             fontSize: '14px',
             color: '#6b7280'
           }}>
-            Last Updated: {new Date().toLocaleString('en-GB', { 
+            Current UK Time: {currentTime.toLocaleString('en-GB', { 
               timeZone: 'Europe/London',
               hour: '2-digit',
               minute: '2-digit',
+              second: '2-digit',
               hour12: false,
               weekday: 'short',
               day: '2-digit',
               month: 'short',
               year: 'numeric'
-            })} (UK Time) - Updates every 30 seconds
+            })} - Updates immediately on clock actions
           </p>
         </div>
 

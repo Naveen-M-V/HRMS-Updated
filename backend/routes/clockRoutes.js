@@ -1160,7 +1160,9 @@ router.get('/user/status', async (req, res) => {
   try {
     const userId = req.user.id || req.user._id || req.user.userId;
     
-    const today = new Date();
+    // Use UK timezone for date comparison
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const today = new Date(ukNow);
     today.setHours(0, 0, 0, 0);
     
     const timeEntry = await TimeEntry.findOne({
@@ -1220,7 +1222,9 @@ router.post('/user/in', async (req, res) => {
     }
 
     // Check if user is already clocked in today (active status only)
-    const today = new Date();
+    // Use UK timezone for date comparison
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const today = new Date(ukNow);
     today.setHours(0, 0, 0, 0);
     
     const existingEntry = await TimeEntry.findOne({
@@ -1240,15 +1244,15 @@ router.post('/user/in', async (req, res) => {
     // Allow multiple clock-ins per day - user can clock in again after clocking out
     // This is useful for split shifts or multiple work sessions in a day
 
-    // Get current time
-    const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format
+    // Get current UK time
+    const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format
     
     // Find matching shift
-    const shift = await findMatchingShift(userId, new Date(), location);
+    const shift = await findMatchingShift(userId, ukNow, location);
     
     let timeEntryData = {
       employee: userId,
-      date: new Date(),
+      date: ukNow,
       clockIn: currentTime,
       location: location || 'Work From Office',
       workType: workType || 'Regular',
@@ -1357,8 +1361,9 @@ router.post('/user/out', async (req, res) => {
       });
     }
 
-    // Find today's active time entry
-    const today = new Date();
+    // Find today's active time entry using UK timezone
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const today = new Date(ukNow);
     today.setHours(0, 0, 0, 0);
     
     const timeEntry = await TimeEntry.findOne({
@@ -1368,14 +1373,15 @@ router.post('/user/out', async (req, res) => {
     }).populate('shiftId');
 
     if (!timeEntry) {
+      console.log('Clock-out failed: No active entry found for user:', userId, 'after date:', today);
       return res.status(400).json({
         success: false,
         message: 'No active clock-in found for today'
       });
     }
 
-    // Update clock out time
-    const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format
+    // Update clock out time using UK timezone
+    const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format
     timeEntry.clockOut = currentTime;
     timeEntry.status = 'clocked_out';
     

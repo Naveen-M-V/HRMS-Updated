@@ -101,8 +101,8 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   return (
     <div
       onClick={(e) => {
-        // Toggle sidebar when clicking on empty space (the sidebar background itself)
-        // Only if clicking directly on the sidebar div, not its children
+        // Toggle sidebar when clicking on empty space
+        // If minimized, expand it. If expanded, minimize it.
         if (e.target === e.currentTarget && toggleSidebar) {
           toggleSidebar();
         }
@@ -120,7 +120,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
       <div 
         onClick={(e) => {
           // Allow clicking empty space in the scrollable area to toggle sidebar
-          if (e.target === e.currentTarget && toggleSidebar && isOpen) {
+          if (e.target === e.currentTarget && toggleSidebar) {
             toggleSidebar();
           }
         }}
