@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import { storageGuard } from '../utils/memoryGuard';
-import { API_BASE_URL, SERVER_BASE_URL } from '../utils/config';
+import { getApiBaseUrl, getServerBaseUrl } from '../utils/config';
+
+// Use getter functions to avoid TDZ errors
+const API_BASE_URL = getApiBaseUrl();
+const SERVER_BASE_URL = getServerBaseUrl();
 
 const ProfileContext = createContext();
 
