@@ -47,6 +47,9 @@ const MUITimePicker = ({
           }
         }}
         disabled={disabled}
+        openTo="hours"
+        views={['hours', 'minutes']}
+        ampm={false}
         slotProps={{
           textField: {
             fullWidth: true,
@@ -55,6 +58,26 @@ const MUITimePicker = ({
             required: required,
             variant: 'outlined',
             size: 'medium'
+          },
+          popper: {
+            placement: 'bottom-start',
+            modifiers: [
+              {
+                name: 'flip',
+                enabled: true,
+                options: {
+                  fallbackPlacements: ['top-start', 'bottom-end', 'top-end'],
+                },
+              },
+              {
+                name: 'preventOverflow',
+                enabled: true,
+                options: {
+                  boundary: 'viewport',
+                  padding: 8,
+                },
+              },
+            ],
           }
         }}
         {...props}

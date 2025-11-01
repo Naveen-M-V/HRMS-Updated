@@ -349,7 +349,7 @@ const UserClockIns = () => {
                       cursor: 'pointer'
                     }}
                   >
-                    Add Break
+                    Start Break
                   </button>
                 )}
               </div>

@@ -20,12 +20,20 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   });
   const [selectedCount, setSelectedCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectedDays, setSelectedDays] = useState([]);
 
   useEffect(() => {
     if (employee) {
+      console.log('Employee data in modal:', employee);
       fetchWeeklyTimesheet();
     }
   }, [employee, currentDate]);
+
+  useEffect(() => {
+    // Update selected count when selectedDays changes
+    setSelectedCount(selectedDays.length);
+  }, [selectedDays]);
 
   const getWeekNumber = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -49,8 +57,11 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
 
+      const employeeId = employee._id || employee.id;
+      console.log('Fetching timesheet for employee ID:', employeeId);
+
       const response = await fetch(
-        buildApiUrl(`/api/clock/timesheet/${employee._id || employee.id}?startDate=${monday.toISOString().split('T')[0]}&endDate=${sunday.toISOString().split('T')[0]}`),
+        buildApiUrl(`/api/clock/timesheet/${employeeId}?startDate=${monday.toISOString().split('T')[0]}&endDate=${sunday.toISOString().split('T')[0]}`),
         {
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' }
@@ -59,8 +70,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Timesheet data received:', data);
         processTimesheetData(data);
       } else {
+        console.warn('No timesheet data, generating empty week');
         // Generate empty week if no data
         generateEmptyWeek();
       }
@@ -86,11 +99,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         clockedHours: null,
         negativeHours: '--',
         overtime: '--',
-        totalHours: '00:00'
+        totalHours: '00:00',
+        selected: false
       });
     }
     setWeekData(emptyWeek);
     setStatistics({ hoursWorked: 0, overtime: 0, negativeHours: 0 });
+    setSelectedDays([]);
+    setSelectAll(false);
   };
 
   const processTimesheetData = (data) => {
@@ -154,7 +170,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
           location: dayEntry.location || 'N/A',
-          workType: dayEntry.workType || 'Regular'
+          workType: dayEntry.workType || 'Regular',
+          selected: false
         });
       } else {
         weekEntries.push({
@@ -166,12 +183,15 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           overtime: '--',
           totalHours: '00:00',
           location: null,
-          workType: null
+          workType: null,
+          selected: false
         });
       }
     }
 
     setWeekData(weekEntries);
+    setSelectedDays([]);
+    setSelectAll(false);
     
     // Use statistics from backend if available
     if (data.statistics) {
@@ -199,6 +219,32 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + (direction * 7));
     setCurrentDate(newDate);
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      // Deselect all
+      setSelectedDays([]);
+      setSelectAll(false);
+    } else {
+      // Select all days
+      const allDayIndices = weekData.map((_, index) => index);
+      setSelectedDays(allDayIndices);
+      setSelectAll(true);
+    }
+  };
+
+  const handleDaySelect = (index) => {
+    if (selectedDays.includes(index)) {
+      setSelectedDays(selectedDays.filter(i => i !== index));
+      setSelectAll(false);
+    } else {
+      const newSelected = [...selectedDays, index];
+      setSelectedDays(newSelected);
+      if (newSelected.length === weekData.length) {
+        setSelectAll(true);
+      }
+    }
   };
 
   const formatDateRange = () => {
@@ -246,7 +292,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       >
         {/* Header */}
         <div style={{
-          padding: '32px 40px',
+          padding: '24px 32px',
           borderBottom: '1px solid #e5e7eb',
           position: 'relative'
         }}>
@@ -329,7 +375,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
         {/* Week Navigation */}
         <div style={{
-          padding: '20px 40px',
+          padding: '16px 32px',
           borderBottom: '1px solid #e5e7eb',
           display: 'flex',
           alignItems: 'center',
@@ -404,13 +450,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
         {/* Timesheet Table */}
         <div style={{ 
-          padding: '0 40px 40px',
+          padding: '0 32px 32px',
           overflowY: 'auto',
           overflowX: 'hidden',
-          flex: 1,
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}>
+          flex: 1
+        }}
+        className="hide-scrollbar">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -422,7 +467,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   color: '#6b7280',
                   width: '40px'
                 }}>
-                  <input type="checkbox" style={{ cursor: 'pointer' }} />
+                  <input 
+                    type="checkbox" 
+                    checked={selectAll}
+                    onChange={handleSelectAll}
+                    style={{ cursor: 'pointer' }} 
+                  />
                 </th>
                 <th style={{ 
                   padding: '16px 12px', 
@@ -478,7 +528,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                     }}
                   >
                     <td style={{ padding: '16px 12px' }}>
-                      <input type="checkbox" style={{ cursor: 'pointer' }} />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedDays.includes(index)}
+                        onChange={() => handleDaySelect(index)}
+                        style={{ cursor: 'pointer' }} 
+                      />
                     </td>
                     <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>
                       {day.dayName} {day.dayNumber}
@@ -515,12 +570,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
       <style>{`
         /* Hide scrollbar for Chrome, Safari and Opera */
-        div[style*="overflowY: auto"]::-webkit-scrollbar {
+        .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }
         
         /* Hide scrollbar for IE, Edge and Firefox */
-        div[style*="overflowY: auto"] {
+        .hide-scrollbar {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }

@@ -949,20 +949,20 @@ const ClockIns = () => {
 
       {/* Edit Time Entry Modal */}
       {showEditModal && editingEntry && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '500px', width: '90%' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '600px', width: '100%', maxHeight: '90vh', overflow: 'visible', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)' }}>
             <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>
-              Edit Time Entry - {editingEntry.name}
+              Edit Time Entry - {editingEntry.firstName} {editingEntry.lastName}
             </h2>
             <form onSubmit={handleUpdateTimeEntry}>
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '24px' }}>
                 <MUIDatePicker
                   label="Date"
                   value={editForm.date || null}
                   onChange={(date) => setEditForm({ ...editForm, date: date ? date.format('YYYY-MM-DD') : '' })}
                 />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
                 <div>
                   <MUITimePicker
                     label="Clock In Time"
@@ -983,13 +983,17 @@ const ClockIns = () => {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#ffffff', color: '#374151', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+                  style={{ padding: '12px 24px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#ffffff', color: '#374151', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
+                  onMouseLeave={(e) => e.target.style.background = '#ffffff'}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#ffffff', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                  style={{ padding: '12px 28px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#ffffff', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}
+                  onMouseEnter={(e) => e.target.style.background = '#2563eb'}
+                  onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
                 >
                   Update
                 </button>

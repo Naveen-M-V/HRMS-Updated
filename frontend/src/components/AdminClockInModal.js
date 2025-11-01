@@ -243,16 +243,12 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                   Location
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <svg style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
                   <select
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '14px 48px 14px 48px',
+                      padding: '14px 16px',
                       border: '2px solid #e5e7eb',
                       borderRadius: '12px',
                       fontSize: '14px',
@@ -270,11 +266,6 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                     <option value="Field">Field</option>
                     <option value="Client Side">Client Side</option>
                   </select>
-                  <svg style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                  </svg>
                 </div>
               </div>
 
@@ -290,16 +281,12 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                   Shift
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <svg style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', zIndex: 1 }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                  </svg>
                   <select
                     value={workType}
                     onChange={(e) => setWorkType(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '14px 48px 14px 48px',
+                      padding: '14px 16px',
                       border: '2px solid #6366F1',
                       borderRadius: '12px',
                       fontSize: '14px',
@@ -317,10 +304,6 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
                     <option value="Weekend Overtime">Weekend Overtime</option>
                     <option value="Client-side Overtime">Client-side Overtime</option>
                   </select>
-                  <svg style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
                 </div>
               </div>
 

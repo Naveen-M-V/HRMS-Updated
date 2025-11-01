@@ -217,7 +217,12 @@ const AdminClockOutModal = ({ user, onClose, onClockOut }) => {
                 </div>
                 <div style={{ fontSize: '14px', color: '#78350F', lineHeight: 1.6 }}>
                   <p style={{ margin: '4px 0' }}>
-                    <strong>Clocked in at:</strong> {clockStatus.clockIn ? new Date(clockStatus.clockIn).toLocaleTimeString() : 'N/A'}
+                    <strong>Clocked in at:</strong> {clockStatus.clockIn ? new Date(clockStatus.clockIn).toLocaleTimeString('en-GB', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: false,
+                      timeZone: 'Europe/London'
+                    }) : 'N/A'}
                   </p>
                   <p style={{ margin: '4px 0' }}>
                     <strong>Location:</strong> {clockStatus.location || 'N/A'}
