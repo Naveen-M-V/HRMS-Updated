@@ -4,7 +4,7 @@ import {
   UserGroupIcon, 
   ClockIcon, 
   EyeIcon,
-  ArrowPathIcon,
+  RefreshIcon,
   MagnifyingGlassIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
@@ -261,7 +261,7 @@ const GeoMap = () => {
           disabled={loading}
           className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
-          <ArrowPathIcon className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshIcon className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
