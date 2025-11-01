@@ -258,17 +258,18 @@ const UserCertificateCreate = () => {
                         <h4 className="text-sm font-medium text-red-700">Mandatory Certificates</h4>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {suggestedCertificates.mandatory.map((certCode, idx) => {
+                        {suggestedCertificates.mandatory.map((cert, idx) => {
+                          const certCode = cert.code || cert;
                           const certInfo = allCertificates[certCode];
                           return (
                             <button
                               key={idx}
                               type="button"
-                              onClick={() => setFormData(prev => ({ ...prev, certificate: certInfo?.name || certCode }))}
+                              onClick={() => setFormData(prev => ({ ...prev, certificate: cert.description || certInfo?.name || certCode }))}
                               className="text-left px-3 py-2 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors"
                             >
                               <div className="text-xs font-medium text-red-900">{certCode}</div>
-                              <div className="text-xs text-red-700">{certInfo?.name || 'Unknown Certificate'}</div>
+                              <div className="text-xs text-red-700">{cert.description || certInfo?.name || 'Unknown Certificate'}</div>
                             </button>
                           );
                         })}
@@ -284,17 +285,18 @@ const UserCertificateCreate = () => {
                         <h4 className="text-sm font-medium text-green-700">Alternative Certificates</h4>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {suggestedCertificates.alternative.map((certCode, idx) => {
+                        {suggestedCertificates.alternative.map((cert, idx) => {
+                          const certCode = cert.code || cert;
                           const certInfo = allCertificates[certCode];
                           return (
                             <button
                               key={idx}
                               type="button"
-                              onClick={() => setFormData(prev => ({ ...prev, certificate: certInfo?.name || certCode }))}
+                              onClick={() => setFormData(prev => ({ ...prev, certificate: cert.description || certInfo?.name || certCode }))}
                               className="text-left px-3 py-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 transition-colors"
                             >
                               <div className="text-xs font-medium text-green-900">{certCode}</div>
-                              <div className="text-xs text-green-700">{certInfo?.name || 'Unknown Certificate'}</div>
+                              <div className="text-xs text-green-700">{cert.description || certInfo?.name || 'Unknown Certificate'}</div>
                             </button>
                           );
                         })}

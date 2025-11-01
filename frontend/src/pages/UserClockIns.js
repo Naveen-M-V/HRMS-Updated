@@ -164,10 +164,34 @@ const UserClockIns = () => {
 
   const formatTime = (timeString) => {
     if (!timeString) return '-';
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    
+    // If it's already in HH:mm format, return as is
+    if (typeof timeString === 'string' && /^\d{2}:\d{2}$/.test(timeString)) {
+      return timeString;
+    }
+    
+    // If it's an ISO date string, convert to UK time
+    try {
+      const date = new Date(timeString);
+      if (isNaN(date.getTime())) {
+        // Try parsing as time string
+        return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          timeZone: 'Europe/London'
+        });
+      }
+      return date.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Europe/London'
+      });
+    } catch (e) {
+      console.error('Error formatting time:', e);
+      return timeString;
+    }
   };
 
   const formatDate = (dateString) => {

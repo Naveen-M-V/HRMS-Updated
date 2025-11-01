@@ -137,17 +137,35 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         totalOvertime += overtime;
         totalNegative += negativeHours;
 
-        // Format clock in/out times
-        const clockInTime = new Date(clockIn).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        });
-        const clockOutTime = clockOut ? new Date(clockOut).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }) : 'Present';
+        // Format clock in/out times - handle both HH:mm string and ISO date formats
+        const formatTime = (timeValue) => {
+          if (!timeValue) return 'N/A';
+          
+          // If it's already in HH:mm format, return as is
+          if (typeof timeValue === 'string' && /^\d{2}:\d{2}$/.test(timeValue)) {
+            return timeValue;
+          }
+          
+          // If it's an ISO date string or Date object, convert to UK time
+          try {
+            const date = new Date(timeValue);
+            if (isNaN(date.getTime())) {
+              return timeValue; // Return original if invalid
+            }
+            return date.toLocaleTimeString('en-GB', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false,
+              timeZone: 'Europe/London'
+            });
+          } catch (e) {
+            console.error('Error formatting time:', e);
+            return timeValue;
+          }
+        };
+
+        const clockInTime = formatTime(clockIn);
+        const clockOutTime = clockOut ? formatTime(clockOut) : 'Present';
 
         // Calculate break time display
         let breakInfo = '';

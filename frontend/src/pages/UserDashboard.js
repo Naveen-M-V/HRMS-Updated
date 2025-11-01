@@ -684,7 +684,7 @@ const UserDashboard = () => {
                               <p className="text-sm font-medium text-gray-900">{notification.title || 'Notification'}</p>
                               <p className="text-xs text-gray-600 truncate">{notification.message}</p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {new Date(notification.createdAt).toLocaleString()}
+                                {new Date(notification.createdAt).toLocaleString('en-GB', { timeZone: 'Europe/London' })}
                               </p>
                             </div>
                           </div>
@@ -997,7 +997,7 @@ const UserDashboard = () => {
                         <p className="text-sm text-gray-600">{notification.message}</p>
                         <div className="mt-2 flex items-center text-xs text-gray-500">
                           <ClockIcon className="h-4 w-4 mr-1" />
-                          {new Date(notification.createdAt).toLocaleString()}
+                          {new Date(notification.createdAt).toLocaleString('en-GB', { timeZone: 'Europe/London' })}
                         </div>
                       </div>
                     </div>
