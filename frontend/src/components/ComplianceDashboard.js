@@ -203,7 +203,7 @@ const ComplianceDashboard = () => {
                   className="inline-flex items-center px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ClockIcon className="h-5 w-5 mr-2" />
-                  {clockLoading ? 'Starting...' : 'Add Break'}
+                  {clockLoading ? 'Starting...' : 'Start Break'}
                 </button>
               )}
               <button
@@ -357,8 +357,8 @@ const ComplianceDashboard = () => {
         <AdminClockInModal
           user={user}
           onClose={() => setShowAdminClockInModal(false)}
-          onClockIn={async () => {
-            setShowAdminClockInModal(false);
+          onClockIn={async (data) => {
+            // Fetch the latest clock status to update the UI
             await fetchClockStatus();
           }}
         />

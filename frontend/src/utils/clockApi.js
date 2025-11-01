@@ -43,14 +43,24 @@ export const clockOut = async (clockData) => {
 
 /**
  * Get current clock status for all employees
+ * @param {Object} options - { includeAdmins: boolean }
  * @returns {Promise} API response with clock status
  */
-export const getClockStatus = async () => {
+export const getClockStatus = async (options = {}) => {
   try {
-    const response = await axios.get(
-      buildApiUrl(`${CLOCK_BASE}/status`),
-      { withCredentials: true }
-    );
+    let url = buildApiUrl(`${CLOCK_BASE}/status`);
+    
+    // Add query parameters if provided
+    const params = new URLSearchParams();
+    if (options.includeAdmins) {
+      params.append('includeAdmins', 'true');
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    const response = await axios.get(url, { withCredentials: true });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to fetch clock status' };

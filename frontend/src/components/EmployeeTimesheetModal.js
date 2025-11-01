@@ -19,10 +19,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     overtime: 0,
     negativeHours: 0
   });
-  const [selectedCount, setSelectedCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [selectAll, setSelectAll] = useState(false);
-  const [selectedDays, setSelectedDays] = useState([]);
   const [weeklyTotalHours, setWeeklyTotalHours] = useState(0);
 
   useEffect(() => {
@@ -31,11 +28,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       fetchWeeklyTimesheet();
     }
   }, [employee, currentDate]);
-
-  useEffect(() => {
-    // Update selected count when selectedDays changes
-    setSelectedCount(selectedDays.length);
-  }, [selectedDays]);
 
   const getWeekNumber = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -92,6 +84,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      
       emptyWeek.push({
         date: date,
         dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -100,27 +95,25 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         location: '--',
         overtime: '--',
         totalHours: '00:00',
-        selected: false
+        isWeekend: isWeekend
       });
     }
     setWeekData(emptyWeek);
     setStatistics({ hoursWorked: 0, overtime: 0, negativeHours: 0 });
-    setSelectedDays([]);
-    setSelectAll(false);
     setWeeklyTotalHours(0);
   };
 
   const processTimesheetData = (data) => {
     const monday = getMonday(currentDate);
     const weekEntries = [];
-    let totalHours = 0;
-    let totalOvertime = 0;
-    let totalNegative = 0;
+    let weeklyTotalHoursSum = 0;
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
       const dateStr = date.toISOString().split('T')[0];
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
       
       const dayEntry = data.entries?.find(e => 
         new Date(e.date).toISOString().split('T')[0] === dateStr
@@ -133,11 +126,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         // Parse hours from backend calculation
         const hours = parseFloat(dayEntry.hoursWorked || 0);
         const overtime = parseFloat(dayEntry.overtime || 0);
-        const negativeHours = parseFloat(dayEntry.negativeHours || 0);
         
-        totalHours += hours;
-        totalOvertime += overtime;
-        totalNegative += negativeHours;
+        // Add to weekly total
+        weeklyTotalHoursSum += hours;
 
         // Format clock in/out times - handle both HH:mm string and ISO date formats
         const formatTime = (timeValue) => {
@@ -189,7 +180,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
           workType: dayEntry.workType || 'Regular',
-          selected: false,
+          isWeekend: isWeekend,
           // GPS location data for admin view
           gpsLocation: dayEntry.gpsLocation || null
         });
@@ -203,24 +194,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           overtime: '--',
           totalHours: '00:00',
           workType: null,
-          selected: false
+          isWeekend: isWeekend
         });
       }
     }
 
     setWeekData(weekEntries);
-    setSelectedDays([]);
-    setSelectAll(false);
-    
-    // Calculate weekly total hours
-    const weekTotal = weekEntries.reduce((sum, entry) => {
-      if (entry.totalHours && entry.totalHours !== '00:00') {
-        const [hours, minutes] = entry.totalHours.split(':').map(Number);
-        return sum + hours + (minutes / 60);
-      }
-      return sum;
-    }, 0);
-    setWeeklyTotalHours(weekTotal);
+    setWeeklyTotalHours(weeklyTotalHoursSum);
     
     // Use statistics from backend if available
     if (data.statistics) {
@@ -231,9 +211,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       });
     } else {
       setStatistics({
-        hoursWorked: totalHours.toFixed(2),
-        overtime: totalOvertime.toFixed(2),
-        negativeHours: totalNegative.toFixed(2)
+        hoursWorked: weeklyTotalHoursSum.toFixed(2),
+        overtime: 0,
+        negativeHours: 0
       });
     }
   };
@@ -248,32 +228,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + (direction * 7));
     setCurrentDate(newDate);
-  };
-
-  const handleSelectAll = () => {
-    if (selectAll) {
-      // Deselect all
-      setSelectedDays([]);
-      setSelectAll(false);
-    } else {
-      // Select all days
-      const allDayIndices = weekData.map((_, index) => index);
-      setSelectedDays(allDayIndices);
-      setSelectAll(true);
-    }
-  };
-
-  const handleDaySelect = (index) => {
-    if (selectedDays.includes(index)) {
-      setSelectedDays(selectedDays.filter(i => i !== index));
-      setSelectAll(false);
-    } else {
-      const newSelected = [...selectedDays, index];
-      setSelectedDays(newSelected);
-      if (newSelected.length === weekData.length) {
-        setSelectAll(true);
-      }
-    }
   };
 
   const formatDateRange = () => {
@@ -399,7 +353,15 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               overflow: 'hidden'
             }}>
               {employee.profilePicture ? (
-                <img src={employee.profilePicture} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img 
+                  src={buildApiUrl(employee.profilePicture.startsWith('/') ? employee.profilePicture : `/uploads/${employee.profilePicture}`)} 
+                  alt="" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.textContent = `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`;
+                  }}
+                />
               ) : (
                 `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`
               )}
@@ -493,9 +455,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              Selected ({selectedCount.toString().padStart(2, '0')})
-            </div>
             <button
               onClick={exportToExcel}
               title="Export to Excel"
@@ -507,16 +466,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               }}
             >
               <PrinterIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-            </button>
-            <button
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px'
-              }}
-            >
-              <EllipsisVerticalIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
             </button>
           </div>
         </div>
@@ -532,21 +481,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'left', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280',
-                  width: '40px'
-                }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectAll}
-                    onChange={handleSelectAll}
-                    style={{ cursor: 'pointer' }} 
-                  />
-                </th>
                 <th style={{ 
                   padding: '16px 12px', 
                   textAlign: 'left', 
@@ -594,43 +528,48 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                  <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                     Loading timesheet...
                   </td>
                 </tr>
               ) : (
-                weekData.map((day, index) => (
-                  <tr 
-                    key={index}
-                    style={{ 
-                      borderBottom: '1px solid #f3f4f6',
-                      background: day.clockedHours ? '#ffffff' : '#fafafa'
-                    }}
-                  >
-                    <td style={{ padding: '16px 12px' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedDays.includes(index)}
-                        onChange={() => handleDaySelect(index)}
-                        style={{ cursor: 'pointer' }} 
-                      />
-                    </td>
-                    <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>
-                      {day.dayName} {day.dayNumber}
-                    </td>
-                    <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
-                      {day.clockedHours || (
-                        <span style={{
-                          background: '#f3f4f6',
-                          padding: '6px 16px',
-                          borderRadius: '6px',
-                          color: '#9ca3af',
-                          fontSize: '13px'
-                        }}>
-                          Week-End
-                        </span>
-                      )}
-                    </td>
+                weekData.map((day, index) => {
+                  // Determine what to show when not clocked in
+                  let emptyLabel = 'Absent';
+                  let emptyColor = '#fef2f2';
+                  let emptyTextColor = '#dc2626';
+                  
+                  if (day.isWeekend) {
+                    emptyLabel = 'Week-End';
+                    emptyColor = '#f3f4f6';
+                    emptyTextColor = '#9ca3af';
+                  }
+                  
+                  return (
+                    <tr 
+                      key={index}
+                      style={{ 
+                        borderBottom: '1px solid #f3f4f6',
+                        background: day.clockedHours ? '#ffffff' : '#fafafa'
+                      }}
+                    >
+                      <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>
+                        {day.dayName} {day.dayNumber}
+                      </td>
+                      <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
+                        {day.clockedHours || (
+                          <span style={{
+                            background: emptyColor,
+                            padding: '6px 16px',
+                            borderRadius: '6px',
+                            color: emptyTextColor,
+                            fontSize: '13px',
+                            fontWeight: '500'
+                          }}>
+                            {emptyLabel}
+                          </span>
+                        )}
+                      </td>
                     <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
                       {day.location || '--'}
                     </td>
@@ -676,11 +615,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                         <span style={{ color: '#9ca3af', fontSize: '13px' }}>No location</span>
                       )}
                     </td>
-                    <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '600', textAlign: 'right' }}>
-                      {day.totalHours}
-                    </td>
-                  </tr>
-                ))
+                      <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '600', textAlign: 'right' }}>
+                        {day.totalHours}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

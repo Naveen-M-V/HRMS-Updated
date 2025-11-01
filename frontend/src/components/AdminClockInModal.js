@@ -49,7 +49,11 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       
       if (response.success) {
         toast.success('You have successfully clocked in!');
-        if (onClockIn) onClockIn(response.data);
+        // Call onClockIn callback to update parent component
+        if (onClockIn) {
+          await onClockIn(response.data);
+        }
+        // Close modal after a short delay to show success message
         setTimeout(() => onClose(), 1500);
       } else {
         toast.error(response.message || 'Failed to clock in');

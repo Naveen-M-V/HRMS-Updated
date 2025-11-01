@@ -7,6 +7,7 @@ import EmployeeTimesheetModal from '../components/EmployeeTimesheetModal';
 import MUIDatePicker from '../components/MUIDatePicker';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Clock-ins Page
@@ -15,6 +16,7 @@ import dayjs from 'dayjs';
  */
 
 const ClockIns = () => {
+  const { user: currentUser } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -35,6 +37,9 @@ const ClockIns = () => {
   const [showClockInModal, setShowClockInModal] = useState(false);
   const [clockInEmployee, setClockInEmployee] = useState(null);
   const [statusFilter, setStatusFilter] = useState(null); // null means show all
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [showTimesheetModal, setShowTimesheetModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -43,6 +48,20 @@ const ClockIns = () => {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showEmployeeDropdown && !event.target.closest('.employee-search-container')) {
+        setShowEmployeeDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmployeeDropdown]);
 
   const fetchData = async () => {
     try {
@@ -459,28 +478,94 @@ const ClockIns = () => {
           
           {/* Top Action Buttons - Always Visible */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <select
-              value={selectedEmployee?.id || ''}
-              onChange={(e) => {
-                const emp = employees.find(emp => (emp.id || emp._id) === e.target.value);
-                setSelectedEmployee(emp || null);
-              }}
-              style={{
-                padding: '10px 16px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                minWidth: '200px',
-                fontWeight: '500'
-              }}
-            >
-              <option value="">Select Employee</option>
-              {employees.map(emp => (
-                <option key={emp.id || emp._id} value={emp.id || emp._id}>
-                  {emp.firstName} {emp.lastName}
-                </option>
-              ))}
-            </select>
+            {/* Searchable Employee Input */}
+            <div className="employee-search-container" style={{ position: 'relative', minWidth: '250px' }}>
+              <input
+                type="text"
+                placeholder="Search employee to clock in..."
+                value={employeeSearchTerm}
+                onChange={(e) => {
+                  setEmployeeSearchTerm(e.target.value);
+                  setShowEmployeeDropdown(true);
+                }}
+                onFocus={() => setShowEmployeeDropdown(true)}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              />
+              {showEmployeeDropdown && employeeSearchTerm && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  background: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                  zIndex: 1000
+                }}>
+                  {employees
+                    .filter(emp => {
+                      const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
+                      const search = employeeSearchTerm.toLowerCase();
+                      return fullName.includes(search) || 
+                             emp.email?.toLowerCase().includes(search) ||
+                             emp.vtid?.toString().includes(search);
+                    })
+                    .slice(0, 10)
+                    .map(emp => (
+                      <div
+                        key={emp.id || emp._id}
+                        onClick={() => {
+                          setSelectedEmployee(emp);
+                          setEmployeeSearchTerm(`${emp.firstName} ${emp.lastName}`);
+                          setShowEmployeeDropdown(false);
+                        }}
+                        style={{
+                          padding: '10px 16px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f3f4f6',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
+                      >
+                        <div style={{ fontWeight: '500', fontSize: '14px', color: '#111827' }}>
+                          {emp.firstName} {emp.lastName}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                          {emp.email} • {emp.vtid || 'No VTID'}
+                        </div>
+                      </div>
+                    ))}
+                  {employees.filter(emp => {
+                    const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
+                    const search = employeeSearchTerm.toLowerCase();
+                    return fullName.includes(search) || 
+                           emp.email?.toLowerCase().includes(search) ||
+                           emp.vtid?.toString().includes(search);
+                  }).length === 0 && (
+                    <div style={{
+                      padding: '20px',
+                      textAlign: 'center',
+                      color: '#6b7280',
+                      fontSize: '14px'
+                    }}>
+                      No employees found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             
             {selectedEmployee && selectedEmployee.status === 'clocked_in' && (
               <button
@@ -761,7 +846,10 @@ const ClockIns = () => {
                 displayedEmployees.map((employee, index) => (
                   <tr 
                     key={employee.id || employee._id || index} 
-                    onClick={() => setSelectedEmployee(employee)}
+                    onClick={() => {
+                      setSelectedEmployee(employee);
+                      setShowTimesheetModal(true);
+                    }}
                     style={{
                       borderBottom: '1px solid #f3f4f6',
                       cursor: 'pointer',
@@ -786,7 +874,22 @@ const ClockIns = () => {
                       {employee.vtid || '-'}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {employee.firstName || '-'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {employee.firstName || '-'}
+                        {currentUser?.email === employee.email && (
+                          <span style={{
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                            color: '#ffffff',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            letterSpacing: '0.5px'
+                          }}>
+                            ME
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.lastName || '-'}
@@ -1225,10 +1328,13 @@ const ClockIns = () => {
       )}
 
       {/* Employee Timesheet Modal */}
-      {selectedEmployee && (
+      {selectedEmployee && showTimesheetModal && (
         <EmployeeTimesheetModal
           employee={selectedEmployee}
-          onClose={() => setSelectedEmployee(null)}
+          onClose={() => {
+            setSelectedEmployee(null);
+            setShowTimesheetModal(false);
+          }}
         />
       )}
     </>
