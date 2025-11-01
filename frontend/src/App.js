@@ -49,6 +49,7 @@ import RotaShiftManagement from "./pages/RotaShiftManagement";
 import ClockInOut from "./pages/ClockInOut";
 import ClockIns from "./pages/ClockIns";
 import TimeHistory from "./pages/TimeHistory";
+import LocationTracking from "./pages/LocationTracking";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -334,6 +335,10 @@ function App() {
                                   <Route
                                     path="/time-history"
                                     element={<TimeHistory />}
+                                  />
+                                  <Route
+                                    path="/location-tracking"
+                                    element={<LocationTracking />}
                                   />
                                 </Routes>
                             </div>

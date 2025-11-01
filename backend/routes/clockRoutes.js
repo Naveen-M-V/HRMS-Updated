@@ -1161,7 +1161,7 @@ router.get('/user/status', async (req, res) => {
 router.post('/user/in', async (req, res) => {
   try {
     const userId = req.user._id || req.user.userId || req.user.id;
-    const { workType, location } = req.body;
+    const { workType, location, gpsCoordinates, address } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -1206,6 +1206,21 @@ router.post('/user/in', async (req, res) => {
       status: 'clocked_in',
       createdBy: userId
     };
+
+    // Add GPS coordinates if provided
+    if (gpsCoordinates && gpsCoordinates.latitude && gpsCoordinates.longitude) {
+      timeEntryData.gpsCoordinates = {
+        latitude: parseFloat(gpsCoordinates.latitude),
+        longitude: parseFloat(gpsCoordinates.longitude),
+        accuracy: gpsCoordinates.accuracy || null,
+        timestamp: new Date()
+      };
+    }
+
+    // Add address if provided
+    if (address) {
+      timeEntryData.address = address;
+    }
     
     let attendanceStatus = 'Unscheduled';
     let validationResult = null;
@@ -1224,6 +1239,41 @@ router.post('/user/in', async (req, res) => {
     
     const timeEntry = new TimeEntry(timeEntryData);
     await timeEntry.save();
+    
+    // Create location tracking entry if GPS coordinates are provided
+    if (gpsCoordinates && gpsCoordinates.latitude && gpsCoordinates.longitude) {
+      try {
+        const LocationTracking = require('../models/LocationTracking');
+        
+        // Deactivate previous locations for this user
+        await LocationTracking.updateMany(
+          { employee: userId, isActive: true },
+          { isActive: false }
+        );
+        
+        // Create new location entry
+        await LocationTracking.create({
+          employee: userId,
+          coordinates: {
+            latitude: parseFloat(gpsCoordinates.latitude),
+            longitude: parseFloat(gpsCoordinates.longitude)
+          },
+          accuracy: gpsCoordinates.accuracy || null,
+          address: address || '',
+          workLocation: location || 'Work From Office',
+          updateType: 'clock_in',
+          timeEntryId: timeEntry._id,
+          deviceInfo: {
+            userAgent: req.headers['user-agent'] || '',
+            platform: req.headers['sec-ch-ua-platform'] || '',
+            timestamp: new Date()
+          }
+        });
+      } catch (locationError) {
+        console.error('Failed to create location tracking entry:', locationError);
+        // Don't fail the clock-in if location tracking fails
+      }
+    }
     
     if (shift) {
       console.log('User clock-in: Updating shift to In Progress:', shift._id);

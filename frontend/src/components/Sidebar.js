@@ -16,6 +16,7 @@ import { BellIcon } from "@heroicons/react/24/outline";
 import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 import { CalendarDaysIcon } from "@heroicons/react/24/outline";
 import { ClockIcon } from "@heroicons/react/24/outline";
+import { MapPinIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar({ isOpen, toggleSidebar }) {
   const navigate = useNavigate();
@@ -228,6 +229,16 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               >
                 <DocumentTextIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
                 <span className="text-sm">History</span>
+              </div>
+
+              <div
+                onClick={() => handleNavigation("/location-tracking")}
+                className={`relative group flex items-center gap-4 px-4 py-3 cursor-pointer rounded-md select-none ${
+                  isActive('/location-tracking') ? 'bg-green-700' : 'hover:bg-green-800'
+                }`}
+              >
+                <MapPinIcon className="h-5 w-5 flex-shrink-0 text-green-300" />
+                <span className="text-sm">Location Tracking</span>
               </div>
             </div>
           )}

@@ -5,7 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import UserClockIns from './UserClockIns';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
+import { getLocationForClockIn } from '../utils/locationApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
+import LocationUpdate from '../components/LocationUpdate';
 import { jobRoleCertificateMapping } from '../data/new';
 import { 
   PencilIcon, 
@@ -16,7 +18,8 @@ import {
   DocumentTextIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  ClockIcon
+  ClockIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 
 const UserDashboard = () => {
@@ -133,7 +136,28 @@ const UserDashboard = () => {
 
     setProcessing(true);
     try {
-      const response = await userClockIn({ location, workType });
+      let clockInData = { location, workType };
+      
+      // Try to get GPS location
+      try {
+        toast.info('Getting your location...', { autoClose: 2000 });
+        const locationData = await getLocationForClockIn({
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        });
+        
+        clockInData.gpsCoordinates = locationData.gpsCoordinates;
+        clockInData.address = locationData.address;
+        
+        toast.success('Location captured successfully!', { autoClose: 2000 });
+      } catch (locationError) {
+        console.warn('Failed to get GPS location:', locationError);
+        toast.warning('Could not get GPS location, proceeding without it', { autoClose: 3000 });
+        // Continue with clock-in even if GPS fails
+      }
+
+      const response = await userClockIn(clockInData);
       
       if (response.success) {
         toast.success(response.message || 'Clocked in successfully!');
@@ -379,6 +403,7 @@ const UserDashboard = () => {
               { id: 'profile', name: 'My Profile', icon: UserCircleIcon },
               { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon },
               { id: 'certificates', name: 'My Certificates', icon: DocumentTextIcon },
+              { id: 'location', name: 'My Location', icon: MapPinIcon },
               { id: 'notifications', name: 'Notifications', icon: BellIcon }
             ].map((tab) => (
               <button
@@ -684,7 +709,7 @@ const UserDashboard = () => {
                               <p className="text-sm font-medium text-gray-900">{notification.title || 'Notification'}</p>
                               <p className="text-xs text-gray-600 truncate">{notification.message}</p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {new Date(notification.createdAt).toLocaleString('en-GB', { timeZone: 'Europe/London' })}
+                                {new Date(notification.createdAt).toLocaleString()}
                               </p>
                             </div>
                           </div>
@@ -973,6 +998,19 @@ const UserDashboard = () => {
           </div>
         )}
 
+        {/* Location Tab */}
+        {activeTab === 'location' && (
+          <div className="max-w-2xl">
+            <LocationUpdate 
+              onLocationUpdate={(locationData) => {
+                console.log('Location updated:', locationData);
+                toast.success('Location updated successfully!');
+              }}
+              showCurrentLocation={true}
+            />
+          </div>
+        )}
+
         {/* Notifications Tab */}
         {activeTab === 'notifications' && (
           <div className="bg-white shadow rounded-lg">
@@ -997,7 +1035,7 @@ const UserDashboard = () => {
                         <p className="text-sm text-gray-600">{notification.message}</p>
                         <div className="mt-2 flex items-center text-xs text-gray-500">
                           <ClockIcon className="h-4 w-4 mr-1" />
-                          {new Date(notification.createdAt).toLocaleString('en-GB', { timeZone: 'Europe/London' })}
+                          {new Date(notification.createdAt).toLocaleString()}
                         </div>
                       </div>
                     </div>
