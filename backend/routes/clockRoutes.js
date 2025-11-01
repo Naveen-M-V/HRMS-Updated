@@ -1778,36 +1778,11 @@ router.get('/timesheet/:employeeId', async (req, res) => {
       let negativeHours = 0;
 
       // Calculate hours worked
-      if (entry.clockIn) {
-        // Handle both HH:MM format and ISO date format
-        let clockInTime, clockOutTime;
-        
-        if (typeof entry.clockIn === 'string' && /^\d{2}:\d{2}$/.test(entry.clockIn)) {
-          // HH:MM format - use a reference date
-          clockInTime = new Date(`2000-01-01T${entry.clockIn}:00`);
-          
-          if (entry.clockOut) {
-            clockOutTime = new Date(`2000-01-01T${entry.clockOut}:00`);
-          } else {
-            // If no clock out, calculate hours up to current time for ongoing entries
-            const now = new Date();
-            const currentTime = now.toTimeString().slice(0, 5);
-            clockOutTime = new Date(`2000-01-01T${currentTime}:00`);
-          }
-        } else {
-          // ISO date format
-          clockInTime = new Date(entry.clockIn);
-          
-          if (entry.clockOut) {
-            clockOutTime = new Date(entry.clockOut);
-          } else {
-            // If no clock out, use current time
-            clockOutTime = new Date();
-          }
-        }
-        
+      if (entry.clockIn && entry.clockOut) {
+        const clockInTime = new Date(entry.clockIn);
+        const clockOutTime = new Date(entry.clockOut);
         const diffMs = clockOutTime - clockInTime;
-        hoursWorked = Math.max(0, diffMs / (1000 * 60 * 60)); // Convert to hours, ensure non-negative
+        hoursWorked = diffMs / (1000 * 60 * 60); // Convert to hours
 
         // Subtract break time if any
         if (entry.breaks && entry.breaks.length > 0) {
@@ -1815,26 +1790,23 @@ router.get('/timesheet/:employeeId', async (req, res) => {
           hoursWorked -= totalBreakMinutes / 60;
         }
 
-        // Only add to totals if entry is complete (has clockOut)
-        if (entry.clockOut) {
-          totalHoursWorked += hoursWorked;
+        totalHoursWorked += hoursWorked;
 
-          // Calculate overtime (if worked more than 8 hours)
-          if (hoursWorked > 8) {
-            overtime = hoursWorked - 8;
-            totalOvertime += overtime;
-          }
+        // Calculate overtime (if worked more than 8 hours)
+        if (hoursWorked > 8) {
+          overtime = hoursWorked - 8;
+          totalOvertime += overtime;
+        }
 
-          // Calculate negative hours (if worked less than expected shift hours)
-          if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
-            const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
-            const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
-            const expectedHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
-            
-            if (hoursWorked < expectedHours) {
-              negativeHours = expectedHours - hoursWorked;
-              totalNegativeHours += negativeHours;
-            }
+        // Calculate negative hours (if worked less than expected shift hours)
+        if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+          const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
+          const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
+          const expectedHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+          
+          if (hoursWorked < expectedHours) {
+            negativeHours = expectedHours - hoursWorked;
+            totalNegativeHours += negativeHours;
           }
         }
       }

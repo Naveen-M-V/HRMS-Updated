@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../context/AuthContext';
-import { useClockStatus } from '../context/ClockStatusContext';
 import ShiftCalendar from '../components/ShiftCalendar';
 import { 
   getUserClockStatus, 
@@ -20,7 +19,6 @@ import {
 
 const UserClockIns = () => {
   const { user } = useAuth();
-  const { triggerClockRefresh } = useClockStatus();
   const [currentStatus, setCurrentStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [clockingIn, setClockingin] = useState(false);
@@ -86,53 +84,9 @@ const UserClockIns = () => {
   const handleClockIn = async () => {
     setClockingin(true);
     try {
-      // ========== GPS LOCATION CAPTURE ==========
-      let gpsData = {};
-      
-      if (navigator.geolocation) {
-        try {
-          const locationToast = toast.info('Requesting location access...', { autoClose: false });
-          
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              resolve,
-              reject,
-              {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-              }
-            );
-          });
-          
-          gpsData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          
-          toast.dismiss(locationToast);
-          console.log('GPS captured:', gpsData);
-        } catch (gpsError) {
-          console.error('GPS error:', gpsError);
-          
-          if (gpsError.code === 1) {
-            toast.error('Location permission denied! Please enable location access.', {
-              autoClose: 7000
-            });
-            setClockingin(false);
-            return;
-          } else {
-            toast.warning('Location unavailable. Clocking in without GPS data.');
-          }
-        }
-      }
-      // ==========================================
-      
       const response = await userClockIn({
         workType: selectedWorkType,
-        location: selectedLocation,
-        ...gpsData
+        location: selectedLocation
       });
       
       if (response.success) {
@@ -140,8 +94,6 @@ const UserClockIns = () => {
         // Immediately fetch updated status and entries
         await fetchUserStatus();
         await fetchUserEntries();
-        // Trigger refresh in overview tab and admin dashboard
-        triggerClockRefresh();
       } else {
         toast.error(response.message || 'Failed to clock in');
       }
@@ -163,8 +115,6 @@ const UserClockIns = () => {
         // Immediately fetch updated status and entries
         await fetchUserStatus();
         await fetchUserEntries();
-        // Trigger refresh in overview tab and admin dashboard
-        triggerClockRefresh();
       } else {
         toast.error(response.message || 'Failed to clock out');
       }

@@ -130,8 +130,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         const clockIn = dayEntry.clockIn;
         const clockOut = dayEntry.clockOut;
         
-        // Parse hours from backend calculation - use hoursWorked or totalHours field
-        const hours = parseFloat(dayEntry.hoursWorked || dayEntry.totalHours || 0);
+        // Parse hours from backend calculation
+        const hours = parseFloat(dayEntry.hoursWorked || 0);
         const overtime = parseFloat(dayEntry.overtime || 0);
         const negativeHours = parseFloat(dayEntry.negativeHours || 0);
         
@@ -167,7 +167,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         };
 
         const clockInTime = formatTime(clockIn);
-        const clockOutTime = clockOut ? formatTime(clockOut) : '🔴 Present';
+        const clockOutTime = clockOut ? formatTime(clockOut) : 'Present';
 
         // Calculate break time display
         let breakInfo = '';
@@ -179,9 +179,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             breakInfo = ` (Break: ${breakHours}h ${breakMins}m)`;
           }
         }
-        
-        // Add indicator for ongoing entries
-        const ongoingIndicator = !clockOut ? ' (In Progress)' : '';
 
         weekEntries.push({
           date: date,
@@ -190,10 +187,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           clockedHours: `${clockInTime} - ${clockOutTime}${breakInfo}`,
           location: dayEntry.location || 'N/A',
           overtime: overtime > 0 ? formatHours(overtime) : '--',
-          totalHours: `${formatHours(hours)}${ongoingIndicator}`,
+          totalHours: formatHours(hours),
           workType: dayEntry.workType || 'Regular',
           selected: false,
-          isOngoing: !clockOut, // Flag to indicate ongoing entry
           // GPS location data for admin view
           gpsLocation: dayEntry.gpsLocation || null
         });
