@@ -416,6 +416,7 @@ const RotaShiftManagement = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ background: '#f9fafb' }}>
                 <tr>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151', width: '60px' }}>SI No.</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Employee</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Date</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Scheduled Time</th>
@@ -429,13 +430,16 @@ const RotaShiftManagement = () => {
               <tbody>
                 {shifts.length === 0 ? (
                   <tr>
-                    <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                    <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                       No shifts found. Create your first shift assignment.
                     </td>
                   </tr>
                 ) : (
-                  shifts.map((shift) => (
+                  shifts.map((shift, index) => (
                     <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
+                        {index + 1}
+                      </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                         {shift.employeeId?.firstName} {shift.employeeId?.lastName}
                       </td>

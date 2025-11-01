@@ -49,8 +49,9 @@ const ClockIns = () => {
       console.log('🔄 Fetching clock-ins data...');
       setStatsLoading(true);
       
+      // Fetch both employees and admins
       const [employeesRes, statsRes] = await Promise.all([
-        getClockStatus(),
+        getClockStatus({ includeAdmins: true }), // Include admins in the list
         getDashboardStats()
       ]);
       
@@ -92,10 +93,19 @@ const ClockIns = () => {
   };
 
   const calculateStatsFromEmployees = (employeeList) => {
+    // Filter only today's data for live status
+    const today = new Date().toISOString().split('T')[0];
+    const todayEmployees = employeeList.filter(e => {
+      if (!e.clockIn) return false;
+      const clockInDate = new Date(e.clockIn).toISOString().split('T')[0];
+      return clockInDate === today;
+    });
+    
     const calculated = {
-      clockedIn: employeeList.filter(e => e.status === 'clocked_in').length,
-      onBreak: employeeList.filter(e => e.status === 'on_break').length,
-      clockedOut: employeeList.filter(e => e.status === 'clocked_out').length,
+      clockedIn: todayEmployees.filter(e => e.status === 'clocked_in').length,
+      onBreak: todayEmployees.filter(e => e.status === 'on_break').length,
+      clockedOut: todayEmployees.filter(e => e.status === 'clocked_out').length,
+      absent: employeeList.length - todayEmployees.length,
       total: employeeList.length
     };
     console.log('📊 Calculated stats from employees:', calculated);
@@ -214,15 +224,15 @@ const ClockIns = () => {
       const response = await setOnBreak(employeeId);
       if (response.success) {
         toast.success('Employee is now on break');
-        fetchData();
+        await fetchData(); // Force refresh
       } else {
         toast.error(response.message || 'Failed to set on break');
-        fetchData(); // Revert on failure
+        await fetchData(); // Revert on failure
       }
     } catch (error) {
       console.error('Set on break error:', error);
       toast.error(error.message || 'Failed to set on break');
-      fetchData(); // Revert on error
+      await fetchData(); // Revert on error
     }
   };
 
@@ -255,17 +265,17 @@ const ClockIns = () => {
         const displayStatus = newStatus === 'resume_work' ? 'resumed work' : actualStatus.replace('_', ' ');
         toast.success(`Status changed to ${displayStatus} successfully`);
         // Fetch fresh data to ensure consistency
-        fetchData();
+        await fetchData();
       } else {
         toast.error(response.message || 'Failed to change status');
         // Revert optimistic update on failure
-        fetchData();
+        await fetchData();
       }
     } catch (error) {
       console.error('Status change error:', error);
       toast.error(error.message || 'Failed to change status');
       // Revert optimistic update on error
-      fetchData();
+      await fetchData();
     }
   };
 
@@ -283,13 +293,20 @@ const ClockIns = () => {
       const response = await deleteTimeEntry(timeEntryId);
       if (response.success) {
         toast.success('Time entry deleted successfully');
-        fetchData();
+        // Force immediate refresh
+        await fetchData();
+        // Clear any selected employee
+        setSelectedEmployee(null);
       } else {
         toast.error(response.message || 'Failed to delete time entry');
+        // Still refresh to sync with backend
+        await fetchData();
       }
     } catch (error) {
       console.error('Delete time entry error:', error);
       toast.error(error.message || 'Failed to delete time entry');
+      // Refresh even on error to sync state
+      await fetchData();
     }
   };
 
@@ -645,6 +662,26 @@ const ClockIns = () => {
               />
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {statusFilter && (
+                <button
+                  onClick={() => setStatusFilter(null)}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+                  onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+                >
+                  Clear Filters
+                </button>
+              )}
               <span style={{ fontSize: '14px', color: '#6b7280' }}>Show</span>
               <select
                 value={showEntries}

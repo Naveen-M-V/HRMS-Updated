@@ -23,6 +23,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [selectAll, setSelectAll] = useState(false);
   const [selectedDays, setSelectedDays] = useState([]);
+  const [weeklyTotalHours, setWeeklyTotalHours] = useState(0);
 
   useEffect(() => {
     if (employee) {
@@ -106,6 +107,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     setStatistics({ hoursWorked: 0, overtime: 0, negativeHours: 0 });
     setSelectedDays([]);
     setSelectAll(false);
+    setWeeklyTotalHours(0);
   };
 
   const processTimesheetData = (data) => {
@@ -208,6 +210,16 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     setSelectedDays([]);
     setSelectAll(false);
     
+    // Calculate weekly total hours
+    const weekTotal = weekEntries.reduce((sum, entry) => {
+      if (entry.totalHours && entry.totalHours !== '00:00') {
+        const [hours, minutes] = entry.totalHours.split(':').map(Number);
+        return sum + hours + (minutes / 60);
+      }
+      return sum;
+    }, 0);
+    setWeeklyTotalHours(weekTotal);
+    
     // Use statistics from backend if available
     if (data.statistics) {
       setStatistics({
@@ -269,6 +281,48 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       day: '2-digit',
       month: 'long'
     });
+  };
+
+  const exportToExcel = () => {
+    // Create CSV content
+    const monday = getMonday(currentDate);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    let csvContent = `Timesheet Report\n`;
+    csvContent += `Employee: ${employee.firstName} ${employee.lastName}\n`;
+    csvContent += `Period: ${monday.toLocaleDateString('en-GB')} - ${sunday.toLocaleDateString('en-GB')}\n`;
+    csvContent += `Week ${getWeekNumber(currentDate)}\n\n`;
+    
+    // Headers
+    csvContent += `Date,Clocked Hours,Location,Overtime,Total Hours\n`;
+    
+    // Data rows
+    weekData.forEach(day => {
+      const date = `${day.dayName} ${day.dayNumber}`;
+      const clockedHours = day.clockedHours || 'N/A';
+      const location = day.location || '--';
+      const overtime = day.overtime || '--';
+      const totalHours = day.totalHours || '00:00';
+      
+      csvContent += `"${date}","${clockedHours}","${location}","${overtime}","${totalHours}"\n`;
+    });
+    
+    // Summary
+    csvContent += `\nWeekly Total Hours,${formatHours(weeklyTotalHours)}\n`;
+    csvContent += `Hours Worked to Date,${statistics.hoursWorked}\n`;
+    csvContent += `Overtime to Date,${statistics.overtime}\n`;
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `timesheet_${employee.firstName}_${employee.lastName}_week${getWeekNumber(currentDate)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!employee) return null;
@@ -380,9 +434,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               </div>
             </div>
             <div style={{ gridColumn: 'span 3' }}>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Negative hours to date</div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Weekly Total Hours</div>
               <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>
-                {statistics.negativeHours}
+                {formatHours(weeklyTotalHours)}
               </div>
             </div>
           </div>
@@ -441,6 +495,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               Selected ({selectedCount.toString().padStart(2, '0')})
             </div>
             <button
+              onClick={exportToExcel}
+              title="Export to Excel"
               style={{
                 background: 'transparent',
                 border: 'none',
