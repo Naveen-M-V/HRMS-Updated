@@ -23,7 +23,7 @@ import {
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
-  const { triggerClockRefresh } = useClockStatus();
+  const { triggerClockRefresh, refreshTrigger } = useClockStatus();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
@@ -75,27 +75,34 @@ const UserDashboard = () => {
         }
 
         // Fetch user notifications from session-based endpoint
-        try {
-          const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications?limit=10`, {
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json'
+        // Only fetch if we have a valid user session
+        if (user && user.email) {
+          try {
+            const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications?limit=10`, {
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (notificationsResponse.ok) {
+              const notificationsData = await notificationsResponse.json();
+              console.log('User notifications:', notificationsData);
+              setNotifications(notificationsData.notifications || []); // Use notifications array from response
+            } else if (notificationsResponse.status === 401) {
+              // Silently skip - user not authenticated for notifications
+              console.log('Notifications: Authentication required, skipping...');
+              setNotifications([]);
+            } else {
+              console.error('Failed to fetch notifications:', notificationsResponse.status);
+              setNotifications([]);
             }
-          });
-          
-          if (notificationsResponse.ok) {
-            const notificationsData = await notificationsResponse.json();
-            console.log('User notifications:', notificationsData);
-            setNotifications(notificationsData.notifications || []); // Use notifications array from response
-          } else if (notificationsResponse.status === 401) {
-            console.warn('Notifications: Authentication required, skipping...');
-            setNotifications([]);
-          } else {
-            console.error('Failed to fetch notifications:', notificationsResponse.status);
+          } catch (notifError) {
+            // Silently handle error - don't spam console
+            console.log('Notifications: Error occurred, skipping...');
             setNotifications([]);
           }
-        } catch (notifError) {
-          console.error('Error fetching notifications:', notifError);
+        } else {
           setNotifications([]);
         }
       }
@@ -122,7 +129,17 @@ const UserDashboard = () => {
     }
   }, [user, fetchUserData]);
 
-  const fetchClockStatus = async () => {
+  // Listen for clock status changes from clock-ins tab or any other source
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('Refresh trigger detected, updating clock status and user data');
+      fetchClockStatus();
+      // Also refresh user data to update notifications without loading screen
+      fetchUserData(false);
+    }
+  }, [refreshTrigger, fetchClockStatus, fetchUserData]);
+
+  const fetchClockStatus = useCallback(async () => {
     try {
       const response = await getUserClockStatus();
       if (response.success) {
@@ -131,7 +148,7 @@ const UserDashboard = () => {
     } catch (error) {
       console.error('Fetch clock status error:', error);
     }
-  };
+  }, []);
 
 
   const handleClockIn = async () => {
