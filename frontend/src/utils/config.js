@@ -20,20 +20,8 @@ const getServerBaseUrl = () => {
          'https://talentshield.co.uk';
 };
 
-<<<<<<< HEAD
 export const API_BASE_URL = getApiBaseUrl();
 export const SERVER_BASE_URL = getServerBaseUrl();
-=======
-export const getServerBaseUrl = () => {
-  if (!_initialized) safeInit();
-  return _serverBaseUrl;
-};
-
-// Export constants - these will use fallback values initially,
-// then update after safeInit runs
-export const API_BASE_URL = _apiBaseUrl;
-export const SERVER_BASE_URL = _serverBaseUrl;
->>>>>>> parent of 344d07a (fix-tdz-error)
 
 // Helper function to get full image URL (works for PDFs and other files too)
 export const getImageUrl = (imagePath) => {
