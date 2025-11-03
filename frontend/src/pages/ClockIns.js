@@ -794,26 +794,6 @@ const ClockIns = () => {
               />
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              {statusFilter && (
-                <button
-                  onClick={() => setStatusFilter(null)}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#dc2626'}
-                  onMouseLeave={(e) => e.target.style.background = '#ef4444'}
-                >
-                  Clear Filters
-                </button>
-              )}
               <span style={{ fontSize: '14px', color: '#6b7280' }}>Show</span>
               <select
                 value={showEntries}
@@ -848,6 +828,7 @@ const ClockIns = () => {
                   manager: 'All Managers'
                 });
                 setSearchTerm('');
+                setStatusFilter(null);
               }}
               style={{
                 padding: '8px 16px',
