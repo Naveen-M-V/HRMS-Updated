@@ -407,7 +407,7 @@ router.get('/status', async (req, res) => {
       .lean();
 
     // Filter profiles based on includeAdmins parameter
-    const validProfiles = profiles.filter(profile => {
+    let validProfiles = profiles.filter(profile => {
       if (!profile.userId || !profile.userId._id) return false;
       
       // If includeAdmins is true, include all profiles
@@ -416,6 +416,31 @@ router.get('/status', async (req, res) => {
       // Otherwise, exclude admins
       return profile.userId.role !== 'admin';
     });
+
+    // If includeAdmins is true, also fetch admin users who don't have profiles
+    if (includeAdmins) {
+      const profileUserIds = profiles.map(p => p.userId?._id?.toString()).filter(Boolean);
+      
+      // Find admin users without profiles
+      const adminUsers = await User.find({
+        role: 'admin',
+        _id: { $nin: profileUserIds }
+      }).select('firstName lastName email _id role').lean();
+
+      // Add admin users as "virtual profiles"
+      adminUsers.forEach(admin => {
+        validProfiles.push({
+          userId: admin,
+          firstName: admin.firstName,
+          lastName: admin.lastName,
+          email: admin.email,
+          department: 'Administration',
+          jobTitle: 'Administrator',
+          vtid: '-',
+          profilePicture: null
+        });
+      });
+    }
 
     // Get all valid user IDs
     const allUserIds = validProfiles.map(p => p.userId._id);
@@ -1792,18 +1817,10 @@ router.get('/timesheet/:employeeId', async (req, res) => {
       let overtime = 0;
       let negativeHours = 0;
 
-      // Calculate hours worked
+      // Calculate hours worked using the utility function
       if (entry.clockIn && entry.clockOut) {
-        const clockInTime = new Date(entry.clockIn);
-        const clockOutTime = new Date(entry.clockOut);
-        const diffMs = clockOutTime - clockInTime;
-        hoursWorked = diffMs / (1000 * 60 * 60); // Convert to hours
-
-        // Subtract break time if any
-        if (entry.breaks && entry.breaks.length > 0) {
-          const totalBreakMinutes = entry.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
-          hoursWorked -= totalBreakMinutes / 60;
-        }
+        // Use the calculateHoursWorked utility which properly handles HH:mm format
+        hoursWorked = parseFloat(calculateHoursWorked(entry.clockIn, entry.clockOut, entry.breaks || []));
 
         totalHoursWorked += hoursWorked;
 
@@ -1815,15 +1832,17 @@ router.get('/timesheet/:employeeId', async (req, res) => {
 
         // Calculate negative hours (if worked less than expected shift hours)
         if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
-          const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
-          const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
-          const expectedHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+          const expectedHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
           
           if (hoursWorked < expectedHours) {
             negativeHours = expectedHours - hoursWorked;
             totalNegativeHours += negativeHours;
           }
         }
+      } else if (entry.clockIn && !entry.clockOut) {
+        // Employee is still clocked in - calculate hours up to now
+        const currentTime = new Date().toTimeString().slice(0, 5);
+        hoursWorked = parseFloat(calculateHoursWorked(entry.clockIn, currentTime, entry.breaks || []));
       }
 
       return {

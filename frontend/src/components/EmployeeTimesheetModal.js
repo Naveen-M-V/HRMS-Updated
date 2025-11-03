@@ -727,13 +727,19 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       }}
                     >
                       <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        {day.entryId && (
+                        {day.entryId ? (
                           <input
                             type="checkbox"
                             checked={selectedEntries.has(day.entryId)}
                             onChange={() => handleSelectEntry(day.entryId)}
                             onClick={(e) => e.stopPropagation()}
                             style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                          />
+                        ) : (
+                          <input
+                            type="checkbox"
+                            disabled
+                            style={{ cursor: 'not-allowed', width: '16px', height: '16px', opacity: 0.3 }}
                           />
                         )}
                       </td>
@@ -803,7 +809,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                         {day.totalHours}
                       </td>
                       <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        {day.entryId && (
+                        {day.entryId && selectedEntries.has(day.entryId) && (
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button
                               onClick={(e) => {
