@@ -8,6 +8,7 @@ import UserClockIns from './UserClockIns';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import LocationMap from '../components/LocationMap';
+import UserNavigation from '../components/UserNavigation';
 import { jobRoleCertificateMapping } from '../data/new';
 import { 
   PencilIcon, 
@@ -427,76 +428,14 @@ const UserDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <img 
-                src="/TSL.png" 
-                alt="TSL Logo" 
-                className="h-10 w-10 object-contain mr-3"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
-                <p className="text-sm text-gray-500">Welcome back, {user?.firstName} {user?.lastName}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              {notifications.length > 0 && (
-                <div className="relative">
-                  <BellIcon className="h-6 w-6 text-gray-400" />
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {notifications.length}
-                  </span>
-                </div>
-              )}
-              <button
-                onClick={handleLogout}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
-            {[
-              { id: 'overview', name: 'Overview', icon: UserCircleIcon },
-              { id: 'profile', name: 'My Profile', icon: UserCircleIcon },
-              { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon },
-              { id: 'certificates', name: 'My Certificates', icon: DocumentTextIcon },
-              { id: 'notifications', name: 'Notifications', icon: BellIcon }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
-              >
-                <tab.icon className="h-5 w-5" />
-                <span>{tab.name}</span>
-                {tab.id === 'notifications' && notifications.length > 0 && (
-                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notifications.length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
+      {/* Modern Navigation */}
+      <UserNavigation
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        notifications={notifications}
+        onLogout={handleLogout}
+        user={user}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Overview Tab */}

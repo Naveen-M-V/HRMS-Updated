@@ -94,9 +94,15 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
 
   return (
     <div
+      onClick={(e) => {
+        // Toggle sidebar when clicking on the sidebar itself (not on buttons/links)
+        if (e.target === e.currentTarget) {
+          toggleSidebar();
+        }
+      }}
       className={`fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground z-50 transition-all duration-300 flex flex-col shadow-xl ${
         isOpen ? "w-64" : "w-16"
-      }`}
+      } cursor-pointer`}
     >
       {/* Header with Toggle */}
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
@@ -126,7 +132,15 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-1 px-2">
+      <div 
+        onClick={(e) => {
+          // Toggle sidebar when clicking empty space in scrollable area
+          if (e.target === e.currentTarget) {
+            toggleSidebar();
+          }
+        }}
+        className="flex-1 overflow-y-auto py-4 space-y-1 px-2"
+      >
         {/* Reporting Section */}
         <div>
           <button

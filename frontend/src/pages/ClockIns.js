@@ -88,15 +88,34 @@ const ClockIns = () => {
       // Merge profile data with clock status
       if (Array.isArray(profilesRes) && clockStatusRes.success) {
         const clockStatusMap = new Map();
+        const clockStatusByEmail = new Map();
+        
         (clockStatusRes.data || []).forEach(emp => {
           const userId = emp.id || emp._id;
           clockStatusMap.set(userId, emp);
+          
+          // Also index by email for fallback matching
+          if (emp.email) {
+            clockStatusByEmail.set(emp.email, emp);
+          }
         });
         
         // Merge profiles with their clock status
         const mergedData = profilesRes.map((profile, index) => {
-          const userId = profile.userId?._id || profile.userId;
-          const clockStatus = clockStatusMap.get(userId) || {};
+          // Try multiple ways to get the user ID
+          const userId = profile.userId?._id || profile.userId || profile._id;
+          const email = profile.email || profile.userId?.email;
+          
+          // Try to find clock status by userId first, then by email as fallback
+          let clockStatus = clockStatusMap.get(userId);
+          
+          // If no clock status found by userId, try to find by email
+          if (!clockStatus && email) {
+            clockStatus = clockStatusByEmail.get(email);
+          }
+          
+          // Default to empty object if still not found
+          clockStatus = clockStatus || {};
           
           // Debug logging for first few employees
           if (index < 3) {
@@ -104,7 +123,10 @@ const ClockIns = () => {
               firstName: profile.firstName,
               lastName: profile.lastName,
               userId: profile.userId,
-              extractedUserId: userId
+              profileId: profile._id,
+              extractedUserId: userId,
+              email: email,
+              hasClockStatus: !!clockStatus.status
             });
           }
           
@@ -115,10 +137,11 @@ const ClockIns = () => {
           return {
             id: userId,
             _id: userId,
+            profileId: profile._id, // Keep the original profile ID
             firstName: profile.firstName,
             lastName: profile.lastName,
             name: `${profile.firstName} ${profile.lastName}`,
-            email: profile.email || profile.userId?.email,
+            email: email,
             department: profile.department || '-',
             vtid: profile.vtid || '-',
             jobTitle: profile.jobTitle || profile.role || '-',
