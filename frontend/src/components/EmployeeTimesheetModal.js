@@ -202,6 +202,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         });
       } else {
         weekEntries.push({
+          entryId: `absent-${dateStr}`, // Unique ID for absent days
           date: date,
           dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
           dayNumber: date.getDate().toString().padStart(2, '0'),
@@ -210,7 +211,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           overtime: '--',
           totalHours: '00:00',
           workType: null,
-          isWeekend: isWeekend
+          isWeekend: isWeekend,
+          isAbsent: true // Flag to identify absent entries
         });
       }
     }
@@ -279,7 +281,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
   // Edit handler
   const handleEditEntry = (day) => {
-    if (!day.entryId) return;
+    if (!day.entryId || day.isAbsent) return;
     
     setEditingEntry(day);
     setEditForm({
@@ -321,6 +323,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
   // Delete handlers
   const handleDeleteEntry = async (entryId) => {
+    // Don't delete absent entries
+    if (entryId.startsWith('absent-')) {
+      toast.warning('Cannot delete absent entries');
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to delete this time entry?')) {
       return;
     }
@@ -347,18 +355,26 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete ${selectedEntries.size} selected entries?`)) {
+    // Filter out absent entries (those starting with 'absent-')
+    const validEntries = Array.from(selectedEntries).filter(id => !id.startsWith('absent-'));
+    
+    if (validEntries.length === 0) {
+      toast.warning('Cannot delete absent entries. Please select actual time entries.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${validEntries.length} selected entries?`)) {
       return;
     }
 
     try {
-      const deletePromises = Array.from(selectedEntries).map(entryId => 
+      const deletePromises = validEntries.map(entryId => 
         deleteTimeEntry(entryId)
       );
       
       await Promise.all(deletePromises);
       
-      toast.success(`${selectedEntries.size} entries deleted successfully`);
+      toast.success(`${validEntries.length} entries deleted successfully`);
       fetchWeeklyTimesheet(); // Refresh data
       setSelectedEntries(new Set()); // Clear selection
     } catch (error) {
@@ -727,21 +743,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       }}
                     >
                       <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        {day.entryId ? (
-                          <input
-                            type="checkbox"
-                            checked={selectedEntries.has(day.entryId)}
-                            onChange={() => handleSelectEntry(day.entryId)}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                          />
-                        ) : (
-                          <input
-                            type="checkbox"
-                            disabled
-                            style={{ cursor: 'not-allowed', width: '16px', height: '16px', opacity: 0.3 }}
-                          />
-                        )}
+                        <input
+                          type="checkbox"
+                          checked={selectedEntries.has(day.entryId)}
+                          onChange={() => handleSelectEntry(day.entryId)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
                       </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>
                         {day.dayName} {day.dayNumber}
@@ -809,7 +817,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                         {day.totalHours}
                       </td>
                       <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        {day.entryId && selectedEntries.has(day.entryId) && (
+                        {day.entryId && selectedEntries.has(day.entryId) && !day.isAbsent && (
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button
                               onClick={(e) => {
