@@ -103,11 +103,17 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         {isOpen && (
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">TS</span>
+              <span className="text-white font-bold text-sm">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold">TalentShield</span>
-              <span className="text-xs text-sidebar-foreground/60">HRMS</span>
+              <span className="text-sm font-semibold">
+                {user?.firstName} {user?.lastName}
+              </span>
+              <span className="text-xs text-sidebar-foreground/60">
+                {user?.role === 'admin' ? 'Administrator' : 'User'}
+              </span>
             </div>
           </div>
         )}
@@ -333,85 +339,96 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           )}
         </div>
 
-        {/* My Settings Section */}
-        <div className="pt-2 border-t border-sidebar-border">
-          <button
-            onClick={() => {
-              if (!isOpen && toggleSidebar) {
-                toggleSidebar();
-              }
-              setOpenSettings(!openSettings);
-            }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              openSettings ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-            }`}
-          >
-            <UserCircleIcon className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <>
-                <span className="text-sm font-medium flex-1 text-left">My Settings</span>
-                {openSettings ? (
-                  <ChevronDownIcon className="h-4 w-4" />
-                ) : (
-                  <ChevronRightIcon className="h-4 w-4" />
-                )}
-              </>
-            )}
-          </button>
-
-          {openSettings && isOpen && (
-            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
-              <button
-                onClick={() => handleNavigation("/myaccount/profiles")}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-sidebar-accent/50 transition-all"
-              >
-                <UserIcon className="h-4 w-4" />
-                <span>Profile</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  handleNavigation("/myaccount/notifications");
-                  triggerRefresh();
-                }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-sidebar-accent/50 transition-all"
-              >
-                <BellIcon className="h-4 w-4" />
-                <span>Notifications</span>
-                {unreadNotifications > 0 && (
-                  <div className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
-                  </div>
-                )}
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-sidebar-border">
-        <button
-          onClick={handleLogout}
-          disabled={loading}
-          className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-sidebar-accent/50 transition-all ${
-            loading ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          <ArrowRightOnRectangleIcon className="h-5 w-5 flex-shrink-0" />
-          {isOpen && (
-            <span className="text-sm font-medium">
-              {loading ? "Logging out..." : "Logout"}
-            </span>
-          )}
-        </button>
+      {/* Footer - Profile Section with Dropdown */}
+      <div className="border-t border-sidebar-border mt-auto">
+        {isOpen ? (
+          <div className="p-2">
+            <button
+              onClick={() => setOpenSettings(!openSettings)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebar-accent transition-all"
+            >
+              <div className="h-9 w-9 rounded-full bg-sidebar-primary flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-semibold text-sm">
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </span>
+              </div>
+              <div className="flex-1 text-left overflow-hidden">
+                <div className="text-sm font-medium truncate">
+                  {user?.firstName} {user?.lastName}
+                </div>
+                <div className="text-xs text-sidebar-foreground/60 truncate">
+                  {user?.email}
+                </div>
+              </div>
+              {openSettings ? (
+                <ChevronDownIcon className="h-4 w-4 flex-shrink-0" />
+              ) : (
+                <ChevronRightIcon className="h-4 w-4 flex-shrink-0" />
+              )}
+            </button>
 
-        {isOpen && (
-          <div className="px-4 py-3 text-center border-t border-sidebar-border">
-            <div className="text-xs text-sidebar-foreground/60 font-medium">
-              TalentShield V 1.14
+            {/* Profile Dropdown Menu */}
+            {openSettings && (
+              <div className="mt-1 space-y-1 px-2 py-2 bg-sidebar-accent/30 rounded-lg">
+                <button
+                  onClick={() => handleNavigation("/myaccount/profiles")}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-sidebar-accent transition-all"
+                >
+                  <UserIcon className="h-4 w-4" />
+                  <span>My Profile</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    handleNavigation("/myaccount/notifications");
+                    triggerRefresh();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-sidebar-accent transition-all"
+                >
+                  <BellIcon className="h-4 w-4" />
+                  <span>Notifications</span>
+                  {unreadNotifications > 0 && (
+                    <div className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                    </div>
+                  )}
+                </button>
+
+                <div className="border-t border-sidebar-border my-1"></div>
+
+                <button
+                  onClick={handleLogout}
+                  disabled={loading}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-red-500/10 hover:text-red-400 transition-all ${
+                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                  <span>{loading ? "Logging out..." : "Logout"}</span>
+                </button>
+              </div>
+            )}
+
+            {/* Version Display */}
+            <div className="px-3 py-2 text-center mt-2">
+              <div className="text-xs text-sidebar-foreground/50 font-medium">
+                TalentShield V 1.14
+              </div>
             </div>
           </div>
+        ) : (
+          <button
+            onClick={toggleSidebar}
+            className="w-full p-3 flex items-center justify-center hover:bg-sidebar-accent transition-all"
+          >
+            <div className="h-9 w-9 rounded-full bg-sidebar-primary flex items-center justify-center">
+              <span className="text-white font-semibold text-sm">
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </span>
+            </div>
+          </button>
         )}
       </div>
     </div>
