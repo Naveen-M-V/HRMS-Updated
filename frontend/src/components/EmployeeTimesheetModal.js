@@ -4,12 +4,17 @@ import {
   ChevronLeftIcon, 
   ChevronRightIcon, 
   PrinterIcon,
-  EllipsisVerticalIcon
+  EllipsisVerticalIcon,
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '../utils/apiConfig';
 import MUIDatePicker from './MUIDatePicker';
+import MUITimePicker from './MUITimePicker';
 import dayjs from 'dayjs';
 import axios from 'axios';
+import { updateTimeEntry, deleteTimeEntry } from '../utils/clockApi';
+import { toast } from 'react-toastify';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -21,6 +26,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   });
   const [loading, setLoading] = useState(false);
   const [weeklyTotalHours, setWeeklyTotalHours] = useState(0);
+  const [selectedEntries, setSelectedEntries] = useState(new Set());
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [editForm, setEditForm] = useState({
+    date: null,
+    clockIn: null,
+    clockOut: null
+  });
 
   useEffect(() => {
     if (employee) {
@@ -172,10 +185,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         }
 
         weekEntries.push({
+          entryId: dayEntry._id || dayEntry.id,
           date: date,
           dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
           dayNumber: date.getDate().toString().padStart(2, '0'),
           clockedHours: `${clockInTime} - ${clockOutTime}${breakInfo}`,
+          clockIn: clockIn,
+          clockOut: clockOut,
           location: dayEntry.location || 'N/A',
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
@@ -237,6 +253,118 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       day: '2-digit',
       month: 'long'
     });
+  };
+
+  // Checkbox handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allEntryIds = weekData
+        .filter(day => day.entryId)
+        .map(day => day.entryId);
+      setSelectedEntries(new Set(allEntryIds));
+    } else {
+      setSelectedEntries(new Set());
+    }
+  };
+
+  const handleSelectEntry = (entryId) => {
+    const newSelected = new Set(selectedEntries);
+    if (newSelected.has(entryId)) {
+      newSelected.delete(entryId);
+    } else {
+      newSelected.add(entryId);
+    }
+    setSelectedEntries(newSelected);
+  };
+
+  // Edit handler
+  const handleEditEntry = (day) => {
+    if (!day.entryId) return;
+    
+    setEditingEntry(day);
+    setEditForm({
+      date: dayjs(day.date),
+      clockIn: day.clockIn ? dayjs(day.clockIn, 'HH:mm') : null,
+      clockOut: day.clockOut ? dayjs(day.clockOut, 'HH:mm') : null
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingEntry || !editForm.date) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const updateData = {
+        date: editForm.date.format('YYYY-MM-DD'),
+        clockIn: editForm.clockIn ? editForm.clockIn.format('HH:mm') : null,
+        clockOut: editForm.clockOut ? editForm.clockOut.format('HH:mm') : null
+      };
+
+      const response = await updateTimeEntry(editingEntry.entryId, updateData);
+      
+      if (response.success) {
+        toast.success('Time entry updated successfully');
+        setShowEditModal(false);
+        setEditingEntry(null);
+        fetchWeeklyTimesheet(); // Refresh data
+      } else {
+        toast.error(response.message || 'Failed to update entry');
+      }
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      toast.error(error.message || 'Failed to update entry');
+    }
+  };
+
+  // Delete handlers
+  const handleDeleteEntry = async (entryId) => {
+    if (!window.confirm('Are you sure you want to delete this time entry?')) {
+      return;
+    }
+
+    try {
+      const response = await deleteTimeEntry(entryId);
+      
+      if (response.success) {
+        toast.success('Time entry deleted successfully');
+        fetchWeeklyTimesheet(); // Refresh data
+        setSelectedEntries(new Set()); // Clear selection
+      } else {
+        toast.error(response.message || 'Failed to delete entry');
+      }
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      toast.error(error.message || 'Failed to delete entry');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedEntries.size === 0) {
+      toast.warning('Please select entries to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedEntries.size} selected entries?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedEntries).map(entryId => 
+        deleteTimeEntry(entryId)
+      );
+      
+      await Promise.all(deletePromises);
+      
+      toast.success(`${selectedEntries.size} entries deleted successfully`);
+      fetchWeeklyTimesheet(); // Refresh data
+      setSelectedEntries(new Set()); // Clear selection
+    } catch (error) {
+      console.error('Error deleting entries:', error);
+      toast.error('Failed to delete some entries');
+    }
   };
 
   const exportToExcel = () => {
@@ -455,6 +583,28 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {selectedEntries.size > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                title="Delete Selected"
+                style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <TrashIcon style={{ width: '16px', height: '16px' }} />
+                Delete ({selectedEntries.size})
+              </button>
+            )}
             <button
               onClick={exportToExcel}
               title="Export to Excel"
@@ -481,6 +631,21 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <th style={{ 
+                  padding: '16px 12px', 
+                  textAlign: 'center', 
+                  fontSize: '13px', 
+                  fontWeight: '500', 
+                  color: '#6b7280',
+                  width: '50px'
+                }}>
+                  <input
+                    type="checkbox"
+                    onChange={handleSelectAll}
+                    checked={selectedEntries.size > 0 && selectedEntries.size === weekData.filter(d => d.entryId).length}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                </th>
                 <th style={{ 
                   padding: '16px 12px', 
                   textAlign: 'left', 
@@ -523,12 +688,20 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   fontWeight: '500', 
                   color: '#6b7280' 
                 }}>Total hours worked</th>
+                <th style={{ 
+                  padding: '16px 12px', 
+                  textAlign: 'center', 
+                  fontSize: '13px', 
+                  fontWeight: '500', 
+                  color: '#6b7280',
+                  width: '100px'
+                }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                  <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                     Loading timesheet...
                   </td>
                 </tr>
@@ -553,6 +726,17 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                         background: day.clockedHours ? '#ffffff' : '#fafafa'
                       }}
                     >
+                      <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                        {day.entryId && (
+                          <input
+                            type="checkbox"
+                            checked={selectedEntries.has(day.entryId)}
+                            onChange={() => handleSelectEntry(day.entryId)}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                          />
+                        )}
+                      </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>
                         {day.dayName} {day.dayNumber}
                       </td>
@@ -618,6 +802,58 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '600', textAlign: 'right' }}>
                         {day.totalHours}
                       </td>
+                      <td style={{ padding: '16px 12px', textAlign: 'center' }}>
+                        {day.entryId && (
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditEntry(day);
+                              }}
+                              title="Edit Entry"
+                              style={{
+                                background: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '6px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <PencilIcon style={{ width: '14px', height: '14px' }} />
+                              Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteEntry(day.entryId);
+                              }}
+                              title="Delete Entry"
+                              style={{
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '6px 10px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <TrashIcon style={{ width: '14px', height: '14px' }} />
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
@@ -626,6 +862,106 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingEntry && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001
+          }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '32px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '24px', color: '#111827' }}>
+              Edit Time Entry
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Date
+                </label>
+                <MUIDatePicker
+                  value={editForm.date}
+                  onChange={(date) => setEditForm({ ...editForm, date })}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Clock In Time
+                </label>
+                <MUITimePicker
+                  value={editForm.clockIn}
+                  onChange={(time) => setEditForm({ ...editForm, clockIn: time })}
+                />
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Clock Out Time
+                </label>
+                <MUITimePicker
+                  value={editForm.clockOut}
+                  onChange={(time) => setEditForm({ ...editForm, clockOut: time })}
+                />
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', marginTop: '32px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  border: '1px solid #d1d5db',
+                  background: 'white',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#374151'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  background: '#3b82f6',
+                  color: 'white',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         /* Hide scrollbar for Chrome, Safari and Opera */

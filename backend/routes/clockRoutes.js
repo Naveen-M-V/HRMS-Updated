@@ -390,6 +390,9 @@ router.get('/status', async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    // Check if admins should be included
+    const includeAdmins = req.query.includeAdmins === 'true';
+
     // Get Profile model from server.js (since it's defined there)
     const Profile = require('mongoose').model('Profile');
     const ShiftAssignment = require('../models/ShiftAssignment');
@@ -400,15 +403,19 @@ router.get('/status', async (req, res) => {
       userId: { $exists: true, $ne: null }  // Must have a userId
     })
       .populate('userId', 'firstName lastName email _id role')
-      .select('userId firstName lastName email department jobTitle vtid')
+      .select('userId firstName lastName email department jobTitle vtid profilePicture')
       .lean();
 
-    // Filter profiles to only include those with valid user accounts (non-admin)
-    const validProfiles = profiles.filter(profile => 
-      profile.userId && 
-      profile.userId._id && 
-      profile.userId.role !== 'admin'
-    );
+    // Filter profiles based on includeAdmins parameter
+    const validProfiles = profiles.filter(profile => {
+      if (!profile.userId || !profile.userId._id) return false;
+      
+      // If includeAdmins is true, include all profiles
+      if (includeAdmins) return true;
+      
+      // Otherwise, exclude admins
+      return profile.userId.role !== 'admin';
+    });
 
     // Get all valid user IDs
     const allUserIds = validProfiles.map(p => p.userId._id);
@@ -464,6 +471,7 @@ router.get('/status', async (req, res) => {
       if (leave) {
         return {
           id: empId,
+          _id: empId,
           name: `${profile.userId.firstName} ${profile.userId.lastName}`,
           firstName: profile.userId.firstName,
           lastName: profile.userId.lastName,
@@ -471,6 +479,9 @@ router.get('/status', async (req, res) => {
           department: profile.department || '-',
           vtid: profile.vtid || '-',
           jobTitle: profile.jobTitle || '-',
+          jobRole: profile.jobTitle || '-',
+          profilePicture: profile.profilePicture || null,
+          role: profile.userId.role || 'employee',
           status: 'on_leave',
           clockIn: null,
           clockOut: null,
@@ -485,6 +496,7 @@ router.get('/status', async (req, res) => {
       // Otherwise use time entry status or default to absent
       return {
         id: empId,
+        _id: empId,
         name: `${profile.userId.firstName} ${profile.userId.lastName}`,
         firstName: profile.userId.firstName,
         lastName: profile.userId.lastName,
@@ -492,6 +504,9 @@ router.get('/status', async (req, res) => {
         department: profile.department || '-',
         vtid: profile.vtid || '-',
         jobTitle: profile.jobTitle || '-',
+        jobRole: profile.jobTitle || '-',
+        profilePicture: profile.profilePicture || null,
+        role: profile.userId.role || 'employee',
         status: status?.status || 'absent',
         clockIn: status?.clockIn || null,
         clockOut: status?.clockOut || null,
