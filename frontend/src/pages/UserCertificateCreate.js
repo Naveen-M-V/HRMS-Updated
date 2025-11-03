@@ -33,6 +33,8 @@ const UserCertificateCreate = () => {
   const [errors, setErrors] = useState({});
   const [suggestedCertificates, setSuggestedCertificates] = useState({ mandatory: [], alternative: [] });
   const [profileJobRoles, setProfileJobRoles] = useState([]);
+  const [providers, setProviders] = useState([]);
+  const [certificateNames, setCertificateNames] = useState([]);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
@@ -41,6 +43,12 @@ const UserCertificateCreate = () => {
       fetchUserProfile();
     }
   }, [user]);
+
+  // Load providers and certificate names on component mount
+  useEffect(() => {
+    fetchProviders();
+    fetchCertificateNames();
+  }, []);
 
   const fetchUserProfile = async () => {
     try {
@@ -70,6 +78,102 @@ const UserCertificateCreate = () => {
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const fetchProviders = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/suppliers`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProviders(data);
+      }
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+    }
+  };
+
+  const fetchCertificateNames = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/certificate-names`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCertificateNames(data);
+      }
+    } catch (error) {
+      console.error('Error fetching certificate names:', error);
+    }
+  };
+
+  const handleProviderSearch = async (searchTerm) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/suppliers/search?q=${encodeURIComponent(searchTerm)}`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProviders(data);
+      }
+    } catch (error) {
+      console.error('Error searching providers:', error);
+    }
+  };
+
+  const handleAddProvider = async (providerName) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/suppliers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ name: providerName }),
+      });
+      
+      if (response.ok) {
+        await fetchProviders();
+        setFormData(prev => ({ ...prev, provider: providerName }));
+      }
+    } catch (error) {
+      console.error('Error adding provider:', error);
+    }
+  };
+
+  const handleCertificateNameSearch = async (searchTerm) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/certificate-names/search?q=${encodeURIComponent(searchTerm)}`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCertificateNames(data);
+      }
+    } catch (error) {
+      console.error('Error searching certificate names:', error);
+    }
+  };
+
+  const handleAddCertificateName = async (certName) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/certificate-names`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ name: certName }),
+      });
+      
+      if (response.ok) {
+        await fetchCertificateNames();
+        setFormData(prev => ({ ...prev, certificate: certName }));
+      }
+    } catch (error) {
+      console.error('Error adding certificate name:', error);
     }
   };
 
@@ -109,10 +213,6 @@ const UserCertificateCreate = () => {
     
     if (!formData.certificate.trim()) {
       newErrors.certificate = 'Certificate name is required';
-    }
-    
-    if (!formData.category.trim()) {
-      newErrors.category = 'Category is required';
     }
     
     if (!formData.issueDate) {
@@ -316,10 +416,13 @@ const UserCertificateCreate = () => {
                   Certificate Name *
                 </label>
                 <SearchableDropdown
+                  name="certificate"
                   value={formData.certificate}
-                  onChange={(value) => setFormData(prev => ({ ...prev, certificate: value }))}
-                  placeholder="Enter or search certificate name"
-                  apiEndpoint="/api/certificate-names/search"
+                  onChange={(e) => setFormData(prev => ({ ...prev, certificate: e.target.value }))}
+                  options={certificateNames}
+                  placeholder="Type to search certificate names or add new..."
+                  onSearch={handleCertificateNameSearch}
+                  onAddNew={handleAddCertificateName}
                   className="mt-1"
                 />
                 {errors.certificate && (
@@ -330,7 +433,7 @@ const UserCertificateCreate = () => {
               {/* Category */}
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                  Category *
+                  Category
                 </label>
                 <select
                   id="category"
@@ -358,15 +461,21 @@ const UserCertificateCreate = () => {
                   Provider *
                 </label>
                 <SearchableDropdown
+                  name="provider"
                   value={formData.provider}
-                  onChange={(value) => setFormData(prev => ({ ...prev, provider: value }))}
-                  placeholder="Enter or search provider name"
-                  apiEndpoint="/api/suppliers/search"
+                  onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value }))}
+                  options={providers}
+                  placeholder="Type to search providers or add new..."
+                  onSearch={handleProviderSearch}
+                  onAddNew={handleAddProvider}
                   className="mt-1"
                 />
                 {errors.provider && (
                   <p className="mt-1 text-sm text-red-600">{errors.provider}</p>
                 )}
+                <p className="text-xs text-gray-500 mt-1">
+                  You can type to search existing providers or add a new one
+                </p>
               </div>
 
               {/* Dates */}
