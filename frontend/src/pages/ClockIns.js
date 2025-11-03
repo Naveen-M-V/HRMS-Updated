@@ -94,9 +94,23 @@ const ClockIns = () => {
         });
         
         // Merge profiles with their clock status
-        const mergedData = profilesRes.map(profile => {
+        const mergedData = profilesRes.map((profile, index) => {
           const userId = profile.userId?._id || profile.userId;
           const clockStatus = clockStatusMap.get(userId) || {};
+          
+          // Debug logging for first few employees
+          if (index < 3) {
+            console.log(`🔍 Employee ${index} - Profile:`, {
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              userId: profile.userId,
+              extractedUserId: userId
+            });
+          }
+          
+          if (!userId) {
+            console.warn(`⚠️ Missing userId for profile:`, profile);
+          }
           
           return {
             id: userId,
@@ -185,13 +199,25 @@ const ClockIns = () => {
   };
 
   const confirmClockIn = async () => {
-    if (!clockInEmployee) return;
+    if (!clockInEmployee) {
+      toast.error('No employee selected');
+      return;
+    }
     
     const employeeId = clockInEmployee.id || clockInEmployee._id;
-    setShowClockInModal(false);
     
+    console.log('🔍 Clock In Debug - Full Employee Object:', clockInEmployee);
     console.log('Clock In - Employee ID:', employeeId);
     console.log('Employee ID type:', typeof employeeId);
+    
+    if (!employeeId) {
+      console.error('❌ Employee ID is undefined! Employee object:', clockInEmployee);
+      toast.error('Invalid employee data. Please refresh and try again.');
+      setShowClockInModal(false);
+      return;
+    }
+    
+    setShowClockInModal(false);
 
     // Optimistic update
     setEmployees(prevEmployees => 
@@ -573,6 +599,13 @@ const ClockIns = () => {
                       <div
                         key={emp.id || emp._id}
                         onClick={() => {
+                          console.log('🎯 Selected employee from dropdown:', {
+                            id: emp.id,
+                            _id: emp._id,
+                            firstName: emp.firstName,
+                            lastName: emp.lastName,
+                            fullObject: emp
+                          });
                           setSelectedEmployee(emp);
                           setEmployeeSearchTerm(`${emp.firstName} ${emp.lastName}`);
                           setShowEmployeeDropdown(false);
@@ -653,6 +686,13 @@ const ClockIns = () => {
             ) : (
               <button
                 onClick={() => {
+                  console.log('🔘 Clock In button clicked. Selected employee:', {
+                    id: selectedEmployee?.id,
+                    _id: selectedEmployee?._id,
+                    firstName: selectedEmployee?.firstName,
+                    lastName: selectedEmployee?.lastName,
+                    fullObject: selectedEmployee
+                  });
                   if (selectedEmployee) {
                     openClockInModal(selectedEmployee);
                   } else {

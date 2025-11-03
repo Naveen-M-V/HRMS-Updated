@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useState, useEffect } from "react";
-import Sidebar from "./components/Sidebar";
+import ModernSidebar from "./components/ModernSidebar";
 import Topbar from "./components/Topbar";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { CertificateProvider } from "./context/CertificateContext";
@@ -221,7 +221,7 @@ function App() {
                       <NotificationProvider>
                         <ClockStatusProvider>
                           <div className="flex min-h-screen bg-gray-50">
-                            <Sidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+                            <ModernSidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
                             <div
                               className={`flex-1 flex flex-col transition-all duration-300 ${
                                 isSidebarOpen ? "ml-64" : "ml-16"

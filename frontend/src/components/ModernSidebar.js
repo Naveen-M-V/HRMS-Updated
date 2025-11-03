@@ -1,0 +1,419 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
+import {
+  ClipboardDocumentIcon,
+  AcademicCapIcon,
+  UserCircleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  HomeIcon,
+  UserIcon,
+  UserPlusIcon,
+  DocumentTextIcon,
+  BellIcon,
+  ArrowRightOnRectangleIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+  Bars3Icon,
+  CalendarIcon,
+} from "@heroicons/react/24/outline";
+
+export default function ModernSidebar({ isOpen, toggleSidebar }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { logout, loading, user } = useAuth();
+  const {
+    getUnreadCount,
+    subscribeToNotificationChanges,
+    triggerRefresh,
+    initializeNotifications,
+  } = useNotifications();
+
+  const [openReporting, setOpenReporting] = useState(false);
+  const [openClockInOut, setOpenClockInOut] = useState(false);
+  const [openTraining, setOpenTraining] = useState(false);
+  const [openRotaShift, setOpenRotaShift] = useState(false);
+  const [openSettings, setOpenSettings] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    if (!user || user.role !== "admin") {
+      setUnreadNotifications(0);
+      return;
+    }
+
+    Promise.resolve().then(() => {
+      try {
+        if (isOpen) {
+          initializeNotifications();
+        }
+        setUnreadNotifications(getUnreadCount());
+      } catch (error) {
+        console.error("Notification init error:", error);
+      }
+    });
+
+    const unsubscribe = subscribeToNotificationChanges((count) => {
+      setUnreadNotifications(count);
+    });
+
+    return () => {
+      try {
+        unsubscribe();
+      } catch (e) {
+        // ignore
+      }
+    };
+  }, [user, isOpen, getUnreadCount, subscribeToNotificationChanges, initializeNotifications]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      navigate("/login");
+    }
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const handleMenuClick = () => {
+    if (toggleSidebar && !isOpen) {
+      toggleSidebar();
+    }
+  };
+
+  return (
+    <div
+      className={`fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground z-50 transition-all duration-300 flex flex-col shadow-xl ${
+        isOpen ? "w-64" : "w-16"
+      }`}
+    >
+      {/* Header with Toggle */}
+      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
+        {isOpen && (
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
+              <span className="text-white font-bold text-sm">TS</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold">TalentShield</span>
+              <span className="text-xs text-sidebar-foreground/60">HRMS</span>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={toggleSidebar}
+          className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
+        >
+          <Bars3Icon className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto py-4 space-y-1 px-2">
+        {/* Reporting Section */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenReporting(!openReporting);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              openReporting ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <ClipboardDocumentIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Reporting</span>
+                {openReporting ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openReporting && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/dashboard")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/dashboard")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <HomeIcon className="h-4 w-4" />
+                <span>Compliance Dashboard</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Clock In/Out Section */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenClockInOut(!openClockInOut);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              openClockInOut ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <ClockIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Clock In/Out</span>
+                {openClockInOut ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openClockInOut && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/clock-overview")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/clock-overview")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <HomeIcon className="h-4 w-4" />
+                <span>Overview</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/clock-ins")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/clock-ins")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <ClockIcon className="h-4 w-4" />
+                <span>Clock-ins</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/time-history")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/time-history")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <DocumentTextIcon className="h-4 w-4" />
+                <span>History</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Training Compliance Section */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenTraining(!openTraining);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              openTraining ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <AcademicCapIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Training Compliance</span>
+                {openTraining ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openTraining && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/profiles")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/profiles")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <UserIcon className="h-4 w-4" />
+                <span>Profiles</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/create-user")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/create-user")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <UserPlusIcon className="h-4 w-4" />
+                <span>Create User</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/certificates")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/certificates")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <DocumentTextIcon className="h-4 w-4" />
+                <span>Certificates</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Rota Shift Management - Separate Section */}
+        <div className="pt-2 border-t border-sidebar-border">
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenRotaShift(!openRotaShift);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              openRotaShift ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <CalendarDaysIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Rota & Shifts</span>
+                {openRotaShift ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openRotaShift && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/rota-shift-management")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/rota-shift-management")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span>Shift Management</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* My Settings Section */}
+        <div className="pt-2 border-t border-sidebar-border">
+          <button
+            onClick={() => {
+              if (!isOpen && toggleSidebar) {
+                toggleSidebar();
+              }
+              setOpenSettings(!openSettings);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              openSettings ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <UserCircleIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">My Settings</span>
+                {openSettings ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openSettings && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/myaccount/profiles")}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-sidebar-accent/50 transition-all"
+              >
+                <UserIcon className="h-4 w-4" />
+                <span>Profile</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleNavigation("/myaccount/notifications");
+                  triggerRefresh();
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-sidebar-accent/50 transition-all"
+              >
+                <BellIcon className="h-4 w-4" />
+                <span>Notifications</span>
+                {unreadNotifications > 0 && (
+                  <div className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-sidebar-border">
+        <button
+          onClick={handleLogout}
+          disabled={loading}
+          className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-sidebar-accent/50 transition-all ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          <ArrowRightOnRectangleIcon className="h-5 w-5 flex-shrink-0" />
+          {isOpen && (
+            <span className="text-sm font-medium">
+              {loading ? "Logging out..." : "Logout"}
+            </span>
+          )}
+        </button>
+
+        {isOpen && (
+          <div className="px-4 py-3 text-center border-t border-sidebar-border">
+            <div className="text-xs text-sidebar-foreground/60 font-medium">
+              TalentShield V 1.14
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
