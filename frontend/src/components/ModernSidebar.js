@@ -16,7 +16,6 @@ import {
   ArrowRightOnRectangleIcon,
   CalendarDaysIcon,
   ClockIcon,
-  Bars3Icon,
   CalendarIcon,
 } from "@heroicons/react/24/outline";
 
@@ -104,31 +103,18 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         isOpen ? "w-64" : "w-16"
       } cursor-pointer`}
     >
-      {/* Header with Toggle */}
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
+      {/* Header */}
+      <div className="flex items-center justify-center p-4 border-b border-sidebar-border">
         {isOpen && (
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">
-                {user?.firstName} {user?.lastName}
-              </span>
-              <span className="text-xs text-sidebar-foreground/60">
-                {user?.role === 'admin' ? 'Administrator' : 'User'}
-              </span>
-            </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lg font-bold text-sidebar-foreground">
+              Talentshield
+            </span>
+            <span className="text-xs text-sidebar-foreground/60">
+              HRMS System
+            </span>
           </div>
         )}
-        <button
-          onClick={toggleSidebar}
-          className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
-        >
-          <Bars3Icon className="h-5 w-5" />
-        </button>
       </div>
 
       {/* Scrollable Content */}

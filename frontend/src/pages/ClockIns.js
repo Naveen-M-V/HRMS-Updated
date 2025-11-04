@@ -102,7 +102,7 @@ const ClockIns = () => {
         
         // Merge profiles with their clock status
         const mergedData = profilesRes.map((profile, index) => {
-          // Try multiple ways to get the user ID
+          // Try multiple ways to get the user ID - CRITICAL for clock operations
           const userId = profile.userId?._id || profile.userId || profile._id;
           const email = profile.email || profile.userId?.email;
           
@@ -118,14 +118,16 @@ const ClockIns = () => {
           clockStatus = clockStatus || {};
           
           // Debug logging for first few employees
-          if (index < 3) {
-            console.log(`🔍 Employee ${index} - Profile:`, {
+          if (index < 5) {
+            console.log(`🔍 Employee ${index} - Merged Data:`, {
               firstName: profile.firstName,
               lastName: profile.lastName,
               userId: profile.userId,
               profileId: profile._id,
               extractedUserId: userId,
               email: email,
+              clockStatus: clockStatus.status,
+              timeEntryId: clockStatus.timeEntryId,
               hasClockStatus: !!clockStatus.status
             });
           }
@@ -135,8 +137,8 @@ const ClockIns = () => {
           }
           
           return {
-            id: userId,
-            _id: userId,
+            id: userId, // CRITICAL: This is the user account ID used for clock operations
+            _id: userId, // Duplicate for compatibility
             profileId: profile._id, // Keep the original profile ID
             firstName: profile.firstName,
             lastName: profile.lastName,
@@ -151,13 +153,13 @@ const ClockIns = () => {
             company: profile.company || '-',
             staffType: profile.staffType || '-',
             poc: profile.poc || '-',
-            // Clock status data
+            // Clock status data - CRITICAL for button functionality
             status: clockStatus.status || 'absent',
             clockIn: clockStatus.clockIn || null,
             clockOut: clockStatus.clockOut || null,
             location: clockStatus.location || null,
             workType: clockStatus.workType || null,
-            timeEntryId: clockStatus.timeEntryId || null,
+            timeEntryId: clockStatus.timeEntryId || null, // CRITICAL: Required for edit/delete operations
             leaveType: clockStatus.leaveType || null,
             leaveReason: clockStatus.leaveReason || null
           };
@@ -281,6 +283,8 @@ const ClockIns = () => {
       return;
     }
 
+    console.log('🔍 Clock Out - Employee ID:', employeeId);
+
     // Optimistic update
     setEmployees(prevEmployees => 
       prevEmployees.map(emp => 
@@ -301,15 +305,16 @@ const ClockIns = () => {
       const response = await clockOut({ employeeId });
       if (response.success) {
         toast.success('Employee clocked out successfully');
-        fetchData();
+        await fetchData();
       } else {
         toast.error(response.message || 'Failed to clock out');
-        fetchData(); // Revert on failure
+        await fetchData(); // Revert on failure
       }
     } catch (error) {
-      console.error('Clock out error:', error);
-      toast.error(error.message || 'Failed to clock out');
-      fetchData(); // Revert on error
+      console.error('❌ Clock out error:', error);
+      console.error('Error details:', error.response?.data);
+      toast.error(error.response?.data?.message || error.message || 'Failed to clock out');
+      await fetchData(); // Revert on error
     }
   };
 
@@ -318,6 +323,8 @@ const ClockIns = () => {
       toast.error('Invalid employee ID');
       return;
     }
+
+    console.log('🔍 On Break - Employee ID:', employeeId);
 
     // Optimistic update
     setEmployees(prevEmployees => 
@@ -345,8 +352,9 @@ const ClockIns = () => {
         await fetchData(); // Revert on failure
       }
     } catch (error) {
-      console.error('Set on break error:', error);
-      toast.error(error.message || 'Failed to set on break');
+      console.error('❌ Set on break error:', error);
+      console.error('Error details:', error.response?.data);
+      toast.error(error.response?.data?.message || error.message || 'Failed to set on break');
       await fetchData(); // Revert on error
     }
   };
@@ -426,8 +434,15 @@ const ClockIns = () => {
   };
 
   const handleEditEntry = (employee) => {
+    console.log('🔍 Edit Entry - Employee:', {
+      id: employee.id,
+      _id: employee._id,
+      timeEntryId: employee.timeEntryId,
+      fullObject: employee
+    });
+
     if (!employee.timeEntryId) {
-      toast.error('No time entry to edit');
+      toast.error('No time entry to edit. Employee must be clocked in first.');
       return;
     }
     

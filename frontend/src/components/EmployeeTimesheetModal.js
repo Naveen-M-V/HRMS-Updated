@@ -192,6 +192,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           clockedHours: `${clockInTime} - ${clockOutTime}${breakInfo}`,
           clockIn: clockIn,
           clockOut: clockOut,
+          breaks: dayEntry.breaks || [], // Add breaks data for timeline visualization
           location: dayEntry.location || 'N/A',
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
@@ -755,7 +756,83 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                         {day.dayName} {day.dayNumber}
                       </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
-                        {day.clockedHours || (
+                        {day.clockedHours ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div>{day.clockedHours}</div>
+                            {/* Timeline Bar */}
+                            {day.clockIn && day.clockOut && (
+                              <div style={{ 
+                                width: '100%', 
+                                height: '8px', 
+                                background: '#f3f4f6', 
+                                borderRadius: '4px',
+                                overflow: 'hidden',
+                                display: 'flex'
+                              }}>
+                                {(() => {
+                                  // Parse clock in and out times
+                                  const parseTime = (timeStr) => {
+                                    if (!timeStr) return null;
+                                    // Handle HH:mm format
+                                    if (typeof timeStr === 'string' && /^\d{2}:\d{2}$/.test(timeStr)) {
+                                      const [h, m] = timeStr.split(':').map(Number);
+                                      return h * 60 + m;
+                                    }
+                                    // Handle ISO date format
+                                    try {
+                                      const date = new Date(timeStr);
+                                      return date.getHours() * 60 + date.getMinutes();
+                                    } catch {
+                                      return null;
+                                    }
+                                  };
+
+                                  const clockInMinutes = parseTime(day.clockIn);
+                                  const clockOutMinutes = parseTime(day.clockOut);
+                                  
+                                  if (!clockInMinutes || !clockOutMinutes) return null;
+
+                                  // Calculate total work duration in minutes
+                                  let totalMinutes = clockOutMinutes - clockInMinutes;
+                                  if (totalMinutes < 0) totalMinutes += 24 * 60; // Handle overnight shifts
+
+                                  // Calculate break duration
+                                  const breakMinutes = day.breaks?.reduce((sum, b) => sum + (b.duration || 0), 0) || 0;
+                                  const workMinutes = totalMinutes - breakMinutes;
+
+                                  // Calculate percentages
+                                  const workPercent = totalMinutes > 0 ? (workMinutes / totalMinutes) * 100 : 0;
+                                  const breakPercent = totalMinutes > 0 ? (breakMinutes / totalMinutes) * 100 : 0;
+
+                                  return (
+                                    <>
+                                      {workPercent > 0 && (
+                                        <div 
+                                          style={{ 
+                                            width: `${workPercent}%`, 
+                                            background: '#10b981',
+                                            height: '100%'
+                                          }}
+                                          title={`Work: ${Math.floor(workMinutes / 60)}h ${workMinutes % 60}m`}
+                                        />
+                                      )}
+                                      {breakPercent > 0 && (
+                                        <div 
+                                          style={{ 
+                                            width: `${breakPercent}%`, 
+                                            background: '#fbbf24',
+                                            height: '100%'
+                                          }}
+                                          title={`Break: ${Math.floor(breakMinutes / 60)}h ${breakMinutes % 60}m`}
+                                        />
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
                           <span style={{
                             background: emptyColor,
                             padding: '6px 16px',
@@ -817,26 +894,31 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                         {day.totalHours}
                       </td>
                       <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        {day.entryId && selectedEntries.has(day.entryId) && !day.isAbsent && (
+                        {day.entryId && selectedEntries.has(day.entryId) && (
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleEditEntry(day);
+                                if (day.isAbsent) {
+                                  toast.warning('Cannot edit absent entries. Please add a time entry first.');
+                                } else {
+                                  handleEditEntry(day);
+                                }
                               }}
-                              title="Edit Entry"
+                              title={day.isAbsent ? "Cannot edit absent entry" : "Edit Entry"}
                               style={{
-                                background: '#3b82f6',
+                                background: day.isAbsent ? '#9ca3af' : '#3b82f6',
                                 color: 'white',
                                 border: 'none',
-                                cursor: 'pointer',
+                                cursor: day.isAbsent ? 'not-allowed' : 'pointer',
                                 padding: '6px 10px',
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '500',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px'
+                                gap: '4px',
+                                opacity: day.isAbsent ? 0.6 : 1
                               }}
                             >
                               <PencilIcon style={{ width: '14px', height: '14px' }} />
@@ -845,21 +927,26 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteEntry(day.entryId);
+                                if (day.isAbsent) {
+                                  toast.warning('Cannot delete absent entries. No time entry exists.');
+                                } else {
+                                  handleDeleteEntry(day.entryId);
+                                }
                               }}
-                              title="Delete Entry"
+                              title={day.isAbsent ? "Cannot delete absent entry" : "Delete Entry"}
                               style={{
-                                background: '#ef4444',
+                                background: day.isAbsent ? '#9ca3af' : '#ef4444',
                                 color: 'white',
                                 border: 'none',
-                                cursor: 'pointer',
+                                cursor: day.isAbsent ? 'not-allowed' : 'pointer',
                                 padding: '6px 10px',
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '500',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px'
+                                gap: '4px',
+                                opacity: day.isAbsent ? 0.6 : 1
                               }}
                             >
                               <TrashIcon style={{ width: '14px', height: '14px' }} />
