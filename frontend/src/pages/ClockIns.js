@@ -251,15 +251,6 @@ const ClockIns = () => {
     
     setShowClockInModal(false);
 
-    // Optimistic update
-    setEmployees(prevEmployees => 
-      prevEmployees.map(emp => 
-        (emp.id === employeeId || emp._id === employeeId) 
-          ? { ...emp, status: 'clocked_in' }
-          : emp
-      )
-    );
-
     try {
       let response;
       
@@ -282,12 +273,28 @@ const ClockIns = () => {
       
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked in successfully' : 'Employee clocked in successfully');
-        await fetchData();
+        
+        // Immediately update the employee status in the list for instant UI feedback
+        setEmployees(prevEmployees => 
+          prevEmployees.map(emp => 
+            (emp.id === employeeId || emp._id === employeeId) 
+              ? { 
+                  ...emp, 
+                  status: 'clocked_in',
+                  clockIn: response.data?.timeEntry?.clockIn || new Date().toTimeString().slice(0, 5),
+                  timeEntryId: response.data?.timeEntry?._id || emp.timeEntryId
+                }
+              : emp
+          )
+        );
+        
         // Update selected employee status
         setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
+        
+        // Fetch fresh data to ensure everything is in sync
+        await fetchData();
       } else {
         toast.error(response.message || 'Failed to clock in');
-        await fetchData(); // Revert on failure
       }
     } catch (error) {
       console.error('❌ Clock in error:', error);
@@ -303,7 +310,8 @@ const ClockIns = () => {
       // Show the error message from backend
       toast.error(errorMsg);
       
-      await fetchData(); // Refresh to sync state
+      // Refresh to sync state
+      await fetchData();
     }
   };
 
