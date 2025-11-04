@@ -291,8 +291,10 @@ const ClockIns = () => {
         // Update selected employee status
         setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
         
-        // Fetch fresh data to ensure everything is in sync
-        await fetchData();
+        // Wait a moment for backend to fully process, then fetch fresh data
+        setTimeout(async () => {
+          await fetchData();
+        }, 1000);
       } else {
         toast.error(response.message || 'Failed to clock in');
       }
@@ -363,7 +365,25 @@ const ClockIns = () => {
       
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked out successfully' : 'Employee clocked out successfully');
-        await fetchData();
+        
+        // Update with response data
+        setEmployees(prevEmployees => 
+          prevEmployees.map(emp => 
+            (emp.id === employeeId || emp._id === employeeId) 
+              ? { 
+                  ...emp, 
+                  status: 'clocked_out',
+                  clockOut: response.data?.timeEntry?.clockOut || new Date().toTimeString().slice(0, 5),
+                  hoursWorked: response.data?.hoursWorked || emp.hoursWorked
+                }
+              : emp
+          )
+        );
+        
+        // Wait before fetching fresh data
+        setTimeout(async () => {
+          await fetchData();
+        }, 1000);
       } else {
         toast.error(response.message || 'Failed to clock out');
         await fetchData(); // Revert on failure
@@ -424,7 +444,20 @@ const ClockIns = () => {
       
       if (response.success) {
         toast.success(isCurrentUser ? 'You are now on break' : 'Employee is now on break');
-        await fetchData(); // Force refresh
+        
+        // Update with response data
+        setEmployees(prevEmployees => 
+          prevEmployees.map(emp => 
+            (emp.id === employeeId || emp._id === employeeId) 
+              ? { ...emp, status: 'on_break' }
+              : emp
+          )
+        );
+        
+        // Wait before fetching fresh data
+        setTimeout(async () => {
+          await fetchData();
+        }, 1000);
       } else {
         toast.error(response.message || 'Failed to set on break');
         await fetchData(); // Revert on failure
