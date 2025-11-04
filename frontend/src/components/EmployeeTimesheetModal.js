@@ -76,7 +76,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
       const response = await axios.get(
         buildApiUrl(`/clock/timesheet/${employeeId}?startDate=${monday.toISOString().split('T')[0]}&endDate=${sunday.toISOString().split('T')[0]}`),
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        }
       );
 
       console.log('📥 Timesheet API response:', response.data);
@@ -716,7 +721,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   fontSize: '13px', 
                   fontWeight: '500', 
                   color: '#6b7280',
-                  minWidth: '350px'
+                  minWidth: '250px'
                 }}>Clocked hours</th>
                 <th style={{ 
                   padding: '16px 12px', 
@@ -798,166 +803,220 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
                         {day.clockedHours ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '300px' }}>
-                            <div style={{ fontWeight: '500' }}>{day.clockedHours}</div>
-                            {/* Horizontal Timeline with Icons */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {/* Timeline Bar - Exact replica of the image */}
                             {day.clockIn && (
-                              <div style={{ 
-                                width: '100%',
-                                position: 'relative',
-                                paddingTop: '12px',
-                                paddingBottom: '12px',
-                                minHeight: '80px'
-                              }}>
+                              <div style={{ width: '100%' }}>
                                 {(() => {
-                                  // Parse time to get display format
-                                  const formatTime = (timeStr) => {
-                                    if (!timeStr) return '';
+                                  // Parse time to minutes from midnight
+                                  const parseTime = (timeStr) => {
+                                    if (!timeStr) return null;
                                     if (typeof timeStr === 'string' && /^\d{2}:\d{2}$/.test(timeStr)) {
-                                      return timeStr;
+                                      const [h, m] = timeStr.split(':').map(Number);
+                                      return h * 60 + m;
                                     }
                                     try {
                                       const date = new Date(timeStr);
-                                      return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                                      return date.getHours() * 60 + date.getMinutes();
                                     } catch {
-                                      return '';
+                                      return null;
                                     }
                                   };
 
-                                  // Build timeline events
-                                  const events = [];
-                                  
-                                  console.log('📊 Timeline data for', day.dayName, ':', {
-                                    clockIn: day.clockIn,
-                                    clockOut: day.clockOut,
-                                    breaks: day.breaks
-                                  });
-                                  
-                                  // Clock In event
-                                  events.push({
-                                    type: 'clockIn',
-                                    time: formatTime(day.clockIn),
-                                    label: 'Clock In',
-                                    icon: '🟢',
-                                    color: '#10b981'
-                                  });
+                                  // Timeline range: 09:00 to 23:59 (like in the image)
+                                  const timelineStart = 9 * 60; // 09:00
+                                  const timelineEnd = 24 * 60 - 1; // 23:59
+                                  const timelineRange = timelineEnd - timelineStart;
 
-                                  // Break events
+                                  const clockInMinutes = parseTime(day.clockIn);
+                                  const clockOutMinutes = day.clockOut ? parseTime(day.clockOut) : null;
+                                  
+                                  if (!clockInMinutes && clockInMinutes !== 0) return null;
+
+                                  // Calculate positions as percentages
+                                  const getPosition = (minutes) => {
+                                    return ((minutes - timelineStart) / timelineRange) * 100;
+                                  };
+
+                                  const clockInPos = Math.max(0, getPosition(clockInMinutes));
+                                  const clockOutPos = clockOutMinutes ? Math.min(100, getPosition(clockOutMinutes)) : 100;
+
+                                  // Overtime calculation
+                                  // Standard shift: 8 hours (can be customized per employee)
+                                  const standardShiftHours = day.shiftHours || 8;
+                                  const shiftEndMinutes = clockInMinutes + (standardShiftHours * 60);
+                                  const shiftEndPos = getPosition(shiftEndMinutes);
+                                  
+                                  // Calculate if there's overtime (worked beyond shift end time)
+                                  const hasOvertime = clockOutMinutes && clockOutMinutes > shiftEndMinutes;
+                                  const overtimeStartPos = hasOvertime ? Math.min(100, shiftEndPos) : null;
+                                  const overtimeEndPos = hasOvertime ? clockOutPos : null;
+
+                                  // Process breaks
                                   const breaks = day.breaks || [];
-                                  breaks.forEach((breakPeriod, idx) => {
-                                    if (breakPeriod.start) {
-                                      events.push({
-                                        type: 'breakStart',
-                                        time: formatTime(breakPeriod.start),
-                                        label: 'Break',
-                                        icon: '☕',
-                                        color: '#f59e0b'
-                                      });
-                                    }
-                                    if (breakPeriod.end) {
-                                      events.push({
-                                        type: 'breakEnd',
-                                        time: formatTime(breakPeriod.end),
-                                        label: 'Resume',
-                                        icon: '▶️',
-                                        color: '#3b82f6'
-                                      });
-                                    }
-                                  });
+                                  
+                                  // Build segments for the timeline
+                                  const segments = [];
+                                  let currentPos = clockInPos;
 
-                                  // Clock Out event (always add if exists)
-                                  if (day.clockOut) {
-                                    events.push({
-                                      type: 'clockOut',
-                                      time: formatTime(day.clockOut),
-                                      label: 'Clock Out',
-                                      icon: '🔴',
-                                      color: '#ef4444'
+                                  // Add working time segments with breaks in between
+                                  if (breaks.length > 0) {
+                                    breaks.forEach((breakPeriod, idx) => {
+                                      if (breakPeriod.start) {
+                                        const breakStart = parseTime(breakPeriod.start);
+                                        const breakEnd = breakPeriod.end ? parseTime(breakPeriod.end) : breakStart + (breakPeriod.duration || 0);
+                                        
+                                        if (breakStart) {
+                                          const breakStartPos = Math.max(clockInPos, Math.min(clockOutPos, getPosition(breakStart)));
+                                          const breakEndPos = Math.max(clockInPos, Math.min(clockOutPos, getPosition(breakEnd)));
+                                          
+                                          // Working time before break
+                                          if (breakStartPos > currentPos) {
+                                            segments.push({
+                                              type: 'work',
+                                              start: currentPos,
+                                              width: breakStartPos - currentPos,
+                                              label: 'Working time'
+                                            });
+                                          }
+                                          
+                                          // Break time
+                                          segments.push({
+                                            type: 'break',
+                                            start: breakStartPos,
+                                            width: breakEndPos - breakStartPos,
+                                            label: 'Break'
+                                          });
+                                          
+                                          currentPos = breakEndPos;
+                                        }
+                                      }
                                     });
                                   }
-                                  
-                                  console.log('📊 Timeline events:', events);
+
+                                  // Add remaining working time after last break
+                                  if (currentPos < clockOutPos) {
+                                    // Check if this segment includes overtime
+                                    if (hasOvertime && currentPos < overtimeStartPos) {
+                                      // Split into regular work and overtime
+                                      if (overtimeStartPos > currentPos) {
+                                        segments.push({
+                                          type: 'work',
+                                          start: currentPos,
+                                          width: overtimeStartPos - currentPos,
+                                          label: 'Working time'
+                                        });
+                                      }
+                                      // Add overtime segment
+                                      segments.push({
+                                        type: 'overtime',
+                                        start: overtimeStartPos,
+                                        width: clockOutPos - overtimeStartPos,
+                                        label: 'Overtime'
+                                      });
+                                    } else {
+                                      segments.push({
+                                        type: 'work',
+                                        start: currentPos,
+                                        width: clockOutPos - currentPos,
+                                        label: 'Working time'
+                                      });
+                                    }
+                                  }
+
+                                  // If no breaks, just add working segment(s)
+                                  if (segments.length === 0) {
+                                    if (hasOvertime) {
+                                      // Regular work until shift end
+                                      segments.push({
+                                        type: 'work',
+                                        start: clockInPos,
+                                        width: overtimeStartPos - clockInPos,
+                                        label: 'Working time'
+                                      });
+                                      // Overtime after shift end
+                                      segments.push({
+                                        type: 'overtime',
+                                        start: overtimeStartPos,
+                                        width: clockOutPos - overtimeStartPos,
+                                        label: 'Overtime'
+                                      });
+                                    } else {
+                                      segments.push({
+                                        type: 'work',
+                                        start: clockInPos,
+                                        width: clockOutPos - clockInPos,
+                                        label: 'Working time'
+                                      });
+                                    }
+                                  }
 
                                   return (
-                                    <div style={{ 
-                                      position: 'relative',
-                                      width: '100%',
-                                      padding: '10px 0'
-                                    }}>
-                                      {/* Horizontal connector line */}
-                                      {events.length > 1 && (
-                                        <div style={{
-                                          position: 'absolute',
-                                          top: '30px',
-                                          left: '30px',
-                                          right: '30px',
-                                          height: '3px',
-                                          background: 'linear-gradient(to right, #10b981, #ef4444)',
-                                          borderRadius: '2px',
-                                          zIndex: 0
-                                        }} />
-                                      )}
-
-                                      {/* Timeline events */}
+                                    <div style={{ position: 'relative' }}>
+                                      {/* Time labels above the bar */}
                                       <div style={{
                                         display: 'flex',
-                                        justifyContent: events.length === 1 ? 'flex-start' : 'space-between',
-                                        alignItems: 'flex-start',
-                                        position: 'relative',
-                                        zIndex: 1,
-                                        gap: '20px'
+                                        justifyContent: 'space-between',
+                                        marginBottom: '4px',
+                                        fontSize: '10px',
+                                        color: '#9ca3af',
+                                        paddingLeft: '2px',
+                                        paddingRight: '2px'
                                       }}>
-                                        {events.map((event, idx) => (
-                                          <div
-                                            key={idx}
-                                            style={{
-                                              display: 'flex',
-                                              flexDirection: 'column',
-                                              alignItems: 'center',
-                                              gap: '6px',
-                                              minWidth: '70px'
-                                            }}
-                                          >
-                                            {/* Icon circle */}
-                                            <div style={{
-                                              width: '40px',
-                                              height: '40px',
-                                              borderRadius: '50%',
-                                              background: '#ffffff',
-                                              border: `3px solid ${event.color}`,
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              fontSize: '18px',
-                                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                              position: 'relative',
-                                              zIndex: 2
-                                            }}>
-                                              {event.icon}
+                                        <span>09:00</span>
+                                        <span>11:00</span>
+                                        <span>13:00</span>
+                                        <span>15:00</span>
+                                        <span>17:00</span>
+                                        <span>19:00</span>
+                                        <span>21:00</span>
+                                        <span>23:59</span>
+                                      </div>
+
+                                      {/* Timeline bar container */}
+                                      <div style={{
+                                        width: '100%',
+                                        height: '28px',
+                                        background: '#f3f4f6',
+                                        borderRadius: '4px',
+                                        position: 'relative',
+                                        overflow: 'hidden'
+                                      }}>
+                                        {/* Render segments */}
+                                        {segments.map((segment, idx) => {
+                                          // Determine color based on segment type
+                                          let bgColor = '#2563eb'; // Blue for work
+                                          if (segment.type === 'break') {
+                                            bgColor = '#06b6d4'; // Cyan for break
+                                          } else if (segment.type === 'overtime') {
+                                            bgColor = '#f97316'; // Orange for overtime
+                                          }
+                                          
+                                          return (
+                                            <div
+                                              key={idx}
+                                              style={{
+                                                position: 'absolute',
+                                                left: `${segment.start}%`,
+                                                width: `${segment.width}%`,
+                                                height: '100%',
+                                                background: bgColor,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white',
+                                                fontSize: '10px',
+                                                fontWeight: '600',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                padding: '0 4px'
+                                              }}
+                                            >
+                                              {segment.width > 8 && segment.label}
                                             </div>
-                                            
-                                            {/* Label */}
-                                            <div style={{
-                                              fontSize: '11px',
-                                              fontWeight: '600',
-                                              color: event.color,
-                                              textAlign: 'center',
-                                              whiteSpace: 'nowrap'
-                                            }}>
-                                              {event.label}
-                                            </div>
-                                            
-                                            {/* Time */}
-                                            <div style={{
-                                              fontSize: '10px',
-                                              color: '#6b7280',
-                                              fontWeight: '500',
-                                              textAlign: 'center'
-                                            }}>
-                                              {event.time}
-                                            </div>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   );
