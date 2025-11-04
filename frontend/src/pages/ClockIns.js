@@ -218,8 +218,26 @@ const ClockIns = () => {
     setStatsLoading(false);
   };
 
-  const openClockInModal = (employee) => {
-    setClockInEmployee(employee);
+  const openClockInModal = async (employee) => {
+    // Refresh data to get latest status before showing modal
+    await fetchData();
+    
+    // Find the updated employee data
+    const updatedEmployee = employees.find(emp => 
+      (emp.id === employee.id || emp._id === employee._id) ||
+      emp.email === employee.email
+    );
+    
+    // Use updated employee if found, otherwise use the passed employee
+    const employeeToClockIn = updatedEmployee || employee;
+    
+    // Check status before opening modal
+    if (employeeToClockIn.status === 'clocked_in' || employeeToClockIn.status === 'on_break') {
+      toast.warning(`${employeeToClockIn.firstName} ${employeeToClockIn.lastName} is already ${employeeToClockIn.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
+      return;
+    }
+    
+    setClockInEmployee(employeeToClockIn);
     setShowClockInModal(true);
   };
 
@@ -301,16 +319,15 @@ const ClockIns = () => {
       console.error('❌ Error message:', error.message);
       console.error('❌ Full error object:', JSON.stringify(error, null, 2));
       
+      // The error might be thrown directly from clockApi.js as {success: false, message: "..."}
+      // or as an axios error with error.response.data
+      const errorMsg = error.message || error.response?.data?.message || 'Failed to clock in';
+      
       // Check if user is already clocked in
-      if (error.response?.status === 400) {
-        const errorMsg = error.response?.data?.message || error.message || 'Failed to clock in';
-        if (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('active')) {
-          toast.error('Employee is already clocked in. Please clock out first before clocking in again.');
-        } else {
-          toast.error(errorMsg);
-        }
+      if (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('active') || errorMsg.toLowerCase().includes('clocked in')) {
+        toast.error('Employee is already clocked in. Please clock out first before clocking in again.');
       } else {
-        toast.error(error.response?.data?.message || error.message || 'Failed to clock in');
+        toast.error(errorMsg);
       }
       
       await fetchData(); // Revert on error
