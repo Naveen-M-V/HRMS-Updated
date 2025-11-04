@@ -218,44 +218,11 @@ const ClockIns = () => {
     setStatsLoading(false);
   };
 
-  const openClockInModal = async (employee) => {
-    // Refresh data to get latest status before showing modal
-    try {
-      console.log('🔄 Refreshing data before clock-in modal...');
-      
-      // Fetch fresh clock status
-      const clockStatusRes = await getClockStatus({ includeAdmins: true });
-      
-      if (clockStatusRes.success) {
-        // Find this specific employee's latest status
-        const latestStatus = clockStatusRes.data?.find(emp => 
-          emp.id === employee.id || 
-          emp._id === employee._id || 
-          emp.email === employee.email
-        );
-        
-        console.log('📊 Latest status for employee:', {
-          name: `${employee.firstName} ${employee.lastName}`,
-          currentStatus: employee.status,
-          latestStatus: latestStatus?.status
-        });
-        
-        // Check if already clocked in
-        if (latestStatus && (latestStatus.status === 'clocked_in' || latestStatus.status === 'on_break')) {
-          toast.warning(`${employee.firstName} ${employee.lastName} is already ${latestStatus.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
-          await fetchData(); // Refresh UI
-          return;
-        }
-      }
-      
-      setClockInEmployee(employee);
-      setShowClockInModal(true);
-    } catch (error) {
-      console.error('Error checking clock status:', error);
-      // If check fails, still allow opening modal (backend will validate)
-      setClockInEmployee(employee);
-      setShowClockInModal(true);
-    }
+  const openClockInModal = (employee) => {
+    // Open clock-in modal directly
+    // Backend will validate if employee can clock in (must be clocked out first)
+    setClockInEmployee(employee);
+    setShowClockInModal(true);
   };
 
   const confirmClockIn = async () => {
@@ -280,31 +247,6 @@ const ClockIns = () => {
       toast.error('Invalid employee data. Please refresh and try again.');
       setShowClockInModal(false);
       return;
-    }
-    
-    // Double-check status one more time before API call
-    try {
-      console.log('🔄 Final status check before clock-in...');
-      const clockStatusRes = await getClockStatus({ includeAdmins: true });
-      
-      if (clockStatusRes.success) {
-        const latestStatus = clockStatusRes.data?.find(emp => 
-          emp.id === employeeId || 
-          emp._id === employeeId || 
-          emp.email === clockInEmployee.email
-        );
-        
-        console.log('📊 Final status check result:', latestStatus?.status);
-        
-        if (latestStatus && (latestStatus.status === 'clocked_in' || latestStatus.status === 'on_break')) {
-          toast.warning(`Employee is already ${latestStatus.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
-          setShowClockInModal(false);
-          await fetchData(); // Refresh UI
-          return;
-        }
-      }
-    } catch (statusCheckError) {
-      console.warn('⚠️ Status check failed, proceeding with clock-in (backend will validate):', statusCheckError);
     }
     
     setShowClockInModal(false);
@@ -358,14 +300,10 @@ const ClockIns = () => {
       // or as an axios error with error.response.data
       const errorMsg = error.message || error.response?.data?.message || 'Failed to clock in';
       
-      // Check if user is already clocked in
-      if (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('active') || errorMsg.toLowerCase().includes('clocked in')) {
-        toast.error('Employee is already clocked in. Please clock out first before clocking in again.');
-      } else {
-        toast.error(errorMsg);
-      }
+      // Show the error message from backend
+      toast.error(errorMsg);
       
-      await fetchData(); // Revert on error
+      await fetchData(); // Refresh to sync state
     }
   };
 
