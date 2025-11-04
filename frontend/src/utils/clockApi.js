@@ -230,13 +230,24 @@ export const userClockIn = async (clockData) => {
  */
 export const userClockOut = async () => {
   try {
+    const url = buildApiUrl('/clock/user/out');
+    console.log('🔍 userClockOut - API URL:', url);
+    console.log('🔍 userClockOut - Request payload:', {});
+    console.log('🔍 userClockOut - withCredentials:', true);
+    
     const response = await axios.post(
-      buildApiUrl('/clock/user/out'),
+      url,
       {},
       { withCredentials: true }
     );
+    
+    console.log('✅ userClockOut - Response:', response.data);
     return response.data;
   } catch (error) {
+    console.error('❌ userClockOut - Error:', error);
+    console.error('❌ userClockOut - Error response:', error.response);
+    console.error('❌ userClockOut - Error data:', error.response?.data);
+    console.error('❌ userClockOut - Error status:', error.response?.status);
     throw error.response?.data || { message: 'Failed to clock out' };
   }
 };

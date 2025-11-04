@@ -715,7 +715,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   textAlign: 'left', 
                   fontSize: '13px', 
                   fontWeight: '500', 
-                  color: '#6b7280' 
+                  color: '#6b7280',
+                  minWidth: '350px'
                 }}>Clocked hours</th>
                 <th style={{ 
                   padding: '16px 12px', 
@@ -797,15 +798,16 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
                         {day.clockedHours ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '300px' }}>
                             <div style={{ fontWeight: '500' }}>{day.clockedHours}</div>
                             {/* Horizontal Timeline with Icons */}
                             {day.clockIn && (
                               <div style={{ 
                                 width: '100%',
                                 position: 'relative',
-                                paddingTop: '8px',
-                                paddingBottom: '8px'
+                                paddingTop: '12px',
+                                paddingBottom: '12px',
+                                minHeight: '80px'
                               }}>
                                 {(() => {
                                   // Parse time to get display format
@@ -824,6 +826,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
                                   // Build timeline events
                                   const events = [];
+                                  
+                                  console.log('📊 Timeline data for', day.dayName, ':', {
+                                    clockIn: day.clockIn,
+                                    clockOut: day.clockOut,
+                                    breaks: day.breaks
+                                  });
                                   
                                   // Clock In event
                                   events.push({
@@ -857,7 +865,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                     }
                                   });
 
-                                  // Clock Out event
+                                  // Clock Out event (always add if exists)
                                   if (day.clockOut) {
                                     events.push({
                                       type: 'clockOut',
@@ -867,28 +875,37 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                       color: '#ef4444'
                                     });
                                   }
+                                  
+                                  console.log('📊 Timeline events:', events);
 
                                   return (
-                                    <div style={{ position: 'relative' }}>
+                                    <div style={{ 
+                                      position: 'relative',
+                                      width: '100%',
+                                      padding: '10px 0'
+                                    }}>
                                       {/* Horizontal connector line */}
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '20px',
-                                        left: '20px',
-                                        right: '20px',
-                                        height: '3px',
-                                        background: 'linear-gradient(to right, #10b981, #ef4444)',
-                                        borderRadius: '2px',
-                                        zIndex: 0
-                                      }} />
+                                      {events.length > 1 && (
+                                        <div style={{
+                                          position: 'absolute',
+                                          top: '30px',
+                                          left: '30px',
+                                          right: '30px',
+                                          height: '3px',
+                                          background: 'linear-gradient(to right, #10b981, #ef4444)',
+                                          borderRadius: '2px',
+                                          zIndex: 0
+                                        }} />
+                                      )}
 
                                       {/* Timeline events */}
                                       <div style={{
                                         display: 'flex',
-                                        justifyContent: 'space-between',
+                                        justifyContent: events.length === 1 ? 'flex-start' : 'space-between',
                                         alignItems: 'flex-start',
                                         position: 'relative',
-                                        zIndex: 1
+                                        zIndex: 1,
+                                        gap: '20px'
                                       }}>
                                         {events.map((event, idx) => (
                                           <div
@@ -898,8 +915,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                               flexDirection: 'column',
                                               alignItems: 'center',
                                               gap: '6px',
-                                              flex: idx === 0 || idx === events.length - 1 ? '0 0 auto' : '1',
-                                              minWidth: '60px'
+                                              minWidth: '70px'
                                             }}
                                           >
                                             {/* Icon circle */}

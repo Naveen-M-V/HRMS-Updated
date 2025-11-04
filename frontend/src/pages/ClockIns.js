@@ -329,11 +329,16 @@ const ClockIns = () => {
       // If clocking out yourself, use userClockOut
       if (isCurrentUser) {
         console.log('📤 Using userClockOut (self clock-out)');
+        console.log('Current user email:', currentUser?.email);
+        console.log('Employee email:', employee?.email);
         response = await userClockOut();
       } else {
         console.log('📤 Using clockOut (admin clocking out employee)');
+        console.log('Employee ID being sent:', employeeId);
         response = await clockOut({ employeeId });
       }
+      
+      console.log('📥 Clock out response:', response);
       
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked out successfully' : 'Employee clocked out successfully');
@@ -344,8 +349,13 @@ const ClockIns = () => {
       }
     } catch (error) {
       console.error('❌ Clock out error:', error);
-      console.error('Error details:', error.response?.data);
-      toast.error(error.response?.data?.message || error.message || 'Failed to clock out');
+      console.error('❌ Error response data:', error.response?.data);
+      console.error('❌ Error response status:', error.response?.status);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to clock out';
+      toast.error(`Clock out failed: ${errorMessage}`);
       await fetchData(); // Revert on error
     }
   };
