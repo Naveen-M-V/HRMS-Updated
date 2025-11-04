@@ -111,7 +111,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               Talentshield
             </span>
             <span className="text-xs text-sidebar-foreground/60">
-              HRMS System
+              ADMIN DASHBOARD
             </span>
           </div>
         )}

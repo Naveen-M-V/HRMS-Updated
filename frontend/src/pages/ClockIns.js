@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry } from '../utils/clockApi';
+import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry, userClockIn, userClockOut, userStartBreak } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 import EmployeeTimesheetModal from '../components/EmployeeTimesheetModal';
 import MUIDatePicker from '../components/MUIDatePicker';
@@ -230,9 +230,13 @@ const ClockIns = () => {
     }
     
     const employeeId = clockInEmployee.id || clockInEmployee._id;
+    const isAdmin = clockInEmployee.role === 'admin';
+    const isCurrentUser = currentUser?.email === clockInEmployee.email;
     
     console.log('🔍 Clock In Debug - Full Employee Object:', clockInEmployee);
     console.log('Clock In - Employee ID:', employeeId);
+    console.log('Clock In - Is Admin:', isAdmin);
+    console.log('Clock In - Is Current User:', isCurrentUser);
     console.log('Employee ID type:', typeof employeeId);
     
     if (!employeeId) {
@@ -254,26 +258,39 @@ const ClockIns = () => {
     );
 
     try {
-      const payload = { employeeId };
-      console.log('📤 Sending clock in request:', payload);
+      let response;
       
-      const response = await clockIn(payload);
+      // If clocking in yourself (current user), use userClockIn
+      // Otherwise, use admin clockIn to clock in another employee
+      if (isCurrentUser) {
+        console.log('📤 Using userClockIn (self clock-in)');
+        response = await userClockIn({ 
+          location: 'Work From Office', 
+          workType: 'Regular' 
+        });
+      } else {
+        console.log('📤 Using clockIn (admin clocking in employee)');
+        const payload = { employeeId };
+        console.log('📤 Sending clock in request:', payload);
+        response = await clockIn(payload);
+      }
+      
       console.log('📥 Clock in response:', response);
       
       if (response.success) {
-        toast.success('Employee clocked in successfully');
-        fetchData();
+        toast.success(isCurrentUser ? 'You have clocked in successfully' : 'Employee clocked in successfully');
+        await fetchData();
         // Update selected employee status
         setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
       } else {
         toast.error(response.message || 'Failed to clock in');
-        fetchData(); // Revert on failure
+        await fetchData(); // Revert on failure
       }
     } catch (error) {
       console.error('❌ Clock in error:', error);
       console.error('Error response:', error.response?.data);
       toast.error(error.response?.data?.message || error.message || 'Failed to clock in');
-      fetchData(); // Revert on error
+      await fetchData(); // Revert on error
     }
   };
 
@@ -283,7 +300,12 @@ const ClockIns = () => {
       return;
     }
 
+    // Find the employee to check if it's the current user
+    const employee = employees.find(emp => emp.id === employeeId || emp._id === employeeId);
+    const isCurrentUser = currentUser?.email === employee?.email;
+
     console.log('🔍 Clock Out - Employee ID:', employeeId);
+    console.log('🔍 Clock Out - Is Current User:', isCurrentUser);
 
     // Optimistic update
     setEmployees(prevEmployees => 
@@ -302,9 +324,19 @@ const ClockIns = () => {
     );
 
     try {
-      const response = await clockOut({ employeeId });
+      let response;
+      
+      // If clocking out yourself, use userClockOut
+      if (isCurrentUser) {
+        console.log('📤 Using userClockOut (self clock-out)');
+        response = await userClockOut();
+      } else {
+        console.log('📤 Using clockOut (admin clocking out employee)');
+        response = await clockOut({ employeeId });
+      }
+      
       if (response.success) {
-        toast.success('Employee clocked out successfully');
+        toast.success(isCurrentUser ? 'You have clocked out successfully' : 'Employee clocked out successfully');
         await fetchData();
       } else {
         toast.error(response.message || 'Failed to clock out');
@@ -324,7 +356,12 @@ const ClockIns = () => {
       return;
     }
 
+    // Find the employee to check if it's the current user
+    const employee = employees.find(emp => emp.id === employeeId || emp._id === employeeId);
+    const isCurrentUser = currentUser?.email === employee?.email;
+
     console.log('🔍 On Break - Employee ID:', employeeId);
+    console.log('🔍 On Break - Is Current User:', isCurrentUser);
 
     // Optimistic update
     setEmployees(prevEmployees => 
@@ -343,9 +380,19 @@ const ClockIns = () => {
     );
 
     try {
-      const response = await setOnBreak(employeeId);
+      let response;
+      
+      // If setting yourself on break, use userStartBreak
+      if (isCurrentUser) {
+        console.log('📤 Using userStartBreak (self break)');
+        response = await userStartBreak();
+      } else {
+        console.log('📤 Using setOnBreak (admin setting employee on break)');
+        response = await setOnBreak(employeeId);
+      }
+      
       if (response.success) {
-        toast.success('Employee is now on break');
+        toast.success(isCurrentUser ? 'You are now on break' : 'Employee is now on break');
         await fetchData(); // Force refresh
       } else {
         toast.error(response.message || 'Failed to set on break');
@@ -953,6 +1000,16 @@ const ClockIns = () => {
                   <tr 
                     key={employee.id || employee._id || index} 
                     onClick={() => {
+                      console.log('🔍 Opening timesheet for employee:', {
+                        id: employee.id,
+                        _id: employee._id,
+                        firstName: employee.firstName,
+                        lastName: employee.lastName,
+                        email: employee.email,
+                        status: employee.status,
+                        timeEntryId: employee.timeEntryId,
+                        fullEmployee: employee
+                      });
                       setSelectedEmployee(employee);
                       setShowTimesheetModal(true);
                     }}

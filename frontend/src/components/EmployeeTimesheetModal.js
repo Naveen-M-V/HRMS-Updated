@@ -13,7 +13,7 @@ import MUIDatePicker from './MUIDatePicker';
 import MUITimePicker from './MUITimePicker';
 import dayjs from 'dayjs';
 import axios from 'axios';
-import { updateTimeEntry, deleteTimeEntry } from '../utils/clockApi';
+import { updateTimeEntry, deleteTimeEntry, addTimeEntry } from '../utils/clockApi';
 import { toast } from 'react-toastify';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
@@ -65,24 +65,36 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       sunday.setDate(monday.getDate() + 6);
 
       const employeeId = employee._id || employee.id;
-      console.log('Fetching timesheet for employee ID:', employeeId);
+      console.log('📋 Fetching timesheet for employee:', {
+        employeeId,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        role: employee.role,
+        fullEmployee: employee
+      });
 
       const response = await axios.get(
         buildApiUrl(`/clock/timesheet/${employeeId}?startDate=${monday.toISOString().split('T')[0]}&endDate=${sunday.toISOString().split('T')[0]}`),
         { withCredentials: true }
       );
 
+      console.log('📥 Timesheet API response:', response.data);
+
       if (response.data && response.data.success) {
-        console.log('Timesheet data received:', response.data);
+        console.log('✅ Timesheet data received:', response.data);
         processTimesheetData(response.data);
       } else {
-        console.warn('No timesheet data, generating empty week');
+        console.warn('⚠️ No timesheet data, generating empty week');
         generateEmptyWeek();
       }
     } catch (error) {
-      console.error('Error fetching timesheet:', error);
+      console.error('❌ Error fetching timesheet:', error);
+      console.error('Error response:', error.response?.data);
       if (error.response?.status === 401) {
         console.error('Unauthorized - user may need to log in again');
+      } else if (error.response?.status === 404) {
+        console.error('Timesheet endpoint not found or employee not found');
       }
       generateEmptyWeek();
     } finally {
@@ -282,13 +294,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
   // Edit handler
   const handleEditEntry = (day) => {
-    if (!day.entryId || day.isAbsent) return;
-    
+    // Allow editing even for absent entries (to create new time entries)
     setEditingEntry(day);
     setEditForm({
       date: dayjs(day.date),
-      clockIn: day.clockIn ? dayjs(day.clockIn, 'HH:mm') : null,
-      clockOut: day.clockOut ? dayjs(day.clockOut, 'HH:mm') : null
+      clockIn: day.clockIn ? dayjs(day.clockIn, 'HH:mm') : dayjs().hour(9).minute(0),
+      clockOut: day.clockOut ? dayjs(day.clockOut, 'HH:mm') : dayjs().hour(17).minute(0)
     });
     setShowEditModal(true);
   };
@@ -299,26 +310,55 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       return;
     }
 
+    if (!editForm.clockIn) {
+      toast.error('Clock in time is required');
+      return;
+    }
+
     try {
-      const updateData = {
+      const timeData = {
         date: editForm.date.format('YYYY-MM-DD'),
-        clockIn: editForm.clockIn ? editForm.clockIn.format('HH:mm') : null,
+        clockIn: editForm.clockIn.format('HH:mm'),
         clockOut: editForm.clockOut ? editForm.clockOut.format('HH:mm') : null
       };
 
-      const response = await updateTimeEntry(editingEntry.entryId, updateData);
+      let response;
+      
+      // Check if this is an absent entry (no existing time entry)
+      if (editingEntry.isAbsent || !editingEntry.entryId || editingEntry.entryId.startsWith('absent-')) {
+        // Create new time entry
+        const newEntryData = {
+          ...timeData,
+          employeeId: employee._id || employee.id,
+          location: 'Office',
+          workType: 'Regular'
+        };
+        console.log('Creating new time entry:', newEntryData);
+        response = await addTimeEntry(newEntryData);
+        
+        if (response.success) {
+          toast.success('Time entry created successfully');
+        }
+      } else {
+        // Update existing time entry
+        console.log('Updating time entry:', editingEntry.entryId, timeData);
+        response = await updateTimeEntry(editingEntry.entryId, timeData);
+        
+        if (response.success) {
+          toast.success('Time entry updated successfully');
+        }
+      }
       
       if (response.success) {
-        toast.success('Time entry updated successfully');
         setShowEditModal(false);
         setEditingEntry(null);
         fetchWeeklyTimesheet(); // Refresh data
       } else {
-        toast.error(response.message || 'Failed to update entry');
+        toast.error(response.message || 'Failed to save entry');
       }
     } catch (error) {
-      console.error('Error updating entry:', error);
-      toast.error(error.message || 'Failed to update entry');
+      console.error('Error saving entry:', error);
+      toast.error(error.response?.data?.message || error.message || 'Failed to save entry');
     }
   };
 
@@ -757,76 +797,153 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
                         {day.clockedHours ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div>{day.clockedHours}</div>
-                            {/* Timeline Bar */}
-                            {day.clockIn && day.clockOut && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ fontWeight: '500' }}>{day.clockedHours}</div>
+                            {/* Horizontal Timeline with Icons */}
+                            {day.clockIn && (
                               <div style={{ 
-                                width: '100%', 
-                                height: '8px', 
-                                background: '#f3f4f6', 
-                                borderRadius: '4px',
-                                overflow: 'hidden',
-                                display: 'flex'
+                                width: '100%',
+                                position: 'relative',
+                                paddingTop: '8px',
+                                paddingBottom: '8px'
                               }}>
                                 {(() => {
-                                  // Parse clock in and out times
-                                  const parseTime = (timeStr) => {
-                                    if (!timeStr) return null;
-                                    // Handle HH:mm format
+                                  // Parse time to get display format
+                                  const formatTime = (timeStr) => {
+                                    if (!timeStr) return '';
                                     if (typeof timeStr === 'string' && /^\d{2}:\d{2}$/.test(timeStr)) {
-                                      const [h, m] = timeStr.split(':').map(Number);
-                                      return h * 60 + m;
+                                      return timeStr;
                                     }
-                                    // Handle ISO date format
                                     try {
                                       const date = new Date(timeStr);
-                                      return date.getHours() * 60 + date.getMinutes();
+                                      return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                                     } catch {
-                                      return null;
+                                      return '';
                                     }
                                   };
 
-                                  const clockInMinutes = parseTime(day.clockIn);
-                                  const clockOutMinutes = parseTime(day.clockOut);
+                                  // Build timeline events
+                                  const events = [];
                                   
-                                  if (!clockInMinutes || !clockOutMinutes) return null;
+                                  // Clock In event
+                                  events.push({
+                                    type: 'clockIn',
+                                    time: formatTime(day.clockIn),
+                                    label: 'Clock In',
+                                    icon: '🟢',
+                                    color: '#10b981'
+                                  });
 
-                                  // Calculate total work duration in minutes
-                                  let totalMinutes = clockOutMinutes - clockInMinutes;
-                                  if (totalMinutes < 0) totalMinutes += 24 * 60; // Handle overnight shifts
+                                  // Break events
+                                  const breaks = day.breaks || [];
+                                  breaks.forEach((breakPeriod, idx) => {
+                                    if (breakPeriod.start) {
+                                      events.push({
+                                        type: 'breakStart',
+                                        time: formatTime(breakPeriod.start),
+                                        label: 'Break',
+                                        icon: '☕',
+                                        color: '#f59e0b'
+                                      });
+                                    }
+                                    if (breakPeriod.end) {
+                                      events.push({
+                                        type: 'breakEnd',
+                                        time: formatTime(breakPeriod.end),
+                                        label: 'Resume',
+                                        icon: '▶️',
+                                        color: '#3b82f6'
+                                      });
+                                    }
+                                  });
 
-                                  // Calculate break duration
-                                  const breakMinutes = day.breaks?.reduce((sum, b) => sum + (b.duration || 0), 0) || 0;
-                                  const workMinutes = totalMinutes - breakMinutes;
-
-                                  // Calculate percentages
-                                  const workPercent = totalMinutes > 0 ? (workMinutes / totalMinutes) * 100 : 0;
-                                  const breakPercent = totalMinutes > 0 ? (breakMinutes / totalMinutes) * 100 : 0;
+                                  // Clock Out event
+                                  if (day.clockOut) {
+                                    events.push({
+                                      type: 'clockOut',
+                                      time: formatTime(day.clockOut),
+                                      label: 'Clock Out',
+                                      icon: '🔴',
+                                      color: '#ef4444'
+                                    });
+                                  }
 
                                   return (
-                                    <>
-                                      {workPercent > 0 && (
-                                        <div 
-                                          style={{ 
-                                            width: `${workPercent}%`, 
-                                            background: '#10b981',
-                                            height: '100%'
-                                          }}
-                                          title={`Work: ${Math.floor(workMinutes / 60)}h ${workMinutes % 60}m`}
-                                        />
-                                      )}
-                                      {breakPercent > 0 && (
-                                        <div 
-                                          style={{ 
-                                            width: `${breakPercent}%`, 
-                                            background: '#fbbf24',
-                                            height: '100%'
-                                          }}
-                                          title={`Break: ${Math.floor(breakMinutes / 60)}h ${breakMinutes % 60}m`}
-                                        />
-                                      )}
-                                    </>
+                                    <div style={{ position: 'relative' }}>
+                                      {/* Horizontal connector line */}
+                                      <div style={{
+                                        position: 'absolute',
+                                        top: '20px',
+                                        left: '20px',
+                                        right: '20px',
+                                        height: '3px',
+                                        background: 'linear-gradient(to right, #10b981, #ef4444)',
+                                        borderRadius: '2px',
+                                        zIndex: 0
+                                      }} />
+
+                                      {/* Timeline events */}
+                                      <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'flex-start',
+                                        position: 'relative',
+                                        zIndex: 1
+                                      }}>
+                                        {events.map((event, idx) => (
+                                          <div
+                                            key={idx}
+                                            style={{
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              alignItems: 'center',
+                                              gap: '6px',
+                                              flex: idx === 0 || idx === events.length - 1 ? '0 0 auto' : '1',
+                                              minWidth: '60px'
+                                            }}
+                                          >
+                                            {/* Icon circle */}
+                                            <div style={{
+                                              width: '40px',
+                                              height: '40px',
+                                              borderRadius: '50%',
+                                              background: '#ffffff',
+                                              border: `3px solid ${event.color}`,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontSize: '18px',
+                                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                              position: 'relative',
+                                              zIndex: 2
+                                            }}>
+                                              {event.icon}
+                                            </div>
+                                            
+                                            {/* Label */}
+                                            <div style={{
+                                              fontSize: '11px',
+                                              fontWeight: '600',
+                                              color: event.color,
+                                              textAlign: 'center',
+                                              whiteSpace: 'nowrap'
+                                            }}>
+                                              {event.label}
+                                            </div>
+                                            
+                                            {/* Time */}
+                                            <div style={{
+                                              fontSize: '10px',
+                                              color: '#6b7280',
+                                              fontWeight: '500',
+                                              textAlign: 'center'
+                                            }}>
+                                              {event.time}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
                                   );
                                 })()}
                               </div>
@@ -899,26 +1016,21 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (day.isAbsent) {
-                                  toast.warning('Cannot edit absent entries. Please add a time entry first.');
-                                } else {
-                                  handleEditEntry(day);
-                                }
+                                handleEditEntry(day);
                               }}
-                              title={day.isAbsent ? "Cannot edit absent entry" : "Edit Entry"}
+                              title="Edit Entry"
                               style={{
-                                background: day.isAbsent ? '#9ca3af' : '#3b82f6',
+                                background: '#3b82f6',
                                 color: 'white',
                                 border: 'none',
-                                cursor: day.isAbsent ? 'not-allowed' : 'pointer',
+                                cursor: 'pointer',
                                 padding: '6px 10px',
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '500',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                opacity: day.isAbsent ? 0.6 : 1
+                                gap: '4px'
                               }}
                             >
                               <PencilIcon style={{ width: '14px', height: '14px' }} />
@@ -927,26 +1039,21 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (day.isAbsent) {
-                                  toast.warning('Cannot delete absent entries. No time entry exists.');
-                                } else {
-                                  handleDeleteEntry(day.entryId);
-                                }
+                                handleDeleteEntry(day.entryId);
                               }}
-                              title={day.isAbsent ? "Cannot delete absent entry" : "Delete Entry"}
+                              title="Delete Entry"
                               style={{
-                                background: day.isAbsent ? '#9ca3af' : '#ef4444',
+                                background: '#ef4444',
                                 color: 'white',
                                 border: 'none',
-                                cursor: day.isAbsent ? 'not-allowed' : 'pointer',
+                                cursor: 'pointer',
                                 padding: '6px 10px',
                                 borderRadius: '4px',
                                 fontSize: '12px',
                                 fontWeight: '500',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                opacity: day.isAbsent ? 0.6 : 1
+                                gap: '4px'
                               }}
                             >
                               <TrashIcon style={{ width: '14px', height: '14px' }} />
@@ -993,7 +1100,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '24px', color: '#111827' }}>
-              Edit Time Entry
+              {editingEntry.isAbsent || !editingEntry.entryId || editingEntry.entryId.startsWith('absent-') 
+                ? 'Add Time Entry' 
+                : 'Edit Time Entry'}
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
