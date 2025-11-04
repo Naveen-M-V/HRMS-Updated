@@ -823,8 +823,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                     }
                                   };
 
-                                  // Timeline range: 07:00 to 23:59
-                                  const timelineStart = 7 * 60; // 07:00
+                                  // Timeline range: 09:00 to 23:59 (like in the image)
+                                  const timelineStart = 9 * 60; // 09:00
                                   const timelineEnd = 24 * 60 - 1; // 23:59
                                   const timelineRange = timelineEnd - timelineStart;
 
@@ -963,7 +963,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                         paddingLeft: '2px',
                                         paddingRight: '2px'
                                       }}>
-                                        <span>07:00</span>
                                         <span>09:00</span>
                                         <span>11:00</span>
                                         <span>13:00</span>

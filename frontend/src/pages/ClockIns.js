@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, userClockIn, userClockOut, userStartBreak } from '../utils/clockApi';
+import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry, userClockIn, userClockOut, userStartBreak } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 import EmployeeTimesheetModal from '../components/EmployeeTimesheetModal';
 import MUIDatePicker from '../components/MUIDatePicker';
@@ -168,14 +168,23 @@ const ClockIns = () => {
         console.log(`✅ Merged ${mergedData.length} profiles with clock status`);
         setEmployees(mergedData);
         
-        // Always calculate stats from merged data to include admin data
-        console.log('📊 Calculating stats from merged employee data (includes admins)');
-        calculateStatsFromEmployees(mergedData);
+        // Calculate stats from merged data if dashboard API fails
+        if (!statsRes.success) {
+          calculateStatsFromEmployees(mergedData);
+        }
       } else {
         console.warn('⚠️ Profile or clock status fetch failed');
         setEmployees([]);
         setStats({ clockedIn: 0, onBreak: 0, clockedOut: 0, total: 0 });
+      }
+      
+      if (statsRes.success && statsRes.data) {
+        console.log('✅ Stats loaded from API:', statsRes.data);
+        setStats(statsRes.data);
         setStatsLoading(false);
+      } else {
+        console.warn('⚠️ Stats fetch failed, calculating from employee list');
+        calculateStatsFromEmployees(employees);
       }
     } catch (error) {
       console.error('❌ Fetch data error:', error);
@@ -450,6 +459,36 @@ const ClockIns = () => {
     }
   };
 
+  const handleDeleteTimeEntry = async (timeEntryId, employeeName) => {
+    if (!timeEntryId) {
+      toast.error('No time entry to delete');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete the time entry for ${employeeName}?\n\nThis will:\n- Delete the clock-in/out record\n- Reset the shift status to "Scheduled"\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await deleteTimeEntry(timeEntryId);
+      if (response.success) {
+        toast.success('Time entry deleted successfully');
+        // Force immediate refresh
+        await fetchData();
+        // Clear any selected employee
+        setSelectedEmployee(null);
+      } else {
+        toast.error(response.message || 'Failed to delete time entry');
+        // Still refresh to sync with backend
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('Delete time entry error:', error);
+      toast.error(error.message || 'Failed to delete time entry');
+      // Refresh even on error to sync state
+      await fetchData();
+    }
+  };
 
   const handleEditEntry = (employee) => {
     console.log('🔍 Edit Entry - Employee:', {
@@ -1140,8 +1179,9 @@ const ClockIns = () => {
                             Clock In
                           </button>
                         )}
-                        {/* Edit Button - Only show if employee has a time entry */}
+                        {/* Delete Button - Only show if employee has a time entry */}
                         {employee.timeEntryId && (
+                        <>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1161,6 +1201,26 @@ const ClockIns = () => {
                         >
                             Edit
                             </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTimeEntry(employee.timeEntryId, employee.name);
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#ffffff',
+                                color: '#dc2626',
+                                border: '1px solid #dc2626',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                              title="Delete time entry"
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
