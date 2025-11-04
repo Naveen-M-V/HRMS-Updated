@@ -193,19 +193,8 @@ const ClockIns = () => {
     const today = new Date().toISOString().split('T')[0];
     const todayEmployees = employeeList.filter(e => {
       if (!e.clockIn) return false;
-      try {
-        const clockInDate = new Date(e.clockIn);
-        // Check if date is valid
-        if (isNaN(clockInDate.getTime())) {
-          console.warn('⚠️ Invalid clockIn date for employee:', e.firstName, e.clockIn);
-          return false;
-        }
-        const clockInDateStr = clockInDate.toISOString().split('T')[0];
-        return clockInDateStr === today;
-      } catch (error) {
-        console.error('❌ Error parsing clockIn date:', error, e.clockIn);
-        return false;
-      }
+      const clockInDate = new Date(e.clockIn).toISOString().split('T')[0];
+      return clockInDate === today;
     });
     
     const calculated = {
