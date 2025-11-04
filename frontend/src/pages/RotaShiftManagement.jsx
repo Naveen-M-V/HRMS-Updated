@@ -83,7 +83,7 @@ const RotaShiftManagement = () => {
       if (shiftsRes.success) setShifts(shiftsRes.data || []);
       if (statsRes.success) setStatistics(statsRes.data);
       
-      // Map profiles to employee format
+      // Map profiles to employee format (includes admins)
       if (profilesResponse.data) {
         const employeeList = profilesResponse.data.map(profile => {
           // Ensure we get a string ID, not an object
@@ -96,11 +96,12 @@ const RotaShiftManagement = () => {
             firstName: profile.firstName,
             lastName: profile.lastName,
             email: profile.email,
+            role: profile.userId?.role || profile.role || 'employee',
             name: `${profile.firstName} ${profile.lastName}`
           };
         });
-        console.log(`✅ Loaded ${employeeList.length} employees from profiles`);
-        console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, type: typeof e.id })));
+        console.log(`✅ Loaded ${employeeList.length} employees from profiles (includes admins)`);
+        console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, role: e.role, type: typeof e.id })));
         setEmployees(employeeList);
       }
     } catch (error) {
@@ -435,13 +436,20 @@ const RotaShiftManagement = () => {
                     </td>
                   </tr>
                 ) : (
-                  shifts.map((shift, index) => (
+                  shifts.map((shift, index) => {
+                    // Find employee name from employees array
+                    const employeeIdStr = typeof shift.employeeId === 'object' ? shift.employeeId._id || shift.employeeId : shift.employeeId;
+                    const employee = employees.find(emp => emp.id === employeeIdStr || emp._id === employeeIdStr);
+                    const employeeName = employee ? `${employee.firstName} ${employee.lastName}` : 
+                                        (shift.employeeId?.firstName ? `${shift.employeeId.firstName} ${shift.employeeId.lastName}` : 'Unknown Employee');
+                    
+                    return (
                     <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
                         {index + 1}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                        {shift.employeeId?.firstName} {shift.employeeId?.lastName}
+                        {employeeName}
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
                         {formatUKDate(shift.date)}
@@ -499,7 +507,8 @@ const RotaShiftManagement = () => {
                         </button>
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

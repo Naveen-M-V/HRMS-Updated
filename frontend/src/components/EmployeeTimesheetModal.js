@@ -39,6 +39,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     if (employee) {
       console.log('Employee data in modal:', employee);
       fetchWeeklyTimesheet();
+      
+      // Auto-refresh every 5 seconds to show real-time updates
+      const interval = setInterval(() => {
+        fetchWeeklyTimesheet();
+      }, 5000);
+      
+      return () => clearInterval(interval);
     }
   }, [employee, currentDate]);
 
@@ -85,12 +92,22 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       );
 
       console.log('📥 Timesheet API response:', response.data);
+      console.log('📥 Response entries count:', response.data?.entries?.length || 0);
+      console.log('📥 Response entries:', response.data?.entries);
 
       if (response.data && response.data.success) {
         console.log('✅ Timesheet data received:', response.data);
-        processTimesheetData(response.data);
+        if (response.data.entries && response.data.entries.length > 0) {
+          console.log('✅ Processing', response.data.entries.length, 'time entries');
+          processTimesheetData(response.data);
+        } else {
+          console.warn('⚠️ No time entries in response, generating empty week');
+          generateEmptyWeek();
+        }
       } else {
-        console.warn('⚠️ No timesheet data, generating empty week');
+        console.warn('⚠️ No timesheet data or unsuccessful response, generating empty week');
+        console.warn('Response success:', response.data?.success);
+        console.warn('Response message:', response.data?.message);
         generateEmptyWeek();
       }
     } catch (error) {
@@ -823,8 +840,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                     }
                                   };
 
-                                  // Timeline range: 09:00 to 23:59 (like in the image)
-                                  const timelineStart = 9 * 60; // 09:00
+                                  // Timeline range: 07:00 to 23:59
+                                  const timelineStart = 7 * 60; // 07:00
                                   const timelineEnd = 24 * 60 - 1; // 23:59
                                   const timelineRange = timelineEnd - timelineStart;
 
@@ -963,6 +980,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                         paddingLeft: '2px',
                                         paddingRight: '2px'
                                       }}>
+                                        <span>07:00</span>
                                         <span>09:00</span>
                                         <span>11:00</span>
                                         <span>13:00</span>

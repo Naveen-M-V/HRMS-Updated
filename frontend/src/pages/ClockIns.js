@@ -1179,9 +1179,8 @@ const ClockIns = () => {
                             Clock In
                           </button>
                         )}
-                        {/* Delete Button - Only show if employee has a time entry */}
+                        {/* Edit Button - Only show if employee has a time entry */}
                         {employee.timeEntryId && (
-                        <>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1201,26 +1200,6 @@ const ClockIns = () => {
                         >
                             Edit
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteTimeEntry(employee.timeEntryId, employee.name);
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                background: '#ffffff',
-                                color: '#dc2626',
-                                border: '1px solid #dc2626',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: '500'
-                              }}
-                              title="Delete time entry"
-                            >
-                              Delete
-                            </button>
-                          </>
                         )}
                       </div>
                     </td>
