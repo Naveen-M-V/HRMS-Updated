@@ -438,10 +438,13 @@ const RotaShiftManagement = () => {
                 ) : (
                   shifts.map((shift, index) => {
                     // Find employee name from employees array
-                    const employeeIdStr = typeof shift.employeeId === 'object' ? shift.employeeId._id || shift.employeeId : shift.employeeId;
-                    const employee = employees.find(emp => emp.id === employeeIdStr || emp._id === employeeIdStr);
+                    // Handle null/undefined employeeId
+                    const employeeIdStr = shift.employeeId 
+                      ? (typeof shift.employeeId === 'object' ? shift.employeeId._id || shift.employeeId : shift.employeeId)
+                      : null;
+                    const employee = employeeIdStr ? employees.find(emp => emp.id === employeeIdStr || emp._id === employeeIdStr) : null;
                     const employeeName = employee ? `${employee.firstName} ${employee.lastName}` : 
-                                        (shift.employeeId?.firstName ? `${shift.employeeId.firstName} ${shift.employeeId.lastName}` : 'Unknown Employee');
+                                        (shift.employeeId?.firstName ? `${shift.employeeId.firstName} ${shift.employeeId.lastName}` : 'Unassigned');
                     
                     return (
                     <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
