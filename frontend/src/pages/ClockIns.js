@@ -220,25 +220,42 @@ const ClockIns = () => {
 
   const openClockInModal = async (employee) => {
     // Refresh data to get latest status before showing modal
-    await fetchData();
-    
-    // Find the updated employee data
-    const updatedEmployee = employees.find(emp => 
-      (emp.id === employee.id || emp._id === employee._id) ||
-      emp.email === employee.email
-    );
-    
-    // Use updated employee if found, otherwise use the passed employee
-    const employeeToClockIn = updatedEmployee || employee;
-    
-    // Check status before opening modal
-    if (employeeToClockIn.status === 'clocked_in' || employeeToClockIn.status === 'on_break') {
-      toast.warning(`${employeeToClockIn.firstName} ${employeeToClockIn.lastName} is already ${employeeToClockIn.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
-      return;
+    try {
+      console.log('🔄 Refreshing data before clock-in modal...');
+      
+      // Fetch fresh clock status
+      const clockStatusRes = await getClockStatus({ includeAdmins: true });
+      
+      if (clockStatusRes.success) {
+        // Find this specific employee's latest status
+        const latestStatus = clockStatusRes.data?.find(emp => 
+          emp.id === employee.id || 
+          emp._id === employee._id || 
+          emp.email === employee.email
+        );
+        
+        console.log('📊 Latest status for employee:', {
+          name: `${employee.firstName} ${employee.lastName}`,
+          currentStatus: employee.status,
+          latestStatus: latestStatus?.status
+        });
+        
+        // Check if already clocked in
+        if (latestStatus && (latestStatus.status === 'clocked_in' || latestStatus.status === 'on_break')) {
+          toast.warning(`${employee.firstName} ${employee.lastName} is already ${latestStatus.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
+          await fetchData(); // Refresh UI
+          return;
+        }
+      }
+      
+      setClockInEmployee(employee);
+      setShowClockInModal(true);
+    } catch (error) {
+      console.error('Error checking clock status:', error);
+      // If check fails, still allow opening modal (backend will validate)
+      setClockInEmployee(employee);
+      setShowClockInModal(true);
     }
-    
-    setClockInEmployee(employeeToClockIn);
-    setShowClockInModal(true);
   };
 
   const confirmClockIn = async () => {
