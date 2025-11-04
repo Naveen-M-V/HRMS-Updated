@@ -237,11 +237,19 @@ const ClockIns = () => {
     console.log('Clock In - Employee ID:', employeeId);
     console.log('Clock In - Is Admin:', isAdmin);
     console.log('Clock In - Is Current User:', isCurrentUser);
+    console.log('Clock In - Current Status:', clockInEmployee.status);
     console.log('Employee ID type:', typeof employeeId);
     
     if (!employeeId) {
       console.error('❌ Employee ID is undefined! Employee object:', clockInEmployee);
       toast.error('Invalid employee data. Please refresh and try again.');
+      setShowClockInModal(false);
+      return;
+    }
+    
+    // Check if employee is already clocked in
+    if (clockInEmployee.status === 'clocked_in' || clockInEmployee.status === 'on_break') {
+      toast.warning(`Employee is already ${clockInEmployee.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
       setShowClockInModal(false);
       return;
     }
@@ -288,8 +296,23 @@ const ClockIns = () => {
       }
     } catch (error) {
       console.error('❌ Clock in error:', error);
-      console.error('Error response:', error.response?.data);
-      toast.error(error.response?.data?.message || error.message || 'Failed to clock in');
+      console.error('❌ Error response data:', error.response?.data);
+      console.error('❌ Error response status:', error.response?.status);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      
+      // Check if user is already clocked in
+      if (error.response?.status === 400) {
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to clock in';
+        if (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('active')) {
+          toast.error('Employee is already clocked in. Please clock out first before clocking in again.');
+        } else {
+          toast.error(errorMsg);
+        }
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'Failed to clock in');
+      }
+      
       await fetchData(); // Revert on error
     }
   };
