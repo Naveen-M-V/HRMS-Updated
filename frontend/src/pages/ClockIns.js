@@ -282,11 +282,29 @@ const ClockIns = () => {
       return;
     }
     
-    // Check if employee is already clocked in
-    if (clockInEmployee.status === 'clocked_in' || clockInEmployee.status === 'on_break') {
-      toast.warning(`Employee is already ${clockInEmployee.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
-      setShowClockInModal(false);
-      return;
+    // Double-check status one more time before API call
+    try {
+      console.log('🔄 Final status check before clock-in...');
+      const clockStatusRes = await getClockStatus({ includeAdmins: true });
+      
+      if (clockStatusRes.success) {
+        const latestStatus = clockStatusRes.data?.find(emp => 
+          emp.id === employeeId || 
+          emp._id === employeeId || 
+          emp.email === clockInEmployee.email
+        );
+        
+        console.log('📊 Final status check result:', latestStatus?.status);
+        
+        if (latestStatus && (latestStatus.status === 'clocked_in' || latestStatus.status === 'on_break')) {
+          toast.warning(`Employee is already ${latestStatus.status === 'on_break' ? 'on break' : 'clocked in'}. Please clock out first.`);
+          setShowClockInModal(false);
+          await fetchData(); // Refresh UI
+          return;
+        }
+      }
+    } catch (statusCheckError) {
+      console.warn('⚠️ Status check failed, proceeding with clock-in (backend will validate):', statusCheckError);
     }
     
     setShowClockInModal(false);
