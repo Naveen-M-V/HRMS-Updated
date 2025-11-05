@@ -59,6 +59,29 @@ const timeEntrySchema = new mongoose.Schema({
       default: null
     }
   },
+  // GPS location captured during clock-out
+  gpsLocationOut: {
+    latitude: {
+      type: Number,
+      default: null
+    },
+    longitude: {
+      type: Number,
+      default: null
+    },
+    accuracy: {
+      type: Number, // Accuracy in meters
+      default: null
+    },
+    address: {
+      type: String, // Reverse geocoded address
+      default: null
+    },
+    capturedAt: {
+      type: Date,
+      default: null
+    }
+  },
   // ==========================================
   
   // ========== NEW: SHIFT LINKING ==========

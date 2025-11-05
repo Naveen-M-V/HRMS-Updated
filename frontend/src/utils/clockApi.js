@@ -225,19 +225,20 @@ export const userClockIn = async (clockData) => {
 };
 
 /**
- * Clock out current user (with hours calculation)
+ * Clock out current user (with hours calculation and GPS)
+ * @param {Object} clockOutData - Optional { latitude, longitude, accuracy }
  * @returns {Promise} API response with hours worked
  */
-export const userClockOut = async () => {
+export const userClockOut = async (clockOutData = {}) => {
   try {
     const url = buildApiUrl('/clock/user/out');
     console.log('🔍 userClockOut - API URL:', url);
-    console.log('🔍 userClockOut - Request payload:', {});
+    console.log('🔍 userClockOut - Request payload:', clockOutData);
     console.log('🔍 userClockOut - withCredentials:', true);
     
     const response = await axios.post(
       url,
-      {},
+      clockOutData,
       { withCredentials: true }
     );
     

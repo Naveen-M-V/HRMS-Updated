@@ -46,12 +46,12 @@ const ClockIns = () => {
   useEffect(() => {
     fetchData();
     fetchMyStatus(); // Fetch admin's own clock status on page load
-    // Auto-refresh every 30 seconds for cross-device sync
+    // Auto-refresh every 15 seconds for real-time sync (polling-based)
     // Cross-tab updates are handled by ClockStatusContext (instant)
     const interval = setInterval(() => {
       fetchData();
       fetchMyStatus();
-    }, 30000); // Reduced from 10s to 30s since we have instant cross-tab updates
+    }, 15000); // 15 seconds for near real-time updates
     return () => clearInterval(interval);
   }, []);
 

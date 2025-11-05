@@ -1441,6 +1441,8 @@ router.post('/user/in', async (req, res) => {
 router.post('/user/out', async (req, res) => {
   try {
     const userId = req.user._id || req.user.userId || req.user.id;
+    // Extract GPS coordinates from request body for clock-out
+    const { latitude, longitude, accuracy } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -1472,6 +1474,33 @@ router.post('/user/out', async (req, res) => {
     const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format
     timeEntry.clockOut = currentTime;
     timeEntry.status = 'clocked_out';
+    
+    // ========== GPS LOCATION PROCESSING FOR CLOCK-OUT ==========
+    // If GPS coordinates are provided, save them and attempt reverse geocoding
+    if (latitude && longitude) {
+      console.log('GPS coordinates received for clock-out:', { latitude, longitude, accuracy });
+      
+      // Initialize GPS location object for clock-out
+      timeEntry.gpsLocationOut = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        accuracy: accuracy ? parseFloat(accuracy) : null,
+        capturedAt: new Date()
+      };
+      
+      // Attempt reverse geocoding to get address (non-blocking)
+      try {
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) {
+          timeEntry.gpsLocationOut.address = address;
+          console.log('Reverse geocoded address for clock-out:', address);
+        }
+      } catch (geocodeError) {
+        console.error('Reverse geocoding failed for clock-out, continuing without address:', geocodeError);
+        // Don't fail the clock-out if geocoding fails
+      }
+    }
+    // ===========================================================
     
     const hoursWorked = calculateHoursWorked(timeEntry.clockIn, currentTime, timeEntry.breaks);
     timeEntry.hoursWorked = hoursWorked;

@@ -393,8 +393,46 @@ const UserDashboard = () => {
     if (!window.confirm('Are you sure you want to clock out?')) return;
 
     setProcessing(true);
+    setGpsError(null);
+    
     try {
-      const response = await userClockOut();
+      // ========== GPS LOCATION CAPTURE FOR CLOCK-OUT ==========
+      let gpsData = {};
+      
+      if (navigator.geolocation) {
+        try {
+          console.log('📍 Capturing GPS location for clock-out...');
+          const locationToast = toast.info('Capturing location for clock-out...', { autoClose: false });
+          
+          // Get accurate position for clock-out
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          });
+          
+          gpsData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          toast.dismiss(locationToast);
+          console.log('✅ GPS captured for clock-out:', gpsData);
+        } catch (gpsError) {
+          console.warn('⚠️ GPS capture failed for clock-out:', gpsError);
+          // Continue without GPS - don't block clock-out
+        }
+      }
+      // ========================================================
+      
+      const response = await userClockOut(gpsData);
       
       if (response.success) {
         const hours = response.data?.hoursWorked || 0;
