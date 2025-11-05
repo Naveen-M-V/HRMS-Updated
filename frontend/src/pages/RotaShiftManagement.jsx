@@ -141,6 +141,12 @@ const RotaShiftManagement = () => {
       
       if (response.success) {
         toast.success('Shift assigned successfully');
+        
+        // Add the new shift to state immediately (it's already populated from backend)
+        if (response.data) {
+          setShifts(prevShifts => [...prevShifts, response.data]);
+        }
+        
         setShowModal(false);
         setFormData({
           employeeId: '',
@@ -152,7 +158,9 @@ const RotaShiftManagement = () => {
           breakDuration: 60,
           notes: ''
         });
-        fetchData();
+        
+        // Refresh data to ensure consistency
+        setTimeout(() => fetchData(), 500);
       }
     } catch (error) {
       console.error('❌ Assign shift error:', error);
@@ -162,7 +170,29 @@ const RotaShiftManagement = () => {
       console.error('Error message:', error.message);
       
       const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to assign shift';
-      toast.error(`Failed to assign shift: ${errorMsg}`);
+      
+      // Show conflict details if available
+      if (error.response?.data?.conflicts && error.response.data.conflicts.length > 0) {
+        const conflicts = error.response.data.conflicts;
+        console.error('⚠️ Shift conflicts:', conflicts);
+        
+        // Show detailed conflict message
+        toast.error(
+          <div>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{errorMsg}</div>
+            <div style={{ fontSize: '12px' }}>
+              {conflicts.map((c, i) => (
+                <div key={i} style={{ marginTop: '4px' }}>
+                  • {c.startTime} - {c.endTime} at {c.location}
+                </div>
+              ))}
+            </div>
+          </div>,
+          { autoClose: 8000 }
+        );
+      } else {
+        toast.error(errorMsg, { autoClose: 5000 });
+      }
       
       // Show detailed error in console for debugging
       if (error.response?.data?.details) {

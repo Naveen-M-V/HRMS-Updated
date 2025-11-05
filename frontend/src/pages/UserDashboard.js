@@ -231,14 +231,28 @@ const UserDashboard = () => {
           // Dismiss location toast
           toast.dismiss(locationToast);
           
-          // Show accuracy warning if not within 10m
-          if (position.coords.accuracy > 10) {
-            toast.warning(`Location accuracy: ${Math.round(position.coords.accuracy)}m. For best results, ensure GPS is enabled and you're outdoors.`, {
+          // Show accuracy feedback based on GPS quality
+          const accuracyMeters = Math.round(position.coords.accuracy);
+          
+          if (accuracyMeters <= 10) {
+            toast.success(`✅ Excellent GPS accuracy: ${accuracyMeters}m`, {
+              autoClose: 3000
+            });
+          } else if (accuracyMeters <= 50) {
+            toast.info(`📍 Good GPS accuracy: ${accuracyMeters}m`, {
+              autoClose: 4000
+            });
+          } else if (accuracyMeters <= 100) {
+            toast.warning(`⚠️ Moderate GPS accuracy: ${accuracyMeters}m. Try moving closer to a window.`, {
               autoClose: 5000
             });
+          } else if (accuracyMeters <= 1000) {
+            toast.warning(`⚠️ Low GPS accuracy: ${accuracyMeters}m. Please enable GPS and move outdoors for better accuracy.`, {
+              autoClose: 6000
+            });
           } else {
-            toast.success(`High accuracy location captured: ${Math.round(position.coords.accuracy)}m`, {
-              autoClose: 3000
+            toast.error(`❌ Very poor GPS accuracy: ${(accuracyMeters / 1000).toFixed(1)}km. You may be indoors or GPS is disabled. Please enable location services and try outdoors.`, {
+              autoClose: 8000
             });
           }
           
@@ -298,7 +312,9 @@ const UserDashboard = () => {
       }
     } catch (error) {
       console.error('Clock in error:', error);
-      toast.error(error.message || 'Failed to clock in');
+      // Extract error message from response (backend returns { success: false, message: '...' })
+      const errorMessage = error.message || error.error || 'Failed to clock in';
+      toast.error(errorMessage, { autoClose: 5000 });
     } finally {
       setProcessing(false);
     }

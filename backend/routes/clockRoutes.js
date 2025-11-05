@@ -112,9 +112,8 @@ router.post('/in', async (req, res) => {
     // Use the actual User ID for clock operations
     const actualEmployeeId = employee._id;
 
-    // Check if employee is already clocked in (active status only)
-    // Allow multiple clock-ins per day - employee can clock in again after clocking out
-    // This is useful for split shifts or multiple work sessions in a day
+    // Allow multiple clock-ins per day for split shifts or multiple work sessions
+    // Check only if there's an ACTIVE clock-in (not clocked out)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -127,11 +126,11 @@ router.post('/in', async (req, res) => {
     if (existingEntry) {
       return res.status(400).json({
         success: false,
-        message: `Employee is already clocked in. Please clock out before clocking in again. (Current status: ${existingEntry.status.replace('_', ' ')})`
+        message: `Employee is currently ${existingEntry.status.replace('_', ' ')}. Please clock out or end break before clocking in again.`
       });
     }
     
-    // If employee has clocked out, they can clock in again (creates a new time entry for the same day)
+    // User can clock in again after clocking out (creates a new time entry for the same day)
 
     // Get current time
     const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format
@@ -1285,9 +1284,8 @@ router.post('/user/in', async (req, res) => {
       });
     }
 
-    // Check if user is already clocked in (active status only)
-    // Allow multiple clock-ins per day - user can clock in again after clocking out
-    // This is useful for split shifts or multiple work sessions in a day
+    // Allow multiple clock-ins per day for split shifts or multiple work sessions
+    // Check only if there's an ACTIVE clock-in (not clocked out)
     // Use UK timezone for date comparison
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const today = new Date(ukNow);
@@ -1303,11 +1301,11 @@ router.post('/user/in', async (req, res) => {
       console.log('User already has active clock-in:', existingEntry.status);
       return res.status(400).json({
         success: false,
-        message: `You are already clocked in. Please clock out before clocking in again. (Current status: ${existingEntry.status})`
+        message: `You are currently ${existingEntry.status.replace('_', ' ')}. Please clock out or end break before clocking in again.`
       });
     }
     
-    // If user has clocked out, they can clock in again (creates a new time entry for the same day)
+    // User can clock in again after clocking out (creates a new time entry for the same day)
 
     // Get current UK time
     const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format

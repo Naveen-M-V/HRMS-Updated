@@ -8,6 +8,7 @@ import MUIDatePicker from '../components/MUIDatePicker';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
 import { useAuth } from '../context/AuthContext';
+import { useClockStatus } from '../context/ClockStatusContext';
 
 /**
  * Clock-ins Page
@@ -17,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 
 const ClockIns = () => {
   const { user: currentUser } = useAuth();
+  const { refreshTrigger, triggerClockRefresh } = useClockStatus();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -48,6 +50,15 @@ const ClockIns = () => {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Listen to clock refresh trigger from UserDashboard
+  // This provides instant updates when users clock in/out
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('🔄 Clock refresh triggered from UserDashboard, fetching latest data...');
+      fetchData();
+    }
+  }, [refreshTrigger]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -291,6 +302,9 @@ const ClockIns = () => {
         // Update selected employee status
         setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
         
+        // Trigger refresh for UserDashboard
+        triggerClockRefresh();
+        
         // Wait a moment for backend to fully process, then fetch fresh data
         setTimeout(async () => {
           await fetchData();
@@ -380,6 +394,9 @@ const ClockIns = () => {
           )
         );
         
+        // Trigger refresh for UserDashboard
+        triggerClockRefresh();
+        
         // Wait before fetching fresh data
         setTimeout(async () => {
           await fetchData();
@@ -453,6 +470,9 @@ const ClockIns = () => {
               : emp
           )
         );
+        
+        // Trigger refresh for UserDashboard
+        triggerClockRefresh();
         
         // Wait before fetching fresh data
         setTimeout(async () => {

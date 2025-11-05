@@ -154,14 +154,27 @@ exports.assignShiftToEmployee = async (req, res) => {
 
     const conflicts = await exports.detectShiftConflicts(actualEmployeeId, startTime, endTime, date);
     if (conflicts.length > 0) {
+      console.log('⚠️ Shift conflicts detected:', conflicts.length);
+      conflicts.forEach((c, i) => {
+        console.log(`Conflict ${i + 1}:`, {
+          id: c._id,
+          date: c.date,
+          time: `${c.startTime} - ${c.endTime}`,
+          location: c.location,
+          status: c.status
+        });
+      });
+      
       return res.status(400).json({
         success: false,
-        message: 'Shift conflict detected',
+        message: `Shift conflict detected. Employee already has ${conflicts.length} shift(s) on ${new Date(date).toLocaleDateString()} that overlap with ${startTime} - ${endTime}.`,
         conflicts: conflicts.map(c => ({
           id: c._id,
+          date: c.date,
           startTime: c.startTime,
           endTime: c.endTime,
-          location: c.location
+          location: c.location,
+          status: c.status
         }))
       });
     }
