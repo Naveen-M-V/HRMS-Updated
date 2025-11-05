@@ -516,15 +516,23 @@ const RotaShiftManagement = () => {
                     // Priority 3: Show 'Unassigned'
                     let employeeName = 'Unassigned';
                     
-                    // Debug logging for first shift only to avoid console spam
-                    if (index === 0) {
-                      console.log('🔍 Rendering shift:', {
+                    // Debug logging - show details for ALL shifts showing "Unassigned"
+                    const shouldLog = index === 0 || !shift.employeeId || (typeof shift.employeeId === 'object' && !shift.employeeId?.firstName);
+                    
+                    if (shouldLog) {
+                      console.log(`🔍 Rendering shift #${index + 1}:`, {
                         shiftId: shift._id,
+                        date: shift.date,
                         employeeId: shift.employeeId,
                         employeeIdType: typeof shift.employeeId,
                         isObject: typeof shift.employeeId === 'object',
+                        isNull: shift.employeeId === null,
                         hasFirstName: shift.employeeId?.firstName,
-                        employeesListCount: employees.length
+                        firstName: shift.employeeId?.firstName,
+                        lastName: shift.employeeId?.lastName,
+                        employeeIdKeys: shift.employeeId && typeof shift.employeeId === 'object' ? Object.keys(shift.employeeId) : null,
+                        employeesListCount: employees.length,
+                        rawEmployeeId: JSON.stringify(shift.employeeId)
                       });
                     }
                     
@@ -532,7 +540,7 @@ const RotaShiftManagement = () => {
                       if (typeof shift.employeeId === 'object' && shift.employeeId !== null && shift.employeeId.firstName) {
                         // Backend populated the employeeId with user data
                         employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
-                        if (index === 0) console.log('✅ Using populated data:', employeeName);
+                        if (shouldLog) console.log('✅ Using populated data:', employeeName);
                       } else {
                         // employeeId is just an ID string or ObjectId, try to find in employees list
                         let employeeIdStr;
@@ -541,24 +549,27 @@ const RotaShiftManagement = () => {
                           employeeIdStr = shift.employeeId._id?.toString() || shift.employeeId.toString();
                         } else {
                           // It's already a string
-                          employeeIdStr = shift.employeeId.toString();
+                          employeeIdStr = shift.employeeId?.toString();
                         }
                         
-                        if (index === 0) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
+                        if (shouldLog) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
                         const employee = employees.find(emp => 
                           emp.id?.toString() === employeeIdStr || 
                           emp._id?.toString() === employeeIdStr
                         );
                         if (employee) {
                           employeeName = `${employee.firstName} ${employee.lastName}`;
-                          if (index === 0) console.log('✅ Found in employees list:', employeeName);
+                          if (shouldLog) console.log('✅ Found in employees list:', employeeName);
                         } else {
-                          if (index === 0) {
+                          if (shouldLog) {
                             console.log('❌ Not found in employees list');
-                            console.log('Available employee IDs:', employees.map(e => ({ id: e.id, name: e.name })));
+                            console.log('Searched for ID:', employeeIdStr);
+                            console.log('Available employee IDs:', employees.slice(0, 5).map(e => ({ id: e.id, name: e.name })));
                           }
                         }
                       }
+                    } else {
+                      if (shouldLog) console.log('⚠️ Shift has no employeeId at all');
                     }
                     
                     return (
