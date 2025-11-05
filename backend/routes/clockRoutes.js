@@ -1232,7 +1232,17 @@ router.get('/user/status', async (req, res) => {
       employee: userId,
       date: { $gte: today },
       status: { $in: ['clocked_in', 'clocked_out', 'on_break'] }
-    }).populate('employee', 'firstName lastName email vtid');
+    })
+    .sort({ date: -1, clockIn: -1 }) // Get the most recent entry
+    .populate('employee', 'firstName lastName email vtid');
+    
+    console.log('📊 User status query - userId:', userId, 'today:', today);
+    console.log('📊 Found time entry:', timeEntry ? {
+      status: timeEntry.status,
+      clockIn: timeEntry.clockIn,
+      clockOut: timeEntry.clockOut,
+      date: timeEntry.date
+    } : 'NO ENTRY FOUND');
 
     if (!timeEntry) {
       return res.json({
@@ -1298,10 +1308,23 @@ router.post('/user/in', async (req, res) => {
     });
 
     if (existingEntry) {
-      console.log('User already has active clock-in:', existingEntry.status);
+      console.log('❌ User already has active clock-in:', {
+        userId: userId,
+        status: existingEntry.status,
+        clockIn: existingEntry.clockIn,
+        date: existingEntry.date,
+        entryId: existingEntry._id
+      });
       return res.status(400).json({
         success: false,
-        message: `You are currently ${existingEntry.status.replace('_', ' ')}. Please clock out or end break before clocking in again.`
+        message: `You are currently ${existingEntry.status.replace('_', ' ')}. Please clock out or end break before clocking in again.`,
+        currentStatus: {
+          status: existingEntry.status,
+          clockIn: existingEntry.clockIn,
+          clockOut: existingEntry.clockOut,
+          location: existingEntry.location,
+          workType: existingEntry.workType
+        }
       });
     }
     

@@ -110,6 +110,12 @@ const UserDashboard = () => {
     }
   }, [API_BASE_URL, user.email]);
 
+  // Debug: Log clockStatus changes
+  useEffect(() => {
+    console.log('🎯 clockStatus state changed:', JSON.stringify(clockStatus, null, 2));
+    console.log('🎯 clockStatusLoading:', clockStatusLoading);
+  }, [clockStatus, clockStatusLoading]);
+
   useEffect(() => {
     if (user?.email) {
       fetchUserData();
@@ -128,24 +134,32 @@ const UserDashboard = () => {
     try {
       setClockStatusLoading(true);
       const response = await getUserClockStatus();
-      console.log('📊 Clock status response:', response);
+      console.log('📊 Clock status response:', JSON.stringify(response, null, 2));
       if (response.success && response.data) {
-        console.log('✅ Setting clock status:', {
+        console.log('✅ Setting clock status:', JSON.stringify({
           status: response.data.status,
           clockIn: response.data.clockIn,
           clockOut: response.data.clockOut,
           location: response.data.location,
           workType: response.data.workType
-        });
+        }, null, 2));
+        
         // Always set fresh data from backend
-        setClockStatus({
+        const newStatus = {
           status: response.data.status,
           clockIn: response.data.clockIn,
           clockOut: response.data.clockOut,
           location: response.data.location,
           workType: response.data.workType,
           breaks: response.data.breaks
-        });
+        };
+        
+        console.log('🔄 Current clockStatus before update:', clockStatus);
+        setClockStatus(newStatus);
+        console.log('🔄 New clockStatus set to:', newStatus);
+        
+        // Force a re-render check
+        console.log('🔍 Status check - Should show Clock Out?', newStatus.status === 'clocked_in' || newStatus.status === 'on_break');
       } else {
         console.log('⚠️ No clock status data or unsuccessful response');
         setClockStatus(null);
@@ -346,15 +360,29 @@ const UserDashboard = () => {
       // Extract error message from response (backend returns { success: false, message: '...' })
       const errorMessage = error.message || error.error || 'Failed to clock in';
       
-      // Always refresh status when there's an error to sync UI with backend state
-      console.log('⚠️ Clock-in failed, fetching current status to sync UI...');
-      await fetchClockStatus();
-      
-      // If user is already clocked in, show appropriate message
-      if (errorMessage.includes('already') || errorMessage.includes('clocked in')) {
+      // Check if error response includes current status (from "already clocked in" error)
+      if (error.currentStatus) {
+        console.log('✅ Error includes current status, updating UI immediately:', error.currentStatus);
+        setClockStatus({
+          status: error.currentStatus.status,
+          clockIn: error.currentStatus.clockIn,
+          clockOut: error.currentStatus.clockOut,
+          location: error.currentStatus.location,
+          workType: error.currentStatus.workType,
+          breaks: error.currentStatus.breaks
+        });
         toast.warning('You are already clocked in', { autoClose: 3000 });
       } else {
-        toast.error(errorMessage, { autoClose: 5000 });
+        // Always refresh status when there's an error to sync UI with backend state
+        console.log('⚠️ Clock-in failed, fetching current status to sync UI...');
+        await fetchClockStatus();
+        
+        // If user is already clocked in, show appropriate message
+        if (errorMessage.includes('already') || errorMessage.includes('clocked in')) {
+          toast.warning('You are already clocked in', { autoClose: 3000 });
+        } else {
+          toast.error(errorMessage, { autoClose: 5000 });
+        }
       }
     } finally {
       setProcessing(false);
