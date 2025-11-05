@@ -46,12 +46,12 @@ const ClockIns = () => {
   useEffect(() => {
     fetchData();
     fetchMyStatus(); // Fetch admin's own clock status on page load
-    // Auto-refresh every 10 seconds for real-time sync with user dashboard
-    // This ensures admin sees clock-ins from users immediately
+    // Auto-refresh every 30 seconds for cross-device sync
+    // Cross-tab updates are handled by ClockStatusContext (instant)
     const interval = setInterval(() => {
       fetchData();
       fetchMyStatus();
-    }, 10000);
+    }, 30000); // Reduced from 10s to 30s since we have instant cross-tab updates
     return () => clearInterval(interval);
   }, []);
 
@@ -325,8 +325,18 @@ const ClockIns = () => {
         // Update selected employee status
         setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
         
-        // Trigger refresh for UserDashboard
-        triggerClockRefresh();
+        // Trigger refresh for UserDashboard and all other tabs
+        triggerClockRefresh({
+          action: 'ADMIN_CLOCK_IN',
+          employeeId: employeeId,
+          employeeName: clockInEmployee?.firstName && clockInEmployee?.lastName 
+            ? `${clockInEmployee.firstName} ${clockInEmployee.lastName}` 
+            : 'Employee',
+          adminName: currentUser?.firstName && currentUser?.lastName
+            ? `${currentUser.firstName} ${currentUser.lastName}`
+            : 'Admin',
+          timestamp: Date.now()
+        });
         
         // Wait a moment for backend to fully process, then fetch fresh data
         setTimeout(async () => {
@@ -419,8 +429,19 @@ const ClockIns = () => {
           )
         );
         
-        // Trigger refresh for UserDashboard
-        triggerClockRefresh();
+        // Trigger refresh for UserDashboard and all other tabs
+        triggerClockRefresh({
+          action: 'ADMIN_CLOCK_OUT',
+          employeeId: employeeId,
+          employeeName: employee?.firstName && employee?.lastName 
+            ? `${employee.firstName} ${employee.lastName}` 
+            : 'Employee',
+          adminName: currentUser?.firstName && currentUser?.lastName
+            ? `${currentUser.firstName} ${currentUser.lastName}`
+            : 'Admin',
+          hoursWorked: response.data?.hoursWorked || 0,
+          timestamp: Date.now()
+        });
         
         // Wait before fetching fresh data
         setTimeout(async () => {

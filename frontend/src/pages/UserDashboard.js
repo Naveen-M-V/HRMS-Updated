@@ -35,6 +35,7 @@ const UserDashboard = () => {
   const [editedProfile, setEditedProfile] = useState({});
   
   const [clockStatus, setClockStatus] = useState(null);
+  const [clockStatusLoading, setClockStatusLoading] = useState(true);
   const [location, setLocation] = useState('Work From Office');
   const [workType, setWorkType] = useState('Regular');
   const [processing, setProcessing] = useState(false);
@@ -125,12 +126,21 @@ const UserDashboard = () => {
 
   const fetchClockStatus = async () => {
     try {
+      setClockStatusLoading(true);
       const response = await getUserClockStatus();
-      if (response.success) {
+      console.log('📊 Clock status response:', response);
+      if (response.success && response.data) {
+        console.log('✅ Setting clock status:', response.data);
         setClockStatus(response.data);
+      } else {
+        console.log('⚠️ No clock status data or unsuccessful response');
+        setClockStatus(null);
       }
     } catch (error) {
-      console.error('Fetch clock status error:', error);
+      console.error('❌ Fetch clock status error:', error);
+      setClockStatus(null);
+    } finally {
+      setClockStatusLoading(false);
     }
   };
 
@@ -303,8 +313,15 @@ const UserDashboard = () => {
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
         
-        // Trigger refresh in admin dashboard for immediate update
-        triggerClockRefresh();
+        // Trigger refresh in admin dashboard and all other tabs for immediate update
+        triggerClockRefresh({
+          action: 'CLOCK_IN',
+          userId: user?.id || user?.email,
+          userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          location: location,
+          workType: workType,
+          timestamp: Date.now()
+        });
         
         if (response.data?.attendanceStatus === 'Late') {
           toast.warning('Late arrival detected', { autoClose: 5000 });
@@ -314,7 +331,14 @@ const UserDashboard = () => {
       console.error('Clock in error:', error);
       // Extract error message from response (backend returns { success: false, message: '...' })
       const errorMessage = error.message || error.error || 'Failed to clock in';
-      toast.error(errorMessage, { autoClose: 5000 });
+      
+      // If user is already clocked in, refresh status to sync UI
+      if (errorMessage.includes('already') || errorMessage.includes('clocked in')) {
+        toast.warning('You are already clocked in. Refreshing status...', { autoClose: 3000 });
+        await fetchClockStatus(); // Refresh to show correct state
+      } else {
+        toast.error(errorMessage, { autoClose: 5000 });
+      }
     } finally {
       setProcessing(false);
     }
@@ -337,8 +361,14 @@ const UserDashboard = () => {
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
         
-        // Trigger refresh in admin dashboard for immediate update
-        triggerClockRefresh();
+        // Trigger refresh in admin dashboard and all other tabs for immediate update
+        triggerClockRefresh({
+          action: 'CLOCK_OUT',
+          userId: user?.id || user?.email,
+          userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          hoursWorked: hours,
+          timestamp: Date.now()
+        });
       }
     } catch (error) {
       console.error('Clock out error:', error);
@@ -359,8 +389,13 @@ const UserDashboard = () => {
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
         
-        // Trigger refresh in admin dashboard for immediate update
-        triggerClockRefresh();
+        // Trigger refresh in admin dashboard and all other tabs for immediate update
+        triggerClockRefresh({
+          action: 'START_BREAK',
+          userId: user?.id || user?.email,
+          userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          timestamp: Date.now()
+        });
       }
     } catch (error) {
       console.error('Start break error:', error);
@@ -381,8 +416,13 @@ const UserDashboard = () => {
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
         
-        // Trigger refresh in admin dashboard for immediate update
-        triggerClockRefresh();
+        // Trigger refresh in admin dashboard and all other tabs for immediate update
+        triggerClockRefresh({
+          action: 'RESUME_WORK',
+          userId: user?.id || user?.email,
+          userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          timestamp: Date.now()
+        });
       }
     } catch (error) {
       console.error('Resume work error:', error);
@@ -565,7 +605,12 @@ const UserDashboard = () => {
                 </div>
               )}
               
-              {clockStatus?.status === 'clocked_in' || clockStatus?.status === 'on_break' ? (
+              {clockStatusLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-sm text-gray-600 mt-2">Loading clock status...</p>
+                </div>
+              ) : clockStatus?.status === 'clocked_in' || clockStatus?.status === 'on_break' ? (
                 <div className="space-y-4">
                   <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
                     <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full font-semibold text-sm mb-2">

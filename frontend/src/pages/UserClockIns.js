@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../context/AuthContext';
+import { useClockStatus } from '../context/ClockStatusContext';
 import ShiftCalendar from '../components/ShiftCalendar';
 import { 
   getUserClockStatus, 
@@ -19,6 +20,7 @@ import {
 
 const UserClockIns = () => {
   const { user } = useAuth();
+  const { triggerClockRefresh } = useClockStatus();
   const [currentStatus, setCurrentStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [clockingIn, setClockingin] = useState(false);
@@ -47,11 +49,12 @@ const UserClockIns = () => {
     fetchUserStatus();
     fetchUserEntries();
     
-    // Poll for updates every 10 seconds to catch admin actions
+    // Poll for updates every 30 seconds for cross-device sync
+    // Cross-tab updates are handled by ClockStatusContext (instant)
     const interval = setInterval(() => {
       fetchUserStatus();
       fetchUserEntries();
-    }, 10000);
+    }, 30000); // Reduced from 10s to 30s since we have instant cross-tab updates
     
     return () => clearInterval(interval);
   }, []);
@@ -94,6 +97,15 @@ const UserClockIns = () => {
         // Immediately fetch updated status and entries
         await fetchUserStatus();
         await fetchUserEntries();
+        // Trigger refresh across all tabs
+        triggerClockRefresh({
+          action: 'CLOCK_IN',
+          userId: user?.id || user?.email,
+          userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          location: selectedLocation,
+          workType: selectedWorkType,
+          timestamp: Date.now()
+        });
       } else {
         toast.error(response.message || 'Failed to clock in');
       }
@@ -115,6 +127,13 @@ const UserClockIns = () => {
         // Immediately fetch updated status and entries
         await fetchUserStatus();
         await fetchUserEntries();
+        // Trigger refresh across all tabs
+        triggerClockRefresh({
+          action: 'CLOCK_OUT',
+          userId: user?.id || user?.email,
+          userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          timestamp: Date.now()
+        });
       } else {
         toast.error(response.message || 'Failed to clock out');
       }
