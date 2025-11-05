@@ -97,27 +97,57 @@ const RotaShiftManagement = () => {
       }
       if (statsRes.success) setStatistics(statsRes.data);
       
-      // Map profiles to employee format (includes admins)
+      // Build comprehensive employee list from profiles AND shifts
+      const employeeList = [];
+      const employeeIds = new Set();
+      
+      // First, add all employees from profiles
       if (profilesResponse.data) {
-        const employeeList = profilesResponse.data.map(profile => {
-          // Ensure we get a string ID, not an object
+        profilesResponse.data.forEach(profile => {
           const userId = profile.userId?._id || profile.userId || profile._id;
           const idString = typeof userId === 'object' ? userId.toString() : userId;
           
-          return {
-            id: idString,
-            _id: idString,
-            firstName: profile.firstName,
-            lastName: profile.lastName,
-            email: profile.email,
-            role: profile.userId?.role || profile.role || 'employee',
-            name: `${profile.firstName} ${profile.lastName}`
-          };
+          if (!employeeIds.has(idString)) {
+            employeeList.push({
+              id: idString,
+              _id: idString,
+              firstName: profile.firstName,
+              lastName: profile.lastName,
+              email: profile.email,
+              role: profile.userId?.role || profile.role || 'employee',
+              name: `${profile.firstName} ${profile.lastName}`
+            });
+            employeeIds.add(idString);
+          }
         });
-        console.log(`✅ Loaded ${employeeList.length} employees from profiles (includes admins)`);
-        console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, role: e.role, type: typeof e.id })));
-        setEmployees(employeeList);
       }
+      
+      // Second, add any employees from shifts that aren't in profiles (e.g., admins without profiles)
+      if (shiftsRes.success && shiftsRes.data) {
+        shiftsRes.data.forEach(shift => {
+          if (shift.employeeId && typeof shift.employeeId === 'object' && shift.employeeId.firstName) {
+            const userId = shift.employeeId._id?.toString() || shift.employeeId.toString();
+            
+            if (!employeeIds.has(userId)) {
+              employeeList.push({
+                id: userId,
+                _id: userId,
+                firstName: shift.employeeId.firstName,
+                lastName: shift.employeeId.lastName,
+                email: shift.employeeId.email || '',
+                role: shift.employeeId.role || 'employee',
+                name: `${shift.employeeId.firstName} ${shift.employeeId.lastName}`
+              });
+              employeeIds.add(userId);
+              console.log('➕ Added employee from shift data:', shift.employeeId.firstName, shift.employeeId.lastName);
+            }
+          }
+        });
+      }
+      
+      console.log(`✅ Loaded ${employeeList.length} total employees (${profilesResponse.data?.length || 0} from profiles + ${employeeList.length - (profilesResponse.data?.length || 0)} from shifts)`);
+      console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, role: e.role })));
+      setEmployees(employeeList);
     } catch (error) {
       console.error('❌ Fetch data error:', error);
       toast.error(error.message || 'Failed to load data');
@@ -499,20 +529,34 @@ const RotaShiftManagement = () => {
                     }
                     
                     if (shift.employeeId) {
-                      if (typeof shift.employeeId === 'object' && shift.employeeId.firstName) {
+                      if (typeof shift.employeeId === 'object' && shift.employeeId !== null && shift.employeeId.firstName) {
                         // Backend populated the employeeId with user data
                         employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
                         if (index === 0) console.log('✅ Using populated data:', employeeName);
                       } else {
-                        // employeeId is just an ID string, try to find in employees list
-                        const employeeIdStr = typeof shift.employeeId === 'object' ? shift.employeeId._id || shift.employeeId : shift.employeeId;
+                        // employeeId is just an ID string or ObjectId, try to find in employees list
+                        let employeeIdStr;
+                        if (typeof shift.employeeId === 'object' && shift.employeeId !== null) {
+                          // It's an ObjectId or object without firstName
+                          employeeIdStr = shift.employeeId._id?.toString() || shift.employeeId.toString();
+                        } else {
+                          // It's already a string
+                          employeeIdStr = shift.employeeId.toString();
+                        }
+                        
                         if (index === 0) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
-                        const employee = employees.find(emp => emp.id === employeeIdStr || emp._id === employeeIdStr);
+                        const employee = employees.find(emp => 
+                          emp.id?.toString() === employeeIdStr || 
+                          emp._id?.toString() === employeeIdStr
+                        );
                         if (employee) {
                           employeeName = `${employee.firstName} ${employee.lastName}`;
                           if (index === 0) console.log('✅ Found in employees list:', employeeName);
                         } else {
-                          if (index === 0) console.log('❌ Not found in employees list');
+                          if (index === 0) {
+                            console.log('❌ Not found in employees list');
+                            console.log('Available employee IDs:', employees.map(e => ({ id: e.id, name: e.name })));
+                          }
                         }
                       }
                     }
