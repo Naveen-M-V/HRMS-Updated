@@ -182,8 +182,8 @@ exports.assignShiftToEmployee = async (req, res) => {
     await shiftAssignment.save();
 
     const populatedShift = await ShiftAssignment.findById(shiftAssignment._id)
-      .populate('employeeId', 'firstName lastName email')
-      .populate('assignedBy', 'firstName lastName');
+      .populate('employeeId', 'firstName lastName email role')
+      .populate('assignedBy', 'firstName lastName role');
 
     // Create notification for shift assignment
     try {
@@ -374,8 +374,8 @@ exports.requestShiftSwap = async (req, res) => {
     await shift.save();
 
     const populatedShift = await ShiftAssignment.findById(shift._id)
-      .populate('employeeId', 'firstName lastName email')
-      .populate('swapRequest.requestedWith', 'firstName lastName email');
+      .populate('employeeId', 'firstName lastName email role')
+      .populate('swapRequest.requestedWith', 'firstName lastName email role');
 
     res.status(200).json({
       success: true,
@@ -438,10 +438,10 @@ exports.approveShiftSwap = async (req, res) => {
     await shift.save();
 
     const populatedShift = await ShiftAssignment.findById(shift._id)
-      .populate('employeeId', 'firstName lastName email')
-      .populate('swapRequest.requestedBy', 'firstName lastName')
-      .populate('swapRequest.requestedWith', 'firstName lastName')
-      .populate('swapRequest.reviewedBy', 'firstName lastName');
+      .populate('employeeId', 'firstName lastName email role')
+      .populate('swapRequest.requestedBy', 'firstName lastName role')
+      .populate('swapRequest.requestedWith', 'firstName lastName role')
+      .populate('swapRequest.reviewedBy', 'firstName lastName role');
 
     res.status(200).json({
       success: true,
@@ -474,8 +474,8 @@ exports.getShiftsByLocation = async (req, res) => {
     }
 
     const shifts = await ShiftAssignment.find(query)
-      .populate('employeeId', 'firstName lastName email')
-      .populate('assignedBy', 'firstName lastName')
+      .populate('employeeId', 'firstName lastName email role')
+      .populate('assignedBy', 'firstName lastName role')
       .sort({ date: 1, startTime: 1 });
 
     res.status(200).json({
@@ -571,10 +571,43 @@ exports.getAllShiftAssignments = async (req, res) => {
     if (workType) query.workType = workType;
     if (status) query.status = status;
 
-    const shifts = await ShiftAssignment.find(query)
-      .populate('employeeId', 'firstName lastName email')
-      .populate('assignedBy', 'firstName lastName')
-      .sort({ date: 1, startTime: 1 });
+    let shifts = await ShiftAssignment.find(query)
+      .populate({
+        path: 'employeeId',
+        select: 'firstName lastName email role',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'assignedBy',
+        select: 'firstName lastName',
+        options: { strictPopulate: false }
+      })
+      .sort({ date: 1, startTime: 1 })
+      .lean();
+
+    // Handle cases where populate failed (employeeId is still an ObjectId)
+    for (let shift of shifts) {
+      if (shift.employeeId && typeof shift.employeeId === 'object' && shift.employeeId.constructor.name === 'ObjectId') {
+        // Populate failed, try to find the user manually
+        const user = await User.findById(shift.employeeId).select('firstName lastName email role').lean();
+        if (user) {
+          shift.employeeId = user;
+        } else {
+          // User not found, set to null to indicate missing reference
+          console.warn(`User not found for shift ${shift._id}, employeeId: ${shift.employeeId}`);
+          shift.employeeId = null;
+        }
+      }
+      
+      if (shift.assignedBy && typeof shift.assignedBy === 'object' && shift.assignedBy.constructor.name === 'ObjectId') {
+        const user = await User.findById(shift.assignedBy).select('firstName lastName').lean();
+        if (user) {
+          shift.assignedBy = user;
+        } else {
+          shift.assignedBy = null;
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -668,8 +701,8 @@ exports.updateShiftAssignment = async (req, res) => {
     await shift.save();
 
     const populatedShift = await ShiftAssignment.findById(shift._id)
-      .populate('employeeId', 'firstName lastName email')
-      .populate('assignedBy', 'firstName lastName');
+      .populate('employeeId', 'firstName lastName email role')
+      .populate('assignedBy', 'firstName lastName role');
 
     res.status(200).json({
       success: true,
