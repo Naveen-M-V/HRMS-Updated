@@ -781,11 +781,21 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               ) : (
                 weekData.map((day, index) => {
                   // Determine what to show when not clocked in
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const dayDate = new Date(day.date);
+                  dayDate.setHours(0, 0, 0, 0);
+                  const isFutureDate = dayDate > today;
+                  
                   let emptyLabel = 'Absent';
                   let emptyColor = '#fef2f2';
                   let emptyTextColor = '#dc2626';
                   
-                  if (day.isWeekend) {
+                  if (isFutureDate) {
+                    emptyLabel = 'None';
+                    emptyColor = '#f9fafb';
+                    emptyTextColor = '#9ca3af';
+                  } else if (day.isWeekend) {
                     emptyLabel = 'Week-End';
                     emptyColor = '#f3f4f6';
                     emptyTextColor = '#9ca3af';

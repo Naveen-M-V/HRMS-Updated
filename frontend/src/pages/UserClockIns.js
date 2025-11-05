@@ -466,22 +466,6 @@ const UserClockIns = () => {
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
-              
-              {/* Work Type Options Display */}
-              <div style={{
-                marginTop: '12px',
-                fontSize: '12px',
-                color: '#6b7280'
-              }}>
-                {workTypes.map(type => (
-                  <div key={type} style={{
-                    padding: '4px 0',
-                    borderBottom: type === workTypes[workTypes.length - 1] ? 'none' : '1px solid #f3f4f6'
-                  }}>
-                    {type}
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Location Section */}
@@ -513,22 +497,6 @@ const UserClockIns = () => {
                   <option key={location} value={location}>{location}</option>
                 ))}
               </select>
-              
-              {/* Location Options Display */}
-              <div style={{
-                marginTop: '12px',
-                fontSize: '12px',
-                color: '#6b7280'
-              }}>
-                {locationTypes.map(location => (
-                  <div key={location} style={{
-                    padding: '4px 0',
-                    borderBottom: location === locationTypes[locationTypes.length - 1] ? 'none' : '1px solid #f3f4f6'
-                  }}>
-                    {location}
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
