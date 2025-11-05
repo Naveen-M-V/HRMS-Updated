@@ -1,81 +1,130 @@
 import React, { useEffect, useRef } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 /**
  * LocationMap Component
  * Displays a simple map with user's location marker
- * Uses Leaflet.js for map rendering (lightweight alternative to Google Maps)
+ * Uses MapLibre GL JS for map rendering (open-source alternative to Mapbox GL)
  */
 const LocationMap = ({ latitude, longitude, accuracy }) => {
-  const mapRef = useRef(null);
+  const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const accuracyLayerRef = useRef(null);
 
   useEffect(() => {
     // Only load map if we have valid coordinates
-    if (!latitude || !longitude || !mapRef.current) return;
+    if (!latitude || !longitude || !mapContainerRef.current) return;
 
-    // Load Leaflet dynamically
-    const loadLeaflet = async () => {
-      // Add Leaflet CSS if not already added
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id = 'leaflet-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
+    // Prevent duplicate map initialization
+    if (mapInstanceRef.current) return;
 
-      // Load Leaflet JS
-      if (!window.L) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
+    try {
+      // Initialize MapLibre GL map
+      const map = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: 'https://demotiles.maplibre.org/style.json', // Free MapLibre demo tiles
+        center: [longitude, latitude],
+        zoom: 15,
+        attributionControl: true
+      });
 
-      // Initialize map
-      if (window.L && mapRef.current && !mapInstanceRef.current) {
-        const map = window.L.map(mapRef.current, {
-          zoomControl: true,
-          attributionControl: true
-        }).setView([latitude, longitude], 15);
+      // Add navigation controls (zoom buttons)
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-        // Add OpenStreetMap tiles
-        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 19
-        }).addTo(map);
-
-        // Add marker for user location
-        const marker = window.L.marker([latitude, longitude]).addTo(map);
-        marker.bindPopup(`<b>Your Location</b><br>Accuracy: ${Math.round(accuracy || 0)}m`).openPopup();
-
-        // Add accuracy circle
+      // Wait for map to load before adding markers
+      map.on('load', () => {
+        // Add accuracy circle layer if accuracy is provided
         if (accuracy) {
-          window.L.circle([latitude, longitude], {
-            color: '#3b82f6',
-            fillColor: '#3b82f6',
-            fillOpacity: 0.2,
-            radius: accuracy
-          }).addTo(map);
+          // Create a circle using turf-like calculation
+          const createCircle = (center, radiusInMeters, points = 64) => {
+            const coords = {
+              latitude: center[1],
+              longitude: center[0]
+            };
+            
+            const km = radiusInMeters / 1000;
+            const ret = [];
+            const distanceX = km / (111.320 * Math.cos(coords.latitude * Math.PI / 180));
+            const distanceY = km / 110.574;
+
+            for (let i = 0; i < points; i++) {
+              const theta = (i / points) * (2 * Math.PI);
+              const x = distanceX * Math.cos(theta);
+              const y = distanceY * Math.sin(theta);
+              ret.push([coords.longitude + x, coords.latitude + y]);
+            }
+            ret.push(ret[0]); // Close the circle
+            return ret;
+          };
+
+          const circleCoords = createCircle([longitude, latitude], accuracy);
+
+          map.addSource('accuracy-circle', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: [circleCoords]
+              }
+            }
+          });
+
+          map.addLayer({
+            id: 'accuracy-circle-fill',
+            type: 'fill',
+            source: 'accuracy-circle',
+            paint: {
+              'fill-color': '#3b82f6',
+              'fill-opacity': 0.2
+            }
+          });
+
+          map.addLayer({
+            id: 'accuracy-circle-outline',
+            type: 'line',
+            source: 'accuracy-circle',
+            paint: {
+              'line-color': '#3b82f6',
+              'line-width': 2,
+              'line-opacity': 0.6
+            }
+          });
+
+          accuracyLayerRef.current = true;
         }
 
-        mapInstanceRef.current = map;
-      }
-    };
+        // Add marker for user location
+        const marker = new maplibregl.Marker({ color: '#ef4444' })
+          .setLngLat([longitude, latitude])
+          .setPopup(
+            new maplibregl.Popup({ offset: 25 })
+              .setHTML(`<b>Your Location</b><br>Accuracy: ${Math.round(accuracy || 0)}m`)
+          )
+          .addTo(map);
 
-    loadLeaflet().catch(err => {
-      console.error('Failed to load map:', err);
-    });
+        marker.togglePopup(); // Open popup by default
+        markerRef.current = marker;
+      });
+
+      mapInstanceRef.current = map;
+    } catch (err) {
+      console.error('Failed to initialize MapLibre GL map:', err);
+    }
 
     // Cleanup
     return () => {
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+      accuracyLayerRef.current = null;
     };
   }, [latitude, longitude, accuracy]);
 
@@ -96,7 +145,7 @@ const LocationMap = ({ latitude, longitude, accuracy }) => {
   return (
     <div className="w-full">
       <div 
-        ref={mapRef} 
+        ref={mapContainerRef} 
         className="w-full h-64 rounded-lg shadow-md border border-gray-200"
         style={{ zIndex: 1 }}
       />

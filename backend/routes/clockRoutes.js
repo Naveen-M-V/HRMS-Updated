@@ -379,7 +379,7 @@ router.post('/out', async (req, res) => {
 });
 
 // @route   GET /api/clock/dashboard
-// @desc    Get dashboard statistics
+// @desc    Get dashboard statistics (includes admins by default)
 // @access  Private (Admin)
 router.get('/dashboard', async (req, res) => {
   try {
@@ -389,7 +389,7 @@ router.get('/dashboard', async (req, res) => {
     // Get Profile model to count total active employees
     const Profile = require('mongoose').model('Profile');
     
-    // Get only ACTIVE profiles with valid user accounts (same logic as status endpoint)
+    // Get only ACTIVE profiles with valid user accounts
     const profiles = await Profile.find({
       isActive: { $ne: false },
       userId: { $exists: true, $ne: null }
@@ -397,22 +397,36 @@ router.get('/dashboard', async (req, res) => {
       .populate('userId', 'role')
       .lean();
 
-    // Filter to only include non-admin users
+    // Include ALL users (employees + admins) in dashboard stats
     const validProfiles = profiles.filter(profile => 
       profile.userId && 
-      profile.userId.role !== 'admin'
+      profile.userId._id &&
+      profile.userId.deleted !== true &&
+      profile.userId.isActive !== false
     );
 
-    const totalEmployees = validProfiles.length;
-    const allUserIds = validProfiles.map(p => p.userId._id);
+    // Also include admin users who don't have profiles
+    const profileUserIds = profiles.map(p => p.userId?._id?.toString()).filter(Boolean);
+    const adminUsers = await User.find({
+      role: 'admin',
+      _id: { $nin: profileUserIds },
+      isActive: { $ne: false },
+      deleted: { $ne: true }
+    }).select('_id').lean();
 
-    // Get today's time entries for valid employees only
+    const totalEmployees = validProfiles.length + adminUsers.length;
+    const allUserIds = [
+      ...validProfiles.map(p => p.userId._id),
+      ...adminUsers.map(a => a._id)
+    ];
+
+    // Get today's time entries for ALL users (employees + admins)
     const timeEntries = await TimeEntry.find({
       date: { $gte: today },
       employee: { $in: allUserIds }
     }).sort({ createdAt: -1 }); // Sort by most recent first
 
-    // Count only CURRENT status - each employee counted once based on latest entry
+    // Count only CURRENT status - each user counted once based on latest entry
     const employeeStatusMap = new Map();
     
     timeEntries.forEach(entry => {
@@ -434,7 +448,7 @@ router.get('/dashboard', async (req, res) => {
       else if (status === 'clocked_out') clockedOut++;
     });
 
-    // Absent = employees who have no time entry today
+    // Absent = users who have no time entry today
     const absent = Math.max(0, totalEmployees - employeeStatusMap.size);
 
     const stats = {
