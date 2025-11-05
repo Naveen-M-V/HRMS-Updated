@@ -193,10 +193,19 @@ exports.assignShiftToEmployee = async (req, res) => {
     });
 
     await shiftAssignment.save();
+    console.log('✅ Shift saved with employeeId:', shiftAssignment.employeeId);
 
     const populatedShift = await ShiftAssignment.findById(shiftAssignment._id)
       .populate('employeeId', 'firstName lastName email role')
       .populate('assignedBy', 'firstName lastName role');
+    
+    console.log('📤 Populated shift data:', {
+      shiftId: populatedShift._id,
+      employeeId: populatedShift.employeeId,
+      employeeIdType: typeof populatedShift.employeeId,
+      hasFirstName: populatedShift.employeeId?.firstName,
+      employeeName: populatedShift.employeeId?.firstName ? `${populatedShift.employeeId.firstName} ${populatedShift.employeeId.lastName}` : 'NOT POPULATED'
+    });
 
     // Create notification for shift assignment
     try {
@@ -602,14 +611,21 @@ exports.getAllShiftAssignments = async (req, res) => {
     for (let shift of shifts) {
       if (shift.employeeId && typeof shift.employeeId === 'object' && shift.employeeId.constructor.name === 'ObjectId') {
         // Populate failed, try to find the user manually
+        console.log(`⚠️ Populate failed for shift ${shift._id}, manually looking up employeeId:`, shift.employeeId);
         const user = await User.findById(shift.employeeId).select('firstName lastName email role').lean();
         if (user) {
+          console.log(`✅ Found user:`, user.firstName, user.lastName);
           shift.employeeId = user;
         } else {
           // User not found, set to null to indicate missing reference
-          console.warn(`User not found for shift ${shift._id}, employeeId: ${shift.employeeId}`);
+          console.warn(`❌ User not found for shift ${shift._id}, employeeId: ${shift.employeeId}`);
           shift.employeeId = null;
         }
+      } else if (shift.employeeId && typeof shift.employeeId === 'object') {
+        // Successfully populated
+        console.log(`✅ Shift ${shift._id} has populated employeeId:`, shift.employeeId.firstName, shift.employeeId.lastName);
+      } else {
+        console.warn(`⚠️ Shift ${shift._id} has no employeeId or it's not an object:`, shift.employeeId);
       }
       
       if (shift.assignedBy && typeof shift.assignedBy === 'object' && shift.assignedBy.constructor.name === 'ObjectId') {

@@ -62,6 +62,16 @@ export const NotificationProvider = ({ children }) => {
       });
 
       if (!response.ok) {
+        // If authentication failed, stop polling to prevent console spam
+        if (response.status === 401) {
+          console.log('Notifications: Authentication required, skipping...');
+          // Clear the interval to stop repeated 401 errors
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
