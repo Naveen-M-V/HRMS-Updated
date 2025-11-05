@@ -86,7 +86,7 @@ app.use(session({
 app.use(cors({
   origin: process.env.NODE_ENV === 'development'
     ? ['http://localhost:3000', 'http://localhost:5003']
-    : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk'],
+    : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk', 'https://hrms.talentshield.co.uk'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Accept'],

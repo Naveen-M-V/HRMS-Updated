@@ -66,6 +66,9 @@ class EnvironmentConfig {
         port: parseInt(process.env.PORT) || 5003,
         corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000'
       },
+      cors: {
+        origin: process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk', 'https://hrms.talentshield.co.uk']
+      },
       jwt: {
         secret: process.env.JWT_SECRET,
         expiresIn: process.env.JWT_EXPIRES_IN || '24h'
