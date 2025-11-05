@@ -12,8 +12,6 @@ const crypto = require('crypto');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
-const http = require('http');
-const { Server } = require('socket.io');
 // Load environment configuration
 const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
@@ -42,17 +40,6 @@ const {
 } = require('./utils/notificationService');
 
 const app = express();
-const httpServer = http.createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: config.cors.origin,
-    credentials: true
-  }
-});
-
-// Make io accessible to routes
-app.set('io', io);
-
 const PORT = config.server.port;
 const JWT_SECRET = config.jwt.secret;
 const MONGODB_URI = config.database.uri;
@@ -86,7 +73,7 @@ app.use(session({
 app.use(cors({
   origin: process.env.NODE_ENV === 'development'
     ? ['http://localhost:3000', 'http://localhost:5003']
-    : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk', 'https://hrms.talentshield.co.uk'],
+    : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Accept'],
@@ -3748,30 +3735,8 @@ const enhancedCertificateExpiryMonitoring = async () => {
 cron.schedule('0 9 * * *', enhancedCertificateExpiryMonitoring);
 console.log('Enhanced certificate expiry monitoring scheduled for 9 AM daily');
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('✅ Client connected:', socket.id);
-  
-  socket.on('disconnect', () => {
-    console.log('❌ Client disconnected:', socket.id);
-  });
-  
-  // Join room for specific employee updates
-  socket.on('join-employee-room', (employeeId) => {
-    socket.join(`employee-${employeeId}`);
-    console.log(`Employee ${employeeId} joined their room`);
-  });
-  
-  // Join admin room for all updates
-  socket.on('join-admin-room', () => {
-    socket.join('admin-room');
-    console.log('Admin joined admin room');
-  });
-});
-
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Socket.IO enabled for real-time updates`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
   
   // Create default user on startup
   setTimeout(() => {
