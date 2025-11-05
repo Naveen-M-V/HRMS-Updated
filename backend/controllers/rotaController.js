@@ -609,26 +609,29 @@ exports.getAllShiftAssignments = async (req, res) => {
 
     // Handle cases where populate failed (employeeId is still an ObjectId)
     for (let shift of shifts) {
-      if (shift.employeeId && typeof shift.employeeId === 'object' && shift.employeeId.constructor.name === 'ObjectId') {
-        // Populate failed, try to find the user manually
-        console.log(`⚠️ Populate failed for shift ${shift._id}, manually looking up employeeId:`, shift.employeeId);
-        const user = await User.findById(shift.employeeId).select('firstName lastName email role').lean();
-        if (user) {
-          console.log(`✅ Found user:`, user.firstName, user.lastName);
-          shift.employeeId = user;
+      if (shift.employeeId && typeof shift.employeeId === 'object') {
+        // Check if it's a populated user object (has firstName) or just an ObjectId
+        if (!shift.employeeId.firstName) {
+          // Populate failed or incomplete, try to find the user manually
+          console.log(`⚠️ Populate failed for shift ${shift._id}, manually looking up employeeId:`, shift.employeeId);
+          const user = await User.findById(shift.employeeId).select('firstName lastName email role').lean();
+          if (user) {
+            console.log(`✅ Found user:`, user.firstName, user.lastName, `(role: ${user.role})`);
+            shift.employeeId = user;
+          } else {
+            // User not found, set to null to indicate missing reference
+            console.warn(`❌ User not found for shift ${shift._id}, employeeId: ${shift.employeeId}`);
+            shift.employeeId = null;
+          }
         } else {
-          // User not found, set to null to indicate missing reference
-          console.warn(`❌ User not found for shift ${shift._id}, employeeId: ${shift.employeeId}`);
-          shift.employeeId = null;
+          // Successfully populated
+          console.log(`✅ Shift ${shift._id} has populated employeeId:`, shift.employeeId.firstName, shift.employeeId.lastName, `(role: ${shift.employeeId.role || 'N/A'})`);
         }
-      } else if (shift.employeeId && typeof shift.employeeId === 'object') {
-        // Successfully populated
-        console.log(`✅ Shift ${shift._id} has populated employeeId:`, shift.employeeId.firstName, shift.employeeId.lastName);
-      } else {
-        console.warn(`⚠️ Shift ${shift._id} has no employeeId or it's not an object:`, shift.employeeId);
+      } else if (!shift.employeeId) {
+        console.warn(`⚠️ Shift ${shift._id} has no employeeId`);
       }
       
-      if (shift.assignedBy && typeof shift.assignedBy === 'object' && shift.assignedBy.constructor.name === 'ObjectId') {
+      if (shift.assignedBy && typeof shift.assignedBy === 'object' && !shift.assignedBy.firstName) {
         const user = await User.findById(shift.assignedBy).select('firstName lastName').lean();
         if (user) {
           shift.assignedBy = user;
