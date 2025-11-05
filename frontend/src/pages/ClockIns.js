@@ -32,7 +32,7 @@ const ClockIns = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showEntries, setShowEntries] = useState(10);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [myStatus, setMyStatus] = useState(null);
+  const [myStatus, setMyStatus] = useState(null); // Admin's own clock status
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [editForm, setEditForm] = useState({ date: '', clockIn: '', clockOut: '' });
@@ -45,9 +45,13 @@ const ClockIns = () => {
 
   useEffect(() => {
     fetchData();
+    fetchMyStatus(); // Fetch admin's own clock status on page load
     // Auto-refresh every 10 seconds for real-time sync with user dashboard
     // This ensures admin sees clock-ins from users immediately
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(() => {
+      fetchData();
+      fetchMyStatus();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -57,6 +61,7 @@ const ClockIns = () => {
     if (refreshTrigger > 0) {
       console.log('🔄 Clock refresh triggered from UserDashboard, fetching latest data...');
       fetchData();
+      fetchMyStatus(); // Also refresh admin's own status
     }
   }, [refreshTrigger]);
 
@@ -73,6 +78,24 @@ const ClockIns = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showEmployeeDropdown]);
+
+  const fetchMyStatus = async () => {
+    try {
+      // Fetch admin's own clock status using user status endpoint
+      const { getUserClockStatus } = require('../utils/clockApi');
+      const response = await getUserClockStatus();
+      
+      if (response.success) {
+        console.log('✅ Admin clock status loaded:', response.data);
+        setMyStatus(response.data);
+      } else {
+        setMyStatus(null);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch admin clock status:', error);
+      setMyStatus(null);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -308,6 +331,7 @@ const ClockIns = () => {
         // Wait a moment for backend to fully process, then fetch fresh data
         setTimeout(async () => {
           await fetchData();
+          await fetchMyStatus(); // Refresh admin's own status
         }, 1000);
       } else {
         toast.error(response.message || 'Failed to clock in');
@@ -328,6 +352,7 @@ const ClockIns = () => {
       
       // Refresh to sync state
       await fetchData();
+      await fetchMyStatus();
     }
   };
 
@@ -400,10 +425,12 @@ const ClockIns = () => {
         // Wait before fetching fresh data
         setTimeout(async () => {
           await fetchData();
+          await fetchMyStatus(); // Refresh admin's own status
         }, 1000);
       } else {
         toast.error(response.message || 'Failed to clock out');
         await fetchData(); // Revert on failure
+        await fetchMyStatus();
       }
     } catch (error) {
       console.error('❌ Clock out error:', error);
@@ -415,6 +442,7 @@ const ClockIns = () => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to clock out';
       toast.error(`Clock out failed: ${errorMessage}`);
       await fetchData(); // Revert on error
+      await fetchMyStatus();
     }
   };
 
