@@ -85,8 +85,13 @@ const RotaShiftManagement = () => {
           shiftId: s._id,
           employeeId: s.employeeId,
           employeeIdType: typeof s.employeeId,
+          employeeIdIsObject: typeof s.employeeId === 'object',
           employeeIdKeys: s.employeeId ? Object.keys(s.employeeId) : null,
-          employeeName: s.employeeId?.firstName ? `${s.employeeId.firstName} ${s.employeeId.lastName}` : 'N/A'
+          hasFirstName: !!s.employeeId?.firstName,
+          firstName: s.employeeId?.firstName,
+          lastName: s.employeeId?.lastName,
+          employeeName: s.employeeId?.firstName ? `${s.employeeId.firstName} ${s.employeeId.lastName}` : 'N/A',
+          rawEmployeeId: JSON.stringify(s.employeeId)
         })));
         setShifts(shiftsRes.data || []);
       }
@@ -481,16 +486,33 @@ const RotaShiftManagement = () => {
                     // Priority 3: Show 'Unassigned'
                     let employeeName = 'Unassigned';
                     
+                    // Debug logging for first shift only to avoid console spam
+                    if (index === 0) {
+                      console.log('🔍 Rendering shift:', {
+                        shiftId: shift._id,
+                        employeeId: shift.employeeId,
+                        employeeIdType: typeof shift.employeeId,
+                        isObject: typeof shift.employeeId === 'object',
+                        hasFirstName: shift.employeeId?.firstName,
+                        employeesListCount: employees.length
+                      });
+                    }
+                    
                     if (shift.employeeId) {
                       if (typeof shift.employeeId === 'object' && shift.employeeId.firstName) {
                         // Backend populated the employeeId with user data
                         employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
+                        if (index === 0) console.log('✅ Using populated data:', employeeName);
                       } else {
                         // employeeId is just an ID string, try to find in employees list
                         const employeeIdStr = typeof shift.employeeId === 'object' ? shift.employeeId._id || shift.employeeId : shift.employeeId;
+                        if (index === 0) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
                         const employee = employees.find(emp => emp.id === employeeIdStr || emp._id === employeeIdStr);
                         if (employee) {
                           employeeName = `${employee.firstName} ${employee.lastName}`;
+                          if (index === 0) console.log('✅ Found in employees list:', employeeName);
+                        } else {
+                          if (index === 0) console.log('❌ Not found in employees list');
                         }
                       }
                     }
