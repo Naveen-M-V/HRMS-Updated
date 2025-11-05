@@ -232,19 +232,14 @@ const ClockIns = () => {
   };
 
   const calculateStatsFromEmployees = (employeeList) => {
-    // Filter only today's data for live status
-    const today = new Date().toISOString().split('T')[0];
-    const todayEmployees = employeeList.filter(e => {
-      if (!e.clockIn) return false;
-      const clockInDate = new Date(e.clockIn).toISOString().split('T')[0];
-      return clockInDate === today;
-    });
-    
+    // Count based on current status, not just today's clock-ins
+    // This ensures accurate counts for multiple clock-ins per day
     const calculated = {
-      clockedIn: todayEmployees.filter(e => e.status === 'clocked_in').length,
-      onBreak: todayEmployees.filter(e => e.status === 'on_break').length,
-      clockedOut: todayEmployees.filter(e => e.status === 'clocked_out').length,
-      absent: employeeList.length - todayEmployees.length,
+      clockedIn: employeeList.filter(e => e.status === 'clocked_in').length,
+      onBreak: employeeList.filter(e => e.status === 'on_break').length,
+      clockedOut: employeeList.filter(e => e.status === 'clocked_out').length,
+      onLeave: employeeList.filter(e => e.status === 'on_leave').length,
+      absent: employeeList.filter(e => e.status === 'absent' || !e.status).length,
       total: employeeList.length
     };
     console.log('📊 Calculated stats from employees:', calculated);

@@ -431,9 +431,12 @@ router.get('/status', async (req, res) => {
       .select('userId firstName lastName email department jobTitle vtid profilePicture')
       .lean();
 
-    // Filter profiles based on includeAdmins parameter
+    // Filter profiles based on includeAdmins parameter and user account status
     let validProfiles = profiles.filter(profile => {
       if (!profile.userId || !profile.userId._id) return false;
+      
+      // Exclude deleted or inactive user accounts
+      if (profile.userId.deleted === true || profile.userId.isActive === false) return false;
       
       // If includeAdmins is true, include all profiles
       if (includeAdmins) return true;
@@ -446,10 +449,12 @@ router.get('/status', async (req, res) => {
     if (includeAdmins) {
       const profileUserIds = profiles.map(p => p.userId?._id?.toString()).filter(Boolean);
       
-      // Find admin users without profiles
+      // Find admin users without profiles (exclude deleted/inactive)
       const adminUsers = await User.find({
         role: 'admin',
-        _id: { $nin: profileUserIds }
+        _id: { $nin: profileUserIds },
+        isActive: { $ne: false },
+        deleted: { $ne: true }
       }).select('firstName lastName email _id role').lean();
 
       // Add admin users as "virtual profiles"
@@ -472,10 +477,14 @@ router.get('/status', async (req, res) => {
     const employeeIdSet = new Set(allUserIds.map(id => id.toString()));
 
     // Get today's time entries for all employees
+    // Sort by date and clockIn descending to get the most recent entry first
     const timeEntries = await TimeEntry.find({
       date: { $gte: today },
       employee: { $in: allUserIds }
-    }).populate('employee', 'firstName lastName email').lean();
+    })
+    .sort({ date: -1, clockIn: -1 })
+    .populate('employee', 'firstName lastName email')
+    .lean();
 
     // Get today's approved leave records
     const leaveRecords = await LeaveRecord.find({
@@ -486,17 +495,28 @@ router.get('/status', async (req, res) => {
     }).populate('user', '_id').lean();
 
     // Create status map from time entries
+    // For multiple entries per day, prioritize active statuses (clocked_in, on_break)
     const statusMap = {};
     timeEntries.forEach(entry => {
       if (entry.employee) {
-        statusMap[entry.employee._id.toString()] = {
-          status: entry.status,
-          clockIn: entry.clockIn,
-          clockOut: entry.clockOut,
-          location: entry.location,
-          workType: entry.workType,
-          timeEntryId: entry._id
-        };
+        const empId = entry.employee._id.toString();
+        const existingStatus = statusMap[empId];
+        
+        // Priority: clocked_in > on_break > clocked_out > absent
+        const shouldUpdate = !existingStatus || 
+          (entry.status === 'clocked_in' && existingStatus.status !== 'clocked_in') ||
+          (entry.status === 'on_break' && existingStatus.status === 'clocked_out');
+        
+        if (shouldUpdate) {
+          statusMap[empId] = {
+            status: entry.status,
+            clockIn: entry.clockIn,
+            clockOut: entry.clockOut,
+            location: entry.location,
+            workType: entry.workType,
+            timeEntryId: entry._id
+          };
+        }
       }
     });
 
