@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const moment = require('moment-timezone');
 const TimeEntry = require('../models/TimeEntry');
 const User = require('../models/User');
 const LeaveRecord = require('../models/LeaveRecord');
@@ -114,8 +115,9 @@ router.post('/in', async (req, res) => {
 
     // Allow multiple clock-ins per day for split shifts or multiple work sessions
     // Check only if there's an ACTIVE clock-in (not clocked out)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Use UK timezone for date comparison
+    const ukNow = moment().tz('Europe/London');
+    const today = ukNow.clone().startOf('day').toDate();
     
     const existingEntry = await TimeEntry.findOne({
       employee: actualEmployeeId,
@@ -132,8 +134,8 @@ router.post('/in', async (req, res) => {
     
     // User can clock in again after clocking out (creates a new time entry for the same day)
 
-    // Get current time
-    const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format
+    // Get current UK time
+    const currentTime = ukNow.format('HH:mm'); // HH:mm format in UK timezone
     const createdByUserId = req.user._id || req.user.userId || req.user.id;
     
     // Find matching shift
@@ -141,7 +143,7 @@ router.post('/in', async (req, res) => {
     
     let timeEntryData = {
       employee: actualEmployeeId,
-      date: new Date(),
+      date: ukNow.toDate(), // Store as UK date
       clockIn: currentTime,
       location: location || 'Work From Office',
       workType: workType || 'Regular',
@@ -246,9 +248,9 @@ router.post('/out', async (req, res) => {
       });
     }
 
-    // Find today's active time entry
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Find today's active time entry using UK timezone
+    const ukNow = moment().tz('Europe/London');
+    const today = ukNow.clone().startOf('day').toDate();
     
     const timeEntry = await TimeEntry.findOne({
       employee: employeeId,
@@ -263,8 +265,8 @@ router.post('/out', async (req, res) => {
       });
     }
 
-    // Update clock out time
-    const currentTime = new Date().toTimeString().slice(0, 5); // HH:MM format
+    // Update clock out time using UK timezone
+    const currentTime = ukNow.format('HH:mm'); // HH:mm format in UK timezone
     timeEntry.clockOut = currentTime;
     timeEntry.status = 'clocked_out';
     

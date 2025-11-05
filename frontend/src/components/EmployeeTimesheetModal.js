@@ -12,6 +12,7 @@ import { buildApiUrl } from '../utils/apiConfig';
 import MUIDatePicker from './MUIDatePicker';
 import MUITimePicker from './MUITimePicker';
 import dayjs from 'dayjs';
+import moment from 'moment-timezone';
 import axios from 'axios';
 import { updateTimeEntry, deleteTimeEntry, addTimeEntry } from '../utils/clockApi';
 import { toast } from 'react-toastify';
@@ -155,9 +156,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
       
-      const dayEntry = data.entries?.find(e => 
-        new Date(e.date).toISOString().split('T')[0] === dateStr
-      );
+      const dayEntry = data.entries?.find(e => {
+        const entryDate = moment.utc(e.date).tz('Europe/London').format('YYYY-MM-DD');
+        return entryDate === dateStr;
+      });
 
       if (dayEntry && dayEntry.clockIn) {
         const clockIn = dayEntry.clockIn;
@@ -823,226 +825,27 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
                         {day.clockedHours ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {/* Timeline Bar - Exact replica of the image */}
-                            {day.clockIn && (
-                              <div style={{ width: '100%' }}>
-                                {(() => {
-                                  // Parse time to minutes from midnight
-                                  const parseTime = (timeStr) => {
-                                    if (!timeStr) return null;
-                                    if (typeof timeStr === 'string' && /^\d{2}:\d{2}$/.test(timeStr)) {
-                                      const [h, m] = timeStr.split(':').map(Number);
-                                      return h * 60 + m;
-                                    }
-                                    try {
-                                      const date = new Date(timeStr);
-                                      return date.getHours() * 60 + date.getMinutes();
-                                    } catch {
-                                      return null;
-                                    }
-                                  };
-
-                                  // Timeline range: 07:00 to 23:59
-                                  const timelineStart = 7 * 60; // 07:00
-                                  const timelineEnd = 24 * 60 - 1; // 23:59
-                                  const timelineRange = timelineEnd - timelineStart;
-
-                                  const clockInMinutes = parseTime(day.clockIn);
-                                  const clockOutMinutes = day.clockOut ? parseTime(day.clockOut) : null;
-                                  
-                                  if (!clockInMinutes && clockInMinutes !== 0) return null;
-
-                                  // Calculate positions as percentages
-                                  const getPosition = (minutes) => {
-                                    return ((minutes - timelineStart) / timelineRange) * 100;
-                                  };
-
-                                  const clockInPos = Math.max(0, getPosition(clockInMinutes));
-                                  const clockOutPos = clockOutMinutes ? Math.min(100, getPosition(clockOutMinutes)) : 100;
-
-                                  // Overtime calculation
-                                  // Standard shift: 8 hours (can be customized per employee)
-                                  const standardShiftHours = day.shiftHours || 8;
-                                  const shiftEndMinutes = clockInMinutes + (standardShiftHours * 60);
-                                  const shiftEndPos = getPosition(shiftEndMinutes);
-                                  
-                                  // Calculate if there's overtime (worked beyond shift end time)
-                                  const hasOvertime = clockOutMinutes && clockOutMinutes > shiftEndMinutes;
-                                  const overtimeStartPos = hasOvertime ? Math.min(100, shiftEndPos) : null;
-                                  const overtimeEndPos = hasOvertime ? clockOutPos : null;
-
-                                  // Process breaks
-                                  const breaks = day.breaks || [];
-                                  
-                                  // Build segments for the timeline
-                                  const segments = [];
-                                  let currentPos = clockInPos;
-
-                                  // Add working time segments with breaks in between
-                                  if (breaks.length > 0) {
-                                    breaks.forEach((breakPeriod, idx) => {
-                                      if (breakPeriod.start) {
-                                        const breakStart = parseTime(breakPeriod.start);
-                                        const breakEnd = breakPeriod.end ? parseTime(breakPeriod.end) : breakStart + (breakPeriod.duration || 0);
-                                        
-                                        if (breakStart) {
-                                          const breakStartPos = Math.max(clockInPos, Math.min(clockOutPos, getPosition(breakStart)));
-                                          const breakEndPos = Math.max(clockInPos, Math.min(clockOutPos, getPosition(breakEnd)));
-                                          
-                                          // Working time before break
-                                          if (breakStartPos > currentPos) {
-                                            segments.push({
-                                              type: 'work',
-                                              start: currentPos,
-                                              width: breakStartPos - currentPos,
-                                              label: 'Working time'
-                                            });
-                                          }
-                                          
-                                          // Break time
-                                          segments.push({
-                                            type: 'break',
-                                            start: breakStartPos,
-                                            width: breakEndPos - breakStartPos,
-                                            label: 'Break'
-                                          });
-                                          
-                                          currentPos = breakEndPos;
-                                        }
-                                      }
-                                    });
-                                  }
-
-                                  // Add remaining working time after last break
-                                  if (currentPos < clockOutPos) {
-                                    // Check if this segment includes overtime
-                                    if (hasOvertime && currentPos < overtimeStartPos) {
-                                      // Split into regular work and overtime
-                                      if (overtimeStartPos > currentPos) {
-                                        segments.push({
-                                          type: 'work',
-                                          start: currentPos,
-                                          width: overtimeStartPos - currentPos,
-                                          label: 'Working time'
-                                        });
-                                      }
-                                      // Add overtime segment
-                                      segments.push({
-                                        type: 'overtime',
-                                        start: overtimeStartPos,
-                                        width: clockOutPos - overtimeStartPos,
-                                        label: 'Overtime'
-                                      });
-                                    } else {
-                                      segments.push({
-                                        type: 'work',
-                                        start: currentPos,
-                                        width: clockOutPos - currentPos,
-                                        label: 'Working time'
-                                      });
-                                    }
-                                  }
-
-                                  // If no breaks, just add working segment(s)
-                                  if (segments.length === 0) {
-                                    if (hasOvertime) {
-                                      // Regular work until shift end
-                                      segments.push({
-                                        type: 'work',
-                                        start: clockInPos,
-                                        width: overtimeStartPos - clockInPos,
-                                        label: 'Working time'
-                                      });
-                                      // Overtime after shift end
-                                      segments.push({
-                                        type: 'overtime',
-                                        start: overtimeStartPos,
-                                        width: clockOutPos - overtimeStartPos,
-                                        label: 'Overtime'
-                                      });
-                                    } else {
-                                      segments.push({
-                                        type: 'work',
-                                        start: clockInPos,
-                                        width: clockOutPos - clockInPos,
-                                        label: 'Working time'
-                                      });
-                                    }
-                                  }
-
-                                  return (
-                                    <div style={{ position: 'relative' }}>
-                                      {/* Time labels above the bar */}
-                                      <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        marginBottom: '4px',
-                                        fontSize: '10px',
-                                        color: '#9ca3af',
-                                        paddingLeft: '2px',
-                                        paddingRight: '2px'
-                                      }}>
-                                        <span>07:00</span>
-                                        <span>09:00</span>
-                                        <span>11:00</span>
-                                        <span>13:00</span>
-                                        <span>15:00</span>
-                                        <span>17:00</span>
-                                        <span>19:00</span>
-                                        <span>21:00</span>
-                                        <span>23:59</span>
-                                      </div>
-
-                                      {/* Timeline bar container */}
-                                      <div style={{
-                                        width: '100%',
-                                        height: '28px',
-                                        background: '#f3f4f6',
-                                        borderRadius: '4px',
-                                        position: 'relative',
-                                        overflow: 'hidden'
-                                      }}>
-                                        {/* Render segments */}
-                                        {segments.map((segment, idx) => {
-                                          // Determine color based on segment type
-                                          let bgColor = '#2563eb'; // Blue for work
-                                          if (segment.type === 'break') {
-                                            bgColor = '#06b6d4'; // Cyan for break
-                                          } else if (segment.type === 'overtime') {
-                                            bgColor = '#f97316'; // Orange for overtime
-                                          }
-                                          
-                                          return (
-                                            <div
-                                              key={idx}
-                                              style={{
-                                                position: 'absolute',
-                                                left: `${segment.start}%`,
-                                                width: `${segment.width}%`,
-                                                height: '100%',
-                                                background: bgColor,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                color: 'white',
-                                                fontSize: '10px',
-                                                fontWeight: '600',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                                padding: '0 4px'
-                                              }}
-                                            >
-                                              {segment.width > 8 && segment.label}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </div>
+                          <div className="time-entry-details" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <p style={{ margin: 0, fontSize: '14px' }}>
+                              <strong>Clock In:</strong> {(() => {
+                                if (typeof day.clockIn === 'string' && /^\d{2}:\d{2}$/.test(day.clockIn)) {
+                                  return day.clockIn;
+                                }
+                                return moment.utc(day.clockIn).tz('Europe/London').format('HH:mm');
+                              })()}
+                            </p>
+                            <p style={{ margin: 0, fontSize: '14px' }}>
+                              <strong>Clock Out:</strong> {day.clockOut ? (() => {
+                                if (typeof day.clockOut === 'string' && /^\d{2}:\d{2}$/.test(day.clockOut)) {
+                                  return day.clockOut;
+                                }
+                                return moment.utc(day.clockOut).tz('Europe/London').format('HH:mm');
+                              })() : 'Present'}
+                            </p>
+                            {day.breaks && day.breaks.length > 0 && (
+                              <p style={{ margin: 0, fontSize: '14px' }}>
+                                <strong>Break Taken:</strong> {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
+                              </p>
                             )}
                           </div>
                         ) : (
@@ -1068,7 +871,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       {/* GPS Location Display with Google Maps Link */}
                       {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          <div style={{ fontSize: '12px', color: '#111827' }}>
+                          {day.gpsLocation.address && (
+                            <div style={{ fontSize: '12px', color: '#111827', marginBottom: '2px', maxWidth: '200px' }}>
+                              📍 {day.gpsLocation.address}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
                             {day.gpsLocation.latitude.toFixed(6)}, {day.gpsLocation.longitude.toFixed(6)}
                           </div>
                           <a

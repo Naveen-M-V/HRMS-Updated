@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import moment from 'moment-timezone';
 import { getUserTimeEntries } from '../utils/clockApi';
 
 /**
@@ -61,12 +62,13 @@ const ShiftCalendar = () => {
   const getEntryForDate = (day) => {
     if (!day) return null;
     
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-      .toISOString().split('T')[0];
+    // Use UK timezone for date comparison
+    const dateStr = moment.tz([currentDate.getFullYear(), currentDate.getMonth(), day], 'Europe/London').format('YYYY-MM-DD');
     
-    return timeEntries.find(entry => 
-      entry.date.split('T')[0] === dateStr
-    );
+    return timeEntries.find(entry => {
+      const entryDate = moment.utc(entry.date).tz('Europe/London').format('YYYY-MM-DD');
+      return entryDate === dateStr;
+    });
   };
 
   const navigateMonth = (direction) => {
@@ -77,10 +79,12 @@ const ShiftCalendar = () => {
 
   const formatTime = (timeString) => {
     if (!timeString) return '';
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    // If it's already in HH:mm format, return as is
+    if (typeof timeString === 'string' && /^\d{2}:\d{2}$/.test(timeString)) {
+      return timeString;
+    }
+    // If it's an ISO date string, convert to UK time
+    return moment.utc(timeString).tz('Europe/London').format('HH:mm');
   };
 
   const getStatusColor = (status) => {
