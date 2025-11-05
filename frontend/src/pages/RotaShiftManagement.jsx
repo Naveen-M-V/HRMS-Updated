@@ -88,8 +88,11 @@ const RotaShiftManagement = () => {
           employeeIdIsObject: typeof s.employeeId === 'object',
           employeeIdKeys: s.employeeId ? Object.keys(s.employeeId) : null,
           hasFirstName: !!s.employeeId?.firstName,
+          has_id: !!s.employeeId?._id,
+          _id: s.employeeId?._id,
           firstName: s.employeeId?.firstName,
           lastName: s.employeeId?.lastName,
+          role: s.employeeId?.role,
           employeeName: s.employeeId?.firstName ? `${s.employeeId.firstName} ${s.employeeId.lastName}` : 'N/A',
           rawEmployeeId: JSON.stringify(s.employeeId)
         })));
@@ -125,22 +128,36 @@ const RotaShiftManagement = () => {
       // Second, add any employees from shifts that aren't in profiles (e.g., admins without profiles)
       if (shiftsRes.success && shiftsRes.data) {
         console.log('🔍 Checking shifts for missing employees...');
+        console.log('Total shifts to check:', shiftsRes.data.length);
+        
         shiftsRes.data.forEach((shift, idx) => {
+          console.log(`\n--- Checking shift ${idx + 1} ---`);
+          console.log('shift.employeeId:', shift.employeeId);
+          console.log('typeof:', typeof shift.employeeId);
+          console.log('has firstName:', !!shift.employeeId?.firstName);
+          
           if (shift.employeeId && typeof shift.employeeId === 'object' && shift.employeeId.firstName) {
+            console.log('✓ Has employeeId object with firstName');
+            
             // Extract the user ID - try multiple possible locations
             let userId;
             if (shift.employeeId._id) {
               userId = typeof shift.employeeId._id === 'object' ? shift.employeeId._id.toString() : shift.employeeId._id;
+              console.log('✓ Found _id:', userId);
             } else if (shift.employeeId.id) {
               userId = typeof shift.employeeId.id === 'object' ? shift.employeeId.id.toString() : shift.employeeId.id;
+              console.log('✓ Found id:', userId);
             } else {
               // If no _id or id field, the object itself might be the ID with firstName added
               console.warn(`⚠️ Shift ${idx} has employeeId object with firstName but no _id field:`, shift.employeeId);
+              console.warn('Available keys:', Object.keys(shift.employeeId));
               return; // Skip this one
             }
             
+            console.log('Checking if already in list:', employeeIds.has(userId));
+            
             if (!employeeIds.has(userId)) {
-              employeeList.push({
+              const newEmployee = {
                 id: userId,
                 _id: userId,
                 firstName: shift.employeeId.firstName,
@@ -148,14 +165,19 @@ const RotaShiftManagement = () => {
                 email: shift.employeeId.email || '',
                 role: shift.employeeId.role || 'employee',
                 name: `${shift.employeeId.firstName} ${shift.employeeId.lastName}`
-              });
+              };
+              employeeList.push(newEmployee);
               employeeIds.add(userId);
-              console.log('➕ Added employee from shift data:', shift.employeeId.firstName, shift.employeeId.lastName, `(ID: ${userId}, role: ${shift.employeeId.role})`);
+              console.log('➕ Added employee from shift data:', newEmployee);
             } else {
-              console.log(`ℹ️ Employee ${shift.employeeId.firstName} ${shift.employeeId.lastName} already in list`);
+              console.log(`ℹ️ Employee ${shift.employeeId.firstName} ${shift.employeeId.lastName} already in list (ID: ${userId})`);
             }
+          } else {
+            console.log('✗ Skipping - no valid employeeId object');
           }
         });
+        
+        console.log('\n=== Employee extraction complete ===');
       }
       
       console.log(`✅ Loaded ${employeeList.length} total employees (${profilesResponse.data?.length || 0} from profiles + ${employeeList.length - (profilesResponse.data?.length || 0)} from shifts)`);
@@ -555,30 +577,49 @@ const RotaShiftManagement = () => {
                         employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
                         if (shouldLog) console.log('✅ Using populated data:', employeeName);
                       } else {
-                        // employeeId is just an ID string or ObjectId, try to find in employees list
+                        // employeeId is just an ID string or ObjectId, OR object without firstName
+                        // Try to find in employees list
                         let employeeIdStr;
                         if (typeof shift.employeeId === 'object' && shift.employeeId !== null) {
-                          // It's an ObjectId or object without firstName
-                          employeeIdStr = shift.employeeId._id?.toString() || shift.employeeId.toString();
+                          // It's an object - try to get the ID
+                          if (shift.employeeId._id) {
+                            employeeIdStr = typeof shift.employeeId._id === 'object' ? 
+                              shift.employeeId._id.toString() : shift.employeeId._id.toString();
+                          } else if (shift.employeeId.id) {
+                            employeeIdStr = typeof shift.employeeId.id === 'object' ? 
+                              shift.employeeId.id.toString() : shift.employeeId.id.toString();
+                          } else {
+                            // Try to convert the whole object to string (it might be an ObjectId)
+                            try {
+                              employeeIdStr = shift.employeeId.toString();
+                            } catch (e) {
+                              console.error('Cannot convert employeeId to string:', shift.employeeId);
+                              employeeIdStr = null;
+                            }
+                          }
                         } else {
                           // It's already a string
                           employeeIdStr = shift.employeeId?.toString();
                         }
                         
-                        if (shouldLog) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
-                        const employee = employees.find(emp => 
-                          emp.id?.toString() === employeeIdStr || 
-                          emp._id?.toString() === employeeIdStr
-                        );
-                        if (employee) {
-                          employeeName = `${employee.firstName} ${employee.lastName}`;
-                          if (shouldLog) console.log('✅ Found in employees list:', employeeName);
-                        } else {
-                          if (shouldLog) {
-                            console.log('❌ Not found in employees list');
-                            console.log('Searched for ID:', employeeIdStr);
-                            console.log('Available employee IDs:', employees.slice(0, 5).map(e => ({ id: e.id, name: e.name })));
+                        if (employeeIdStr) {
+                          if (shouldLog) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
+                          const employee = employees.find(emp => 
+                            emp.id?.toString() === employeeIdStr || 
+                            emp._id?.toString() === employeeIdStr
+                          );
+                          if (employee) {
+                            employeeName = `${employee.firstName} ${employee.lastName}`;
+                            if (shouldLog) console.log('✅ Found in employees list:', employeeName);
+                          } else {
+                            if (shouldLog) {
+                              console.log('❌ Not found in employees list');
+                              console.log('Searched for ID:', employeeIdStr);
+                              console.log('Available employee IDs (first 10):', employees.slice(0, 10).map(e => ({ id: e.id, name: e.name })));
+                            }
                           }
+                        } else {
+                          if (shouldLog) console.log('⚠️ Could not extract employee ID from:', shift.employeeId);
                         }
                       }
                     } else {

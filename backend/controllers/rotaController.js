@@ -112,7 +112,7 @@ exports.assignShiftToEmployee = async (req, res) => {
               email: profile.email,
               firstName: profile.firstName,
               lastName: profile.lastName,
-              role: 'employee',
+              role: 'user', // Changed from 'employee' to 'user' to match User model enum
               password: Math.random().toString(36).slice(-8) // Temporary password
             });
             await newUser.save();
