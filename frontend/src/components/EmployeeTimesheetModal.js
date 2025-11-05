@@ -825,27 +825,72 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       </td>
                       <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
                         {day.clockedHours ? (
-                          <div className="time-entry-details" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <p style={{ margin: 0, fontSize: '14px' }}>
-                              <strong>Clock In:</strong> {(() => {
-                                if (typeof day.clockIn === 'string' && /^\d{2}:\d{2}$/.test(day.clockIn)) {
-                                  return day.clockIn;
-                                }
-                                return moment.utc(day.clockIn).tz('Europe/London').format('HH:mm');
-                              })()}
-                            </p>
-                            <p style={{ margin: 0, fontSize: '14px' }}>
-                              <strong>Clock Out:</strong> {day.clockOut ? (() => {
-                                if (typeof day.clockOut === 'string' && /^\d{2}:\d{2}$/.test(day.clockOut)) {
-                                  return day.clockOut;
-                                }
-                                return moment.utc(day.clockOut).tz('Europe/London').format('HH:mm');
-                              })() : 'Present'}
-                            </p>
-                            {day.breaks && day.breaks.length > 0 && (
-                              <p style={{ margin: 0, fontSize: '14px' }}>
-                                <strong>Break Taken:</strong> {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
-                              </p>
+                          <div className="time-entry-details" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {/* Check if using new sessions structure */}
+                            {day.sessions && day.sessions.length > 0 ? (
+                              // Display all sessions for the day
+                              day.sessions.map((session, idx) => (
+                                <div key={idx} style={{ 
+                                  borderBottom: idx < day.sessions.length - 1 ? '1px solid #e5e7eb' : 'none',
+                                  paddingBottom: idx < day.sessions.length - 1 ? '8px' : '0',
+                                  marginBottom: idx < day.sessions.length - 1 ? '8px' : '0'
+                                }}>
+                                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
+                                    Session {idx + 1}
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: '14px' }}>
+                                    <strong>Clock In:</strong> {moment(session.clockIn).tz('Europe/London').format('HH:mm')}
+                                  </p>
+                                  <p style={{ margin: 0, fontSize: '14px' }}>
+                                    <strong>Clock Out:</strong> {session.clockOut ? moment(session.clockOut).tz('Europe/London').format('HH:mm') : 'Still Clocked In'}
+                                  </p>
+                                  {session.totalHours > 0 && (
+                                    <p style={{ margin: 0, fontSize: '14px' }}>
+                                      <strong>Duration:</strong> {session.totalHours.toFixed(2)} hrs
+                                    </p>
+                                  )}
+                                  {session.clockInLocation && (
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                                      📍 {session.clockInLocation.address || 
+                                        `${session.clockInLocation.latitude.toFixed(6)}, ${session.clockInLocation.longitude.toFixed(6)}`}
+                                      {' '}
+                                      <a 
+                                        href={`https://www.google.com/maps?q=${session.clockInLocation.latitude},${session.clockInLocation.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color: '#2563eb', textDecoration: 'none' }}
+                                      >
+                                        [Map]
+                                      </a>
+                                    </p>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              // Legacy single clock-in/out display
+                              <>
+                                <p style={{ margin: 0, fontSize: '14px' }}>
+                                  <strong>Clock In:</strong> {(() => {
+                                    if (typeof day.clockIn === 'string' && /^\d{2}:\d{2}$/.test(day.clockIn)) {
+                                      return day.clockIn;
+                                    }
+                                    return moment.utc(day.clockIn).tz('Europe/London').format('HH:mm');
+                                  })()}
+                                </p>
+                                <p style={{ margin: 0, fontSize: '14px' }}>
+                                  <strong>Clock Out:</strong> {day.clockOut ? (() => {
+                                    if (typeof day.clockOut === 'string' && /^\d{2}:\d{2}$/.test(day.clockOut)) {
+                                      return day.clockOut;
+                                    }
+                                    return moment.utc(day.clockOut).tz('Europe/London').format('HH:mm');
+                                  })() : 'Present'}
+                                </p>
+                                {day.breaks && day.breaks.length > 0 && (
+                                  <p style={{ margin: 0, fontSize: '14px' }}>
+                                    <strong>Break Taken:</strong> {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
                         ) : (

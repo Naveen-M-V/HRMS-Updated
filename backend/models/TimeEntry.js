@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 /**
  * Time Entry Schema
  * Tracks employee clock in/out times and breaks
- * NOW LINKED TO SHIFT ASSIGNMENTS
+ * NOW SUPPORTS MULTIPLE CLOCK-IN/OUT SESSIONS PER DAY
+ * LINKED TO SHIFT ASSIGNMENTS
  */
 const timeEntrySchema = new mongoose.Schema({
   employee: {
@@ -16,9 +17,12 @@ const timeEntrySchema = new mongoose.Schema({
     required: true,
     default: Date.now
   },
+  
+  // ========== LEGACY FIELDS (for backward compatibility) ==========
+  // These are kept for existing data but new entries use 'sessions' array
   clockIn: {
     type: String, // Format: "HH:MM"
-    required: true
+    default: null
   },
   clockOut: {
     type: String, // Format: "HH:MM"
@@ -35,8 +39,7 @@ const timeEntrySchema = new mongoose.Schema({
     default: 'Regular'
   },
   
-  // ========== GPS LOCATION TRACKING ==========
-  // Captures GPS coordinates during clock-in for attendance verification
+  // ========== GPS LOCATION TRACKING (Legacy) ==========
   gpsLocation: {
     latitude: {
       type: Number,
@@ -47,11 +50,11 @@ const timeEntrySchema = new mongoose.Schema({
       default: null
     },
     accuracy: {
-      type: Number, // Accuracy in meters
+      type: Number,
       default: null
     },
     address: {
-      type: String, // Reverse geocoded address from OpenStreetMap
+      type: String,
       default: null
     },
     capturedAt: {
@@ -59,7 +62,67 @@ const timeEntrySchema = new mongoose.Schema({
       default: null
     }
   },
-  // ==========================================
+  // ===================================================
+  
+  // ========== NEW: MULTIPLE SESSIONS PER DAY ==========
+  // Each session represents one clock-in/clock-out cycle
+  sessions: [{
+    clockIn: {
+      type: Date,
+      required: true
+    },
+    clockOut: {
+      type: Date,
+      default: null
+    },
+    location: {
+      type: String,
+      enum: ['Work From Office', 'Work From Home', 'Field', 'Client Side'],
+      default: 'Work From Office'
+    },
+    workType: {
+      type: String,
+      enum: ['Regular', 'Overtime', 'Weekend Overtime', 'Client-side Overtime'],
+      default: 'Regular'
+    },
+    // GPS location for clock-in
+    clockInLocation: {
+      latitude: Number,
+      longitude: Number,
+      accuracy: Number,
+      address: String,
+      capturedAt: Date
+    },
+    // GPS location for clock-out
+    clockOutLocation: {
+      latitude: Number,
+      longitude: Number,
+      accuracy: Number,
+      address: String,
+      capturedAt: Date
+    },
+    breaks: [{
+      startTime: Date,
+      endTime: Date,
+      duration: Number, // in minutes
+      type: {
+        type: String,
+        enum: ['lunch', 'coffee', 'other'],
+        default: 'other'
+      }
+    }],
+    totalHours: {
+      type: Number,
+      default: 0
+    },
+    status: {
+      type: String,
+      enum: ['clocked_in', 'clocked_out', 'on_break'],
+      default: 'clocked_in'
+    },
+    notes: String
+  }],
+  // ===================================================
   
   // ========== NEW: SHIFT LINKING ==========
   shiftId: {
@@ -149,9 +212,40 @@ timeEntrySchema.index({ shiftId: 1 });
 timeEntrySchema.index({ attendanceStatus: 1 });
 
 /**
- * Calculate total hours worked (excluding breaks)
+ * Calculate total hours for a single session (excluding breaks)
+ */
+timeEntrySchema.methods.calculateSessionHours = function(session) {
+  if (!session.clockIn || !session.clockOut) return 0;
+  
+  const clockInTime = new Date(session.clockIn);
+  const clockOutTime = new Date(session.clockOut);
+  
+  let totalMinutes = (clockOutTime - clockInTime) / (1000 * 60);
+  
+  // Subtract break time
+  if (session.breaks && session.breaks.length > 0) {
+    session.breaks.forEach(breakItem => {
+      totalMinutes -= (breakItem.duration || 0);
+    });
+  }
+  
+  return Math.max(0, totalMinutes / 60); // Convert to hours
+};
+
+/**
+ * Calculate total hours worked across all sessions (excluding breaks)
  */
 timeEntrySchema.methods.calculateTotalHours = function() {
+  // If using new sessions structure
+  if (this.sessions && this.sessions.length > 0) {
+    let totalHours = 0;
+    this.sessions.forEach(session => {
+      totalHours += this.calculateSessionHours(session);
+    });
+    return totalHours;
+  }
+  
+  // Legacy calculation for backward compatibility
   if (!this.clockIn || !this.clockOut) return 0;
   
   const clockInTime = new Date(`2000-01-01T${this.clockIn}`);

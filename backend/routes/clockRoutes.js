@@ -1922,4 +1922,277 @@ router.get('/timesheet/:employeeId', async (req, res) => {
   }
 });
 
+// ========== MULTIPLE SESSIONS SUPPORT ==========
+// These routes support multiple clock-in/out sessions per day
+
+/**
+ * POST /api/clock/session/in
+ * Clock in - supports multiple sessions per day
+ */
+router.post('/session/in', async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.userId || req.user.id;
+    const { workType, location, latitude, longitude, accuracy } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const ukNow = moment().tz('Europe/London');
+    const today = ukNow.clone().startOf('day').toDate();
+    const tomorrow = ukNow.clone().add(1, 'day').startOf('day').toDate();
+
+    // Find or create today's time entry
+    let timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today, $lt: tomorrow }
+    });
+
+    // Check if there's an active session (not clocked out)
+    if (timeEntry && timeEntry.sessions) {
+      const activeSession = timeEntry.sessions.find(s => !s.clockOut);
+      if (activeSession) {
+        return res.status(400).json({
+          success: false,
+          message: 'You are already clocked in. Please clock out before clocking in again.'
+        });
+      }
+    }
+
+    // Reverse geocode if coordinates provided
+    let address = null;
+    if (latitude && longitude) {
+      address = await reverseGeocode(latitude, longitude);
+    }
+
+    // Create new session
+    const newSession = {
+      clockIn: ukNow.toDate(),
+      location: location || 'Work From Office',
+      workType: workType || 'Regular',
+      clockInLocation: latitude && longitude ? {
+        latitude,
+        longitude,
+        accuracy,
+        address,
+        capturedAt: ukNow.toDate()
+      } : undefined,
+      status: 'clocked_in',
+      breaks: []
+    };
+
+    if (!timeEntry) {
+      // Create new time entry for today
+      timeEntry = new TimeEntry({
+        employee: userId,
+        date: today,
+        sessions: [newSession],
+        status: 'clocked_in',
+        createdBy: userId
+      });
+    } else {
+      // Add new session to existing entry
+      if (!timeEntry.sessions) {
+        timeEntry.sessions = [];
+      }
+      timeEntry.sessions.push(newSession);
+      timeEntry.status = 'clocked_in';
+    }
+
+    await timeEntry.save();
+
+    // Emit Socket.IO event for real-time update
+    if (req.app.get('io')) {
+      req.app.get('io').emit('attendance-updated', {
+        type: 'clock-in',
+        employeeId: userId,
+        timeEntry: timeEntry
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Clocked in successfully',
+      timeEntry,
+      session: newSession
+    });
+
+  } catch (error) {
+    console.error('Clock in error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during clock in'
+    });
+  }
+});
+
+/**
+ * POST /api/clock/session/out
+ * Clock out - closes the active session
+ */
+router.post('/session/out', async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.userId || req.user.id;
+    const { latitude, longitude, accuracy } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const ukNow = moment().tz('Europe/London');
+    const today = ukNow.clone().startOf('day').toDate();
+    const tomorrow = ukNow.clone().add(1, 'day').startOf('day').toDate();
+
+    // Find today's time entry with active session
+    const timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today, $lt: tomorrow }
+    });
+
+    if (!timeEntry || !timeEntry.sessions || timeEntry.sessions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active clock-in found for today'
+      });
+    }
+
+    // Find the active session (no clock out)
+    const activeSession = timeEntry.sessions.find(s => !s.clockOut);
+    
+    if (!activeSession) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active clock-in found. You may have already clocked out.'
+      });
+    }
+
+    // Reverse geocode if coordinates provided
+    let address = null;
+    if (latitude && longitude) {
+      address = await reverseGeocode(latitude, longitude);
+    }
+
+    // Update the active session
+    activeSession.clockOut = ukNow.toDate();
+    activeSession.status = 'clocked_out';
+    
+    if (latitude && longitude) {
+      activeSession.clockOutLocation = {
+        latitude,
+        longitude,
+        accuracy,
+        address,
+        capturedAt: ukNow.toDate()
+      };
+    }
+
+    // Calculate hours for this session
+    const clockInTime = new Date(activeSession.clockIn);
+    const clockOutTime = new Date(activeSession.clockOut);
+    let totalMinutes = (clockOutTime - clockInTime) / (1000 * 60);
+    
+    // Subtract break time
+    if (activeSession.breaks && activeSession.breaks.length > 0) {
+      activeSession.breaks.forEach(breakItem => {
+        totalMinutes -= (breakItem.duration || 0);
+      });
+    }
+    
+    activeSession.totalHours = Math.max(0, totalMinutes / 60);
+
+    // Update overall status - check if all sessions are clocked out
+    const hasActiveSession = timeEntry.sessions.some(s => !s.clockOut);
+    timeEntry.status = hasActiveSession ? 'clocked_in' : 'clocked_out';
+
+    // Calculate total hours across all sessions
+    timeEntry.totalHours = timeEntry.calculateTotalHours();
+
+    await timeEntry.save();
+
+    // Emit Socket.IO event for real-time update
+    if (req.app.get('io')) {
+      req.app.get('io').emit('attendance-updated', {
+        type: 'clock-out',
+        employeeId: userId,
+        timeEntry: timeEntry
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Clocked out successfully',
+      timeEntry,
+      session: activeSession
+    });
+
+  } catch (error) {
+    console.error('Clock out error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during clock out'
+    });
+  }
+});
+
+/**
+ * GET /api/clock/session/status
+ * Get current clock status with all sessions for today
+ */
+router.get('/session/status', async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.userId || req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const ukNow = moment().tz('Europe/London');
+    const today = ukNow.clone().startOf('day').toDate();
+    const tomorrow = ukNow.clone().add(1, 'day').startOf('day').toDate();
+
+    const timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today, $lt: tomorrow }
+    });
+
+    if (!timeEntry) {
+      return res.json({
+        success: true,
+        status: 'not_clocked_in',
+        sessions: [],
+        totalHours: 0
+      });
+    }
+
+    // Find active session
+    const activeSession = timeEntry.sessions ? 
+      timeEntry.sessions.find(s => !s.clockOut) : null;
+
+    res.json({
+      success: true,
+      status: activeSession ? 'clocked_in' : 'clocked_out',
+      timeEntry,
+      sessions: timeEntry.sessions || [],
+      activeSession,
+      totalHours: timeEntry.totalHours || 0
+    });
+
+  } catch (error) {
+    console.error('Status check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error checking status'
+    });
+  }
+});
+
 module.exports = router;
