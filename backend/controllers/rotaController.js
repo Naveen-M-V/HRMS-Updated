@@ -104,31 +104,43 @@ exports.assignShiftToEmployee = async (req, res) => {
           actualEmployeeId = profile.userId;
           console.log('User lookup result:', employee ? 'Found' : 'Not found');
         } else {
-          // Profile exists but no userId - create a temporary user reference
-          console.log('Profile found but no userId. Creating user reference...');
-          try {
-            // Create a basic user for this profile
-            const newUser = new User({
-              email: profile.email,
-              firstName: profile.firstName,
-              lastName: profile.lastName,
-              role: 'user', // Changed from 'employee' to 'user' to match User model enum
-              password: Math.random().toString(36).slice(-8) // Temporary password
-            });
-            await newUser.save();
-            
-            // Update profile with new userId
-            profile.userId = newUser._id;
+          // Profile exists but no userId - try to find existing user by email first
+          console.log('Profile found but no userId. Looking for existing user by email...');
+          const existingUser = await User.findOne({ email: profile.email });
+          
+          if (existingUser) {
+            // User exists, link it to the profile
+            console.log('✅ Found existing user by email:', existingUser._id);
+            profile.userId = existingUser._id;
             await profile.save();
-            
-            employee = newUser;
-            actualEmployeeId = newUser._id;
-            console.log('Created new user:', newUser._id);
-          } catch (createError) {
-            console.error('Error creating user for profile:', createError);
-            // If user creation fails, just use the profile ID
-            actualEmployeeId = employeeId;
-            employee = { _id: employeeId, email: profile.email, firstName: profile.firstName, lastName: profile.lastName };
+            employee = existingUser;
+            actualEmployeeId = existingUser._id;
+            console.log('✅ Linked profile to existing user');
+          } else {
+            // No user exists, create one
+            console.log('No existing user found. Creating new user...');
+            try {
+              const newUser = new User({
+                email: profile.email,
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                role: 'user',
+                password: Math.random().toString(36).slice(-8)
+              });
+              await newUser.save();
+              
+              profile.userId = newUser._id;
+              await profile.save();
+              
+              employee = newUser;
+              actualEmployeeId = newUser._id;
+              console.log('✅ Created new user:', newUser._id);
+            } catch (createError) {
+              console.error('❌ Error creating user for profile:', createError);
+              // If user creation fails, just use the profile ID
+              actualEmployeeId = employeeId;
+              employee = { _id: employeeId, email: profile.email, firstName: profile.firstName, lastName: profile.lastName };
+            }
           }
         }
       }
