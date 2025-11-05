@@ -282,6 +282,41 @@ const ClockIns = () => {
 
     try {
       let response;
+      let gpsData = {};
+      
+      // ========== GPS LOCATION CAPTURE ==========
+      // Capture GPS for both self clock-in and admin clocking in employees
+      if (navigator.geolocation) {
+        try {
+          console.log('📍 Capturing GPS location for clock-in...');
+          const locationToast = toast.info('Capturing location...', { autoClose: false });
+          
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          });
+          
+          gpsData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          toast.dismiss(locationToast);
+          console.log('✅ GPS captured:', gpsData);
+        } catch (gpsError) {
+          console.warn('⚠️ GPS capture failed:', gpsError);
+          // Continue without GPS - don't block clock-in
+        }
+      }
+      // ==========================================
       
       // If clocking in yourself (current user), use userClockIn
       // Otherwise, use admin clockIn to clock in another employee
@@ -289,11 +324,15 @@ const ClockIns = () => {
         console.log('📤 Using userClockIn (self clock-in)');
         response = await userClockIn({ 
           location: 'Work From Office', 
-          workType: 'Regular' 
+          workType: 'Regular',
+          ...gpsData  // Include GPS data
         });
       } else {
         console.log('📤 Using clockIn (admin clocking in employee)');
-        const payload = { employeeId };
+        const payload = { 
+          employeeId,
+          ...gpsData  // Include GPS data for admin clocking in employees
+        };
         console.log('📤 Sending clock in request:', payload);
         response = await clockIn(payload);
       }
@@ -392,17 +431,51 @@ const ClockIns = () => {
 
     try {
       let response;
+      let gpsData = {};
+      
+      // ========== GPS LOCATION CAPTURE FOR CLOCK-OUT ==========
+      if (navigator.geolocation) {
+        try {
+          console.log('📍 Capturing GPS location for clock-out...');
+          const locationToast = toast.info('Capturing location...', { autoClose: false });
+          
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          });
+          
+          gpsData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          toast.dismiss(locationToast);
+          console.log('✅ GPS captured for clock-out:', gpsData);
+        } catch (gpsError) {
+          console.warn('⚠️ GPS capture failed for clock-out:', gpsError);
+          // Continue without GPS - don't block clock-out
+        }
+      }
+      // ========================================================
       
       // If clocking out yourself, use userClockOut
       if (isCurrentUser) {
         console.log('📤 Using userClockOut (self clock-out)');
         console.log('Current user email:', currentUser?.email);
         console.log('Employee email:', employee?.email);
-        response = await userClockOut();
+        response = await userClockOut(gpsData);
       } else {
         console.log('📤 Using clockOut (admin clocking out employee)');
         console.log('Employee ID being sent:', employeeId);
-        response = await clockOut({ employeeId });
+        response = await clockOut({ employeeId, ...gpsData });
       }
       
       console.log('📥 Clock out response:', response);

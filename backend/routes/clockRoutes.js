@@ -72,9 +72,9 @@ async function reverseGeocode(latitude, longitude) {
 // @access  Private (Admin)
 router.post('/in', async (req, res) => {
   try {
-    const { employeeId, location, workType } = req.body;
+    const { employeeId, location, workType, latitude, longitude, accuracy } = req.body;
 
-    console.log('Clock In Request:', { employeeId, location, workType });
+    console.log('Clock In Request:', { employeeId, location, workType, latitude, longitude, accuracy });
     console.log('Employee ID type:', typeof employeeId);
 
     if (!employeeId) {
@@ -166,6 +166,33 @@ router.post('/in', async (req, res) => {
       timeEntryData.notes = 'No scheduled shift found for today';
     }
     
+    // ========== GPS LOCATION PROCESSING FOR ADMIN CLOCK-IN ==========
+    // If GPS coordinates are provided, save them and attempt reverse geocoding
+    if (latitude && longitude) {
+      console.log('GPS coordinates received for admin clock-in:', { latitude, longitude, accuracy });
+      
+      // Initialize GPS location object
+      timeEntryData.gpsLocation = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        accuracy: accuracy ? parseFloat(accuracy) : null,
+        capturedAt: new Date()
+      };
+      
+      // Attempt reverse geocoding to get address (non-blocking)
+      try {
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) {
+          timeEntryData.gpsLocation.address = address;
+          console.log('Reverse geocoded address for admin clock-in:', address);
+        }
+      } catch (geocodeError) {
+        console.error('Reverse geocoding failed for admin clock-in, continuing without address:', geocodeError);
+        // Don't fail the clock-in if geocoding fails
+      }
+    }
+    // ================================================================
+    
     const timeEntry = new TimeEntry(timeEntryData);
     await timeEntry.save();
     
@@ -239,7 +266,7 @@ router.post('/in', async (req, res) => {
 // @access  Private (Admin)
 router.post('/out', async (req, res) => {
   try {
-    const { employeeId } = req.body;
+    const { employeeId, latitude, longitude, accuracy } = req.body;
 
     if (!employeeId) {
       return res.status(400).json({
@@ -269,6 +296,33 @@ router.post('/out', async (req, res) => {
     const currentTime = ukNow.format('HH:mm'); // HH:mm format in UK timezone
     timeEntry.clockOut = currentTime;
     timeEntry.status = 'clocked_out';
+    
+    // ========== GPS LOCATION PROCESSING FOR ADMIN CLOCK-OUT ==========
+    // If GPS coordinates are provided, save them and attempt reverse geocoding
+    if (latitude && longitude) {
+      console.log('GPS coordinates received for admin clock-out:', { latitude, longitude, accuracy });
+      
+      // Initialize GPS location object for clock-out
+      timeEntry.gpsLocationOut = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        accuracy: accuracy ? parseFloat(accuracy) : null,
+        capturedAt: new Date()
+      };
+      
+      // Attempt reverse geocoding to get address (non-blocking)
+      try {
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) {
+          timeEntry.gpsLocationOut.address = address;
+          console.log('Reverse geocoded address for admin clock-out:', address);
+        }
+      } catch (geocodeError) {
+        console.error('Reverse geocoding failed for admin clock-out, continuing without address:', geocodeError);
+        // Don't fail the clock-out if geocoding fails
+      }
+    }
+    // =================================================================
     
     const hoursWorked = calculateHoursWorked(timeEntry.clockIn, currentTime, timeEntry.breaks);
     timeEntry.hoursWorked = hoursWorked;
