@@ -355,13 +355,32 @@ router.get('/dashboard', async (req, res) => {
     const timeEntries = await TimeEntry.find({
       date: { $gte: today },
       employee: { $in: allUserIds }
+    }).sort({ createdAt: -1 }); // Sort by most recent first
+
+    // Count only CURRENT status - each employee counted once based on latest entry
+    const employeeStatusMap = new Map();
+    
+    timeEntries.forEach(entry => {
+      const empId = entry.employee.toString();
+      // Only set if not already set (since we sorted by most recent first)
+      if (!employeeStatusMap.has(empId)) {
+        employeeStatusMap.set(empId, entry.status);
+      }
     });
 
-    const clockedIn = timeEntries.filter(e => e.status === 'clocked_in').length;
-    const onBreak = timeEntries.filter(e => e.status === 'on_break').length;
-    const clockedOut = timeEntries.filter(e => e.status === 'clocked_out').length;
-    // Ensure absent count is never negative
-    const absent = Math.max(0, totalEmployees - timeEntries.length);
+    // Count statuses from the map
+    let clockedIn = 0;
+    let onBreak = 0;
+    let clockedOut = 0;
+    
+    employeeStatusMap.forEach(status => {
+      if (status === 'clocked_in') clockedIn++;
+      else if (status === 'on_break') onBreak++;
+      else if (status === 'clocked_out') clockedOut++;
+    });
+
+    // Absent = employees who have no time entry today
+    const absent = Math.max(0, totalEmployees - employeeStatusMap.size);
 
     const stats = {
       clockedIn,

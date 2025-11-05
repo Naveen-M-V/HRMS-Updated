@@ -152,19 +152,67 @@ const UserDashboard = () => {
       if (navigator.geolocation) {
         try {
           // Show loading toast while getting location
-          const locationToast = toast.info('Requesting location access...', { autoClose: false });
+          const locationToast = toast.info('Requesting high-accuracy location...', { autoClose: false });
           
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              resolve,
-              reject,
-              {
-                enableHighAccuracy: true, // Request high accuracy GPS
-                timeout: 10000, // 10 second timeout
-                maximumAge: 0 // Don't use cached position
+          // Function to get position with retry logic for better accuracy
+          const getAccuratePosition = async (maxRetries = 3, targetAccuracy = 10) => {
+            let bestPosition = null;
+            let bestAccuracy = Infinity;
+            
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+              try {
+                console.log(`📍 GPS attempt ${attempt}/${maxRetries}, target accuracy: ${targetAccuracy}m`);
+                
+                const position = await new Promise((resolve, reject) => {
+                  navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    reject,
+                    {
+                      enableHighAccuracy: true, // Request high accuracy GPS
+                      timeout: 15000, // 15 second timeout per attempt
+                      maximumAge: 0 // Don't use cached position
+                    }
+                  );
+                });
+                
+                const accuracy = position.coords.accuracy;
+                console.log(`📍 GPS attempt ${attempt} accuracy: ${accuracy.toFixed(2)}m`);
+                
+                // Keep track of best position
+                if (accuracy < bestAccuracy) {
+                  bestPosition = position;
+                  bestAccuracy = accuracy;
+                }
+                
+                // If we achieved target accuracy, use it immediately
+                if (accuracy <= targetAccuracy) {
+                  console.log(`✅ Achieved target accuracy of ${targetAccuracy}m on attempt ${attempt}`);
+                  return position;
+                }
+                
+                // Wait a bit before next attempt to allow GPS to stabilize
+                if (attempt < maxRetries) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+              } catch (error) {
+                console.warn(`⚠️ GPS attempt ${attempt} failed:`, error.message);
+                if (attempt === maxRetries && !bestPosition) {
+                  throw error; // Throw only if all attempts failed
+                }
               }
-            );
-          });
+            }
+            
+            // Return best position if target accuracy wasn't achieved
+            if (bestPosition) {
+              console.log(`📍 Using best accuracy achieved: ${bestAccuracy.toFixed(2)}m`);
+              return bestPosition;
+            }
+            
+            throw new Error('Failed to get GPS location after all attempts');
+          };
+          
+          // Get accurate position with retry logic
+          const position = await getAccuratePosition(3, 10);
           
           // Extract GPS coordinates
           gpsData = {
@@ -182,6 +230,17 @@ const UserDashboard = () => {
           
           // Dismiss location toast
           toast.dismiss(locationToast);
+          
+          // Show accuracy warning if not within 10m
+          if (position.coords.accuracy > 10) {
+            toast.warning(`Location accuracy: ${Math.round(position.coords.accuracy)}m. For best results, ensure GPS is enabled and you're outdoors.`, {
+              autoClose: 5000
+            });
+          } else {
+            toast.success(`High accuracy location captured: ${Math.round(position.coords.accuracy)}m`, {
+              autoClose: 3000
+            });
+          }
           
           console.log('GPS captured:', gpsData);
         } catch (gpsError) {

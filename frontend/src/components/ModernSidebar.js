@@ -126,6 +126,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           }
         }}
         className="flex-1 overflow-y-auto py-4 space-y-1 px-2"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {/* Reporting Section */}
         <div>

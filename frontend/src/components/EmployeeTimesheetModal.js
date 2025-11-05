@@ -39,13 +39,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     if (employee) {
       console.log('Employee data in modal:', employee);
       fetchWeeklyTimesheet();
-      
-      // Auto-refresh every 5 seconds to show real-time updates
-      const interval = setInterval(() => {
-        fetchWeeklyTimesheet();
-      }, 5000);
-      
-      return () => clearInterval(interval);
     }
   }, [employee, currentDate]);
 
