@@ -130,8 +130,22 @@ const UserDashboard = () => {
       const response = await getUserClockStatus();
       console.log('📊 Clock status response:', response);
       if (response.success && response.data) {
-        console.log('✅ Setting clock status:', response.data);
-        setClockStatus(response.data);
+        console.log('✅ Setting clock status:', {
+          status: response.data.status,
+          clockIn: response.data.clockIn,
+          clockOut: response.data.clockOut,
+          location: response.data.location,
+          workType: response.data.workType
+        });
+        // Always set fresh data from backend
+        setClockStatus({
+          status: response.data.status,
+          clockIn: response.data.clockIn,
+          clockOut: response.data.clockOut,
+          location: response.data.location,
+          workType: response.data.workType,
+          breaks: response.data.breaks
+        });
       } else {
         console.log('⚠️ No clock status data or unsuccessful response');
         setClockStatus(null);
@@ -332,10 +346,13 @@ const UserDashboard = () => {
       // Extract error message from response (backend returns { success: false, message: '...' })
       const errorMessage = error.message || error.error || 'Failed to clock in';
       
-      // If user is already clocked in, refresh status to sync UI
+      // Always refresh status when there's an error to sync UI with backend state
+      console.log('⚠️ Clock-in failed, fetching current status to sync UI...');
+      await fetchClockStatus();
+      
+      // If user is already clocked in, show appropriate message
       if (errorMessage.includes('already') || errorMessage.includes('clocked in')) {
-        toast.warning('You are already clocked in. Refreshing status...', { autoClose: 3000 });
-        await fetchClockStatus(); // Refresh to show correct state
+        toast.warning('You are already clocked in', { autoClose: 3000 });
       } else {
         toast.error(errorMessage, { autoClose: 5000 });
       }
@@ -372,6 +389,9 @@ const UserDashboard = () => {
       }
     } catch (error) {
       console.error('Clock out error:', error);
+      // Refresh status to sync UI with backend state
+      console.log('⚠️ Clock-out failed, fetching current status to sync UI...');
+      await fetchClockStatus();
       toast.error(error.message || 'Failed to clock out');
     } finally {
       setProcessing(false);

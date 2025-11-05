@@ -29,11 +29,29 @@ const UserClockInOut = () => {
   const fetchClockStatus = async () => {
     try {
       const response = await getUserClockStatus();
-      if (response.success) {
-        setClockStatus(response.data);
+      console.log('📊 Clock status response:', response);
+      if (response.success && response.data) {
+        console.log('✅ Setting clock status:', {
+          status: response.data.status,
+          clockIn: response.data.clockIn,
+          clockOut: response.data.clockOut
+        });
+        // Always set fresh data from backend
+        setClockStatus({
+          status: response.data.status,
+          clockIn: response.data.clockIn,
+          clockOut: response.data.clockOut,
+          location: response.data.location,
+          workType: response.data.workType,
+          breaks: response.data.breaks
+        });
+      } else {
+        console.log('⚠️ No clock status data');
+        setClockStatus(null);
       }
     } catch (error) {
-      console.error('Fetch clock status error:', error);
+      console.error('❌ Fetch clock status error:', error);
+      setClockStatus(null);
     } finally {
       setLoading(false);
     }
@@ -77,7 +95,16 @@ const UserClockInOut = () => {
       }
     } catch (error) {
       console.error('Clock in error:', error);
-      toast.error(error.message || 'Failed to clock in');
+      // Refresh status to sync UI with backend state
+      console.log('⚠️ Clock-in failed, fetching current status to sync UI...');
+      await fetchClockStatus();
+      
+      const errorMessage = error.message || 'Failed to clock in';
+      if (errorMessage.includes('already') || errorMessage.includes('clocked in')) {
+        toast.warning('You are already clocked in', { autoClose: 3000 });
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setProcessing(false);
     }
@@ -115,6 +142,9 @@ const UserClockInOut = () => {
       }
     } catch (error) {
       console.error('Clock out error:', error);
+      // Refresh status to sync UI with backend state
+      console.log('⚠️ Clock-out failed, fetching current status to sync UI...');
+      await fetchClockStatus();
       toast.error(error.message || 'Failed to clock out');
     } finally {
       setProcessing(false);
