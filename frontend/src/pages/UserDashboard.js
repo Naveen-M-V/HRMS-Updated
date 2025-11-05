@@ -120,6 +120,7 @@ const UserDashboard = () => {
     if (user?.email) {
       fetchUserData();
       fetchClockStatus();
+      captureCurrentLocation(); // Capture GPS on page load
       
       // Poll for updates every 60 seconds for notifications only (reduced frequency)
       const interval = setInterval(() => {
@@ -129,6 +130,31 @@ const UserDashboard = () => {
       return () => clearInterval(interval);
     }
   }, [user, fetchUserData]);
+
+  // Capture current GPS location for map display
+  const captureCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsCoordinates({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          setLocationAccuracy(position.coords.accuracy);
+          console.log('📍 User dashboard GPS captured:', position.coords);
+        },
+        (error) => {
+          console.warn('⚠️ GPS capture failed for user dashboard:', error);
+          setGpsError(null); // Don't show error, just leave map empty
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // Cache for 5 minutes
+        }
+      );
+    }
+  };
 
   const fetchClockStatus = async () => {
     try {
@@ -655,16 +681,14 @@ const UserDashboard = () => {
                 </div>
               )}
               
-              {/* Map Display - Shows user location (persists after clock-in) */}
-              {gpsCoordinates && (
-                <div className="mb-6">
-                  <LocationMap 
-                    latitude={gpsCoordinates.latitude}
-                    longitude={gpsCoordinates.longitude}
-                    accuracy={locationAccuracy}
-                  />
-                </div>
-              )}
+              {/* Persistent Location Map - Always Visible */}
+              <div className="mb-6">
+                <LocationMap 
+                  latitude={gpsCoordinates?.latitude || null}
+                  longitude={gpsCoordinates?.longitude || null}
+                  accuracy={locationAccuracy}
+                />
+              </div>
               
               {/* GPS Location Accuracy Display */}
               {locationAccuracy && (

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ComplianceInsights from './ComplianceInsights';
 import AdminClockInModal from './AdminClockInModal';
 import AdminClockOutModal from './AdminClockOutModal';
+import LocationMap from './LocationMap';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import { getUserClockStatus, userClockOut, userStartBreak, userResumeWork } from '../utils/clockApi';
 import { toast } from 'react-toastify';
@@ -36,10 +37,38 @@ const ComplianceDashboard = () => {
   });
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [nextLeave, setNextLeave] = useState(null);
+  const [gpsCoordinates, setGpsCoordinates] = useState(null);
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
 
  useEffect(() => {
   fetchClockStatus();
+  captureCurrentLocation();
 }, []);
+
+ // Capture current GPS location for map display
+ const captureCurrentLocation = () => {
+   if (navigator.geolocation) {
+     navigator.geolocation.getCurrentPosition(
+       (position) => {
+         setGpsCoordinates({
+           latitude: position.coords.latitude,
+           longitude: position.coords.longitude
+         });
+         setLocationAccuracy(position.coords.accuracy);
+         console.log('📍 Compliance dashboard GPS captured:', position.coords);
+       },
+       (error) => {
+         console.warn('⚠️ GPS capture failed for compliance dashboard:', error);
+         // Don't show error to user, just leave map empty
+       },
+       {
+         enableHighAccuracy: true,
+         timeout: 10000,
+         maximumAge: 300000 // Cache for 5 minutes
+       }
+     );
+   }
+ };
 
  const fetchClockStatus = async () => {
   try {
@@ -242,6 +271,15 @@ const ComplianceDashboard = () => {
 
       {/* Compliance Insights Section */}
       <ComplianceInsights />
+
+      {/* Persistent Location Map - Always Visible */}
+      <div style={{ marginBottom: '24px', marginTop: '24px' }}>
+        <LocationMap 
+          latitude={gpsCoordinates?.latitude || null}
+          longitude={gpsCoordinates?.longitude || null}
+          accuracy={locationAccuracy}
+        />
+      </div>
 
       {/* My Summary and E-Learning sections */}
       <div style={{
