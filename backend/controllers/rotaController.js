@@ -596,12 +596,12 @@ exports.getAllShiftAssignments = async (req, res) => {
     let shifts = await ShiftAssignment.find(query)
       .populate({
         path: 'employeeId',
-        select: 'firstName lastName email role',
+        select: '_id firstName lastName email role', // Include _id explicitly
         options: { strictPopulate: false }
       })
       .populate({
         path: 'assignedBy',
-        select: 'firstName lastName',
+        select: '_id firstName lastName', // Include _id explicitly
         options: { strictPopulate: false }
       })
       .sort({ date: 1, startTime: 1 })
@@ -614,9 +614,9 @@ exports.getAllShiftAssignments = async (req, res) => {
         if (!shift.employeeId.firstName) {
           // Populate failed or incomplete, try to find the user manually
           console.log(`⚠️ Populate failed for shift ${shift._id}, manually looking up employeeId:`, shift.employeeId);
-          const user = await User.findById(shift.employeeId).select('firstName lastName email role').lean();
+          const user = await User.findById(shift.employeeId).select('_id firstName lastName email role').lean();
           if (user) {
-            console.log(`✅ Found user:`, user.firstName, user.lastName, `(role: ${user.role})`);
+            console.log(`✅ Found user:`, user.firstName, user.lastName, `(role: ${user.role}, _id: ${user._id})`);
             shift.employeeId = user;
           } else {
             // User not found, set to null to indicate missing reference
@@ -625,7 +625,7 @@ exports.getAllShiftAssignments = async (req, res) => {
           }
         } else {
           // Successfully populated
-          console.log(`✅ Shift ${shift._id} has populated employeeId:`, shift.employeeId.firstName, shift.employeeId.lastName, `(role: ${shift.employeeId.role || 'N/A'})`);
+          console.log(`✅ Shift ${shift._id} has populated employeeId:`, shift.employeeId.firstName, shift.employeeId.lastName, `(role: ${shift.employeeId.role || 'N/A'}, _id: ${shift.employeeId._id})`);
         }
       } else if (!shift.employeeId) {
         console.warn(`⚠️ Shift ${shift._id} has no employeeId`);

@@ -124,9 +124,20 @@ const RotaShiftManagement = () => {
       
       // Second, add any employees from shifts that aren't in profiles (e.g., admins without profiles)
       if (shiftsRes.success && shiftsRes.data) {
-        shiftsRes.data.forEach(shift => {
+        console.log('🔍 Checking shifts for missing employees...');
+        shiftsRes.data.forEach((shift, idx) => {
           if (shift.employeeId && typeof shift.employeeId === 'object' && shift.employeeId.firstName) {
-            const userId = shift.employeeId._id?.toString() || shift.employeeId.toString();
+            // Extract the user ID - try multiple possible locations
+            let userId;
+            if (shift.employeeId._id) {
+              userId = typeof shift.employeeId._id === 'object' ? shift.employeeId._id.toString() : shift.employeeId._id;
+            } else if (shift.employeeId.id) {
+              userId = typeof shift.employeeId.id === 'object' ? shift.employeeId.id.toString() : shift.employeeId.id;
+            } else {
+              // If no _id or id field, the object itself might be the ID with firstName added
+              console.warn(`⚠️ Shift ${idx} has employeeId object with firstName but no _id field:`, shift.employeeId);
+              return; // Skip this one
+            }
             
             if (!employeeIds.has(userId)) {
               employeeList.push({
@@ -139,7 +150,9 @@ const RotaShiftManagement = () => {
                 name: `${shift.employeeId.firstName} ${shift.employeeId.lastName}`
               });
               employeeIds.add(userId);
-              console.log('➕ Added employee from shift data:', shift.employeeId.firstName, shift.employeeId.lastName);
+              console.log('➕ Added employee from shift data:', shift.employeeId.firstName, shift.employeeId.lastName, `(ID: ${userId}, role: ${shift.employeeId.role})`);
+            } else {
+              console.log(`ℹ️ Employee ${shift.employeeId.firstName} ${shift.employeeId.lastName} already in list`);
             }
           }
         });
