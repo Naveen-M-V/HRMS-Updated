@@ -125,12 +125,10 @@ const ClockInOut = () => {
           stats.absent++;
           break;
         default:
-          stats.absent++;
+          // Don't count unknown statuses - backend handles absent calculation
+          break;
       }
     });
-
-    // Ensure absent count is never negative
-    stats.absent = Math.max(0, stats.absent);
 
     setStats(stats);
   };
