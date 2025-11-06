@@ -35,6 +35,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     clockIn: null,
     clockOut: null
   });
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [currentDayIndex, setCurrentDayIndex] = useState(0);
 
   useEffect(() => {
     if (employee) {
@@ -148,6 +150,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     const monday = getMonday(currentDate);
     const weekEntries = [];
     let weeklyTotalHoursSum = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
@@ -155,6 +159,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       const dateStr = date.toISOString().split('T')[0];
       const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      
+      // Check if this is today
+      const dayDate = new Date(date);
+      dayDate.setHours(0, 0, 0, 0);
+      const isToday = dayDate.getTime() === today.getTime();
+      const isFuture = dayDate > today;
       
       const dayEntry = data.entries?.find(e => {
         const entryDate = moment.utc(e.date).tz('Europe/London').format('YYYY-MM-DD');
@@ -220,13 +230,18 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           dayNumber: date.getDate().toString().padStart(2, '0'),
           clockedHours: `${clockInTime} - ${clockOutTime}${breakInfo}`,
           clockIn: clockIn,
+          clockInTime: clockInTime,
           clockOut: clockOut,
+          clockOutTime: clockOutTime,
           breaks: dayEntry.breaks || [], // Add breaks data for timeline visualization
           location: dayEntry.location || 'N/A',
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
+          hoursDecimal: hours,
           workType: dayEntry.workType || 'Regular',
           isWeekend: isWeekend,
+          isToday: isToday,
+          isFuture: isFuture,
           // GPS location data for admin view
           gpsLocation: dayEntry.gpsLocation || null
         });
@@ -240,14 +255,26 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           location: '--',
           overtime: '--',
           totalHours: '00:00',
+          hoursDecimal: 0,
           workType: null,
           isWeekend: isWeekend,
+          isToday: isToday,
+          isFuture: isFuture,
           isAbsent: true // Flag to identify absent entries
         });
       }
     }
 
-    setWeekData(weekEntries);
+    // Filter out future dates and sort: Today first, then past days in descending order
+    const filteredAndSorted = weekEntries
+      .filter(entry => !entry.isFuture) // Remove future dates
+      .sort((a, b) => {
+        if (a.isToday) return -1; // Today always first
+        if (b.isToday) return 1;
+        return b.date - a.date; // Past days in descending order
+      });
+
+    setWeekData(filteredAndSorted);
     setWeeklyTotalHours(weeklyTotalHoursSum);
     
     // Use statistics from backend if available
@@ -285,6 +312,120 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       day: '2-digit',
       month: 'long'
     });
+  };
+
+  // Timeline helper function to calculate position and width percentages
+  const calculateTimelineSegments = (day) => {
+    if (!day.clockIn) return null;
+
+    const workDayStart = 9 * 60; // 09:00 in minutes
+    const workDayEnd = 21 * 60; // 21:00 in minutes
+    const totalMinutes = workDayEnd - workDayStart; // 12 hours
+
+    const parseTime = (timeStr) => {
+      if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const clockInMinutes = parseTime(day.clockInTime);
+    const clockOutMinutes = day.clockOutTime && day.clockOutTime !== 'Present' ? parseTime(day.clockOutTime) : null;
+
+    if (!clockInMinutes) return null;
+
+    const segments = [];
+    let currentTime = clockInMinutes;
+
+    // Clock-in segment (small marker)
+    const clockInPosition = ((clockInMinutes - workDayStart) / totalMinutes) * 100;
+    segments.push({
+      type: 'clock-in',
+      left: Math.max(0, clockInPosition),
+      width: 1,
+      color: '#f97316', // Orange
+      label: 'Clock-in'
+    });
+
+    // Process breaks and working time
+    if (day.breaks && day.breaks.length > 0) {
+      const sortedBreaks = [...day.breaks].sort((a, b) => {
+        const aStart = parseTime(a.startTime);
+        const bStart = parseTime(b.startTime);
+        return aStart - bStart;
+      });
+
+      sortedBreaks.forEach((breakItem) => {
+        const breakStart = parseTime(breakItem.startTime);
+        const breakEnd = parseTime(breakItem.endTime);
+
+        if (breakStart && breakEnd) {
+          // Working time before break
+          if (currentTime < breakStart) {
+            const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+            const workEnd = ((breakStart - workDayStart) / totalMinutes) * 100;
+            segments.push({
+              type: 'working',
+              left: Math.max(0, workStart),
+              width: Math.max(0, workEnd - workStart),
+              color: '#3b82f6', // Blue
+              label: 'Working time'
+            });
+          }
+
+          // Break time
+          const breakStartPos = ((breakStart - workDayStart) / totalMinutes) * 100;
+          const breakEndPos = ((breakEnd - workDayStart) / totalMinutes) * 100;
+          segments.push({
+            type: 'break',
+            left: Math.max(0, breakStartPos),
+            width: Math.max(0, breakEndPos - breakStartPos),
+            color: '#06b6d4', // Cyan
+            label: 'Break'
+          });
+
+          currentTime = breakEnd;
+        }
+      });
+    }
+
+    // Final working time segment
+    const endTime = clockOutMinutes || (new Date().getHours() * 60 + new Date().getMinutes());
+    if (currentTime < endTime) {
+      const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+      const workEnd = ((endTime - workDayStart) / totalMinutes) * 100;
+      segments.push({
+        type: 'working',
+        left: Math.max(0, workStart),
+        width: Math.max(0, Math.min(100, workEnd) - workStart),
+        color: '#3b82f6', // Blue
+        label: 'Working time'
+      });
+    }
+
+    // Clock-out marker if present
+    if (clockOutMinutes) {
+      const clockOutPosition = ((clockOutMinutes - workDayStart) / totalMinutes) * 100;
+      // Don't add clock-out marker as a separate segment, just mark the end
+    }
+
+    return segments;
+  };
+
+  const navigateDay = (direction) => {
+    const newIndex = currentDayIndex + direction;
+    if (newIndex >= 0 && newIndex < weekData.length) {
+      setCurrentDayIndex(newIndex);
+    }
+  };
+
+  const getTotalEmployees = () => {
+    // This would come from your employee list - placeholder for now
+    return 56;
+  };
+
+  const getCurrentEmployeeIndex = () => {
+    // This would be the actual index - placeholder for now
+    return 1;
   };
 
   // Checkbox handlers
@@ -486,22 +627,23 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   if (!employee) return null;
 
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px'
-      }}
-      onClick={onClose}
-    >
+    <>
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}
+        onClick={onClose}
+      >
       <div 
         style={{
           background: '#ffffff',
@@ -519,37 +661,68 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       >
         {/* Header */}
         <div style={{
-          padding: '24px 32px',
+          padding: '20px 24px',
           borderBottom: '1px solid #e5e7eb',
-          position: 'relative'
+          position: 'relative',
+          background: '#ffffff'
         }}>
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: '24px',
-              right: '24px',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px'
-            }}
-          >
-            <XMarkIcon style={{ width: '24px', height: '24px', color: '#6b7280' }} />
-          </button>
+          {/* Navigation and Close */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button
+                onClick={() => {/* Navigate to previous employee */}}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <ChevronLeftIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+              </button>
+              <button
+                onClick={() => {/* Navigate to next employee */}}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <ChevronRightIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+              </button>
+              <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                {getCurrentEmployeeIndex()} out of {getTotalEmployees()}
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <XMarkIcon style={{ width: '24px', height: '24px', color: '#6b7280' }} />
+            </button>
+          </div>
 
           {/* Employee Info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
             <div style={{
-              width: '80px',
-              height: '80px',
+              width: '64px',
+              height: '64px',
               borderRadius: '50%',
               background: '#e5e7eb',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '28px',
+              fontSize: '24px',
               fontWeight: '600',
               color: '#374151',
               overflow: 'hidden'
@@ -568,220 +741,176 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`
               )}
             </div>
-            <div>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Present</div>
-              <h2 style={{ fontSize: '32px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
+            <div style={{ flex: 1 }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
                 {employee.firstName} {employee.lastName}
               </h2>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                {employee.jobTitle || employee.jobRole || 'Employee'}
+              <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#6b7280' }}>
+                <div><span style={{ fontWeight: '500' }}>Role:</span> {employee.jobTitle || employee.jobRole || 'Employee'}</div>
+                <div><span style={{ fontWeight: '500' }}>Employee ID:</span> #{employee._id?.slice(-6) || 'N/A'}</div>
+                <div><span style={{ fontWeight: '500' }}>Phone Number:</span> {employee.phone || 'N/A'}</div>
               </div>
             </div>
+            <button
+              style={{
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Attendance
+            </button>
           </div>
 
           {/* Statistics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
-            <div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Year</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>
-                {new Date().getFullYear()}
-              </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
+            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Day off</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>12</div>
+              <div style={{ fontSize: '10px', color: '#10b981', marginTop: '2px' }}>+12 vs last month</div>
             </div>
-            <div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Hours worked to date</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>
-                {statistics.hoursWorked}
-              </div>
+            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Late clock-in</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>6</div>
+              <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>-2 vs last month</div>
             </div>
-            <div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Overtime to date</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>
-                {statistics.overtime}
-              </div>
+            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Late clock-out</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>21</div>
+              <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>-12 vs last month</div>
             </div>
-            <div style={{ gridColumn: 'span 3' }}>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>Weekly Total Hours</div>
-              <div style={{ fontSize: '16px', fontWeight: '500', color: '#111827' }}>
-                {formatHours(weeklyTotalHours)}
-              </div>
+            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>No clock-out</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>2</div>
+              <div style={{ fontSize: '10px', color: '#10b981', marginTop: '2px' }}>+4 vs last month</div>
+            </div>
+            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Off time quota</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>0</div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>0 vs last month</div>
+            </div>
+            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Absent</div>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>2</div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>0 vs last month</div>
             </div>
           </div>
         </div>
 
-        {/* Week Navigation */}
+        {/* Month Navigation */}
         <div style={{
-          padding: '16px 32px',
+          padding: '16px 24px',
           borderBottom: '1px solid #e5e7eb',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          background: '#ffffff'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <div style={{ fontSize: '15px', fontWeight: '500', color: '#111827' }}>
-              Week {getWeekNumber(currentDate)}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+              {selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
-                onClick={() => navigateWeek(-1)}
+                onClick={() => {
+                  const newMonth = new Date(selectedMonth);
+                  newMonth.setMonth(newMonth.getMonth() - 1);
+                  setSelectedMonth(newMonth);
+                  setCurrentDate(newMonth);
+                }}
                 style={{
                   background: 'transparent',
-                  border: 'none',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  padding: '4px'
+                  padding: '6px',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}
               >
-                <ChevronLeftIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                <ChevronLeftIcon style={{ width: '16px', height: '16px', color: '#6b7280' }} />
               </button>
-              <div style={{ width: '240px' }}>
-                <MUIDatePicker
-                  value={dayjs(currentDate)}
-                  onChange={(date) => {
-                    if (date) {
-                      setCurrentDate(date.toDate());
-                    }
-                  }}
-                />
-              </div>
               <button
-                onClick={() => navigateWeek(1)}
+                onClick={() => {
+                  const newMonth = new Date(selectedMonth);
+                  newMonth.setMonth(newMonth.getMonth() + 1);
+                  setSelectedMonth(newMonth);
+                  setCurrentDate(newMonth);
+                }}
                 style={{
                   background: 'transparent',
-                  border: 'none',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  padding: '4px'
+                  padding: '6px',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}
               >
-                <ChevronRightIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                <ChevronRightIcon style={{ width: '16px', height: '16px', color: '#6b7280' }} />
               </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {selectedEntries.size > 0 && (
-              <button
-                onClick={handleBulkDelete}
-                title="Delete Selected"
-                style={{
-                  background: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <TrashIcon style={{ width: '16px', height: '16px' }} />
-                Delete ({selectedEntries.size})
-              </button>
-            )}
-            <button
-              onClick={exportToExcel}
-              title="Export to Excel"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <input
+              type="text"
+              placeholder="Search"
               style={{
-                background: 'transparent',
-                border: 'none',
+                padding: '8px 12px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                fontSize: '13px',
+                width: '200px',
+                outline: 'none'
+              }}
+            />
+            <select
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                fontSize: '13px',
+                background: 'white',
                 cursor: 'pointer',
-                padding: '4px'
+                outline: 'none'
               }}
             >
-              <PrinterIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-            </button>
+              <option>All Status</option>
+              <option>Present</option>
+              <option>Absent</option>
+              <option>Late</option>
+            </select>
           </div>
         </div>
 
-        {/* Timesheet Table */}
+        {/* Timeline Calendar View */}
         <div style={{ 
-          padding: '0 32px 32px',
+          padding: '24px',
           overflowY: 'auto',
           overflowX: 'hidden',
-          flex: 1
+          flex: 1,
+          background: '#f9fafb'
         }}
         className="hide-scrollbar">
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'center', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280',
-                  width: '50px'
-                }}>
-                  <input
-                    type="checkbox"
-                    onChange={handleSelectAll}
-                    checked={selectedEntries.size > 0 && selectedEntries.size === weekData.filter(d => d.entryId).length}
-                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                  />
-                </th>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'left', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280' 
-                }}>Date</th>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'left', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280',
-                  minWidth: '250px'
-                }}>Clocked hours</th>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'left', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280' 
-                }}>Location</th>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'left', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280' 
-                }}>Overtime</th>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'left', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280' 
-                }}>GPS Location</th>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'right', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280' 
-                }}>Total hours worked</th>
-                <th style={{ 
-                  padding: '16px 12px', 
-                  textAlign: 'center', 
-                  fontSize: '13px', 
-                  fontWeight: '500', 
-                  color: '#6b7280',
-                  width: '100px'
-                }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                    Loading timesheet...
-                  </td>
-                </tr>
-              ) : (
-                weekData.map((day, index) => {
+          {loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+              Loading timesheet...
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {weekData.map((day, index) => {
                   // Determine what to show when not clocked in
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
@@ -803,176 +932,199 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                     emptyTextColor = '#9ca3af';
                   }
                   
+                  const segments = calculateTimelineSegments(day);
+                  const isApproved = day.clockOut && !day.isAbsent;
+                  
                   return (
-                    <tr 
+                    <div 
                       key={index}
                       style={{ 
-                        borderBottom: '1px solid #f3f4f6',
-                        background: day.clockedHours ? '#ffffff' : '#fafafa'
+                        background: day.isToday ? '#eff6ff' : '#ffffff',
+                        borderRadius: '12px',
+                        padding: '16px 20px',
+                        border: day.isToday ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                        boxShadow: day.isToday ? '0 4px 12px rgba(59, 130, 246, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.05)'
                       }}
                     >
-                      <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedEntries.has(day.entryId)}
-                          onChange={() => handleSelectEntry(day.entryId)}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                        />
-                      </td>
-                      <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>
-                        {day.dayName} {day.dayNumber}
-                      </td>
-                      <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827' }}>
-                        {day.clockedHours ? (
-                          <div className="time-entry-details" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <p style={{ margin: 0, fontSize: '14px' }}>
-                              <strong>Clock In:</strong> {(() => {
-                                if (typeof day.clockIn === 'string' && /^\d{2}:\d{2}$/.test(day.clockIn)) {
-                                  return day.clockIn;
-                                }
-                                return moment.utc(day.clockIn).tz('Europe/London').format('HH:mm');
-                              })()}
-                            </p>
-                            <p style={{ margin: 0, fontSize: '14px' }}>
-                              <strong>Clock Out:</strong> {day.clockOut ? (() => {
-                                if (typeof day.clockOut === 'string' && /^\d{2}:\d{2}$/.test(day.clockOut)) {
-                                  return day.clockOut;
-                                }
-                                return moment.utc(day.clockOut).tz('Europe/London').format('HH:mm');
-                              })() : 'Present'}
-                            </p>
-                            {day.breaks && day.breaks.length > 0 && (
-                              <p style={{ margin: 0, fontSize: '14px' }}>
-                                <strong>Break Taken:</strong> {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
-                              </p>
-                            )}
+                      {/* Day Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', minWidth: '120px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {day.isToday && <span style={{ fontSize: '16px' }}>🟢</span>}
+                            {day.isToday ? 'Today' : `${day.dayName}, ${day.dayNumber}`}
                           </div>
-                        ) : (
-                          <span style={{
-                            background: emptyColor,
-                            padding: '6px 16px',
-                            borderRadius: '6px',
-                            color: emptyTextColor,
-                            fontSize: '13px',
-                            fontWeight: '500'
-                          }}>
-                            {emptyLabel}
-                          </span>
-                        )}
-                      </td>
-                    <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
-                      {day.location || '--'}
-                    </td>
-                    <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
-                      {day.overtime}
-                    </td>
-                    <td style={{ padding: '16px 12px', fontSize: '14px', color: '#6b7280' }}>
-                      {/* GPS Location Display with Google Maps Link */}
-                      {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {day.gpsLocation.address && (
-                            <div style={{ fontSize: '12px', color: '#111827', marginBottom: '2px', maxWidth: '200px' }}>
-                              📍 {day.gpsLocation.address}
-                            </div>
-                          )}
                           <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                            {day.gpsLocation.latitude.toFixed(6)}, {day.gpsLocation.longitude.toFixed(6)}
+                            Clock-in: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockInTime || '--'}</span>
                           </div>
-                          <a
-                            href={`https://www.google.com/maps?q=${day.gpsLocation.latitude},${day.gpsLocation.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              color: '#2563eb',
-                              textDecoration: 'none',
-                              fontSize: '12px',
-                              fontWeight: '500',
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {isApproved && (
+                            <div style={{
+                              background: '#d1fae5',
+                              color: '#065f46',
+                              padding: '4px 12px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: '600',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '4px'
-                            }}
-                            onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
-                            onMouseOut={(e) => e.target.style.textDecoration = 'none'}
-                          >
-                            <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            Open Map
-                          </a>
-                          {day.gpsLocation.accuracy && (
-                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>
-                              Accuracy: {Math.round(day.gpsLocation.accuracy)}m
+                            }}>
+                              ✓ Approved
                             </div>
                           )}
+                          <button
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px'
+                            }}
+                          >
+                            <EllipsisVerticalIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Timeline Progress Bar */}
+                      {day.clockIn && segments ? (
+                        <div style={{ marginBottom: '12px' }}>
+                          {/* Time Labels */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11px', color: '#9ca3af' }}>
+                            <span>09:00</span>
+                            <span>11:00</span>
+                            <span>13:00</span>
+                            <span>15:00</span>
+                            <span>17:00</span>
+                            <span>19:00</span>
+                            <span>21:00</span>
+                            <span>23:59</span>
+                          </div>
+                          
+                          {/* Progress Bar Container */}
+                          <div style={{
+                            position: 'relative',
+                            height: '32px',
+                            background: '#f3f4f6',
+                            borderRadius: '6px',
+                            overflow: 'hidden'
+                          }}>
+                            {segments.map((segment, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  position: 'absolute',
+                                  left: `${segment.left}%`,
+                                  width: `${segment.width}%`,
+                                  height: '100%',
+                                  background: segment.color,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '10px',
+                                  color: 'white',
+                                  fontWeight: '600'
+                                }}
+                                title={segment.label}
+                              >
+                                {segment.width > 5 && segment.type === 'working' && 'Working'}
+                                {segment.width > 5 && segment.type === 'break' && 'Break'}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       ) : (
-                        <span style={{ color: '#9ca3af', fontSize: '13px' }}>No location</span>
+                        <div style={{
+                          background: emptyColor,
+                          padding: '12px',
+                          borderRadius: '6px',
+                          textAlign: 'center',
+                          color: emptyTextColor,
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          marginBottom: '12px'
+                        }}>
+                          {emptyLabel}
+                        </div>
                       )}
-                    </td>
-                      <td style={{ padding: '16px 12px', fontSize: '14px', color: '#111827', fontWeight: '600', textAlign: 'right' }}>
-                        {day.totalHours}
-                      </td>
-                      <td style={{ padding: '16px 12px', textAlign: 'center' }}>
-                        {day.entryId && selectedEntries.has(day.entryId) && (
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditEntry(day);
-                              }}
-                              title="Edit Entry"
+
+                      {/* Footer Info */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', gap: '16px', color: '#6b7280' }}>
+                            {day.clockOutTime && (
+                              <div>
+                                Clock-out: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockOutTime}</span>
+                              </div>
+                            )}
+                            {day.breaks && day.breaks.length > 0 && (
+                              <div>
+                                Breaks: <span style={{ fontWeight: '500', color: '#111827' }}>
+                                  {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>
+                            Duration: {day.totalHours || '0h 0m'}
+                          </div>
+                        </div>
+                        
+                        {/* GPS Location Display */}
+                        {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude && (
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '12px', 
+                            padding: '8px 12px', 
+                            background: '#f0fdf4', 
+                            borderRadius: '6px',
+                            border: '1px solid #bbf7d0'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#166534' }}>
+                              <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <span style={{ fontSize: '11px', fontWeight: '500' }}>
+                                {day.gpsLocation.latitude.toFixed(6)}, {day.gpsLocation.longitude.toFixed(6)}
+                              </span>
+                            </div>
+                            {day.gpsLocation.accuracy && (
+                              <span style={{ fontSize: '10px', color: '#15803d' }}>
+                                (±{Math.round(day.gpsLocation.accuracy)}m)
+                              </span>
+                            )}
+                            <a
+                              href={`https://www.google.com/maps?q=${day.gpsLocation.latitude},${day.gpsLocation.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               style={{
-                                background: '#3b82f6',
-                                color: 'white',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '6px 10px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
+                                marginLeft: 'auto',
+                                color: '#2563eb',
+                                textDecoration: 'none',
+                                fontSize: '11px',
                                 fontWeight: '500',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px'
                               }}
                             >
-                              <PencilIcon style={{ width: '14px', height: '14px' }} />
-                              Edit
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteEntry(day.entryId);
-                              }}
-                              title="Delete Entry"
-                              style={{
-                                background: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '6px 10px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <TrashIcon style={{ width: '14px', height: '14px' }} />
-                              Delete
-                            </button>
+                              View Map
+                              <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
                           </div>
                         )}
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+            </div>
+          )}
         </div>
+      </div>
       </div>
 
       {/* Edit Modal */}
@@ -1089,7 +1241,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           scrollbar-width: none;
         }
       `}</style>
-    </div>
+    </>
   );
 };
 

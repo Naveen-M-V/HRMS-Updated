@@ -45,7 +45,49 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
   const handleClockIn = async () => {
     setLoading(true);
     try {
-      const response = await userClockIn({ location, workType });
+      // ========== GPS LOCATION CAPTURE ==========
+      let gpsData = {};
+      
+      if (navigator.geolocation) {
+        try {
+          console.log('📍 Capturing GPS location for admin clock-in...');
+          const locationToast = toast.info('Capturing location...', { autoClose: false });
+          
+          // Get accurate position with high accuracy enabled
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          });
+          
+          gpsData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          toast.dismiss(locationToast);
+          console.log('✅ GPS captured for admin clock-in:', gpsData);
+          toast.success(`Location captured (±${Math.round(position.coords.accuracy)}m)`, { autoClose: 2000 });
+        } catch (gpsError) {
+          console.warn('⚠️ GPS capture failed for admin clock-in:', gpsError);
+          toast.warning('Location unavailable, continuing without GPS', { autoClose: 3000 });
+          // Continue without GPS - don't block clock-in
+        }
+      }
+      // ==========================================
+      
+      const response = await userClockIn({ 
+        location, 
+        workType,
+        ...gpsData // Include GPS coordinates
+      });
       
       if (response.success) {
         toast.success('You have successfully clocked in!');
