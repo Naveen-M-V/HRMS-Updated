@@ -27,8 +27,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   });
   const [loading, setLoading] = useState(false);
   const [weeklyTotalHours, setWeeklyTotalHours] = useState(0);
-  const [selectedEntries, setSelectedEntries] = useState(new Set());
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEntries, setSelectedEntries] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
   const [editForm, setEditForm] = useState({
     date: null,
@@ -44,6 +45,20 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       fetchWeeklyTimesheet();
     }
   }, [employee, currentDate]);
+
+  // Close dropdown menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openMenuIndex !== null) {
+        setOpenMenuIndex(null);
+      }
+    };
+    
+    if (openMenuIndex !== null) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuIndex]);
 
   const getWeekNumber = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -319,8 +334,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     if (!day.clockIn) return null;
 
     const workDayStart = 9 * 60; // 09:00 in minutes
-    const workDayEnd = 21 * 60; // 21:00 in minutes
-    const totalMinutes = workDayEnd - workDayStart; // 12 hours
+    const workDayEnd = 17 * 60; // 17:00 in minutes (5 PM)
+    const totalMinutes = workDayEnd - workDayStart; // 8 hours
 
     const parseTime = (timeStr) => {
       if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
@@ -328,84 +343,183 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       return hours * 60 + minutes;
     };
 
-    const clockInMinutes = parseTime(day.clockInTime);
-    const clockOutMinutes = day.clockOutTime && day.clockOutTime !== 'Present' ? parseTime(day.clockOutTime) : null;
-
-    if (!clockInMinutes) return null;
-
     const segments = [];
-    let currentTime = clockInMinutes;
 
-    // Clock-in segment (small marker)
-    const clockInPosition = ((clockInMinutes - workDayStart) / totalMinutes) * 100;
-    segments.push({
-      type: 'clock-in',
-      left: Math.max(0, clockInPosition),
-      width: 1,
-      color: '#f97316', // Orange
-      label: 'Clock-in'
-    });
+    // Check if there are multiple sessions (multiple clock-in/out pairs)
+    if (day.sessions && Array.isArray(day.sessions) && day.sessions.length > 0) {
+      // Handle multiple sessions
+      day.sessions.forEach((session, sessionIndex) => {
+        const sessionClockInMinutes = parseTime(session.clockInTime);
+        const sessionClockOutMinutes = session.clockOutTime && session.clockOutTime !== 'Present' ? parseTime(session.clockOutTime) : null;
 
-    // Process breaks and working time
-    if (day.breaks && day.breaks.length > 0) {
+        if (!sessionClockInMinutes) return;
+
+        // Clock-in marker for this session
+        const clockInPosition = ((sessionClockInMinutes - workDayStart) / totalMinutes) * 100;
+        segments.push({
+          type: 'clock-in',
+          left: Math.max(0, clockInPosition),
+          width: 1,
+          color: '#f97316', // Orange
+          label: `Clock-in ${sessionIndex + 1}`
+        });
+
+        let currentTime = sessionClockInMinutes;
+
+        // Process breaks for this session
+        if (session.breaks && session.breaks.length > 0) {
+          const sortedBreaks = [...session.breaks].sort((a, b) => {
+            const aStart = parseTime(a.startTime);
+            const bStart = parseTime(b.startTime);
+            return aStart - bStart;
+          });
+
+          sortedBreaks.forEach((breakItem) => {
+            const breakStart = parseTime(breakItem.startTime);
+            const breakEnd = parseTime(breakItem.endTime);
+
+            if (breakStart && breakEnd) {
+              // Working time before break
+              if (currentTime < breakStart) {
+                const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+                const workEnd = ((breakStart - workDayStart) / totalMinutes) * 100;
+                segments.push({
+                  type: 'working',
+                  left: Math.max(0, workStart),
+                  width: Math.max(0, workEnd - workStart),
+                  color: '#3b82f6', // Blue
+                  label: 'Working time'
+                });
+              }
+
+              // Break time
+              const breakStartPos = ((breakStart - workDayStart) / totalMinutes) * 100;
+              const breakEndPos = ((breakEnd - workDayStart) / totalMinutes) * 100;
+              segments.push({
+                type: 'break',
+                left: Math.max(0, breakStartPos),
+                width: Math.max(0, breakEndPos - breakStartPos),
+                color: '#f59e0b', // Amber/Orange for breaks
+                label: 'Break'
+              });
+
+              currentTime = breakEnd;
+            }
+          });
+        }
+
+        // Final working time for this session
+        const sessionEndTime = sessionClockOutMinutes || (sessionIndex === day.sessions.length - 1 ? (new Date().getHours() * 60 + new Date().getMinutes()) : sessionClockOutMinutes);
+        if (sessionEndTime && currentTime < sessionEndTime) {
+          const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+          const workEnd = ((sessionEndTime - workDayStart) / totalMinutes) * 100;
+          segments.push({
+            type: 'working',
+            left: Math.max(0, workStart),
+            width: Math.max(0, Math.min(100, workEnd) - workStart),
+            color: '#3b82f6', // Blue
+            label: 'Working time'
+          });
+        }
+
+        // Clock-out marker if present
+        if (sessionClockOutMinutes) {
+          const clockOutPosition = ((sessionClockOutMinutes - workDayStart) / totalMinutes) * 100;
+          segments.push({
+            type: 'clock-out',
+            left: Math.max(0, clockOutPosition),
+            width: 1,
+            color: '#ef4444', // Red
+            label: `Clock-out ${sessionIndex + 1}`
+          });
+        }
+      });
+    } else {
+      // Handle single session (backward compatibility)
+      const clockInMinutes = parseTime(day.clockInTime);
+      const clockOutMinutes = day.clockOutTime && day.clockOutTime !== 'Present' ? parseTime(day.clockOutTime) : null;
+
+      if (!clockInMinutes) return null;
+
+      let currentTime = clockInMinutes;
+
+      // Clock-in segment (small marker)
+      const clockInPosition = ((clockInMinutes - workDayStart) / totalMinutes) * 100;
+      segments.push({
+        type: 'clock-in',
+        left: Math.max(0, clockInPosition),
+        width: 1,
+        color: '#f97316', // Orange
+        label: 'Clock-in'
+      });
+
+      // Process breaks and working time
+      if (day.breaks && day.breaks.length > 0) {
       const sortedBreaks = [...day.breaks].sort((a, b) => {
         const aStart = parseTime(a.startTime);
         const bStart = parseTime(b.startTime);
         return aStart - bStart;
       });
 
-      sortedBreaks.forEach((breakItem) => {
-        const breakStart = parseTime(breakItem.startTime);
-        const breakEnd = parseTime(breakItem.endTime);
+        sortedBreaks.forEach((breakItem) => {
+          const breakStart = parseTime(breakItem.startTime);
+          const breakEnd = parseTime(breakItem.endTime);
 
-        if (breakStart && breakEnd) {
-          // Working time before break
-          if (currentTime < breakStart) {
-            const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-            const workEnd = ((breakStart - workDayStart) / totalMinutes) * 100;
+          if (breakStart && breakEnd) {
+            // Working time before break
+            if (currentTime < breakStart) {
+              const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+              const workEnd = ((breakStart - workDayStart) / totalMinutes) * 100;
+              segments.push({
+                type: 'working',
+                left: Math.max(0, workStart),
+                width: Math.max(0, workEnd - workStart),
+                color: '#3b82f6', // Blue
+                label: 'Working time'
+              });
+            }
+
+            // Break time
+            const breakStartPos = ((breakStart - workDayStart) / totalMinutes) * 100;
+            const breakEndPos = ((breakEnd - workDayStart) / totalMinutes) * 100;
             segments.push({
-              type: 'working',
-              left: Math.max(0, workStart),
-              width: Math.max(0, workEnd - workStart),
-              color: '#3b82f6', // Blue
-              label: 'Working time'
+              type: 'break',
+              left: Math.max(0, breakStartPos),
+              width: Math.max(0, breakEndPos - breakStartPos),
+              color: '#f59e0b', // Amber/Orange for breaks
+              label: 'Break'
             });
+
+            currentTime = breakEnd;
           }
+        });
+      }
 
-          // Break time
-          const breakStartPos = ((breakStart - workDayStart) / totalMinutes) * 100;
-          const breakEndPos = ((breakEnd - workDayStart) / totalMinutes) * 100;
-          segments.push({
-            type: 'break',
-            left: Math.max(0, breakStartPos),
-            width: Math.max(0, breakEndPos - breakStartPos),
-            color: '#06b6d4', // Cyan
-            label: 'Break'
-          });
+      // Final working time segment
+      const endTime = clockOutMinutes || (new Date().getHours() * 60 + new Date().getMinutes());
+      if (currentTime < endTime) {
+        const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+        const workEnd = ((endTime - workDayStart) / totalMinutes) * 100;
+        segments.push({
+          type: 'working',
+          left: Math.max(0, workStart),
+          width: Math.max(0, Math.min(100, workEnd) - workStart),
+          color: '#3b82f6', // Blue
+          label: 'Working time'
+        });
+      }
 
-          currentTime = breakEnd;
-        }
-      });
-    }
-
-    // Final working time segment
-    const endTime = clockOutMinutes || (new Date().getHours() * 60 + new Date().getMinutes());
-    if (currentTime < endTime) {
-      const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-      const workEnd = ((endTime - workDayStart) / totalMinutes) * 100;
-      segments.push({
-        type: 'working',
-        left: Math.max(0, workStart),
-        width: Math.max(0, Math.min(100, workEnd) - workStart),
-        color: '#3b82f6', // Blue
-        label: 'Working time'
-      });
-    }
-
-    // Clock-out marker if present
-    if (clockOutMinutes) {
-      const clockOutPosition = ((clockOutMinutes - workDayStart) / totalMinutes) * 100;
-      // Don't add clock-out marker as a separate segment, just mark the end
+      // Clock-out marker if present
+      if (clockOutMinutes) {
+        const clockOutPosition = ((clockOutMinutes - workDayStart) / totalMinutes) * 100;
+        segments.push({
+          type: 'clock-out',
+          left: Math.max(0, clockOutPosition),
+          width: 1,
+          color: '#ef4444', // Red
+          label: 'Clock-out'
+        });
+      }
     }
 
     return segments;
@@ -751,60 +865,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 <div><span style={{ fontWeight: '500' }}>Phone Number:</span> {employee.phone || 'N/A'}</div>
               </div>
             </div>
-            <button
-              style={{
-                background: '#10b981',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                fontSize: '13px',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Attendance
-            </button>
-          </div>
-
-          {/* Statistics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px' }}>
-            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Day off</div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>12</div>
-              <div style={{ fontSize: '10px', color: '#10b981', marginTop: '2px' }}>+12 vs last month</div>
-            </div>
-            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Late clock-in</div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>6</div>
-              <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>-2 vs last month</div>
-            </div>
-            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Late clock-out</div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>21</div>
-              <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '2px' }}>-12 vs last month</div>
-            </div>
-            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>No clock-out</div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>2</div>
-              <div style={{ fontSize: '10px', color: '#10b981', marginTop: '2px' }}>+4 vs last month</div>
-            </div>
-            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Off time quota</div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>0</div>
-              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>0 vs last month</div>
-            </div>
-            <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}>Absent</div>
-              <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>2</div>
-              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>0 vs last month</div>
-            </div>
           </div>
         </div>
 
@@ -973,16 +1033,106 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                               ✓ Approved
                             </div>
                           )}
-                          <button
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '4px'
-                            }}
-                          >
-                            <EllipsisVerticalIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-                          </button>
+                          <div style={{ position: 'relative' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuIndex(openMenuIndex === index ? null : index);
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                borderRadius: '4px',
+                                transition: 'background 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <EllipsisVerticalIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {openMenuIndex === index && (
+                              <div 
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  position: 'absolute',
+                                  right: 0,
+                                  top: '100%',
+                                  marginTop: '4px',
+                                  background: '#ffffff',
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '8px',
+                                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                  zIndex: 1000,
+                                  minWidth: '160px',
+                                  overflow: 'hidden'
+                                }}>
+                                <button
+                                  onClick={() => {
+                                    setEditingEntry(day);
+                                    setEditForm({
+                                      date: day.date,
+                                      clockIn: day.clockIn,
+                                      clockOut: day.clockOut
+                                    });
+                                    setOpenMenuIndex(null);
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 16px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: '#374151',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'background 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Edit Entry
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleDeleteEntry(day.entryId);
+                                    setOpenMenuIndex(null);
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 16px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderTop: '1px solid #f3f4f6',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: '#dc2626',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'background 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Delete Entry
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -996,9 +1146,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             <span>13:00</span>
                             <span>15:00</span>
                             <span>17:00</span>
-                            <span>19:00</span>
-                            <span>21:00</span>
-                            <span>23:59</span>
                           </div>
                           
                           {/* Progress Bar Container */}
@@ -1031,6 +1178,52 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                 {segment.width > 5 && segment.type === 'break' && 'Break'}
                               </div>
                             ))}
+                          </div>
+                          
+                          {/* Timeline Legend */}
+                          <div style={{ 
+                            display: 'flex', 
+                            gap: '16px', 
+                            marginTop: '8px', 
+                            fontSize: '10px',
+                            justifyContent: 'center'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                background: '#3b82f6', 
+                                borderRadius: '2px' 
+                              }}></div>
+                              <span style={{ color: '#6b7280' }}>Working</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                background: '#f59e0b', 
+                                borderRadius: '2px' 
+                              }}></div>
+                              <span style={{ color: '#6b7280' }}>Break</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                background: '#f97316', 
+                                borderRadius: '2px' 
+                              }}></div>
+                              <span style={{ color: '#6b7280' }}>Clock-in</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ 
+                                width: '12px', 
+                                height: '12px', 
+                                background: '#ef4444', 
+                                borderRadius: '2px' 
+                              }}></div>
+                              <span style={{ color: '#6b7280' }}>Clock-out</span>
+                            </div>
                           </div>
                         </div>
                       ) : (
