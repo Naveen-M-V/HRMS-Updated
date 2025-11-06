@@ -1481,6 +1481,12 @@ router.post('/user/in', async (req, res) => {
     const timeEntry = new TimeEntry(timeEntryData);
     await timeEntry.save();
     
+    console.log('✅ Time entry saved with GPS location:', {
+      entryId: timeEntry._id,
+      hasGpsLocation: !!timeEntry.gpsLocation,
+      gpsLocation: timeEntry.gpsLocation
+    });
+    
     if (shift) {
       console.log('User clock-in: Updating shift to In Progress:', shift._id);
       await updateShiftStatus(shift._id, 'In Progress', {

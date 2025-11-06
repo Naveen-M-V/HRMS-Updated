@@ -24,7 +24,7 @@ import {
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
-  const { triggerClockRefresh } = useClockStatus();
+  const { triggerClockRefresh, refreshTrigger } = useClockStatus();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
@@ -130,6 +130,14 @@ const UserDashboard = () => {
       return () => clearInterval(interval);
     }
   }, [user, fetchUserData]);
+
+  // Listen for clock status changes from other components (e.g., AdminClockInModal)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('🔄 Clock status refresh triggered, fetching updated status...');
+      fetchClockStatus();
+    }
+  }, [refreshTrigger]);
 
   // Capture current GPS location for map display
   const captureCurrentLocation = () => {

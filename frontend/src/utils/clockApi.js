@@ -213,13 +213,16 @@ export const getUserClockStatus = async () => {
  */
 export const userClockIn = async (clockData) => {
   try {
+    console.log('🚀 Sending clock-in request with data:', clockData);
     const response = await axios.post(
       buildApiUrl('/clock/user/in'),
       clockData,
       { withCredentials: true }
     );
+    console.log('✅ Clock-in response:', response.data);
     return response.data;
   } catch (error) {
+    console.error('❌ Clock-in error:', error.response?.data || error);
     throw error.response?.data || { message: 'Failed to clock in' };
   }
 };
