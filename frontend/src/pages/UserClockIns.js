@@ -221,6 +221,42 @@ const UserClockIns = () => {
     });
   };
 
+  const calculateOvertime = (entry) => {
+    // If no clock out, no overtime yet
+    if (!entry.clockIn || !entry.clockOut) return '—';
+    
+    // Calculate total hours worked
+    const start = new Date(`2000-01-01T${entry.clockIn}`);
+    const end = new Date(`2000-01-01T${entry.clockOut}`);
+    let totalMinutes = (end - start) / (1000 * 60);
+    
+    // Subtract breaks
+    if (entry.breaks && entry.breaks.length > 0) {
+      entry.breaks.forEach(b => { if (b.duration) totalMinutes -= b.duration; });
+    }
+    
+    const hoursWorked = totalMinutes / 60;
+    
+    // Get shift hours
+    let shiftHours = 0;
+    if (entry.shiftHours) {
+      shiftHours = parseFloat(entry.shiftHours);
+    } else if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+      const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
+      const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
+      shiftHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+    }
+    
+    // Calculate overtime (hours worked beyond shift hours)
+    const overtime = hoursWorked - shiftHours;
+    
+    if (overtime > 0) {
+      return <span style={{ color: '#f97316', fontWeight: '600' }}>{overtime.toFixed(2)} hrs</span>;
+    }
+    
+    return '—';
+  };
+
   const getCurrentDate = () => {
     const today = new Date();
     return today.toLocaleDateString('en-GB', {
@@ -586,6 +622,7 @@ const UserClockIns = () => {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Clock Out</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Shift Hours</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Breaks</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Overtime</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Work Type</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Location</th>
               </tr>
@@ -623,6 +660,9 @@ const UserClockIns = () => {
                     }
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                    {calculateOvertime(entry)}
+                  </td>
+                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                     {entry.workType || 'Regular'}
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
@@ -631,7 +671,7 @@ const UserClockIns = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+                  <td colSpan="9" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
                     No time entries found. Clock in to start tracking your time.
                   </td>
                 </tr>

@@ -15,8 +15,10 @@ const TimeHistory = () => {
   const [timeEntries, setTimeEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [selectedEntries, setSelectedEntries] = useState([]);
+  const [editingEntry, setEditingEntry] = useState(null);
   const [formData, setFormData] = useState({
     employeeId: '',
     date: '',
@@ -26,6 +28,13 @@ const TimeHistory = () => {
     workType: 'Regular',
     breakDuration: 60,
     notes: ''
+  });
+  const [editFormData, setEditFormData] = useState({
+    clockIn: '',
+    clockOut: '',
+    location: '',
+    workType: '',
+    breaks: []
   });
   const [filters, setFilters] = useState({
     employeeSearch: '',
@@ -164,6 +173,57 @@ const TimeHistory = () => {
     }
   };
 
+  const handleEditSelected = () => {
+    if (selectedEntries.length !== 1) {
+      toast.warning('Please select exactly one entry to edit');
+      return;
+    }
+
+    const entryToEdit = timeEntries.find(entry => entry._id === selectedEntries[0]);
+    if (!entryToEdit) {
+      toast.error('Entry not found');
+      return;
+    }
+
+    setEditingEntry(entryToEdit);
+    setEditFormData({
+      clockIn: entryToEdit.clockIn || '',
+      clockOut: entryToEdit.clockOut || '',
+      location: entryToEdit.location || 'Office',
+      workType: entryToEdit.workType || 'Regular',
+      breaks: entryToEdit.breaks || []
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateEntry = async (e) => {
+    e.preventDefault();
+    
+    if (!editingEntry) {
+      toast.error('No entry selected for editing');
+      return;
+    }
+
+    try {
+      const response = await axios.put(
+        buildApiUrl(`/clock/entries/${editingEntry._id}`),
+        editFormData,
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        toast.success('Time entry updated successfully');
+        setShowEditModal(false);
+        setEditingEntry(null);
+        setSelectedEntries([]);
+        fetchTimeEntries();
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update entry');
+    }
+  };
+
   const handleDeleteSelected = async () => {
     if (selectedEntries.length === 0) {
       toast.warning('Please select entries to delete');
@@ -254,6 +314,42 @@ const TimeHistory = () => {
     return `${hours} hrs`;
   };
 
+  const calculateOvertime = (entry) => {
+    // If no clock out, no overtime yet
+    if (!entry.clockIn || !entry.clockOut) return '—';
+    
+    // Calculate total hours worked
+    const start = new Date(`2000-01-01T${entry.clockIn}`);
+    const end = new Date(`2000-01-01T${entry.clockOut}`);
+    let totalMinutes = (end - start) / (1000 * 60);
+    
+    // Subtract breaks
+    if (entry.breaks && entry.breaks.length > 0) {
+      entry.breaks.forEach(b => { if (b.duration) totalMinutes -= b.duration; });
+    }
+    
+    const hoursWorked = totalMinutes / 60;
+    
+    // Get shift hours
+    let shiftHours = 0;
+    if (entry.shiftHours) {
+      shiftHours = parseFloat(entry.shiftHours);
+    } else if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+      const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
+      const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
+      shiftHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+    }
+    
+    // Calculate overtime (hours worked beyond shift hours)
+    const overtime = hoursWorked - shiftHours;
+    
+    if (overtime > 0) {
+      return <span style={{ color: '#f97316', fontWeight: '600' }}>{overtime.toFixed(2)} hrs</span>;
+    }
+    
+    return '—';
+  };
+
   const filteredEntries = timeEntries.filter(entry => {
     const fullName = entry.employee ? `${entry.employee.firstName} ${entry.employee.lastName}`.toLowerCase() : '';
     const matchesEmployee = filters.employeeSearch === '' || fullName.includes(filters.employeeSearch.toLowerCase());
@@ -313,16 +409,55 @@ const TimeHistory = () => {
         </div>
 
         {selectedEntries.length > 0 && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '14px', color: '#991b1b', fontWeight: '500' }}>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '14px', color: '#1e40af', fontWeight: '500' }}>
               {selectedEntries.length} {selectedEntries.length === 1 ? 'entry' : 'entries'} selected
             </span>
-            <button 
-              onClick={handleDeleteSelected}
-              style={{ padding: '8px 16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
-            >
-              Delete Selected
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={handleEditSelected}
+                disabled={selectedEntries.length !== 1}
+                style={{ 
+                  padding: '8px 16px', 
+                  background: selectedEntries.length === 1 ? '#3b82f6' : '#9ca3af', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '6px', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  cursor: selectedEntries.length === 1 ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Entry
+              </button>
+              <button 
+                onClick={handleDeleteSelected}
+                style={{ 
+                  padding: '8px 16px', 
+                  background: '#dc2626', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '6px', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Selected
+              </button>
+            </div>
           </div>
         )}
 
@@ -343,6 +478,7 @@ const TimeHistory = () => {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Clock Out</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Shift Hours</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Total Hours Worked</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Overtime</th>
               </tr>
             </thead>
             <tbody>
@@ -374,11 +510,14 @@ const TimeHistory = () => {
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
                       {calculateTotalHours(entry.clockIn, entry.clockOut, entry.breaks)}
                     </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {calculateOvertime(entry)}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
                     <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>No Time Entries Found</h3>
                     <p style={{ fontSize: '14px', color: '#6b7280' }}>Try adjusting your date range or filters</p>
@@ -454,6 +593,79 @@ const TimeHistory = () => {
                 </button>
                 <button type="submit" style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#ffffff', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
                   Assign Shift
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editingEntry && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Edit Time Entry</h2>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
+              {editingEntry.employee ? `${editingEntry.employee.firstName} ${editingEntry.employee.lastName}` : 'Employee'} - {formatDate(editingEntry.date)}
+            </p>
+            <form onSubmit={handleUpdateEntry}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Clock In Time</label>
+                <MUITimePicker
+                  label="Clock In"
+                  value={editFormData.clockIn || null}
+                  onChange={(time) => setEditFormData({ ...editFormData, clockIn: time ? time.format('HH:mm') : '' })}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Clock Out Time</label>
+                <MUITimePicker
+                  label="Clock Out"
+                  value={editFormData.clockOut || null}
+                  onChange={(time) => setEditFormData({ ...editFormData, clockOut: time ? time.format('HH:mm') : '' })}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Location</label>
+                <select 
+                  value={editFormData.location} 
+                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} 
+                  style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                >
+                  <option value="Office">Office</option>
+                  <option value="Work From Home">Work From Home</option>
+                  <option value="Client Site">Client Site</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Work Type</label>
+                <select 
+                  value={editFormData.workType} 
+                  onChange={(e) => setEditFormData({ ...editFormData, workType: e.target.value })} 
+                  style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                >
+                  <option value="Regular">Regular</option>
+                  <option value="Overtime">Overtime</option>
+                  <option value="Holiday">Holiday</option>
+                  <option value="Weekend">Weekend</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingEntry(null);
+                  }} 
+                  style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#ffffff', color: '#374151', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#3b82f6', color: '#ffffff', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
+                >
+                  Update Entry
                 </button>
               </div>
             </form>

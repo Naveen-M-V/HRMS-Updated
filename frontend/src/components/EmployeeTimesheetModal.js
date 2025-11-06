@@ -1129,9 +1129,26 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             {day.isToday && <span style={{ fontSize: '16px' }}>🟢</span>}
                             {day.isToday ? 'Today' : `${day.dayName}, ${day.dayNumber}`}
                           </div>
-                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                            Clock-in: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockInTime || '--'}</span>
-                          </div>
+                          {/* Show all sessions if multiple exist */}
+                          {day.sessions && day.sessions.length > 1 ? (
+                            <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              {day.sessions.map((session, idx) => (
+                                <div key={idx}>
+                                  <span style={{ fontWeight: '600', color: '#3b82f6' }}>Session {idx + 1}:</span>{' '}
+                                  <span style={{ fontWeight: '500', color: '#111827' }}>
+                                    {session.clockInTime} - {session.clockOutTime}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              Clock-in: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockInTime || '--'}</span>
+                              {day.clockOutTime && day.clockOutTime !== 'Present' && (
+                                <span> | Clock-out: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockOutTime}</span></span>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           {isApproved && (
@@ -1255,13 +1272,48 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       {/* Timeline Progress Bar */}
                       {day.clockIn && segments ? (
                         <div style={{ marginBottom: '12px' }}>
-                          {/* Hourly Time Labels (5-23) */}
+                          {/* Progress Bar Container */}
+                          <div style={{
+                            position: 'relative',
+                            height: '32px',
+                            background: '#f3f4f6',
+                            borderRadius: '6px',
+                            overflow: 'hidden'
+                          }}>
+                            {/* Time Segments (Working, Break, Late, Overtime) */}
+                            {segments.map((segment, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  position: 'absolute',
+                                  left: `${segment.left}%`,
+                                  width: `${segment.width}%`,
+                                  height: '100%',
+                                  background: segment.color,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '10px',
+                                  color: 'white',
+                                  fontWeight: '600'
+                                }}
+                                title={segment.label}
+                              >
+                                {segment.width > 5 && segment.type === 'working' && 'Working'}
+                                {segment.width > 5 && segment.type === 'break' && 'Break'}
+                                {segment.width > 5 && segment.type === 'late' && 'Late'}
+                                {segment.width > 5 && segment.type === 'overtime' && 'OT'}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Hourly Time Labels (5-23) below the bar */}
                           <div style={{ 
                             position: 'relative', 
                             height: '20px', 
-                            marginBottom: '4px',
+                            marginTop: '4px',
                             display: 'flex',
-                            alignItems: 'flex-end'
+                            alignItems: 'flex-start'
                           }}>
                             {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((hour) => {
                               const position = ((hour - 5) / 18) * 100; // 18 hours total (5-23)
@@ -1281,87 +1333,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                 </div>
                               );
                             })}
-                          </div>
-                          
-                          {/* Progress Bar Container with Minute Markers */}
-                          <div style={{
-                            position: 'relative',
-                            height: '32px',
-                            background: '#f3f4f6',
-                            borderRadius: '6px',
-                            overflow: 'visible'
-                          }}>
-                            {/* Hour Tick Marks */}
-                            {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((hour) => {
-                              const position = ((hour - 5) / 18) * 100;
-                              return (
-                                <div
-                                  key={`hour-${hour}`}
-                                  style={{
-                                    position: 'absolute',
-                                    left: `${position}%`,
-                                    top: '-4px',
-                                    bottom: '-4px',
-                                    width: '2px',
-                                    background: '#d1d5db',
-                                    zIndex: 1
-                                  }}
-                                />
-                              );
-                            })}
-                            
-                            {/* 15-Minute Tick Marks */}
-                            {Array.from({ length: 18 * 4 }).map((_, i) => {
-                              const minutes = i * 15;
-                              const hour = 5 + Math.floor(minutes / 60);
-                              const minute = minutes % 60;
-                              
-                              // Skip if it's an hour mark (already drawn above)
-                              if (minute === 0) return null;
-                              
-                              const position = (minutes / (18 * 60)) * 100;
-                              return (
-                                <div
-                                  key={`min-${i}`}
-                                  style={{
-                                    position: 'absolute',
-                                    left: `${position}%`,
-                                    top: '0',
-                                    bottom: '0',
-                                    width: '1px',
-                                    background: '#e5e7eb',
-                                    zIndex: 1
-                                  }}
-                                />
-                              );
-                            })}
-                            
-                            {/* Time Segments (Working, Break, Late, Overtime) */}
-                            {segments.map((segment, idx) => (
-                              <div
-                                key={idx}
-                                style={{
-                                  position: 'absolute',
-                                  left: `${segment.left}%`,
-                                  width: `${segment.width}%`,
-                                  height: '100%',
-                                  background: segment.color,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '10px',
-                                  color: 'white',
-                                  fontWeight: '600',
-                                  zIndex: 2
-                                }}
-                                title={segment.label}
-                              >
-                                {segment.width > 5 && segment.type === 'working' && 'Working'}
-                                {segment.width > 5 && segment.type === 'break' && 'Break'}
-                                {segment.width > 5 && segment.type === 'late' && 'Late'}
-                                {segment.width > 5 && segment.type === 'overtime' && 'OT'}
-                              </div>
-                            ))}
                           </div>
                           
                           {/* Timeline Legend */}
