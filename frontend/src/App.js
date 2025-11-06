@@ -137,13 +137,14 @@ function App() {
   return (
     <AuthProvider>
       <AlertProvider>
-        <AdminClockInWrapper>
-          <Router>
-            <Routes>
-            {/* Authentication routes without layout */}
-            <Route
-              path="/login"
-              element={
+        <ClockStatusProvider>
+          <AdminClockInWrapper>
+            <Router>
+              <Routes>
+              {/* Authentication routes without layout */}
+              <Route
+                path="/login"
+                element={
                 <ErrorBoundary>
                   <Login />
                 </ErrorBoundary>
@@ -179,11 +180,9 @@ function App() {
               path="/user-dashboard"
               element={
                 <UserProtectedRoute>
-                  <ClockStatusProvider>
-                    <ErrorBoundary>
-                      <UserDashboard />
-                    </ErrorBoundary>
-                  </ClockStatusProvider>
+                  <ErrorBoundary>
+                    <UserDashboard />
+                  </ErrorBoundary>
                 </UserProtectedRoute>
               }
             />
@@ -353,6 +352,7 @@ function App() {
             </Routes>
           </Router>
         </AdminClockInWrapper>
+      </ClockStatusProvider>
       </AlertProvider>
     </AuthProvider>
   );
