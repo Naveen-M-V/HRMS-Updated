@@ -5,7 +5,8 @@ import {
   ChevronLeftIcon, 
   ChevronRightIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '../utils/apiConfig';
 import MUIDatePicker from './MUIDatePicker';
