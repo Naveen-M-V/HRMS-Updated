@@ -584,6 +584,7 @@ const UserClockIns = () => {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Date</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Clock In</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Clock Out</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Shift Hours</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Breaks</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Work Type</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>Location</th>
@@ -612,6 +613,9 @@ const UserClockIns = () => {
                       {entry.clockOut ? formatDate(entry.date) : '-'}
                     </div>
                   </td>
+                  <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '500' }}>
+                    {entry.shiftHours ? `${entry.shiftHours} hrs` : '—'}
+                  </td>
                   <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                     {entry.breaks?.length > 0 ? 
                       `${Math.floor(entry.breaks.reduce((total, b) => total + (b.duration || 0), 0) / 60)}hrs ${entry.breaks.reduce((total, b) => total + (b.duration || 0), 0) % 60}mins` : 
@@ -627,7 +631,7 @@ const UserClockIns = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+                  <td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
                     No time entries found. Clock in to start tracking your time.
                   </td>
                 </tr>

@@ -283,7 +283,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           isToday: isToday,
           isFuture: isFuture,
           // GPS location data for admin view
-          gpsLocation: dayEntry.gpsLocation || null
+          gpsLocation: dayEntry.gpsLocation || null,
+          // Shift data for timeline coloring
+          shift: dayEntry.shift || null,
+          shiftStartTime: dayEntry.shiftStartTime || null,
+          shiftEndTime: dayEntry.shiftEndTime || null,
+          attendanceStatus: dayEntry.attendanceStatus || null
         });
       } else {
         weekEntries.push({
@@ -355,6 +360,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   };
 
   // Timeline helper function to calculate position and width percentages
+  // Blue = Working hours, Red = Late arrival, Orange = Overtime
   const calculateTimelineSegments = (day) => {
     if (!day.clockIn) return null;
 
@@ -369,6 +375,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     };
 
     const segments = [];
+    
+    // Get shift times if available
+    const shiftStartMinutes = day.shiftStartTime ? parseTime(day.shiftStartTime) : null;
+    const shiftEndMinutes = day.shiftEndTime ? parseTime(day.shiftEndTime) : null;
 
     // Check if there are multiple sessions (multiple clock-in/out pairs)
     if (day.sessions && Array.isArray(day.sessions) && day.sessions.length > 0) {
@@ -460,23 +470,29 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         }
       });
     } else {
-      // Handle single session (backward compatibility)
+      // Handle single session with late arrival and overtime detection
       const clockInMinutes = parseTime(day.clockInTime);
       const clockOutMinutes = day.clockOutTime && day.clockOutTime !== 'Present' ? parseTime(day.clockOutTime) : null;
 
       if (!clockInMinutes) return null;
 
       let currentTime = clockInMinutes;
-
-      // Clock-in segment (small marker)
-      const clockInPosition = ((clockInMinutes - workDayStart) / totalMinutes) * 100;
-      segments.push({
-        type: 'clock-in',
-        left: Math.max(0, clockInPosition),
-        width: 1,
-        color: '#f97316', // Orange
-        label: 'Clock-in'
-      });
+      
+      // Check for late arrival (if shift start time is available and clock-in is after it)
+      const isLate = shiftStartMinutes && clockInMinutes > shiftStartMinutes;
+      
+      // Add red segment for late arrival
+      if (isLate) {
+        const lateStartPos = ((shiftStartMinutes - workDayStart) / totalMinutes) * 100;
+        const lateEndPos = ((clockInMinutes - workDayStart) / totalMinutes) * 100;
+        segments.push({
+          type: 'late',
+          left: Math.max(0, lateStartPos),
+          width: Math.max(0, lateEndPos - lateStartPos),
+          color: '#ef4444', // Red for late arrival
+          label: 'Late Arrival'
+        });
+      }
 
       // Process breaks and working time
       if (day.breaks && day.breaks.length > 0) {
@@ -520,30 +536,49 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         });
       }
 
-      // Final working time segment
+      // Final working time segment - split into regular and overtime
       const endTime = clockOutMinutes || (new Date().getHours() * 60 + new Date().getMinutes());
+      
       if (currentTime < endTime) {
-        const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-        const workEnd = ((endTime - workDayStart) / totalMinutes) * 100;
-        segments.push({
-          type: 'working',
-          left: Math.max(0, workStart),
-          width: Math.max(0, Math.min(100, workEnd) - workStart),
-          color: '#3b82f6', // Blue
-          label: 'Working time'
-        });
-      }
-
-      // Clock-out marker if present
-      if (clockOutMinutes) {
-        const clockOutPosition = ((clockOutMinutes - workDayStart) / totalMinutes) * 100;
-        segments.push({
-          type: 'clock-out',
-          left: Math.max(0, clockOutPosition),
-          width: 1,
-          color: '#ef4444', // Red
-          label: 'Clock-out'
-        });
+        // Check if there's overtime (clock-out after shift end)
+        const hasOvertime = shiftEndMinutes && endTime > shiftEndMinutes;
+        
+        if (hasOvertime) {
+          // Regular working time (up to shift end)
+          if (currentTime < shiftEndMinutes) {
+            const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+            const workEnd = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
+            segments.push({
+              type: 'working',
+              left: Math.max(0, workStart),
+              width: Math.max(0, workEnd - workStart),
+              color: '#3b82f6', // Blue for regular working hours
+              label: 'Working time'
+            });
+          }
+          
+          // Overtime segment (after shift end)
+          const overtimeStart = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
+          const overtimeEnd = ((endTime - workDayStart) / totalMinutes) * 100;
+          segments.push({
+            type: 'overtime',
+            left: Math.max(0, overtimeStart),
+            width: Math.max(0, Math.min(100, overtimeEnd) - overtimeStart),
+            color: '#f97316', // Orange for overtime
+            label: 'Overtime'
+          });
+        } else {
+          // No overtime, just regular working time
+          const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+          const workEnd = ((endTime - workDayStart) / totalMinutes) * 100;
+          segments.push({
+            type: 'working',
+            left: Math.max(0, workStart),
+            width: Math.max(0, Math.min(100, workEnd) - workStart),
+            color: '#3b82f6', // Blue for working hours
+            label: 'Working time'
+          });
+        }
       }
     }
 
@@ -1235,19 +1270,19 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                               <div style={{ 
                                 width: '12px', 
                                 height: '12px', 
-                                background: '#f97316', 
+                                background: '#ef4444', 
                                 borderRadius: '2px' 
                               }}></div>
-                              <span style={{ color: '#6b7280' }}>Clock-in</span>
+                              <span style={{ color: '#6b7280' }}>Late Arrival</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <div style={{ 
                                 width: '12px', 
                                 height: '12px', 
-                                background: '#ef4444', 
+                                background: '#f97316', 
                                 borderRadius: '2px' 
                               }}></div>
-                              <span style={{ color: '#6b7280' }}>Clock-out</span>
+                              <span style={{ color: '#6b7280' }}>Overtime</span>
                             </div>
                           </div>
                         </div>

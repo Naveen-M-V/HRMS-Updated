@@ -696,11 +696,33 @@ router.get('/entries', async (req, res) => {
     const timeEntries = await TimeEntry.find(query)
       .populate('employee', 'firstName lastName email department vtid')
       .populate('createdBy', 'firstName lastName')
-      .sort({ date: -1, clockIn: -1 });
+      .populate('shiftId', 'startTime endTime location')
+      .sort({ date: -1, clockIn: -1 })
+      .lean();
+
+    // Process entries to add shift hours
+    const processedEntries = timeEntries.map(entry => {
+      let shiftHours = null;
+      let shiftStartTime = null;
+      let shiftEndTime = null;
+      
+      if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+        shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
+        shiftStartTime = entry.shiftId.startTime;
+        shiftEndTime = entry.shiftId.endTime;
+      }
+
+      return {
+        ...entry,
+        shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
+        shiftStartTime: shiftStartTime,
+        shiftEndTime: shiftEndTime
+      };
+    });
 
     res.json({
       success: true,
-      data: timeEntries
+      data: processedEntries
     });
 
   } catch (error) {
@@ -1881,12 +1903,34 @@ router.get('/user/entries', async (req, res) => {
 
     const timeEntries = await TimeEntry.find(query)
       .populate('employee', 'firstName lastName email vtid')
+      .populate('shiftId', 'startTime endTime location')
       .sort({ date: -1, clockIn: -1 })
-      .limit(50); // Limit to recent entries
+      .limit(50) // Limit to recent entries
+      .lean();
+
+    // Process entries to add shift hours
+    const processedEntries = timeEntries.map(entry => {
+      let shiftHours = null;
+      let shiftStartTime = null;
+      let shiftEndTime = null;
+      
+      if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+        shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
+        shiftStartTime = entry.shiftId.startTime;
+        shiftEndTime = entry.shiftId.endTime;
+      }
+
+      return {
+        ...entry,
+        shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
+        shiftStartTime: shiftStartTime,
+        shiftEndTime: shiftEndTime
+      };
+    });
 
     res.json({
       success: true,
-      data: timeEntries
+      data: processedEntries
     });
 
   } catch (error) {
@@ -2010,11 +2054,25 @@ router.get('/timesheet/:employeeId', async (req, res) => {
         hoursWorked = parseFloat(calculateHoursWorked(entry.clockIn, currentTime, entry.breaks || []));
       }
 
+      // Calculate shift hours if shift data is available
+      let shiftHours = null;
+      let shiftStartTime = null;
+      let shiftEndTime = null;
+      
+      if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+        shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
+        shiftStartTime = entry.shiftId.startTime;
+        shiftEndTime = entry.shiftId.endTime;
+      }
+
       return {
         ...entry,
         hoursWorked: hoursWorked.toFixed(2),
         overtime: overtime.toFixed(2),
-        negativeHours: negativeHours.toFixed(2)
+        negativeHours: negativeHours.toFixed(2),
+        shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
+        shiftStartTime: shiftStartTime,
+        shiftEndTime: shiftEndTime
       };
     });
 

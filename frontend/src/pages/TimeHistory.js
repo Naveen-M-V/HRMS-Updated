@@ -230,11 +230,18 @@ const TimeHistory = () => {
   };
 
   const calculateShiftHours = (entry) => {
-    if (!entry.shiftId || !entry.shiftId.startTime || !entry.shiftId.endTime) return '-';
-    const start = new Date(`2000-01-01T${entry.shiftId.startTime}`);
-    const end = new Date(`2000-01-01T${entry.shiftId.endTime}`);
-    const hours = ((end - start) / (1000 * 60 * 60)).toFixed(2);
-    return `${hours} hrs`;
+    // Use shiftHours from backend if available
+    if (entry.shiftHours) {
+      return `${entry.shiftHours} hrs`;
+    }
+    // Fallback to calculation if shiftId is populated
+    if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+      const start = new Date(`2000-01-01T${entry.shiftId.startTime}`);
+      const end = new Date(`2000-01-01T${entry.shiftId.endTime}`);
+      const hours = ((end - start) / (1000 * 60 * 60)).toFixed(2);
+      return `${hours} hrs`;
+    }
+    return '—';
   };
 
   const calculateTotalHours = (clockIn, clockOut, breaks = []) => {
