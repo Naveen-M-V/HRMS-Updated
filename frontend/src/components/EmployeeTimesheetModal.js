@@ -207,10 +207,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       const isToday = dayDate.getTime() === today.getTime();
       const isFuture = dayDate > today;
       
-      const dayEntry = data.entries?.find(e => {
+      // Find ALL entries for this day (support multiple clock-ins)
+      const dayEntries = data.entries?.filter(e => {
         const entryDate = moment.utc(e.date).tz('Europe/London').format('YYYY-MM-DD');
         return entryDate === dateStr;
-      });
+      }) || [];
+      
+      // Use the first entry as the primary entry for display
+      const dayEntry = dayEntries[0];
 
       if (dayEntry && dayEntry.clockIn) {
         const clockIn = dayEntry.clockIn;
@@ -264,12 +268,34 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           }
         }
 
+        // Create sessions array from all entries for this day
+        const sessions = dayEntries.map(entry => ({
+          clockInTime: formatTime(entry.clockIn),
+          clockOutTime: entry.clockOut ? formatTime(entry.clockOut) : 'Present',
+          breaks: entry.breaks || []
+        }));
+
+        // Log multiple sessions for debugging
+        if (sessions.length > 1) {
+          console.log(`📅 Multiple sessions found for ${dateStr}:`, sessions);
+        }
+
+        // Format clockedHours to show all sessions
+        let clockedHoursDisplay;
+        if (sessions.length > 1) {
+          clockedHoursDisplay = sessions.map((s, idx) => 
+            `${idx + 1}. ${s.clockInTime} - ${s.clockOutTime}`
+          ).join(' | ');
+        } else {
+          clockedHoursDisplay = `${clockInTime} - ${clockOutTime}${breakInfo}`;
+        }
+
         weekEntries.push({
           entryId: dayEntry._id || dayEntry.id,
           date: date,
           dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
           dayNumber: date.getDate().toString().padStart(2, '0'),
-          clockedHours: `${clockInTime} - ${clockOutTime}${breakInfo}`,
+          clockedHours: clockedHoursDisplay,
           clockIn: clockIn,
           clockInTime: clockInTime,
           clockOut: clockOut,
@@ -289,7 +315,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           shift: dayEntry.shift || null,
           shiftStartTime: dayEntry.shiftStartTime || null,
           shiftEndTime: dayEntry.shiftEndTime || null,
-          attendanceStatus: dayEntry.attendanceStatus || null
+          attendanceStatus: dayEntry.attendanceStatus || null,
+          // Multiple sessions support
+          sessions: sessions.length > 1 ? sessions : null // Only add if multiple sessions exist
         });
       } else {
         weekEntries.push({
@@ -381,8 +409,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     const shiftStartMinutes = day.shiftStartTime ? parseTime(day.shiftStartTime) : null;
     const shiftEndMinutes = day.shiftEndTime ? parseTime(day.shiftEndTime) : null;
 
+    // Debug logging
+    if (day.sessions) {
+      console.log('🎯 Timeline calculation for day:', day.dayName, 'Sessions:', day.sessions);
+    }
+
     // Check if there are multiple sessions (multiple clock-in/out pairs)
     if (day.sessions && Array.isArray(day.sessions) && day.sessions.length > 0) {
+      console.log('✅ Processing multiple sessions:', day.sessions.length);
       // Handle multiple sessions
       day.sessions.forEach((session, sessionIndex) => {
         const sessionClockInMinutes = parseTime(session.clockInTime);
@@ -390,15 +424,18 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
         if (!sessionClockInMinutes) return;
 
-        // Clock-in marker for this session
-        const clockInPosition = ((sessionClockInMinutes - workDayStart) / totalMinutes) * 100;
-        segments.push({
-          type: 'clock-in',
-          left: Math.max(0, clockInPosition),
-          width: 1,
-          color: '#f97316', // Orange
-          label: `Clock-in ${sessionIndex + 1}`
-        });
+        // For first session, check for late arrival
+        if (sessionIndex === 0 && shiftStartMinutes && sessionClockInMinutes > shiftStartMinutes) {
+          const lateStartPos = ((shiftStartMinutes - workDayStart) / totalMinutes) * 100;
+          const lateEndPos = ((sessionClockInMinutes - workDayStart) / totalMinutes) * 100;
+          segments.push({
+            type: 'late',
+            left: Math.max(0, lateStartPos),
+            width: Math.max(0, lateEndPos - lateStartPos),
+            color: '#ef4444', // Red for late arrival
+            label: 'Late Arrival'
+          });
+        }
 
         let currentTime = sessionClockInMinutes;
 
@@ -446,28 +483,48 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
         // Final working time for this session
         const sessionEndTime = sessionClockOutMinutes || (sessionIndex === day.sessions.length - 1 ? (new Date().getHours() * 60 + new Date().getMinutes()) : sessionClockOutMinutes);
+        
         if (sessionEndTime && currentTime < sessionEndTime) {
-          const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-          const workEnd = ((sessionEndTime - workDayStart) / totalMinutes) * 100;
-          segments.push({
-            type: 'working',
-            left: Math.max(0, workStart),
-            width: Math.max(0, Math.min(100, workEnd) - workStart),
-            color: '#3b82f6', // Blue
-            label: 'Working time'
-          });
-        }
-
-        // Clock-out marker if present
-        if (sessionClockOutMinutes) {
-          const clockOutPosition = ((sessionClockOutMinutes - workDayStart) / totalMinutes) * 100;
-          segments.push({
-            type: 'clock-out',
-            left: Math.max(0, clockOutPosition),
-            width: 1,
-            color: '#ef4444', // Red
-            label: `Clock-out ${sessionIndex + 1}`
-          });
+          // For last session, check for overtime
+          const isLastSession = sessionIndex === day.sessions.length - 1;
+          const hasOvertime = isLastSession && shiftEndMinutes && sessionEndTime > shiftEndMinutes;
+          
+          if (hasOvertime) {
+            // Regular working time (up to shift end)
+            if (currentTime < shiftEndMinutes) {
+              const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+              const workEnd = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
+              segments.push({
+                type: 'working',
+                left: Math.max(0, workStart),
+                width: Math.max(0, workEnd - workStart),
+                color: '#3b82f6', // Blue for regular working hours
+                label: 'Working time'
+              });
+            }
+            
+            // Overtime segment (after shift end)
+            const overtimeStart = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
+            const overtimeEnd = ((sessionEndTime - workDayStart) / totalMinutes) * 100;
+            segments.push({
+              type: 'overtime',
+              left: Math.max(0, overtimeStart),
+              width: Math.max(0, Math.min(100, overtimeEnd) - overtimeStart),
+              color: '#f97316', // Orange for overtime
+              label: 'Overtime'
+            });
+          } else {
+            // No overtime, just regular working time
+            const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
+            const workEnd = ((sessionEndTime - workDayStart) / totalMinutes) * 100;
+            segments.push({
+              type: 'working',
+              left: Math.max(0, workStart),
+              width: Math.max(0, Math.min(100, workEnd) - workStart),
+              color: '#3b82f6', // Blue
+              label: 'Working time'
+            });
+          }
         }
       });
     } else {
@@ -1198,25 +1255,88 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       {/* Timeline Progress Bar */}
                       {day.clockIn && segments ? (
                         <div style={{ marginBottom: '12px' }}>
-                          {/* Time Labels */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11px', color: '#9ca3af' }}>
-                            <span>05:00</span>
-                            <span>08:00</span>
-                            <span>11:00</span>
-                            <span>14:00</span>
-                            <span>17:00</span>
-                            <span>20:00</span>
-                            <span>23:00</span>
+                          {/* Hourly Time Labels (5-23) */}
+                          <div style={{ 
+                            position: 'relative', 
+                            height: '20px', 
+                            marginBottom: '4px',
+                            display: 'flex',
+                            alignItems: 'flex-end'
+                          }}>
+                            {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((hour) => {
+                              const position = ((hour - 5) / 18) * 100; // 18 hours total (5-23)
+                              return (
+                                <div
+                                  key={hour}
+                                  style={{
+                                    position: 'absolute',
+                                    left: `${position}%`,
+                                    transform: 'translateX(-50%)',
+                                    fontSize: '10px',
+                                    color: '#6b7280',
+                                    fontWeight: '500'
+                                  }}
+                                >
+                                  {hour}
+                                </div>
+                              );
+                            })}
                           </div>
                           
-                          {/* Progress Bar Container */}
+                          {/* Progress Bar Container with Minute Markers */}
                           <div style={{
                             position: 'relative',
                             height: '32px',
                             background: '#f3f4f6',
                             borderRadius: '6px',
-                            overflow: 'hidden'
+                            overflow: 'visible'
                           }}>
+                            {/* Hour Tick Marks */}
+                            {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((hour) => {
+                              const position = ((hour - 5) / 18) * 100;
+                              return (
+                                <div
+                                  key={`hour-${hour}`}
+                                  style={{
+                                    position: 'absolute',
+                                    left: `${position}%`,
+                                    top: '-4px',
+                                    bottom: '-4px',
+                                    width: '2px',
+                                    background: '#d1d5db',
+                                    zIndex: 1
+                                  }}
+                                />
+                              );
+                            })}
+                            
+                            {/* 15-Minute Tick Marks */}
+                            {Array.from({ length: 18 * 4 }).map((_, i) => {
+                              const minutes = i * 15;
+                              const hour = 5 + Math.floor(minutes / 60);
+                              const minute = minutes % 60;
+                              
+                              // Skip if it's an hour mark (already drawn above)
+                              if (minute === 0) return null;
+                              
+                              const position = (minutes / (18 * 60)) * 100;
+                              return (
+                                <div
+                                  key={`min-${i}`}
+                                  style={{
+                                    position: 'absolute',
+                                    left: `${position}%`,
+                                    top: '0',
+                                    bottom: '0',
+                                    width: '1px',
+                                    background: '#e5e7eb',
+                                    zIndex: 1
+                                  }}
+                                />
+                              );
+                            })}
+                            
+                            {/* Time Segments (Working, Break, Late, Overtime) */}
                             {segments.map((segment, idx) => (
                               <div
                                 key={idx}
@@ -1231,12 +1351,15 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                   justifyContent: 'center',
                                   fontSize: '10px',
                                   color: 'white',
-                                  fontWeight: '600'
+                                  fontWeight: '600',
+                                  zIndex: 2
                                 }}
                                 title={segment.label}
                               >
                                 {segment.width > 5 && segment.type === 'working' && 'Working'}
                                 {segment.width > 5 && segment.type === 'break' && 'Break'}
+                                {segment.width > 5 && segment.type === 'late' && 'Late'}
+                                {segment.width > 5 && segment.type === 'overtime' && 'OT'}
                               </div>
                             ))}
                           </div>

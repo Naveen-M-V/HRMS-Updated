@@ -2011,7 +2011,7 @@ router.get('/timesheet/:employeeId', async (req, res) => {
     })
     .populate('employee', 'firstName lastName email vtid')
     .populate('shiftId', 'startTime endTime location')
-    .sort({ date: 1 })
+    .sort({ date: 1, clockIn: 1 }) // Sort by date, then by clock-in time for multiple sessions
     .lean();
 
     console.log(`✅ Found ${timeEntries.length} time entries`);
