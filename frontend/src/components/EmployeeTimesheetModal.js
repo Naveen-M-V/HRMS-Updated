@@ -312,16 +312,11 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           }
         }
 
-        // Create sessions array from all entries for this day with UK timezone for breaks
+        // Create sessions array from all entries for this day
         const sessions = dayEntries.map(entry => ({
           clockInTime: formatTime(entry.clockIn),
           clockOutTime: entry.clockOut ? formatTime(entry.clockOut) : 'Present',
-          breaks: (entry.breaks || []).map(b => ({
-            ...b,
-            startTime: formatTime(b.startTime),
-            endTime: formatTime(b.endTime),
-            duration: b.duration
-          }))
+          breaks: entry.breaks || []
         }));
 
         // Log multiple sessions for debugging
@@ -349,12 +344,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           clockInTime: clockInTime,
           clockOut: clockOut,
           clockOutTime: clockOutTime,
-          breaks: (dayEntry.breaks || []).map(b => ({
-            ...b,
-            startTime: formatTime(b.startTime),
-            endTime: formatTime(b.endTime),
-            duration: b.duration
-          })), // Add breaks data with UK timezone for timeline visualization
+          breaks: dayEntry.breaks || [], // Add breaks data for timeline visualization
           location: dayEntry.location || 'N/A',
           overtime: overtime > 0 ? formatHours(overtime) : '--',
           totalHours: formatHours(hours),
@@ -443,7 +433,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   };
 
   // Timeline helper function to calculate position and width percentages
-  // Blue = Working hours, Red = Late arrival, Orange = Overtime, Green = Break
+  // Blue = Working hours, Red = Late arrival, Orange = Overtime
   const calculateTimelineSegments = (day) => {
     if (!day.clockIn) return null;
 
@@ -458,258 +448,27 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     };
 
     const segments = [];
-    const sessionMarkers = []; // Track session end points for markers
     
     // Get shift times if available
     const shiftStartMinutes = day.shiftStartTime ? parseTime(day.shiftStartTime) : null;
     const shiftEndMinutes = day.shiftEndTime ? parseTime(day.shiftEndTime) : null;
 
-    // Collect all time events from all sessions (clock-ins, clock-outs, breaks)
-    const allEvents = [];
-    
-    // Check if there are multiple sessions
+    // Debug logging
+    if (day.sessions) {
+      console.log('🎯 Timeline calculation for day:', day.dayName, 'Sessions:', day.sessions);
+    }
+
+    // Check if there are multiple sessions (multiple clock-in/out pairs)
     if (day.sessions && Array.isArray(day.sessions) && day.sessions.length > 0) {
-      // Process all sessions and merge into one timeline
+      console.log('✅ Processing multiple sessions:', day.sessions.length);
+      // Handle multiple sessions
       day.sessions.forEach((session, sessionIndex) => {
         const sessionClockInMinutes = parseTime(session.clockInTime);
         const sessionClockOutMinutes = session.clockOutTime && session.clockOutTime !== 'Present' ? parseTime(session.clockOutTime) : null;
 
         if (!sessionClockInMinutes) return;
 
-        allEvents.push({
-          time: sessionClockInMinutes,
-          type: 'clock_in',
-          sessionIndex
-        });
-
-        if (sessionClockOutMinutes) {
-          allEvents.push({
-            time: sessionClockOutMinutes,
-            type: 'clock_out',
-            sessionIndex
-          });
-          
-          // Add session marker
-          sessionMarkers.push({
-            time: sessionClockOutMinutes,
-            sessionIndex
-          });
-        }
-
-        // Add breaks
-        if (session.breaks && session.breaks.length > 0) {
-          session.breaks.forEach(breakItem => {
-            const breakStart = parseTime(breakItem.startTime);
-            const breakEnd = parseTime(breakItem.endTime);
-            if (breakStart && breakEnd) {
-              allEvents.push({
-                time: breakStart,
-                type: 'break_start'
-              });
-              allEvents.push({
-                time: breakEnd,
-                type: 'break_end'
-              });
-            }
-          });
-        }
-      });
-    } else {
-      // Single session (original logic)
-      const clockInMinutes = parseTime(day.clockInTime);
-      const clockOutMinutes = day.clockOutTime && day.clockOutTime !== 'Present' ? parseTime(day.clockOutTime) : null;
-
-      if (!clockInMinutes) return null;
-
-      allEvents.push({
-        time: clockInMinutes,
-        type: 'clock_in',
-        sessionIndex: 0
-      });
-
-      if (clockOutMinutes) {
-        allEvents.push({
-          time: clockOutMinutes,
-          type: 'clock_out',
-          sessionIndex: 0
-        });
-        
-        sessionMarkers.push({
-          time: clockOutMinutes,
-          sessionIndex: 0
-        });
-      }
-
-      // Add breaks
-      if (day.breaks && day.breaks.length > 0) {
-        day.breaks.forEach(breakItem => {
-          const breakStart = parseTime(breakItem.startTime);
-          const breakEnd = parseTime(breakItem.endTime);
-          if (breakStart && breakEnd) {
-            allEvents.push({
-              time: breakStart,
-              type: 'break_start'
-            });
-            allEvents.push({
-              time: breakEnd,
-              type: 'break_end'
-            });
-          }
-        });
-      }
-    }
-
-    // Sort all events by time
-    allEvents.sort((a, b) => a.time - b.time);
-
-    // Check for late arrival (first clock-in vs shift start)
-    const firstClockIn = allEvents.find(e => e.type === 'clock_in');
-    if (firstClockIn && shiftStartMinutes && firstClockIn.time > shiftStartMinutes) {
-      const lateStartPos = ((shiftStartMinutes - workDayStart) / totalMinutes) * 100;
-      const lateEndPos = ((firstClockIn.time - workDayStart) / totalMinutes) * 100;
-      segments.push({
-        type: 'late',
-        left: Math.max(0, lateStartPos),
-        width: Math.max(0, lateEndPos - lateStartPos),
-        color: '#ff6b35',
-        label: 'Late'
-      });
-    }
-
-    // Build continuous timeline segments
-    let currentTime = firstClockIn ? firstClockIn.time : null;
-    let isWorking = false;
-    let isOnBreak = false;
-
-    allEvents.forEach((event, idx) => {
-      if (event.type === 'clock_in') {
-        isWorking = true;
-        currentTime = event.time;
-      } else if (event.type === 'break_start') {
-        // Add working segment before break
-        if (isWorking && currentTime < event.time) {
-          const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-          const workEnd = ((event.time - workDayStart) / totalMinutes) * 100;
-          segments.push({
-            type: 'working',
-            left: Math.max(0, workStart),
-            width: Math.max(0, workEnd - workStart),
-            color: '#007bff',
-            label: 'Working time'
-          });
-        }
-        isOnBreak = true;
-        currentTime = event.time;
-      } else if (event.type === 'break_end') {
-        // Add break segment
-        if (isOnBreak && currentTime < event.time) {
-          const breakStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-          const breakEnd = ((event.time - workDayStart) / totalMinutes) * 100;
-          segments.push({
-            type: 'break',
-            left: Math.max(0, breakStart),
-            width: Math.max(0, breakEnd - breakStart),
-            color: '#4ade80',
-            label: 'Break'
-          });
-        }
-        isOnBreak = false;
-        isWorking = true; // Resume working after break
-        currentTime = event.time;
-      } else if (event.type === 'clock_out') {
-        // Add final working segment for this session
-        if (isWorking && currentTime < event.time) {
-          const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-          const workEnd = ((event.time - workDayStart) / totalMinutes) * 100;
-          
-          // Check for overtime
-          if (shiftEndMinutes && event.time > shiftEndMinutes && currentTime < shiftEndMinutes) {
-            // Split into regular and overtime
-            const regularEnd = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
-            segments.push({
-              type: 'working',
-              left: Math.max(0, workStart),
-              width: Math.max(0, regularEnd - workStart),
-              color: '#007bff',
-              label: 'Working time'
-            });
-            
-            const overtimeStart = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
-            segments.push({
-              type: 'overtime',
-              left: Math.max(0, overtimeStart),
-              width: Math.max(0, workEnd - overtimeStart),
-              color: '#f97316',
-              label: 'Overtime'
-            });
-          } else {
-            segments.push({
-              type: 'working',
-              left: Math.max(0, workStart),
-              width: Math.max(0, workEnd - workStart),
-              color: '#007bff',
-              label: 'Working time'
-            });
-          }
-        }
-        isWorking = false;
-        currentTime = event.time;
-      }
-    });
-
-    // If still working (not clocked out), add current segment
-    if (isWorking && !isOnBreak && currentTime) {
-      const ukTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
-      const now = ukTime.getHours() * 60 + ukTime.getMinutes();
-      const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
-      const workEnd = ((now - workDayStart) / totalMinutes) * 100;
-      
-      if (workEnd > workStart) {
-        segments.push({
-          type: 'working',
-          left: Math.max(0, workStart),
-          width: Math.max(0, Math.min(100, workEnd) - workStart),
-          color: '#007bff',
-          label: 'Working time'
-        });
-      }
-    }
-
-    // Store session markers for rendering
-    segments.sessionMarkers = sessionMarkers.map(marker => ({
-      position: ((marker.time - workDayStart) / totalMinutes) * 100,
-      sessionIndex: marker.sessionIndex
-    }));
-
-    return segments;
-  };
-
-  // Keep the old single-session logic as fallback
-  const calculateTimelineSegmentsOld = (day) => {
-    if (!day.clockIn) return null;
-
-    const workDayStart = 5 * 60;
-    const workDayEnd = 23 * 60;
-    const totalMinutes = workDayEnd - workDayStart;
-
-    const parseTime = (timeStr) => {
-      if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      return hours * 60 + minutes;
-    };
-
-    const segments = [];
-    
-    const shiftStartMinutes = day.shiftStartTime ? parseTime(day.shiftStartTime) : null;
-    const shiftEndMinutes = day.shiftEndTime ? parseTime(day.shiftEndTime) : null;
-
-    if (day.sessions && Array.isArray(day.sessions) && day.sessions.length > 0) {
-      day.sessions.forEach((session, sessionIndex) => {
-        const sessionClockInMinutes = parseTime(session.clockInTime);
-        const sessionClockOutMinutes = session.clockOutTime && session.clockOutTime !== 'Present' ? parseTime(session.clockOutTime) : null;
-
-        if (!sessionClockInMinutes) return;
-
+        // For first session, check for late arrival
         if (sessionIndex === 0 && shiftStartMinutes && sessionClockInMinutes > shiftStartMinutes) {
           const lateStartPos = ((shiftStartMinutes - workDayStart) / totalMinutes) * 100;
           const lateEndPos = ((sessionClockInMinutes - workDayStart) / totalMinutes) * 100;
@@ -717,13 +476,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             type: 'late',
             left: Math.max(0, lateStartPos),
             width: Math.max(0, lateEndPos - lateStartPos),
-            color: '#ff6b35',
+            color: '#ff6b35', // Orange-red for late arrival
             label: 'Late'
           });
         }
 
         let currentTime = sessionClockInMinutes;
 
+        // Process breaks for this session
         if (session.breaks && session.breaks.length > 0) {
           const sortedBreaks = [...session.breaks].sort((a, b) => {
             const aStart = parseTime(a.startTime);
@@ -736,6 +496,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             const breakEnd = parseTime(breakItem.endTime);
 
             if (breakStart && breakEnd) {
+              // Working time before break
               if (currentTime < breakStart) {
                 const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
                 const workEnd = ((breakStart - workDayStart) / totalMinutes) * 100;
@@ -743,18 +504,19 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   type: 'working',
                   left: Math.max(0, workStart),
                   width: Math.max(0, workEnd - workStart),
-                  color: '#007bff',
+                  color: '#007bff', // Blue
                   label: 'Working time'
                 });
               }
 
+              // Break time
               const breakStartPos = ((breakStart - workDayStart) / totalMinutes) * 100;
               const breakEndPos = ((breakEnd - workDayStart) / totalMinutes) * 100;
               segments.push({
                 type: 'break',
                 left: Math.max(0, breakStartPos),
                 width: Math.max(0, breakEndPos - breakStartPos),
-                color: '#4ade80',
+                color: '#4ade80', // Green for breaks
                 label: 'Break'
               });
 
@@ -763,14 +525,16 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           });
         }
 
-        const ukTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
-        const sessionEndTime = sessionClockOutMinutes || (sessionIndex === day.sessions.length - 1 ? (ukTime.getHours() * 60 + ukTime.getMinutes()) : sessionClockOutMinutes);
+        // Final working time for this session
+        const sessionEndTime = sessionClockOutMinutes || (sessionIndex === day.sessions.length - 1 ? (new Date().getHours() * 60 + new Date().getMinutes()) : sessionClockOutMinutes);
         
         if (sessionEndTime && currentTime < sessionEndTime) {
+          // For last session, check for overtime
           const isLastSession = sessionIndex === day.sessions.length - 1;
           const hasOvertime = isLastSession && shiftEndMinutes && sessionEndTime > shiftEndMinutes;
           
           if (hasOvertime) {
+            // Regular working time (up to shift end)
             if (currentTime < shiftEndMinutes) {
               const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
               const workEnd = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
@@ -778,28 +542,30 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 type: 'working',
                 left: Math.max(0, workStart),
                 width: Math.max(0, workEnd - workStart),
-                color: '#007bff',
+                color: '#007bff', // Blue for regular working hours
                 label: 'Working time'
               });
             }
             
+            // Overtime segment (after shift end)
             const overtimeStart = ((shiftEndMinutes - workDayStart) / totalMinutes) * 100;
             const overtimeEnd = ((sessionEndTime - workDayStart) / totalMinutes) * 100;
             segments.push({
               type: 'overtime',
               left: Math.max(0, overtimeStart),
               width: Math.max(0, Math.min(100, overtimeEnd) - overtimeStart),
-              color: '#f97316',
+              color: '#f97316', // Orange for overtime
               label: 'Overtime'
             });
           } else {
+            // No overtime, just regular working time
             const workStart = ((currentTime - workDayStart) / totalMinutes) * 100;
             const workEnd = ((sessionEndTime - workDayStart) / totalMinutes) * 100;
             segments.push({
               type: 'working',
               left: Math.max(0, workStart),
               width: Math.max(0, Math.min(100, workEnd) - workStart),
-              color: '#007bff',
+              color: '#007bff', // Blue
               label: 'Working time'
             });
           }
@@ -1564,10 +1330,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                             }}>
                               {segments.map((segment, idx) => {
-                                // Calculate progressive width based on UK current time
+                                // Calculate progressive width based on current time
                                 const now = new Date();
-                                const ukTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/London' }));
-                                const currentMinutes = ukTime.getHours() * 60 + ukTime.getMinutes();
+                                const currentMinutes = now.getHours() * 60 + now.getMinutes();
                                 const parseTime = (timeStr) => {
                                   if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
                                   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -1628,44 +1393,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                   </Tooltip>
                                 );
                               })}
-                              
-                              {/* Session End Markers */}
-                              {segments.sessionMarkers && segments.sessionMarkers.map((marker, idx) => (
-                                <div
-                                  key={`marker-${idx}`}
-                                  style={{
-                                    position: 'absolute',
-                                    left: `${marker.position}%`,
-                                    top: '-2px',
-                                    height: 'calc(100% + 4px)',
-                                    width: '2px',
-                                    background: '#ef4444',
-                                    zIndex: 10
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      position: 'absolute',
-                                      top: '-8px',
-                                      left: '50%',
-                                      transform: 'translateX(-50%)',
-                                      width: '16px',
-                                      height: '16px',
-                                      background: '#ef4444',
-                                      borderRadius: '50%',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontSize: '10px',
-                                      color: 'white',
-                                      fontWeight: 'bold',
-                                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                                    }}
-                                  >
-                                    ⏸
-                                  </div>
-                                </div>
-                              ))}
                             </div>
 
                           {/* Time Labels Below Bar */}

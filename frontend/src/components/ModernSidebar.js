@@ -108,10 +108,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         {isOpen && (
           <div className="flex flex-col items-center">
             <span className="text-lg font-bold text-sidebar-foreground">
-              Talent Shield
+              Talentshield
             </span>
             <span className="text-xs text-sidebar-foreground/60">
-              Admin Dashboard
+              ADMIN Dashboard
             </span>
           </div>
         )}
