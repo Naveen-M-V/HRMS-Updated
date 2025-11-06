@@ -2039,4 +2039,26 @@ router.get('/timesheet/:employeeId', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/employees/count
+ * Get total count of employees in the system
+ */
+router.get('/employees/count', async (req, res) => {
+  try {
+    const totalCount = await User.countDocuments({ role: 'employee' });
+    
+    res.json({
+      success: true,
+      total: totalCount
+    });
+  } catch (error) {
+    console.error('Error fetching employee count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch employee count',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

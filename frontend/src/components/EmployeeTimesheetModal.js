@@ -39,13 +39,37 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   });
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [currentEmployeeIndex, setCurrentEmployeeIndex] = useState(1);
 
   useEffect(() => {
     if (employee) {
       console.log('Employee data in modal:', employee);
       fetchWeeklyTimesheet();
+      fetchTotalEmployees();
     }
   }, [employee, currentDate]);
+
+  // Fetch total employee count
+  const fetchTotalEmployees = async () => {
+    try {
+      const response = await axios.get(
+        buildApiUrl('/employees/count'),
+        { 
+          withCredentials: true,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        }
+      );
+      if (response.data.success) {
+        setTotalEmployees(response.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching employee count:', error);
+      setTotalEmployees(0);
+    }
+  };
 
   // Close dropdown menu when clicking outside
   useEffect(() => {
@@ -334,9 +358,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const calculateTimelineSegments = (day) => {
     if (!day.clockIn) return null;
 
-    const workDayStart = 9 * 60; // 09:00 in minutes
-    const workDayEnd = 17 * 60; // 17:00 in minutes (5 PM)
-    const totalMinutes = workDayEnd - workDayStart; // 8 hours
+    const workDayStart = 5 * 60; // 05:00 in minutes (5 AM)
+    const workDayEnd = 23 * 60; // 23:00 in minutes (11 PM)
+    const totalMinutes = workDayEnd - workDayStart; // 18 hours
 
     const parseTime = (timeStr) => {
       if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
@@ -534,13 +558,11 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   };
 
   const getTotalEmployees = () => {
-    // This would come from your employee list - placeholder for now
-    return 56;
+    return totalEmployees || 0;
   };
 
   const getCurrentEmployeeIndex = () => {
-    // This would be the actual index - placeholder for now
-    return 1;
+    return currentEmployeeIndex;
   };
 
   // Checkbox handlers
@@ -1142,11 +1164,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                         <div style={{ marginBottom: '12px' }}>
                           {/* Time Labels */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11px', color: '#9ca3af' }}>
-                            <span>09:00</span>
+                            <span>05:00</span>
+                            <span>08:00</span>
                             <span>11:00</span>
-                            <span>13:00</span>
-                            <span>15:00</span>
+                            <span>14:00</span>
                             <span>17:00</span>
+                            <span>20:00</span>
+                            <span>23:00</span>
                           </div>
                           
                           {/* Progress Bar Container */}

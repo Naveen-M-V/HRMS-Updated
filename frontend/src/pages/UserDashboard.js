@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Cookies from 'js-cookie';
 import UserClockIns from './UserClockIns';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
@@ -115,6 +116,23 @@ const UserDashboard = () => {
     console.log('🎯 clockStatus state changed:', JSON.stringify(clockStatus, null, 2));
     console.log('🎯 clockStatusLoading:', clockStatusLoading);
   }, [clockStatus, clockStatusLoading]);
+
+  // Restore clock-in state from cookies on page load
+  useEffect(() => {
+    const savedClockStatus = Cookies.get('userClockedIn');
+    const savedLocation = Cookies.get('clockInLocation');
+    const savedWorkType = Cookies.get('clockInWorkType');
+    
+    if (savedClockStatus === 'true') {
+      console.log('🍪 Restoring clock-in state from cookies');
+      // Restore location and work type if available
+      if (savedLocation) setLocation(savedLocation);
+      if (savedWorkType) setWorkType(savedWorkType);
+      
+      // Fetch current clock status from backend to sync
+      fetchClockStatus();
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.email) {
@@ -359,6 +377,12 @@ const UserDashboard = () => {
       if (response.success) {
         toast.success(response.message || 'Clocked in successfully!');
         
+        // Set cookie to persist clock-in state (expires in 1 day)
+        Cookies.set('userClockedIn', 'true', { expires: 1 });
+        Cookies.set('clockInTime', new Date().toISOString(), { expires: 1 });
+        Cookies.set('clockInLocation', location, { expires: 1 });
+        Cookies.set('clockInWorkType', workType, { expires: 1 });
+        
         if (response.data) {
           setShiftInfo(response.data.shift);
           setAttendanceStatus(response.data.attendanceStatus);
@@ -463,6 +487,12 @@ const UserDashboard = () => {
       if (response.success) {
         const hours = response.data?.hoursWorked || 0;
         toast.success(`Clocked out! Hours: ${hours.toFixed(2)}h`, { autoClose: 5000 });
+        
+        // Remove cookies to clear persisted clock-in state
+        Cookies.remove('userClockedIn');
+        Cookies.remove('clockInTime');
+        Cookies.remove('clockInLocation');
+        Cookies.remove('clockInWorkType');
         
         setShiftInfo(null);
         setAttendanceStatus(null);
