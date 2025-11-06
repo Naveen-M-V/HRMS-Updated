@@ -41,14 +41,42 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [currentEmployeeIndex, setCurrentEmployeeIndex] = useState(1);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
 
   useEffect(() => {
     if (employee) {
       console.log('Employee data in modal:', employee);
+      fetchEmployeeProfile();
       fetchWeeklyTimesheet();
       fetchTotalEmployees();
     }
   }, [employee, currentDate]);
+
+  // Fetch employee profile data (includes mobile number)
+  const fetchEmployeeProfile = async () => {
+    try {
+      const employeeId = employee._id || employee.id;
+      console.log('📱 Fetching profile for employee ID:', employeeId);
+      
+      const response = await axios.get(
+        buildApiUrl(`/profiles/${employeeId}`),
+        { 
+          withCredentials: true,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        }
+      );
+      
+      if (response.data) {
+        console.log('✅ Employee profile fetched:', response.data);
+        setEmployeeProfile(response.data);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching employee profile:', error);
+      // Don't show error toast, just log it - profile is optional
+    }
+  };
 
   // Fetch total employee count
   const fetchTotalEmployees = async () => {
@@ -220,9 +248,15 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         const clockIn = dayEntry.clockIn;
         const clockOut = dayEntry.clockOut;
         
-        // Parse hours from backend calculation
-        const hours = parseFloat(dayEntry.hoursWorked || 0);
-        const overtime = parseFloat(dayEntry.overtime || 0);
+        // Parse hours from backend calculation - sum all entries for this day
+        let hours = 0;
+        let overtime = 0;
+        
+        // Sum hours from all entries for this day (multiple clock-ins)
+        dayEntries.forEach(entry => {
+          hours += parseFloat(entry.hoursWorked || 0);
+          overtime += parseFloat(entry.overtime || 0);
+        });
         
         // Add to weekly total
         weeklyTotalHoursSum += hours;
@@ -978,7 +1012,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#6b7280' }}>
                 <div><span style={{ fontWeight: '500' }}>Role:</span> {employee.jobTitle || employee.jobRole || 'Employee'}</div>
                 <div><span style={{ fontWeight: '500' }}>Employee ID:</span> #{employee._id?.slice(-6) || 'N/A'}</div>
-                <div><span style={{ fontWeight: '500' }}>Phone Number:</span> {employee.phone || 'N/A'}</div>
+                <div>
+                  <span style={{ fontWeight: '500' }}>Mobile:</span> {employeeProfile?.mobileNumber || employee.phone || employee.mobileNumber || 'N/A'}
+                </div>
               </div>
             </div>
           </div>
@@ -1272,112 +1308,100 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       {/* Timeline Progress Bar */}
                       {day.clockIn && segments ? (
                         <div style={{ marginBottom: '12px' }}>
-                          {/* Progress Bar Container */}
-                          <div style={{
-                            position: 'relative',
-                            height: '32px',
-                            background: '#f3f4f6',
-                            borderRadius: '6px',
-                            overflow: 'hidden'
-                          }}>
-                            {/* Time Segments (Working, Break, Late, Overtime) */}
-                            {segments.map((segment, idx) => (
-                              <div
-                                key={idx}
-                                style={{
-                                  position: 'absolute',
-                                  left: `${segment.left}%`,
-                                  width: `${segment.width}%`,
-                                  height: '100%',
-                                  background: segment.color,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '10px',
-                                  color: 'white',
-                                  fontWeight: '600'
-                                }}
-                                title={segment.label}
-                              >
-                                {segment.width > 5 && segment.type === 'working' && 'Working'}
-                                {segment.width > 5 && segment.type === 'break' && 'Break'}
-                                {segment.width > 5 && segment.type === 'late' && 'Late'}
-                                {segment.width > 5 && segment.type === 'overtime' && 'OT'}
+                          {/* Main Timeline Container with Time Labels Above */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            {/* Timeline Section */}
+                            <div style={{ flex: 1 }}>
+                              {/* Time Labels Above Bar */}
+                              <div style={{ 
+                                position: 'relative', 
+                                height: '20px', 
+                                marginBottom: '4px',
+                                display: 'flex',
+                                alignItems: 'flex-end'
+                              }}>
+                                {[9, 11, 13, 15, 17, 19, 21, 23].map((hour) => {
+                                  const position = ((hour - 5) / 18) * 100;
+                                  return (
+                                    <div
+                                      key={hour}
+                                      style={{
+                                        position: 'absolute',
+                                        left: `${position}%`,
+                                        transform: 'translateX(-50%)',
+                                        fontSize: '11px',
+                                        color: '#9ca3af',
+                                        fontWeight: '500'
+                                      }}
+                                    >
+                                      {hour.toString().padStart(2, '0')}:00
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            ))}
-                          </div>
-                          
-                          {/* Hourly Time Labels (5-23) below the bar */}
-                          <div style={{ 
-                            position: 'relative', 
-                            height: '20px', 
-                            marginTop: '4px',
-                            display: 'flex',
-                            alignItems: 'flex-start'
-                          }}>
-                            {[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23].map((hour) => {
-                              const position = ((hour - 5) / 18) * 100; // 18 hours total (5-23)
-                              return (
-                                <div
-                                  key={hour}
-                                  style={{
-                                    position: 'absolute',
-                                    left: `${position}%`,
-                                    transform: 'translateX(-50%)',
-                                    fontSize: '10px',
-                                    color: '#6b7280',
-                                    fontWeight: '500'
-                                  }}
-                                >
-                                  {hour}
+                              
+                              {/* Progress Bar Container */}
+                              <div style={{
+                                position: 'relative',
+                                height: '40px',
+                                background: '#f3f4f6',
+                                borderRadius: '8px',
+                                overflow: 'hidden'
+                              }}>
+                                {/* Time Segments (Working, Break, Late, Overtime) */}
+                                {segments.map((segment, idx) => (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      position: 'absolute',
+                                      left: `${segment.left}%`,
+                                      width: `${segment.width}%`,
+                                      height: '100%',
+                                      background: segment.color,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '11px',
+                                      color: 'white',
+                                      fontWeight: '600'
+                                    }}
+                                    title={segment.label}
+                                  >
+                                    {segment.width > 8 && segment.type === 'working' && 'Working time'}
+                                    {segment.width > 8 && segment.type === 'break' && 'Break'}
+                                    {segment.width > 8 && segment.type === 'late' && 'Late'}
+                                    {segment.width > 8 && segment.type === 'overtime' && 'Overtime'}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Right Side Info */}
+                            <div style={{ 
+                              display: 'flex', 
+                              gap: '24px', 
+                              fontSize: '12px',
+                              color: '#6b7280',
+                              minWidth: '280px'
+                            }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ fontWeight: '500', color: '#9ca3af', fontSize: '11px' }}>Clock-in</div>
+                                <div style={{ fontWeight: '600', color: '#111827', fontSize: '13px' }}>
+                                  {day.clockInTime || '--'}
                                 </div>
-                              );
-                            })}
-                          </div>
-                          
-                          {/* Timeline Legend */}
-                          <div style={{ 
-                            display: 'flex', 
-                            gap: '16px', 
-                            marginTop: '8px', 
-                            fontSize: '10px',
-                            justifyContent: 'center'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ 
-                                width: '12px', 
-                                height: '12px', 
-                                background: '#3b82f6', 
-                                borderRadius: '2px' 
-                              }}></div>
-                              <span style={{ color: '#6b7280' }}>Working</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ 
-                                width: '12px', 
-                                height: '12px', 
-                                background: '#f59e0b', 
-                                borderRadius: '2px' 
-                              }}></div>
-                              <span style={{ color: '#6b7280' }}>Break</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ 
-                                width: '12px', 
-                                height: '12px', 
-                                background: '#ef4444', 
-                                borderRadius: '2px' 
-                              }}></div>
-                              <span style={{ color: '#6b7280' }}>Late Arrival</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ 
-                                width: '12px', 
-                                height: '12px', 
-                                background: '#f97316', 
-                                borderRadius: '2px' 
-                              }}></div>
-                              <span style={{ color: '#6b7280' }}>Overtime</span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ fontWeight: '500', color: '#9ca3af', fontSize: '11px' }}>Clock-out</div>
+                                <div style={{ fontWeight: '600', color: '#111827', fontSize: '13px' }}>
+                                  {day.clockOutTime || 'Present'}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ fontWeight: '500', color: '#9ca3af', fontSize: '11px' }}>Duration</div>
+                                <div style={{ fontWeight: '600', color: '#111827', fontSize: '13px' }}>
+                                  {day.totalHours || '0h 0m'}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1397,26 +1421,17 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       )}
 
                       {/* Footer Info */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', gap: '16px', color: '#6b7280' }}>
-                            {day.clockOutTime && (
-                              <div>
-                                Clock-out: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockOutTime}</span>
-                              </div>
-                            )}
-                            {day.breaks && day.breaks.length > 0 && (
+                      {(day.breaks && day.breaks.length > 0) || (day.gpsLocation && day.gpsLocation.latitude) ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', marginTop: '8px' }}>
+                          {day.breaks && day.breaks.length > 0 && (
+                            <div style={{ display: 'flex', gap: '16px', color: '#6b7280' }}>
                               <div>
                                 Breaks: <span style={{ fontWeight: '500', color: '#111827' }}>
                                   {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
                                 </span>
                               </div>
-                            )}
-                          </div>
-                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>
-                            Duration: {day.totalHours || '0h 0m'}
-                          </div>
-                        </div>
+                            </div>
+                          )}
                         
                         {/* GPS Location Display */}
                         {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude && (
@@ -1465,7 +1480,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             </a>
                           </div>
                         )}
-                      </div>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

@@ -9,6 +9,15 @@ import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis
+} from '../components/ui/pagination';
 
 /**
  * Clock-ins Page
@@ -31,6 +40,7 @@ const ClockIns = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showEntries, setShowEntries] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [myStatus, setMyStatus] = useState(null); // Admin's own clock status
   const [showEditModal, setShowEditModal] = useState(false);
@@ -794,7 +804,65 @@ const ClockIns = () => {
     return matchesSearch;
   });
 
-  const displayedEmployees = filteredEmployees.slice(0, showEntries);
+  // Pagination logic
+  const itemsPerPage = 10; // Fixed at 10 as per requirement
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedEmployees = filteredEmployees.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, filters]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      // Scroll to top of table
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages if total is small
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show first page
+      pages.push(1);
+      
+      // Calculate range around current page
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Add ellipsis if needed
+      if (start > 2) {
+        pages.push('ellipsis-start');
+      }
+      
+      // Add middle pages
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      // Add ellipsis if needed
+      if (end < totalPages - 1) {
+        pages.push('ellipsis-end');
+      }
+      
+      // Show last page
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
 
   // Calculate absent count
   const absentCount = employees.filter(e => e.status === 'absent' || !e.status).length;
@@ -1120,23 +1188,9 @@ const ClockIns = () => {
               />
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <span style={{ fontSize: '14px', color: '#6b7280' }}>Show</span>
-              <select
-                value={showEntries}
-                onChange={(e) => setShowEntries(Number(e.target.value))}
-                style={{
-                  padding: '6px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span style={{ fontSize: '14px', color: '#6b7280' }}>entries</span>
+              <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
+                10 entries per page
+              </span>
             </div>
           </div>
 
@@ -1417,15 +1471,57 @@ const ClockIns = () => {
           </table>
         </div>
 
-        {/* Pagination Info */}
-        {displayedEmployees.length > 0 && (
-          <div style={{
-            marginTop: '16px',
-            fontSize: '14px',
-            color: '#6b7280',
-            textAlign: 'center'
-          }}>
-            Showing {Math.min(showEntries, filteredEmployees.length)} of {filteredEmployees.length} entries
+        {/* Pagination */}
+        {filteredEmployees.length > 0 && totalPages > 1 && (
+          <div style={{ marginTop: '24px' }}>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  />
+                </PaginationItem>
+
+                {getPageNumbers().map((pageNum, index) => {
+                  if (typeof pageNum === 'string' && pageNum.startsWith('ellipsis')) {
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
+                  
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(pageNum)}
+                        isActive={pageNum === currentPage}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+            
+            {/* Pagination Info */}
+            <div style={{
+              marginTop: '16px',
+              fontSize: '14px',
+              color: '#6b7280',
+              textAlign: 'center'
+            }}>
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredEmployees.length)} of {filteredEmployees.length} entries
+            </div>
           </div>
         )}
       </div>

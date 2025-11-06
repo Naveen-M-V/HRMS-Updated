@@ -318,6 +318,25 @@ const TimeHistory = () => {
     // If no clock out, no overtime yet
     if (!entry.clockIn || !entry.clockOut) return '—';
     
+    // Get shift hours - only calculate overtime if shift is assigned
+    let shiftHours = 0;
+    let hasShift = false;
+    
+    if (entry.shiftHours) {
+      shiftHours = parseFloat(entry.shiftHours);
+      hasShift = shiftHours > 0;
+    } else if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+      const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
+      const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
+      shiftHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+      hasShift = shiftHours > 0;
+    }
+    
+    // If no shift assigned, don't calculate overtime
+    if (!hasShift) {
+      return '—';
+    }
+    
     // Calculate total hours worked
     const start = new Date(`2000-01-01T${entry.clockIn}`);
     const end = new Date(`2000-01-01T${entry.clockOut}`);
@@ -329,16 +348,6 @@ const TimeHistory = () => {
     }
     
     const hoursWorked = totalMinutes / 60;
-    
-    // Get shift hours
-    let shiftHours = 0;
-    if (entry.shiftHours) {
-      shiftHours = parseFloat(entry.shiftHours);
-    } else if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
-      const shiftStart = new Date(`2000-01-01T${entry.shiftId.startTime}`);
-      const shiftEnd = new Date(`2000-01-01T${entry.shiftId.endTime}`);
-      shiftHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
-    }
     
     // Calculate overtime (hours worked beyond shift hours)
     const overtime = hoursWorked - shiftHours;

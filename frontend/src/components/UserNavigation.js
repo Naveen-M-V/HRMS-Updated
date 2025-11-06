@@ -33,7 +33,7 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
               <img
                 src="/TSL.png"
                 alt="TalentShield"
-                className="h-8 w-8 object-contain"
+                className="h-12 w-12 object-contain"
                 onError={(e) => {
                   e.target.style.display = 'none';
                 }}

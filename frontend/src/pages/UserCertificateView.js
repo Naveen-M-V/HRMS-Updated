@@ -112,7 +112,16 @@ const UserCertificateView = () => {
 
   const getImageUrl = (filename) => {
     if (!filename) return null;
-    return `${API_BASE_URL}${filename}`;
+    // If filename is already a full URL, return as is
+    if (filename.startsWith('http://') || filename.startsWith('https://')) {
+      return filename;
+    }
+    // If filename starts with /, concatenate with API_BASE_URL
+    if (filename.startsWith('/')) {
+      return `${API_BASE_URL}${filename}`;
+    }
+    // Otherwise, add /uploads/ prefix
+    return `${API_BASE_URL}/uploads/${filename}`;
   };
 
   if (loading) {

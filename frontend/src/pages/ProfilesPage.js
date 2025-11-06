@@ -4,6 +4,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useProfiles } from '../context/ProfileContext';
 import { EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis
+} from '../components/ui/pagination';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
@@ -23,7 +32,7 @@ export default function ProfilesPage() {
   const { success, error } = useAlert();
   const { profiles, deleteProfile, fetchProfiles } = useProfiles();
   const [search, setSearch] = useState("");
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedStaffType, setSelectedStaffType] = useState("");
   const [selectedCompany, setSelectedCompany] = useState("");
@@ -61,7 +70,7 @@ export default function ProfilesPage() {
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     setSearch("");
-    setRowsPerPage(10);
+    setCurrentPage(1);
     setSelectedRole("");
     setSelectedStaffType("");
     setSelectedCompany("");
@@ -168,6 +177,50 @@ This will also delete any associated certificates and user account. This action 
     });
   }, [profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
 
+  // Pagination logic
+  const itemsPerPage = 10; // Fixed at 10 as per requirement
+  const totalPages = Math.ceil(filteredProfiles.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedProfiles = filteredProfiles.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      let start = Math.max(2, currentPage - 1);
+      let end = Math.min(totalPages - 1, currentPage + 1);
+      
+      if (start > 2) pages.push('ellipsis-start');
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < totalPages - 1) pages.push('ellipsis-end');
+      
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -205,20 +258,9 @@ This will also delete any associated certificates and user account. This action 
                 />
               </div>
 
-              {/* Rows per page */}
+              {/* Rows per page - Fixed at 10 */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Show</span>
-                <select
-                  value={rowsPerPage}
-                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-                <span className="text-sm text-gray-600">entries</span>
+                <span className="text-sm text-gray-600 font-medium">10 entries per page</span>
               </div>
             </div>
 
@@ -295,9 +337,9 @@ This will also delete any associated certificates and user account. This action 
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProfiles.slice(0, rowsPerPage).map((p, index) => (
+                {displayedProfiles.map((p, index) => (
                   <tr key={p._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{index + 1}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{startIndex + index + 1}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{generateVTID(p)}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{p.role}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{p.firstName}</td>
@@ -351,6 +393,55 @@ This will also delete any associated certificates and user account. This action 
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {filteredProfiles.length > 0 && totalPages > 1 && (
+            <div className="px-6 py-4 border-t">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+
+                  {getPageNumbers().map((pageNum, index) => {
+                    if (typeof pageNum === 'string' && pageNum.startsWith('ellipsis')) {
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={pageNum === currentPage}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+              
+              {/* Pagination Info */}
+              <div className="mt-4 text-sm text-gray-600 text-center">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredProfiles.length)} of {filteredProfiles.length} entries
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
