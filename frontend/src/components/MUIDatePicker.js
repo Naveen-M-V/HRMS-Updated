@@ -33,6 +33,7 @@ const MUIDatePicker = ({
             onChange(newValue);
           }
         }}
+        format="DD/MM/YY"
         minDate={minDate ? dayjs(minDate) : undefined}
         maxDate={maxDate ? dayjs(maxDate) : undefined}
         disabled={disabled}

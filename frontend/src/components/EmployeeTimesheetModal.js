@@ -466,8 +466,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             type: 'late',
             left: Math.max(0, lateStartPos),
             width: Math.max(0, lateEndPos - lateStartPos),
-            color: '#ef4444', // Red for late arrival
-            label: 'Late Arrival'
+            color: '#ff6b35', // Orange-red for late arrival
+            label: 'Late'
           });
         }
 
@@ -494,7 +494,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   type: 'working',
                   left: Math.max(0, workStart),
                   width: Math.max(0, workEnd - workStart),
-                  color: '#3b82f6', // Blue
+                  color: '#007bff', // Blue
                   label: 'Working time'
                 });
               }
@@ -506,7 +506,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 type: 'break',
                 left: Math.max(0, breakStartPos),
                 width: Math.max(0, breakEndPos - breakStartPos),
-                color: '#f59e0b', // Amber/Orange for breaks
+                color: '#4ade80', // Green for breaks
                 label: 'Break'
               });
 
@@ -532,7 +532,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 type: 'working',
                 left: Math.max(0, workStart),
                 width: Math.max(0, workEnd - workStart),
-                color: '#3b82f6', // Blue for regular working hours
+                color: '#007bff', // Blue for regular working hours
                 label: 'Working time'
               });
             }
@@ -555,7 +555,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               type: 'working',
               left: Math.max(0, workStart),
               width: Math.max(0, Math.min(100, workEnd) - workStart),
-              color: '#3b82f6', // Blue
+              color: '#007bff', // Blue
               label: 'Working time'
             });
           }
@@ -581,8 +581,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           type: 'late',
           left: Math.max(0, lateStartPos),
           width: Math.max(0, lateEndPos - lateStartPos),
-          color: '#ef4444', // Red for late arrival
-          label: 'Late Arrival'
+          color: '#ff6b35', // Orange-red for late arrival
+          label: 'Late'
         });
       }
 
@@ -607,7 +607,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 type: 'working',
                 left: Math.max(0, workStart),
                 width: Math.max(0, workEnd - workStart),
-                color: '#3b82f6', // Blue
+                color: '#007bff', // Blue
                 label: 'Working time'
               });
             }
@@ -619,7 +619,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               type: 'break',
               left: Math.max(0, breakStartPos),
               width: Math.max(0, breakEndPos - breakStartPos),
-              color: '#f59e0b', // Amber/Orange for breaks
+              color: '#4ade80', // Green for breaks
               label: 'Break'
             });
 
@@ -644,7 +644,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               type: 'working',
               left: Math.max(0, workStart),
               width: Math.max(0, workEnd - workStart),
-              color: '#3b82f6', // Blue for regular working hours
+              color: '#007bff', // Blue for regular working hours
               label: 'Working time'
             });
           }
@@ -667,7 +667,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             type: 'working',
             left: Math.max(0, workStart),
             width: Math.max(0, Math.min(100, workEnd) - workStart),
-            color: '#3b82f6', // Blue for working hours
+            color: '#007bff', // Blue for working hours
             label: 'Working time'
           });
         }
@@ -1311,10 +1311,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                           {/* Progress Bar */}
                           <div style={{
                             position: 'relative',
-                            height: '24px',
-                            background: '#f3f4f6',
-                            borderRadius: '4px',
-                            overflow: 'hidden',
+                            height: '20px',
+                            background: '#e5e7eb',
+                            borderRadius: '9999px',
+                            overflow: 'visible',
                             marginBottom: '8px'
                           }}>
                             {segments.map((segment, idx) => (
@@ -1322,20 +1322,23 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                 key={idx}
                                 style={{
                                   position: 'absolute',
-                                  left: `${segment.left}%`,
-                                  width: `${segment.width}%`,
+                                  left: `calc(${segment.left}% + ${idx > 0 ? '2px' : '0px'})`,
+                                  width: `calc(${segment.width}% - ${idx > 0 ? '2px' : '0px'})`,
                                   height: '100%',
                                   background: segment.color,
+                                  borderRadius: '9999px',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  fontSize: '10px',
+                                  fontSize: '9px',
                                   color: 'white',
-                                  fontWeight: '600'
+                                  fontWeight: '600',
+                                  transition: 'width 0.7s ease-in-out, left 0.7s ease-in-out',
+                                  boxShadow: 'inset 0 0 2px rgba(0, 0, 0, 0.15)'
                                 }}
                                 title={segment.label}
                               >
-                                {segment.width > 8 && segment.label}
+                                {segment.width > 10 && segment.label}
                               </div>
                             ))}
                           </div>
@@ -1374,19 +1377,19 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             marginTop: '12px'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#10b981', borderRadius: '2px' }}></div>
-                              <span>Working</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#f59e0b', borderRadius: '2px' }}></div>
-                              <span>Break</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#ef4444', borderRadius: '2px' }}></div>
+                              <div style={{ width: '12px', height: '12px', background: '#ff6b35', borderRadius: '2px' }}></div>
                               <span>Late</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#8b5cf6', borderRadius: '2px' }}></div>
+                              <div style={{ width: '12px', height: '12px', background: '#007bff', borderRadius: '2px' }}></div>
+                              <span>Working</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', background: '#4ade80', borderRadius: '2px' }}></div>
+                              <span>Break</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', background: '#f97316', borderRadius: '2px' }}></div>
                               <span>Overtime</span>
                             </div>
                           </div>
@@ -1454,11 +1457,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                 {day.gpsLocation.latitude.toFixed(6)}, {day.gpsLocation.longitude.toFixed(6)}
                               </span>
                             </div>
-                            {day.gpsLocation.accuracy && (
-                              <span style={{ fontSize: '10px', color: '#15803d' }}>
-                                (±{Math.round(day.gpsLocation.accuracy)}m)
-                              </span>
-                            )}
                             <a
                               href={`https://www.google.com/maps?q=${day.gpsLocation.latitude},${day.gpsLocation.longitude}`}
                               target="_blank"
