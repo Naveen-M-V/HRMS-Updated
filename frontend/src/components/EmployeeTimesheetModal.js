@@ -31,6 +31,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [selectAll, setSelectAll] = useState(false);
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
     date: null,
     clockIn: null,
