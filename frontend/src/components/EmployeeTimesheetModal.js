@@ -1307,38 +1307,40 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
                       {/* Timeline Progress Bar */}
                       {day.clockIn && segments ? (
-                        <div style={{ marginBottom: '12px' }}>
-                          {/* Progress Bar */}
+                        <div style={{ marginBottom: '16px' }}>
+                          {/* Progress Bar with improved styling */}
                           <div style={{
                             position: 'relative',
-                            height: '20px',
+                            height: '16px',
                             background: '#e5e7eb',
-                            borderRadius: '9999px',
-                            overflow: 'visible',
-                            marginBottom: '8px'
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            marginBottom: '12px',
+                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                           }}>
                             {segments.map((segment, idx) => (
                               <div
                                 key={idx}
                                 style={{
                                   position: 'absolute',
-                                  left: `calc(${segment.left}% + ${idx > 0 ? '2px' : '0px'})`,
-                                  width: `calc(${segment.width}% - ${idx > 0 ? '2px' : '0px'})`,
+                                  left: `${segment.left}%`,
+                                  width: `${segment.width}%`,
                                   height: '100%',
                                   background: segment.color,
-                                  borderRadius: '9999px',
+                                  borderRadius: idx === 0 ? '12px 0 0 12px' : idx === segments.length - 1 ? '0 12px 12px 0' : '0',
+                                  transition: 'all 0.5s ease-in-out',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   fontSize: '9px',
                                   color: 'white',
                                   fontWeight: '600',
-                                  transition: 'width 0.7s ease-in-out, left 0.7s ease-in-out',
-                                  boxShadow: 'inset 0 0 2px rgba(0, 0, 0, 0.15)'
+                                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+                                  marginLeft: idx > 0 ? '1px' : '0'
                                 }}
                                 title={segment.label}
                               >
-                                {segment.width > 10 && segment.label}
+                                {segment.width > 8 ? segment.label : ''}
                               </div>
                             ))}
                           </div>
@@ -1346,10 +1348,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                           {/* Time Labels Below Bar */}
                           <div style={{ 
                             position: 'relative', 
-                            height: '16px',
-                            marginBottom: '8px'
+                            height: '18px',
+                            marginBottom: '12px',
+                            borderTop: '1px solid #e5e7eb',
+                            paddingTop: '4px'
                           }}>
-                            {[9, 11, 13, 15, 17, 19, 21, 23].map((hour) => {
+                            {[5, 9, 13, 17, 21, 23].map((hour) => {
                               const position = ((hour - 5) / 18) * 100;
                               return (
                                 <div
@@ -1359,7 +1363,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                     left: `${position}%`,
                                     transform: 'translateX(-50%)',
                                     fontSize: '10px',
-                                    color: '#9ca3af'
+                                    color: '#6b7280',
+                                    fontWeight: '500'
                                   }}
                                 >
                                   {hour.toString().padStart(2, '0')}:00
@@ -1371,71 +1376,133 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                           {/* Legend */}
                           <div style={{ 
                             display: 'flex', 
-                            gap: '16px', 
+                            gap: '12px', 
                             fontSize: '11px',
                             color: '#6b7280',
-                            marginTop: '12px'
+                            marginBottom: '12px',
+                            flexWrap: 'wrap'
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#ff6b35', borderRadius: '2px' }}></div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ width: '10px', height: '10px', background: '#ff6b35', borderRadius: '2px' }}></div>
                               <span>Late</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#007bff', borderRadius: '2px' }}></div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ width: '10px', height: '10px', background: '#007bff', borderRadius: '2px' }}></div>
                               <span>Working</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#4ade80', borderRadius: '2px' }}></div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ width: '10px', height: '10px', background: '#4ade80', borderRadius: '2px' }}></div>
                               <span>Break</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '12px', height: '12px', background: '#f97316', borderRadius: '2px' }}></div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ width: '10px', height: '10px', background: '#f97316', borderRadius: '2px' }}></div>
                               <span>Overtime</span>
                             </div>
+                          </div>
+
+                          {/* Break Details Section */}
+                          {day.breaks && day.breaks.length > 0 && (
+                            <div style={{
+                              background: '#f0fdf4',
+                              border: '1px solid #bbf7d0',
+                              borderRadius: '8px',
+                              padding: '12px',
+                              marginBottom: '12px'
+                            }}>
+                              <div style={{ 
+                                fontSize: '12px', 
+                                fontWeight: '600', 
+                                color: '#166534',
+                                marginBottom: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}>
+                                <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Break Details
+                              </div>
+                              {day.breaks.map((breakItem, idx) => {
+                                const breakDuration = breakItem.duration || 0;
+                                const breakHours = Math.floor(breakDuration / 60);
+                                const breakMins = breakDuration % 60;
+                                return (
+                                  <div key={idx} style={{ 
+                                    fontSize: '11px', 
+                                    color: '#15803d',
+                                    marginBottom: idx < day.breaks.length - 1 ? '4px' : '0',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}>
+                                    <span>
+                                      Break {idx + 1}: {breakItem.startTime} - {breakItem.endTime}
+                                    </span>
+                                    <span style={{ fontWeight: '600' }}>
+                                      {breakHours > 0 ? `${breakHours}h ` : ''}{breakMins}m
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                              <div style={{
+                                marginTop: '8px',
+                                paddingTop: '8px',
+                                borderTop: '1px solid #bbf7d0',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                color: '#166534',
+                                display: 'flex',
+                                justifyContent: 'space-between'
+                              }}>
+                                <span>Total Break Time:</span>
+                                <span>
+                                  {(() => {
+                                    const totalBreakMins = day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
+                                    const hours = Math.floor(totalBreakMins / 60);
+                                    const mins = totalBreakMins % 60;
+                                    return `${hours > 0 ? `${hours}h ` : ''}${mins}m`;
+                                  })()}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Duration Display */}
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '12px',
+                            background: '#f9fafb',
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb'
+                          }}>
+                            <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>
+                              Total Working Duration:
+                            </span>
+                            <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
+                              {day.totalHours || '0h 0m'}
+                            </span>
                           </div>
                         </div>
                       ) : (
                         <div style={{
                           background: emptyColor,
-                          padding: '12px',
-                          borderRadius: '6px',
+                          padding: '16px',
+                          borderRadius: '8px',
                           textAlign: 'center',
                           color: emptyTextColor,
                           fontSize: '13px',
                           fontWeight: '500',
-                          marginBottom: '12px'
+                          marginBottom: '16px'
                         }}>
                           {emptyLabel}
                         </div>
                       )}
 
-                      {/* Footer Info */}
+                      {/* GPS Location - Moved outside timeline section */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', marginTop: '8px' }}>
-                        {/* Clock-in, Clock-out, Duration, Breaks */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', gap: '16px', color: '#6b7280' }}>
-                            {day.clockInTime && (
-                              <div>
-                                Clock-in: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockInTime}</span>
-                              </div>
-                            )}
-                            {day.clockOutTime && (
-                              <div>
-                                Clock-out: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockOutTime}</span>
-                              </div>
-                            )}
-                            {day.breaks && day.breaks.length > 0 && (
-                              <div>
-                                Breaks: <span style={{ fontWeight: '500', color: '#111827' }}>
-                                  {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>
-                            Duration: {day.totalHours || '0h 0m'}
-                          </div>
-                        </div>
                         
                         {/* GPS Location Display */}
                         {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude && (
