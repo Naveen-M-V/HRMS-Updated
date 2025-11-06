@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useClockStatus } from '../context/ClockStatusContext';
 import { getUserClockStatus } from '../utils/clockApi';
 import AdminClockInModal from './AdminClockInModal';
 
@@ -11,7 +10,6 @@ import AdminClockInModal from './AdminClockInModal';
 
 const AdminClockInWrapper = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
-  const { triggerClockRefresh } = useClockStatus();
   const [showClockInModal, setShowClockInModal] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
 
@@ -63,16 +61,6 @@ const AdminClockInWrapper = ({ children }) => {
     console.log('Admin clocked in:', data);
     localStorage.setItem('admin_clocked_in', 'true');
     localStorage.setItem('admin_clock_in_time', new Date().toISOString());
-    
-    // Trigger refresh in all dashboards for immediate update
-    triggerClockRefresh({
-      action: 'CLOCK_IN',
-      userId: user?.id || user?.email,
-      userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-      location: data?.timeEntry?.location || 'N/A',
-      workType: data?.timeEntry?.workType || 'Regular',
-      timestamp: Date.now()
-    });
   };
 
   const handleCloseModal = () => {
