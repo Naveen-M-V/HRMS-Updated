@@ -1308,100 +1308,86 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       {/* Timeline Progress Bar */}
                       {day.clockIn && segments ? (
                         <div style={{ marginBottom: '12px' }}>
-                          {/* Main Timeline Container with Time Labels Above */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            {/* Timeline Section */}
-                            <div style={{ flex: 1 }}>
-                              {/* Time Labels Above Bar */}
-                              <div style={{ 
-                                position: 'relative', 
-                                height: '20px', 
-                                marginBottom: '4px',
-                                display: 'flex',
-                                alignItems: 'flex-end'
-                              }}>
-                                {[9, 11, 13, 15, 17, 19, 21, 23].map((hour) => {
-                                  const position = ((hour - 5) / 18) * 100;
-                                  return (
-                                    <div
-                                      key={hour}
-                                      style={{
-                                        position: 'absolute',
-                                        left: `${position}%`,
-                                        transform: 'translateX(-50%)',
-                                        fontSize: '11px',
-                                        color: '#9ca3af',
-                                        fontWeight: '500'
-                                      }}
-                                    >
-                                      {hour.toString().padStart(2, '0')}:00
-                                    </div>
-                                  );
-                                })}
+                          {/* Progress Bar */}
+                          <div style={{
+                            position: 'relative',
+                            height: '24px',
+                            background: '#f3f4f6',
+                            borderRadius: '4px',
+                            overflow: 'hidden',
+                            marginBottom: '8px'
+                          }}>
+                            {segments.map((segment, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  position: 'absolute',
+                                  left: `${segment.left}%`,
+                                  width: `${segment.width}%`,
+                                  height: '100%',
+                                  background: segment.color,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '10px',
+                                  color: 'white',
+                                  fontWeight: '600'
+                                }}
+                                title={segment.label}
+                              >
+                                {segment.width > 8 && segment.label}
                               </div>
-                              
-                              {/* Progress Bar Container */}
-                              <div style={{
-                                position: 'relative',
-                                height: '40px',
-                                background: '#f3f4f6',
-                                borderRadius: '8px',
-                                overflow: 'hidden'
-                              }}>
-                                {/* Time Segments (Working, Break, Late, Overtime) */}
-                                {segments.map((segment, idx) => (
-                                  <div
-                                    key={idx}
-                                    style={{
-                                      position: 'absolute',
-                                      left: `${segment.left}%`,
-                                      width: `${segment.width}%`,
-                                      height: '100%',
-                                      background: segment.color,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontSize: '11px',
-                                      color: 'white',
-                                      fontWeight: '600'
-                                    }}
-                                    title={segment.label}
-                                  >
-                                    {segment.width > 8 && segment.type === 'working' && 'Working time'}
-                                    {segment.width > 8 && segment.type === 'break' && 'Break'}
-                                    {segment.width > 8 && segment.type === 'late' && 'Late'}
-                                    {segment.width > 8 && segment.type === 'overtime' && 'Overtime'}
-                                  </div>
-                                ))}
-                              </div>
+                            ))}
+                          </div>
+
+                          {/* Time Labels Below Bar */}
+                          <div style={{ 
+                            position: 'relative', 
+                            height: '16px',
+                            marginBottom: '8px'
+                          }}>
+                            {[9, 11, 13, 15, 17, 19, 21, 23].map((hour) => {
+                              const position = ((hour - 5) / 18) * 100;
+                              return (
+                                <div
+                                  key={hour}
+                                  style={{
+                                    position: 'absolute',
+                                    left: `${position}%`,
+                                    transform: 'translateX(-50%)',
+                                    fontSize: '10px',
+                                    color: '#9ca3af'
+                                  }}
+                                >
+                                  {hour.toString().padStart(2, '0')}:00
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Legend */}
+                          <div style={{ 
+                            display: 'flex', 
+                            gap: '16px', 
+                            fontSize: '11px',
+                            color: '#6b7280',
+                            marginTop: '12px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', background: '#10b981', borderRadius: '2px' }}></div>
+                              <span>Working</span>
                             </div>
-                            
-                            {/* Right Side Info */}
-                            <div style={{ 
-                              display: 'flex', 
-                              gap: '24px', 
-                              fontSize: '12px',
-                              color: '#6b7280',
-                              minWidth: '280px'
-                            }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <div style={{ fontWeight: '500', color: '#9ca3af', fontSize: '11px' }}>Clock-in</div>
-                                <div style={{ fontWeight: '600', color: '#111827', fontSize: '13px' }}>
-                                  {day.clockInTime || '--'}
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <div style={{ fontWeight: '500', color: '#9ca3af', fontSize: '11px' }}>Clock-out</div>
-                                <div style={{ fontWeight: '600', color: '#111827', fontSize: '13px' }}>
-                                  {day.clockOutTime || 'Present'}
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <div style={{ fontWeight: '500', color: '#9ca3af', fontSize: '11px' }}>Duration</div>
-                                <div style={{ fontWeight: '600', color: '#111827', fontSize: '13px' }}>
-                                  {day.totalHours || '0h 0m'}
-                                </div>
-                              </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', background: '#f59e0b', borderRadius: '2px' }}></div>
+                              <span>Break</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', background: '#ef4444', borderRadius: '2px' }}></div>
+                              <span>Late</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', background: '#8b5cf6', borderRadius: '2px' }}></div>
+                              <span>Overtime</span>
                             </div>
                           </div>
                         </div>
@@ -1421,17 +1407,32 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       )}
 
                       {/* Footer Info */}
-                      {(day.breaks && day.breaks.length > 0) || (day.gpsLocation && day.gpsLocation.latitude) ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', marginTop: '8px' }}>
-                          {day.breaks && day.breaks.length > 0 && (
-                            <div style={{ display: 'flex', gap: '16px', color: '#6b7280' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', marginTop: '8px' }}>
+                        {/* Clock-in, Clock-out, Duration, Breaks */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', gap: '16px', color: '#6b7280' }}>
+                            {day.clockInTime && (
+                              <div>
+                                Clock-in: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockInTime}</span>
+                              </div>
+                            )}
+                            {day.clockOutTime && (
+                              <div>
+                                Clock-out: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockOutTime}</span>
+                              </div>
+                            )}
+                            {day.breaks && day.breaks.length > 0 && (
                               <div>
                                 Breaks: <span style={{ fontWeight: '500', color: '#111827' }}>
                                   {day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0)} mins
                                 </span>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
+                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>
+                            Duration: {day.totalHours || '0h 0m'}
+                          </div>
+                        </div>
                         
                         {/* GPS Location Display */}
                         {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude && (
@@ -1480,8 +1481,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             </a>
                           </div>
                         )}
-                        </div>
-                      ) : null}
+                      </div>
                     </div>
                   );
                 })}

@@ -32,7 +32,7 @@ const ClockInOut = () => {
   const fetchClockStatus = async () => {
     try {
       const [statusRes, statsRes] = await Promise.all([
-        getClockStatus(),
+        getClockStatus({ includeAdmins: true }),
         getDashboardStats()
       ]);
       
