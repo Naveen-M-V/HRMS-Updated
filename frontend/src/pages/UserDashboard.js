@@ -117,57 +117,21 @@ const UserDashboard = () => {
     console.log('🎯 clockStatusLoading:', clockStatusLoading);
   }, [clockStatus, clockStatusLoading]);
 
-  // Validate authentication and restore session on page load
+  // Restore clock-in state from cookies on page load
   useEffect(() => {
-    const validateSession = async () => {
-      try {
-        const authToken = localStorage.getItem('auth_token');
-        const userSession = localStorage.getItem('user_session');
-        
-        // If no auth token or user session, redirect to landing
-        if (!authToken || !userSession) {
-          console.warn('⚠️ No authentication found, redirecting to landing...');
-          navigate('/landing');
-          return;
-        }
-        
-        // Validate token with backend
-        const response = await fetch(`${API_BASE_URL}/api/auth/validate-session`, {
-          credentials: 'include',
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-        
-        if (!response.ok) {
-          console.warn('⚠️ Session invalid, redirecting to landing...');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_session');
-          navigate('/landing');
-          return;
-        }
-        
-        console.log('✅ Session validated successfully');
-        
-        // Restore clock-in state from cookies
-        const savedClockStatus = Cookies.get('userClockedIn');
-        const savedLocation = Cookies.get('clockInLocation');
-        const savedWorkType = Cookies.get('clockInWorkType');
-        
-        if (savedClockStatus === 'true') {
-          console.log('🍪 Restoring clock-in state from cookies');
-          if (savedLocation) setLocation(savedLocation);
-          if (savedWorkType) setWorkType(savedWorkType);
-          fetchClockStatus();
-        }
-      } catch (error) {
-        console.error('❌ Session validation error:', error);
-        // Don't redirect on network errors, allow offline usage
+    // Only restore state if user is already authenticated (AuthContext handles validation)
+    if (user?.email) {
+      const savedClockStatus = Cookies.get('userClockedIn');
+      const savedLocation = Cookies.get('clockInLocation');
+      const savedWorkType = Cookies.get('clockInWorkType');
+      
+      if (savedClockStatus === 'true') {
+        console.log('🍪 Restoring clock-in state from cookies');
+        if (savedLocation) setLocation(savedLocation);
+        if (savedWorkType) setWorkType(savedWorkType);
       }
-    };
-    
-    validateSession();
-  }, [navigate, API_BASE_URL]);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user?.email) {

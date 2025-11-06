@@ -54,7 +54,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const fetchTotalEmployees = async () => {
     try {
       const response = await axios.get(
-        buildApiUrl('/employees/count'),
+        buildApiUrl('/clock/employees/count'),
         { 
           withCredentials: true,
           headers: {
@@ -64,9 +64,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       );
       if (response.data.success) {
         setTotalEmployees(response.data.total || 0);
+        console.log('✅ Total employees fetched:', response.data.total);
       }
     } catch (error) {
-      console.error('Error fetching employee count:', error);
+      console.error('❌ Error fetching employee count:', error);
       setTotalEmployees(0);
     }
   };
