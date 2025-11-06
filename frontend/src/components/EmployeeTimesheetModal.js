@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   XMarkIcon, 
   ChevronLeftIcon, 
-  ChevronRightIcon, 
-  PrinterIcon,
-  EllipsisVerticalIcon,
+  ChevronRightIcon,
   PencilIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '../utils/apiConfig';
 import MUIDatePicker from './MUIDatePicker';
 import MUITimePicker from './MUITimePicker';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import dayjs from 'dayjs';
 import moment from 'moment-timezone';
-import axios from 'axios';
 import { updateTimeEntry, deleteTimeEntry, addTimeEntry } from '../utils/clockApi';
 import { toast } from 'react-toastify';
 
@@ -42,6 +41,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [currentEmployeeIndex, setCurrentEmployeeIndex] = useState(1);
   const [employeeProfile, setEmployeeProfile] = useState(null);
+  const [timelineRefresh, setTimelineRefresh] = useState(0);
 
   useEffect(() => {
     if (employee) {
@@ -51,6 +51,15 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       fetchTotalEmployees();
     }
   }, [employee, currentDate]);
+
+  // Update timeline every minute for progressive animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimelineRefresh(prev => prev + 1);
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch employee profile data (includes mobile number)
   const fetchEmployeeProfile = async () => {
@@ -1307,43 +1316,83 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
                       {/* Timeline Progress Bar */}
                       {day.clockIn && segments ? (
-                        <div style={{ marginBottom: '16px' }}>
-                          {/* Progress Bar with improved styling */}
-                          <div style={{
-                            position: 'relative',
-                            height: '16px',
-                            background: '#e5e7eb',
-                            borderRadius: '12px',
-                            overflow: 'hidden',
-                            marginBottom: '12px',
-                            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                          }}>
-                            {segments.map((segment, idx) => (
-                              <div
-                                key={idx}
-                                style={{
-                                  position: 'absolute',
-                                  left: `${segment.left}%`,
-                                  width: `${segment.width}%`,
-                                  height: '100%',
-                                  background: segment.color,
-                                  borderRadius: idx === 0 ? '12px 0 0 12px' : idx === segments.length - 1 ? '0 12px 12px 0' : '0',
-                                  transition: 'all 0.5s ease-in-out',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '9px',
-                                  color: 'white',
-                                  fontWeight: '600',
-                                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
-                                  marginLeft: idx > 0 ? '1px' : '0'
-                                }}
-                                title={segment.label}
-                              >
-                                {segment.width > 8 ? segment.label : ''}
-                              </div>
-                            ))}
-                          </div>
+                        <TooltipProvider>
+                          <div style={{ marginBottom: '16px' }}>
+                            {/* Progress Bar with progressive animation */}
+                            <div style={{
+                              position: 'relative',
+                              height: '16px',
+                              background: '#e5e7eb',
+                              borderRadius: '3px',
+                              overflow: 'hidden',
+                              marginBottom: '12px',
+                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                            }}>
+                              {segments.map((segment, idx) => {
+                                // Calculate progressive width based on current time
+                                const now = new Date();
+                                const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                                const parseTime = (timeStr) => {
+                                  if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
+                                  const [hours, minutes] = timeStr.split(':').map(Number);
+                                  return hours * 60 + minutes;
+                                };
+                                
+                                const clockInMinutes = parseTime(day.clockInTime);
+                                const clockOutMinutes = day.clockOutTime && day.clockOutTime !== 'Present' ? parseTime(day.clockOutTime) : null;
+                                const isToday = day.isToday;
+                                
+                                // Calculate segment start and end in minutes
+                                const workDayStart = 5 * 60;
+                                const totalMinutes = 18 * 60;
+                                const segmentStartMinutes = workDayStart + (segment.left / 100) * totalMinutes;
+                                const segmentEndMinutes = segmentStartMinutes + (segment.width / 100) * totalMinutes;
+                                
+                                let displayWidth = segment.width;
+                                
+                                // If today and not clocked out, animate to current time
+                                if (isToday && !clockOutMinutes) {
+                                  if (currentMinutes < segmentStartMinutes) {
+                                    displayWidth = 0;
+                                  } else if (currentMinutes < segmentEndMinutes) {
+                                    const progressMinutes = currentMinutes - segmentStartMinutes;
+                                    const segmentTotalMinutes = segmentEndMinutes - segmentStartMinutes;
+                                    displayWidth = (progressMinutes / segmentTotalMinutes) * segment.width;
+                                  }
+                                }
+                                
+                                return (
+                                  <Tooltip key={idx}>
+                                    <TooltipTrigger asChild>
+                                      <div
+                                        style={{
+                                          position: 'absolute',
+                                          left: `${segment.left}%`,
+                                          width: `${displayWidth}%`,
+                                          height: '100%',
+                                          background: segment.color,
+                                          borderRadius: idx === 0 ? '3px 0 0 3px' : idx === segments.length - 1 ? '0 3px 3px 0' : '0',
+                                          transition: 'width 1s linear',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: '9px',
+                                          color: 'white',
+                                          fontWeight: '600',
+                                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+                                          marginLeft: idx > 0 ? '1px' : '0'
+                                        }}
+                                      >
+                                        {displayWidth > 8 ? segment.label : ''}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{segment.label}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                );
+                              })}
+                            </div>
 
                           {/* Time Labels Below Bar */}
                           <div style={{ 
@@ -1353,7 +1402,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             borderTop: '1px solid #e5e7eb',
                             paddingTop: '4px'
                           }}>
-                            {[5, 9, 13, 17, 21, 23].map((hour) => {
+                            {[5, 7, 9, 11, 13, 15, 17, 19, 21, 23].map((hour) => {
                               const position = ((hour - 5) / 18) * 100;
                               return (
                                 <div
@@ -1486,6 +1535,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             </span>
                           </div>
                         </div>
+                        </TooltipProvider>
                       ) : (
                         <div style={{
                           background: emptyColor,
