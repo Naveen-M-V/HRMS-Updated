@@ -755,13 +755,36 @@ const ClockIns = () => {
     });
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, employee) => {
+    // Determine if we should show 'None' instead of 'Absent'
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // If status is absent, check if it's a future date or if shift hasn't ended yet
+    let displayStatus = status;
+    if (status === 'absent' || !status) {
+      // For absent status, we need to determine if it should be 'None' or 'Absent'
+      // Show 'None' if: no shift assigned yet OR current time hasn't reached end of day
+      const now = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // If current time hasn't reached end of day, show 'None'
+      // Once end of day is reached, show 'Absent'
+      if (now < endOfDay) {
+        displayStatus = 'none';
+      } else {
+        displayStatus = 'absent';
+      }
+    }
+    
     const styles = {
       clocked_in: { color: '#10b981' },
       clocked_out: { color: '#3b82f6' },
       on_break: { color: '#f59e0b' },
       absent: { color: '#ef4444' },
-      on_leave: { color: '#8b5cf6' }
+      on_leave: { color: '#8b5cf6' },
+      none: { color: '#9ca3af' }
     };
 
     const labels = {
@@ -769,16 +792,17 @@ const ClockIns = () => {
       clocked_out: 'Clocked Out',
       on_break: 'On Break',
       absent: 'Absent',
-      on_leave: 'On Leave'
+      on_leave: 'On Leave',
+      none: 'None'
     };
 
     return (
       <span style={{
-        ...styles[status] || styles.absent,
+        ...styles[displayStatus] || styles.none,
         fontSize: '13px',
         fontWeight: '500'
       }}>
-        {labels[status] || 'Unknown'}
+        {labels[displayStatus] || 'Unknown'}
       </span>
     );
   };
@@ -1319,7 +1343,7 @@ const ClockIns = () => {
                       {employee.jobTitle || '-'}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      {getStatusBadge(employee.status || 'absent')}
+                      {getStatusBadge(employee.status || 'absent', employee)}
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>

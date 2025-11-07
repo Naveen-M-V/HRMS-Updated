@@ -43,6 +43,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [currentEmployeeIndex, setCurrentEmployeeIndex] = useState(1);
   const [employeeProfile, setEmployeeProfile] = useState(null);
   const [timelineRefresh, setTimelineRefresh] = useState(0);
+  const [currentClockStatus, setCurrentClockStatus] = useState(null);
 
   useEffect(() => {
     if (employee) {
@@ -50,6 +51,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       fetchEmployeeProfile();
       fetchWeeklyTimesheet();
       fetchTotalEmployees();
+      fetchCurrentClockStatus();
     }
   }, [employee, currentDate]);
 
@@ -107,6 +109,83 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     } catch (error) {
       console.error('❌ Error fetching employee count:', error);
       setTotalEmployees(0);
+    }
+  };
+
+  // Fetch current clock status
+  const fetchCurrentClockStatus = async () => {
+    try {
+      const employeeId = employee._id || employee.id;
+      const { getClockStatus } = await import('../utils/clockApi');
+      const response = await getClockStatus({ includeAdmins: true });
+      
+      if (response.success && response.data) {
+        const empStatus = response.data.find(e => (e.id || e._id) === employeeId);
+        setCurrentClockStatus(empStatus || null);
+        console.log('✅ Current clock status:', empStatus);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching clock status:', error);
+    }
+  };
+
+  // Clock In handler
+  const handleClockIn = async () => {
+    try {
+      const employeeId = employee._id || employee.id;
+      const { clockIn } = await import('../utils/clockApi');
+      const response = await clockIn({ employeeId });
+      
+      if (response.success) {
+        toast.success('Clocked in successfully');
+        fetchCurrentClockStatus();
+        fetchWeeklyTimesheet();
+      } else {
+        toast.error(response.message || 'Failed to clock in');
+      }
+    } catch (error) {
+      console.error('❌ Clock in error:', error);
+      toast.error(error.response?.data?.message || 'Failed to clock in');
+    }
+  };
+
+  // Clock Out handler
+  const handleClockOut = async () => {
+    try {
+      const employeeId = employee._id || employee.id;
+      const { clockOut } = await import('../utils/clockApi');
+      const response = await clockOut(employeeId);
+      
+      if (response.success) {
+        toast.success('Clocked out successfully');
+        fetchCurrentClockStatus();
+        fetchWeeklyTimesheet();
+      } else {
+        toast.error(response.message || 'Failed to clock out');
+      }
+    } catch (error) {
+      console.error('❌ Clock out error:', error);
+      toast.error(error.response?.data?.message || 'Failed to clock out');
+    }
+  };
+
+  // Start Break handler
+  const handleStartBreak = async () => {
+    try {
+      const employeeId = employee._id || employee.id;
+      const { setOnBreak } = await import('../utils/clockApi');
+      const response = await setOnBreak(employeeId);
+      
+      if (response.success) {
+        toast.success('Break started');
+        fetchCurrentClockStatus();
+        fetchWeeklyTimesheet();
+      } else {
+        toast.error(response.message || 'Failed to start break');
+      }
+    } catch (error) {
+      console.error('❌ Start break error:', error);
+      toast.error(error.response?.data?.message || 'Failed to start break');
     }
   };
 
@@ -1001,9 +1080,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               color: '#374151',
               overflow: 'hidden'
             }}>
-              {employee.profilePicture ? (
+              {(employeeProfile?.profilePicture || employee.profilePicture) ? (
                 <img 
-                  src={buildApiUrl(employee.profilePicture.startsWith('/') ? employee.profilePicture : `/uploads/${employee.profilePicture}`)} 
+                  src={buildApiUrl((employeeProfile?.profilePicture || employee.profilePicture).startsWith('/') ? (employeeProfile?.profilePicture || employee.profilePicture) : `/uploads/${employeeProfile?.profilePicture || employee.profilePicture}`)} 
                   alt="" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
@@ -1021,13 +1100,196 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               </h2>
               <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#6b7280' }}>
                 <div><span style={{ fontWeight: '500' }}>Role:</span> {employee.jobTitle || employee.jobRole || 'Employee'}</div>
-                <div><span style={{ fontWeight: '500' }}>Employee ID:</span> #{employee._id?.slice(-6) || 'N/A'}</div>
+                <div><span style={{ fontWeight: '500' }}>VTID:</span> {employeeProfile?.vtid || employee.vtid || 'N/A'}</div>
                 <div>
-                  <span style={{ fontWeight: '500' }}>Mobile:</span> {employeeProfile?.mobileNumber || employee.phone || employee.mobileNumber || 'N/A'}
+                  <span style={{ fontWeight: '500' }}>Mobile:</span> {employeeProfile?.mobileNumber || employeeProfile?.phone || employee.phone || employee.mobileNumber || 'N/A'}
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Clock In/Out/Break Buttons */}
+        <div style={{
+          padding: '16px 24px',
+          borderBottom: '1px solid #e5e7eb',
+          background: '#f9fafb',
+          display: 'flex',
+          gap: '12px',
+          alignItems: 'center'
+        }}>
+          {currentClockStatus?.status === 'clocked_in' ? (
+            <>
+              <button
+                onClick={handleStartBreak}
+                style={{
+                  padding: '10px 20px',
+                  background: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+                }}
+              >
+                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Start Break
+              </button>
+              <button
+                onClick={handleClockOut}
+                style={{
+                  padding: '10px 20px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Clock Out
+              </button>
+              <div style={{
+                padding: '8px 16px',
+                background: '#d1fae5',
+                color: '#065f46',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', display: 'inline-block' }}></span>
+                Clocked In
+              </div>
+            </>
+          ) : currentClockStatus?.status === 'on_break' ? (
+            <>
+              <button
+                onClick={async () => {
+                  try {
+                    const { endBreak } = await import('../utils/clockApi');
+                    const employeeId = employee._id || employee.id;
+                    const response = await endBreak(employeeId);
+                    if (response.success) {
+                      toast.success('Break ended, work resumed');
+                      fetchCurrentClockStatus();
+                      fetchWeeklyTimesheet();
+                    }
+                  } catch (error) {
+                    toast.error('Failed to end break');
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                Resume Work
+              </button>
+              <button
+                onClick={handleClockOut}
+                style={{
+                  padding: '10px 20px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Clock Out
+              </button>
+              <div style={{
+                padding: '8px 16px',
+                background: '#fef3c7',
+                color: '#92400e',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ width: '8px', height: '8px', background: '#f59e0b', borderRadius: '50%', display: 'inline-block' }}></span>
+                On Break
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleClockIn}
+                style={{
+                  padding: '10px 20px',
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Clock In
+              </button>
+              <div style={{
+                padding: '8px 16px',
+                background: '#fee2e2',
+                color: '#991b1b',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span style={{ width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%', display: 'inline-block' }}></span>
+                Clocked Out
+              </div>
+            </>
+          )}
         </div>
 
         {/* Month Navigation */}

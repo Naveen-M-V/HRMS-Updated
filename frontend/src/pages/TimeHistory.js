@@ -156,12 +156,13 @@ const TimeHistory = () => {
   };
 
   const handleSelectEntry = (entryId) => {
+    console.log('🔘 Selecting entry:', entryId);
     setSelectedEntries(prev => {
-      if (prev.includes(entryId)) {
-        return prev.filter(id => id !== entryId);
-      } else {
-        return [...prev, entryId];
-      }
+      const newSelection = prev.includes(entryId) 
+        ? prev.filter(id => id !== entryId)
+        : [...prev, entryId];
+      console.log('📋 Updated selection:', newSelection);
+      return newSelection;
     });
   };
 
@@ -174,13 +175,21 @@ const TimeHistory = () => {
   };
 
   const handleEditSelected = () => {
+    console.log('✏️ Edit button clicked');
+    console.log('📋 Selected entries:', selectedEntries);
+    console.log('📊 Total entries:', timeEntries.length);
+    
     if (selectedEntries.length !== 1) {
+      console.warn('⚠️ Invalid selection count:', selectedEntries.length);
       toast.warning('Please select exactly one entry to edit');
       return;
     }
 
     const entryToEdit = timeEntries.find(entry => entry._id === selectedEntries[0]);
+    console.log('🔍 Entry to edit:', entryToEdit);
+    
     if (!entryToEdit) {
+      console.error('❌ Entry not found');
       toast.error('Entry not found');
       return;
     }
@@ -193,6 +202,7 @@ const TimeHistory = () => {
       workType: entryToEdit.workType || 'Regular',
       breaks: entryToEdit.breaks || []
     });
+    console.log('✅ Opening edit modal');
     setShowEditModal(true);
   };
 
@@ -494,11 +504,15 @@ const TimeHistory = () => {
               {filteredEntries.length > 0 ? (
                 filteredEntries.map((entry, index) => (
                   <tr key={entry._id || index} style={{ borderBottom: '1px solid #f3f4f6', background: selectedEntries.includes(entry._id) ? '#f0f9ff' : 'transparent' }}>
-                    <td style={{ padding: '12px 16px' }}>
+                    <td style={{ padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox" 
                         checked={selectedEntries.includes(entry._id)}
-                        onChange={() => handleSelectEntry(entry._id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectEntry(entry._id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                         style={{ cursor: 'pointer', width: '16px', height: '16px' }}
                       />
                     </td>
