@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
 import UserClockIns from './UserClockIns';
@@ -27,17 +27,23 @@ const UserDashboard = () => {
   const { user, logout } = useAuth();
   const { triggerClockRefresh } = useClockStatus();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Get initial tab from URL or default to 'overview'
+  const initialTab = searchParams.get('tab') || 'overview';
+  
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedProfile, setEditedProfile] = useState({});
   
   const [clockStatus, setClockStatus] = useState(null);
   const [clockStatusLoading, setClockStatusLoading] = useState(true);
-  const [location, setLocation] = useState('Work From Office');
+  const [workLocation, setWorkLocation] = useState('Work From Office');
   const [workType, setWorkType] = useState('Regular');
   const [processing, setProcessing] = useState(false);
   const [shiftInfo, setShiftInfo] = useState(null);
@@ -50,6 +56,20 @@ const UserDashboard = () => {
   const [gpsError, setGpsError] = useState(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+
+  // Handle tab change and update URL
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // Sync activeTab with URL on mount and when URL changes
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   const fetchUserData = useCallback(async (showLoading = true) => {
     try {
@@ -217,7 +237,7 @@ const UserDashboard = () => {
 
 
   const handleClockIn = async () => {
-    if (!location) {
+    if (!workLocation) {
       toast.warning('Please select a location');
       return;
     }
@@ -368,7 +388,7 @@ const UserDashboard = () => {
       
       // Send clock-in request with GPS data
       const response = await userClockIn({ 
-        location, 
+        location: workLocation, 
         workType,
         ...gpsData // Spread GPS coordinates (latitude, longitude, accuracy)
       });
@@ -379,7 +399,7 @@ const UserDashboard = () => {
         // Set cookie to persist clock-in state (expires in 1 day)
         Cookies.set('userClockedIn', 'true', { expires: 1 });
         Cookies.set('clockInTime', new Date().toISOString(), { expires: 1 });
-        Cookies.set('clockInLocation', location, { expires: 1 });
+        Cookies.set('clockInLocation', workLocation, { expires: 1 });
         Cookies.set('clockInWorkType', workType, { expires: 1 });
         
         if (response.data) {
@@ -395,7 +415,7 @@ const UserDashboard = () => {
           action: 'CLOCK_IN',
           userId: user?.id || user?.email,
           userName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-          location: location,
+          location: workLocation,
           workType: workType,
           timestamp: Date.now()
         });
@@ -687,7 +707,7 @@ const UserDashboard = () => {
       {/* Modern Navigation */}
       <UserNavigation
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         notifications={notifications}
         onLogout={handleLogout}
         user={user}

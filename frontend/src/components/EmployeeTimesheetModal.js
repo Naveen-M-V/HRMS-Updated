@@ -40,7 +40,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     clockOut: null,
     location: 'Work From Office',
     workType: 'Regular',
-    breaks: []
+    breaks: [],
+    sessionIndex: 0,
+    entryId: null
   });
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
@@ -904,9 +906,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       };
 
       let response;
+      const entryIdToUpdate = editForm.entryId || editingEntry.entryId;
       
       // Check if this is an absent entry (no existing time entry)
-      if (editingEntry.isAbsent || !editingEntry.entryId || editingEntry.entryId.startsWith('absent-')) {
+      if (editingEntry.isAbsent || !entryIdToUpdate || entryIdToUpdate.startsWith('absent-')) {
         // Create new time entry
         const newEntryData = {
           ...timeData,
@@ -919,12 +922,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           toast.success('Time entry created successfully');
         }
       } else {
-        // Update existing time entry
-        console.log('Updating time entry:', editingEntry.entryId, timeData);
-        response = await updateTimeEntry(editingEntry.entryId, timeData);
+        // Update existing time entry - use the specific session's entryId
+        console.log('Updating time entry:', entryIdToUpdate, timeData);
+        response = await updateTimeEntry(entryIdToUpdate, timeData);
         
         if (response.success) {
-          toast.success('Time entry updated successfully');
+          toast.success(`Session ${editForm.sessionIndex + 1} updated successfully`);
         }
       }
       
@@ -1612,13 +1615,17 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                 <button
                                   onClick={() => {
                                     setEditingEntry(day);
+                                    // For entries with multiple sessions, default to first session
+                                    const firstSession = day.sessions && day.sessions.length > 0 ? day.sessions[0] : null;
                                     setEditForm({
                                       date: day.date ? dayjs(day.date) : dayjs(),
-                                      clockIn: day.clockInTime ? dayjs(`2000-01-01 ${day.clockInTime}`) : dayjs().hour(9).minute(0),
-                                      clockOut: day.clockOutTime && day.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${day.clockOutTime}`) : null,
-                                      location: day.location || 'Work From Office',
-                                      workType: day.workType || 'Regular',
-                                      breaks: day.breaks || []
+                                      clockIn: firstSession ? dayjs(`2000-01-01 ${firstSession.clockInTime}`) : (day.clockInTime ? dayjs(`2000-01-01 ${day.clockInTime}`) : dayjs().hour(9).minute(0)),
+                                      clockOut: firstSession ? (firstSession.clockOutTime && firstSession.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${firstSession.clockOutTime}`) : null) : (day.clockOutTime && day.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${day.clockOutTime}`) : null),
+                                      location: firstSession ? (firstSession.location || 'Work From Office') : (day.location || 'Work From Office'),
+                                      workType: firstSession ? (firstSession.workType || 'Regular') : (day.workType || 'Regular'),
+                                      breaks: firstSession ? (firstSession.breaks || []) : (day.breaks || []),
+                                      sessionIndex: 0,
+                                      entryId: firstSession ? firstSession.entryId : day.entryId
                                     });
                                     setShowEditModal(true);
                                     setOpenMenuIndex(null);
@@ -2006,6 +2013,66 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
+              {/* Session Selector - Only show if there are multiple sessions */}
+              {editingEntry.sessions && editingEntry.sessions.length > 1 && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Select Session to Edit
+                  </label>
+                  <select
+                    value={editForm.sessionIndex}
+                    onChange={(e) => {
+                      const selectedIndex = parseInt(e.target.value);
+                      const selectedSession = editingEntry.sessions[selectedIndex];
+                      setEditForm({
+                        ...editForm,
+                        sessionIndex: selectedIndex,
+                        clockIn: dayjs(`2000-01-01 ${selectedSession.clockInTime}`),
+                        clockOut: selectedSession.clockOutTime && selectedSession.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${selectedSession.clockOutTime}`) : null,
+                        location: selectedSession.location || 'Work From Office',
+                        workType: selectedSession.workType || 'Regular',
+                        breaks: selectedSession.breaks || [],
+                        entryId: selectedSession.entryId
+                      });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '2px solid #3b82f6',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      color: '#111827',
+                      background: '#eff6ff',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      fontWeight: '500'
+                    }}
+                  >
+                    {editingEntry.sessions.map((session, idx) => (
+                      <option key={idx} value={idx}>
+                        Session {idx + 1}: {session.clockInTime} - {session.clockOutTime || 'Present'}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ 
+                    marginTop: '8px', 
+                    padding: '8px 12px', 
+                    background: '#fef3c7', 
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: '#92400e',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <svg style={{ width: '14px', height: '14px', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>You are editing Session {editForm.sessionIndex + 1} of {editingEntry.sessions.length}</span>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   Date
