@@ -191,6 +191,7 @@ const ClockIns = () => {
             email: email,
             department: profile.department || '-',
             vtid: profile.vtid || '-',
+            mobile: profile.mobile || null, // Mobile number for timesheet modal
             jobTitle: profile.jobTitle || profile.role || '-',
             jobRole: profile.jobTitle || profile.role || '-',
             profilePicture: profile.profilePicture || null,

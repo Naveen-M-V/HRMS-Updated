@@ -81,11 +81,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   // Fetch employee profile data (includes mobile number)
   const fetchEmployeeProfile = async () => {
     try {
-      const employeeId = employee._id || employee.id;
-      console.log('📱 Fetching profile for employee ID:', employeeId);
+      // Use profileId if available, otherwise fall back to _id or id
+      const profileId = employee.profileId || employee._id || employee.id;
+      console.log('📱 Fetching profile for profile ID:', profileId);
       
       const response = await axios.get(
-        buildApiUrl(`/profiles/${employeeId}`),
+        buildApiUrl(`/profiles/${profileId}`),
         { 
           withCredentials: true,
           headers: {
