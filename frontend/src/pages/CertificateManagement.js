@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
 import { useAlert } from "../components/AlertNotification";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { 
   AcademicCapIcon, 
   PlusIcon, 
@@ -28,6 +29,7 @@ export default function CertificateManagement() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, certificateId: null, certificateName: '' });
   const [selectedProvider, setSelectedProvider] = useState("");
   const [viewMode, setViewMode] = useState('table'); // 'grid' or 'table'
   const [showFilters, setShowFilters] = useState(false);
@@ -137,15 +139,17 @@ export default function CertificateManagement() {
     }
   };
 
-  const handleDeleteCertificate = async (certificateId, certificateName) => {
-    if (window.confirm(`Are you sure you want to delete "${certificateName}"? This action cannot be undone.`)) {
-      try {
-        await deleteCertificate(certificateId);
-      } catch (err) {
-        console.error('Failed to delete certificate:', err);
-        error('Failed to delete certificate. Please try again.');
-      }
+  const handleDeleteCertificate = async () => {
+    try {
+      await deleteCertificate(deleteDialog.certificateId);
+    } catch (err) {
+      console.error('Failed to delete certificate:', err);
+      error('Failed to delete certificate. Please try again.');
     }
+  };
+
+  const openDeleteDialog = (certificateId, certificateName) => {
+    setDeleteDialog({ open: true, certificateId, certificateName });
   };
 
   const clearFilters = () => {
@@ -415,7 +419,7 @@ export default function CertificateManagement() {
                         Edit
                       </Link>
                       <button
-                        onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.certificate)}
+                        onClick={() => openDeleteDialog(cert.id || cert._id, cert.certificate)}
                         className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded ml-auto"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -488,7 +492,7 @@ export default function CertificateManagement() {
                             <PencilIcon className="h-4 w-4" />
                           </Link>
                           <button
-                            onClick={() => handleDeleteCertificate(cert.id || cert._id, cert.certificate)}
+                            onClick={() => openDeleteDialog(cert.id || cert._id, cert.certificate)}
                             className="text-red-600 hover:text-red-800"
                             title="Delete Certificate"
                           >
@@ -503,6 +507,18 @@ export default function CertificateManagement() {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          open={deleteDialog.open}
+          onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
+          title="Delete Certificate"
+          description={`Are you sure you want to delete "${deleteDialog.certificateName}"? This action cannot be undone.`}
+          onConfirm={handleDeleteCertificate}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="destructive"
+        />
       </div>
     </div>
   );

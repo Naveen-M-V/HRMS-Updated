@@ -16,6 +16,7 @@ import { buildApiUrl } from '../utils/apiConfig';
 import LoadingScreen from '../components/LoadingScreen';
 import MUIDatePicker from '../components/MUIDatePicker';
 import MUITimePicker from '../components/MUITimePicker';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const RotaShiftManagement = () => {
   const [shifts, setShifts] = useState([]);
@@ -24,6 +25,8 @@ const RotaShiftManagement = () => {
   const [statistics, setStatistics] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [shiftToDelete, setShiftToDelete] = useState(null);
   const [filters, setFilters] = useState({
     startDate: getMonday(new Date()).toISOString().split('T')[0],
     endDate: getFriday(new Date()).toISOString().split('T')[0],
@@ -273,12 +276,10 @@ const RotaShiftManagement = () => {
     }
   };
 
-  const handleDeleteShift = async (shiftId) => {
-    if (!window.confirm('Are you sure you want to delete this shift?')) return;
-
+  const handleDeleteShift = async () => {
     setLoading(true);
     try {
-      const response = await deleteShiftAssignment(shiftId);
+      const response = await deleteShiftAssignment(shiftToDelete);
       if (response.success) {
         toast.success('Shift deleted successfully');
         fetchData();
@@ -674,7 +675,7 @@ const RotaShiftManagement = () => {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <button
-                          onClick={() => handleDeleteShift(shift._id)}
+                          onClick={() => { setShiftToDelete(shift._id); setShowDeleteDialog(true); }}
                           style={{
                             padding: '6px 12px',
                             borderRadius: '6px',
@@ -897,6 +898,18 @@ const RotaShiftManagement = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Shift Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Shift"
+        description="Are you sure you want to delete this shift? This action cannot be undone."
+        onConfirm={handleDeleteShift}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </>
   );
 };

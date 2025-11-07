@@ -7,6 +7,13 @@ import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
 import { useAlert } from "../components/AlertNotification";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 
 export default function EditProfile() {
@@ -386,18 +393,20 @@ export default function EditProfile() {
               </div>
               <div>
                 <label className="block text-sm text-gray-600">Gender</label>
-                <select
-                  name="gender"
+                <Select
                   value={formData.gender}
-                  onChange={handleChange}
-                  className="mt-1 w-full border rounded px-3 py-2"
+                  onValueChange={(value) => handleChange({ target: { name: 'gender', value } })}
                 >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue placeholder="Select Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -430,19 +439,21 @@ export default function EditProfile() {
             {/* Preferred Language */}
             <div className="mb-4">
               <label className="block text-sm text-gray-600">Preferred Language</label>
-              <select
-                name="language"
+              <Select
                 value={formData.language}
-                onChange={handleChange}
-                className="mt-1 w-full border rounded px-3 py-2"
+                onValueChange={(value) => handleChange({ target: { name: 'language', value } })}
               >
-                <option value="">Select an Option</option>
-                <option value="English">English</option>
-                <option value="Spanish">Spanish</option>
-                <option value="French">French</option>
-                <option value="German">German</option>
-                <option value="Polish">Polish</option>
-              </select>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="Select an Option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="Spanish">Spanish</SelectItem>
+                  <SelectItem value="French">French</SelectItem>
+                  <SelectItem value="German">German</SelectItem>
+                  <SelectItem value="Polish">Polish</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -464,18 +475,20 @@ export default function EditProfile() {
               </div>
               <div>
                 <label className="block text-sm text-gray-600">Staff Type</label>
-                <select
-                  name="staffType"
+                <Select
                   value={formData.staffType}
-                  onChange={handleChange}
-                  className="mt-1 w-full border rounded px-3 py-2"
+                  onValueChange={(value) => handleChange({ target: { name: 'staffType', value } })}
                 >
-                  <option value="">Select Staff Type</option>
-                  <option value="Direct">Direct</option>
-                  <option value="Contractor">Contractor</option>
-                  <option value="Agency">Agency</option>
-                  <option value="Team">Team</option>
-                </select>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue placeholder="Select Staff Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Direct">Direct</SelectItem>
+                    <SelectItem value="Contractor">Contractor</SelectItem>
+                    <SelectItem value="Agency">Agency</SelectItem>
+                    <SelectItem value="Team">Team</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -547,18 +560,20 @@ export default function EditProfile() {
             {/* Status */}
             <div className="mb-4">
               <label className="block text-sm text-gray-600">Status</label>
-              <select
-                name="status"
+              <Select
                 value={formData.status}
-                onChange={handleChange}
-                className="mt-1 w-full border rounded px-3 py-2"
+                onValueChange={(value) => handleChange({ target: { name: 'status', value } })}
               >
-                <option value="">Select Status</option>
-                <option value="Onboarded">Onboarded</option>
-                <option value="Onboarding">Onboarding</option>
-                <option value="Dropped Out">Dropped Out</option>
-                <option value="Left">Left</option>
-              </select>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="Select Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Onboarded">Onboarded</SelectItem>
+                  <SelectItem value="Onboarding">Onboarding</SelectItem>
+                  <SelectItem value="Dropped Out">Dropped Out</SelectItem>
+                  <SelectItem value="Left">Left</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* POC */}
@@ -703,20 +718,23 @@ export default function EditProfile() {
             {/* Country */}
             <div className="mb-4">
               <label className="block text-sm text-gray-600">Country</label>
-              <select
-                name="country"
+              <Select
                 value={formData.country}
-                onChange={handleChange}
-                className="mt-1 w-full border rounded px-3 py-2"
+                onValueChange={(value) => handleChange({ target: { name: 'country', value } })}
               >
-                <option value="">Poland</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="United States">United States</option>
-                <option value="Germany">Germany</option>
-                <option value="France">France</option>
-                <option value="Spain">Spain</option>
-                <option value="Other">Other</option>
-              </select>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="Select Country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Poland">Poland</SelectItem>
+                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="Germany">Germany</SelectItem>
+                  <SelectItem value="France">France</SelectItem>
+                  <SelectItem value="Spain">Spain</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -739,20 +757,22 @@ export default function EditProfile() {
               </div>
               <div>
                 <label className="block text-sm text-gray-600">Relationship</label>
-                <select
-                  name="emergencyRelationship"
+                <Select
                   value={formData.emergencyRelationship}
-                  onChange={handleChange}
-                  className="mt-1 w-full border rounded px-3 py-2"
+                  onValueChange={(value) => handleChange({ target: { name: 'emergencyRelationship', value } })}
                 >
-                  <option value="">Select Relationship</option>
-                  <option value="Spouse">Spouse</option>
-                  <option value="Parent">Parent</option>
-                  <option value="Child">Child</option>
-                  <option value="Sibling">Sibling</option>
-                  <option value="Friend">Friend</option>
-                  <option value="Other">Other</option>
-                </select>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue placeholder="Select Relationship" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Spouse">Spouse</SelectItem>
+                    <SelectItem value="Parent">Parent</SelectItem>
+                    <SelectItem value="Child">Child</SelectItem>
+                    <SelectItem value="Sibling">Sibling</SelectItem>
+                    <SelectItem value="Friend">Friend</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

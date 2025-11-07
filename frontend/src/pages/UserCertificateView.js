@@ -12,6 +12,7 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const UserCertificateView = () => {
   const { id } = useParams();
@@ -23,6 +24,7 @@ const UserCertificateView = () => {
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showDeleteRequestDialog, setShowDeleteRequestDialog] = useState(false);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
 
@@ -52,10 +54,6 @@ const UserCertificateView = () => {
   };
 
   const handleDeleteRequest = async () => {
-    if (!window.confirm('Are you sure you want to request deletion of this certificate? This will send a request to the admin for approval.')) {
-      return;
-    }
-
     try {
       const response = await fetch(`${API_BASE_URL}/api/certificates/delete-request`, {
         method: 'POST',
@@ -168,13 +166,13 @@ const UserCertificateView = () => {
                 </div>
               </div>
             </div>
-            {/*<button
-              onClick={handleDeleteRequest}
+            <button
+              onClick={() => setShowDeleteRequestDialog(true)}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               <TrashIcon className="h-4 w-4 mr-2" />
               Request Deletion
-            </button>*/}
+            </button>
           </div>
         </div>
       </div>
@@ -316,6 +314,18 @@ const UserCertificateView = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Request Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteRequestDialog}
+        onOpenChange={setShowDeleteRequestDialog}
+        title="Request Certificate Deletion"
+        description="Are you sure you want to request deletion of this certificate? This will send a request to the admin for approval."
+        onConfirm={handleDeleteRequest}
+        confirmText="Send Request"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 };

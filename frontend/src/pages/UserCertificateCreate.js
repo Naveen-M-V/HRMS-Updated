@@ -14,6 +14,13 @@ import { useAlert } from "../components/AlertNotification";
 import { getCertificatesForMultipleJobRoles, allCertificates } from '../data/certificateJobRoleMapping';
 import MUIDatePicker from '../components/MUIDatePicker';
 import dayjs from 'dayjs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 const UserCertificateCreate = () => {
   const { user } = useAuth();
@@ -437,21 +444,22 @@ const UserCertificateCreate = () => {
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700">
                   Category
                 </label>
-                <select
-                  id="category"
-                  name="category"
+                <Select
                   value={formData.category}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
                 >
-                  <option value="">Select a category</option>
-                  <option value="Safety">Safety</option>
-                  <option value="Technical">Technical</option>
-                  <option value="Professional">Professional</option>
-                  <option value="Compliance">Compliance</option>
-                  <option value="Training">Training</option>
-                  <option value="Other">Other</option>
-                </select>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Safety">Safety</SelectItem>
+                    <SelectItem value="Technical">Technical</SelectItem>
+                    <SelectItem value="Professional">Professional</SelectItem>
+                    <SelectItem value="Compliance">Compliance</SelectItem>
+                    <SelectItem value="Training">Training</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category}</p>
                 )}

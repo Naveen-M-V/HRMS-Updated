@@ -5,6 +5,7 @@ import MultiJobRoleSelector from '../components/MultiJobRoleSelector';
 import { useAlert } from "../components/AlertNotification";
 import MUIDatePicker from '../components/MUIDatePicker';
 import dayjs from 'dayjs';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function EditUserProfile() {
   console.log('EditUserProfile component loaded');
@@ -12,6 +13,7 @@ export default function EditUserProfile() {
   const { success, error, warning } = useAlert();
   const [activeTab, setActiveTab] = useState("Profile Details");
   const [profileLoading, setProfileLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState({
     
     // Profile Details
@@ -209,8 +211,7 @@ export default function EditUserProfile() {
   };
 
   const handleDelete = async () => {
-    if (window.confirm("Are you sure you want to delete this profile? This will also delete ALL certificates associated with this profile. This action cannot be undone.")) {
-      setLoading(true);
+    setLoading(true);
       try {
         const response = await deleteProfile(id);
         
@@ -229,7 +230,6 @@ export default function EditUserProfile() {
       } finally {
         setLoading(false);
       }
-    }
   };
 
   const handleCancel = () => {
@@ -741,7 +741,7 @@ export default function EditUserProfile() {
 
         <div className="mt-6">
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteDialog(true)}
             className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 disabled:opacity-50"
             disabled={loading}
           >
@@ -749,6 +749,18 @@ export default function EditUserProfile() {
           </button>
         </div>
       </div>
+
+      {/* Delete Profile Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Profile"
+        description="Are you sure you want to delete this profile? This will also delete ALL certificates associated with this profile. This action cannot be undone."
+        onConfirm={handleDelete}
+        confirmText="Delete Profile"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 }

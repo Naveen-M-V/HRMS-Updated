@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { buildApiUrl } from "../utils/apiConfig";
 import { useAlert } from "../components/AlertNotification";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 export default function ViewCertificate() {
   const { id } = useParams();
@@ -20,6 +21,8 @@ export default function ViewCertificate() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDeleteCertDialog, setShowDeleteCertDialog] = useState(false);
+  const [showDeleteFileDialog, setShowDeleteFileDialog] = useState(false);
 
   useEffect(() => {
     const cert = certificates.find(
@@ -73,18 +76,12 @@ export default function ViewCertificate() {
   };
 
   const handleDeleteCertificate = async () => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete the certificate "${certificate.certificate}"? This action cannot be undone.`
-      )
-    ) {
-      try {
-        await deleteCertificate(certificate.id || certificate._id);
-        navigate("/certificates");
-      } catch (err) {
-        console.error("Failed to delete certificate:", err);
-        error("Failed to delete certificate. Please try again.");
-      }
+    try {
+      await deleteCertificate(certificate.id || certificate._id);
+      navigate("/certificates");
+    } catch (err) {
+      console.error("Failed to delete certificate:", err);
+      error("Failed to delete certificate. Please try again.");
     }
   };
 
@@ -144,12 +141,7 @@ export default function ViewCertificate() {
   };
 
   const handleDeleteFile = async () => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete the certificate file? This action cannot be undone."
-      )
-    ) {
-      setUploading(true);
+    setUploading(true);
       try {
         const certificateId = certificate.id || certificate._id;
         const deleteUrl = buildApiUrl(`/certificates/${certificateId}/file`);
@@ -188,7 +180,6 @@ export default function ViewCertificate() {
       } finally {
         setUploading(false);
       }
-    }
   };
 
   if (loading) {
@@ -252,7 +243,7 @@ export default function ViewCertificate() {
             Edit certificate
           </Link>
           <button
-            onClick={handleDeleteCertificate}
+            onClick={() => setShowDeleteCertDialog(true)}
             className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
           >
             Delete certificate
@@ -409,7 +400,7 @@ export default function ViewCertificate() {
                       View Certificate
                     </button>
                     <button
-                      onClick={handleDeleteFile}
+                      onClick={() => setShowDeleteFileDialog(true)}
                       disabled={uploading}
                       className="px-4 py-2 text-sm bg-red-100 text-red-600 rounded hover:bg-red-200 disabled:opacity-50"
                     >
@@ -480,6 +471,30 @@ export default function ViewCertificate() {
           ← Back to Certificates
         </Link>
       </div>
+
+      {/* Delete Certificate Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteCertDialog}
+        onOpenChange={setShowDeleteCertDialog}
+        title="Delete Certificate"
+        description={`Are you sure you want to delete the certificate "${certificate?.certificate}"? This action cannot be undone.`}
+        onConfirm={handleDeleteCertificate}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
+
+      {/* Delete File Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteFileDialog}
+        onOpenChange={setShowDeleteFileDialog}
+        title="Delete Certificate File"
+        description="Are you sure you want to delete the certificate file? This action cannot be undone."
+        onConfirm={handleDeleteFile}
+        confirmText="Delete File"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 }

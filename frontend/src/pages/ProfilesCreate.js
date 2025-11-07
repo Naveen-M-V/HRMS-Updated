@@ -10,6 +10,13 @@ import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
 import { buildApiUrl } from "../utils/apiConfig";
 import { validateTextOnly, validateNumberOnly, validatePhoneNumber, validateEmail } from "../utils/inputValidation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 export default function ProfilesCreate() {
   const { success, error } = useAlert();
@@ -418,16 +425,19 @@ export default function ProfilesCreate() {
           {/* Preferred Language */}
           <div>
             <label className="block text-sm font-medium">Preferred Language</label>
-            <select
-              name="language"
+            <Select
               value={formData.language}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded p-2"
+              onValueChange={(value) => handleChange({ target: { name: 'language', value } })}
             >
-              <option value="English">English</option>
-              <option value="French">French</option>
-              <option value="Spanish">Spanish</option>
-            </select>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Select Language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="English">English</SelectItem>
+                <SelectItem value="French">French</SelectItem>
+                <SelectItem value="Spanish">Spanish</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Start Date */}
@@ -445,19 +455,21 @@ export default function ProfilesCreate() {
           {/* Staff Type */}
           <div>
             <label className="block text-sm font-medium">Staff Type <span className="text-red-500">*</span></label>
-            <select
-              name="staffType"
+            <Select
               value={formData.staffType}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded p-2"
+              onValueChange={(value) => handleChange({ target: { name: 'staffType', value } })}
               required
             >
-              <option value="">Select Staff Type</option>
-              <option value="Direct">Direct</option>
-              <option value="Contractor">Contractor</option>
-              <option value="Agency">Agency</option>
-              <option value="Team">Team</option>
-            </select>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Select Staff Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Direct">Direct</SelectItem>
+                <SelectItem value="Contractor">Contractor</SelectItem>
+                <SelectItem value="Agency">Agency</SelectItem>
+                <SelectItem value="Team">Team</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* POC */}
@@ -563,19 +575,21 @@ export default function ProfilesCreate() {
           {/* Status */}
           <div>
             <label className="block text-sm font-medium">Status <span className="text-red-500">*</span></label>
-            <select
-              name="status"
+            <Select
               value={formData.status}
-              onChange={handleChange}
-              className="mt-1 block w-full border rounded p-2"
+              onValueChange={(value) => handleChange({ target: { name: 'status', value } })}
               required
             >
-              <option value="">Select Status</option>
-              <option value="Onboarded">Onboarded</option>
-              <option value="Onboarding">Onboarding</option>
-              <option value="Dropped Out">Dropped Out</option>
-              <option value="Left">Left</option>
-            </select>
+              <SelectTrigger className="w-full mt-1">
+                <SelectValue placeholder="Select Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Onboarded">Onboarded</SelectItem>
+                <SelectItem value="Onboarding">Onboarding</SelectItem>
+                <SelectItem value="Dropped Out">Dropped Out</SelectItem>
+                <SelectItem value="Left">Left</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Buttons */}

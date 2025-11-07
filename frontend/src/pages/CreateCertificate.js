@@ -6,6 +6,13 @@ import { getCertificatesForMultipleJobRoles, getAllJobRoles, allCertificates } f
 import SearchableDropdown from "../components/SearchableDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
 import { useAlert } from "../components/AlertNotification";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 export default function CreateCertificate() {
   const navigate = useNavigate();
@@ -480,118 +487,120 @@ export default function CreateCertificate() {
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-semibold mb-6">Create Certificate</h1>
 
-<div className="w-full max-w-6xl mx-auto bg-white shadow-md rounded-2xl p-6 relative">
+        <div className="w-full max-w-6xl mx-auto bg-white shadow-md rounded-2xl p-6 relative">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Profile */}
-           {/* Profile Selection */}
-          <div>
-          <label className="block font-medium mb-1">Profile <span className="text-red-500">*</span></label>
-          <select
-          name="profileId"
-          value={form.profileId}
-          onChange={handleChange}
-          className="w-full border rounded-lg p-2"
-          required
-          >
-          <option value="">Select a profile...</option>
-          {availableProfiles.map((profile) => (
-          <option key={profile._id} value={profile._id}>
-          {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobRole) 
-          ? profile.jobRole.join(', ') 
-          : (profile.jobRole || 'N/A')
-          }
-          </option>
-          ))}
-          </select>
-            {selectedProfile && (
-              <p className="text-sm text-gray-600 mt-1">
-                Job Role: <strong>{Array.isArray(selectedProfile.jobRole) 
-                  ? selectedProfile.jobRole.join(', ') 
-                  : (selectedProfile.jobRole || 'N/A')
-                }</strong>
-              </p>
+            {/* Profile Selection */}
+            <div>
+              <label className="block font-medium mb-1">Profile <span className="text-red-500">*</span></label>
+              <Select
+                value={form.profileId}
+                onValueChange={(value) => handleChange({ target: { name: 'profileId', value } })}
+                required
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a profile..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableProfiles.map((profile) => (
+                    <SelectItem key={profile._id} value={profile._id}>
+                      {profile.firstName} {profile.lastName} - {Array.isArray(profile.jobRole) 
+                        ? profile.jobRole.join(', ') 
+                        : (profile.jobRole || 'N/A')
+                      }
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedProfile && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Job Role: <strong>{Array.isArray(selectedProfile.jobRole) 
+                    ? selectedProfile.jobRole.join(', ') 
+                    : (selectedProfile.jobRole || 'N/A')
+                  }</strong>
+                </p>
+              )}
+            </div>
+
+            {/* Display Job Roles */}
+            {profileJobRoles.length > 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Selected User's Job Roles: 
+                  <span className="ml-2 text-green-700">{profileJobRoles.join(', ')}</span>
+                </p>
+              </div>
             )}
-          </div>
 
-          {/* Display Job Roles */}
-          {profileJobRoles.length > 0 && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <p className="text-sm font-medium text-gray-700">
-                Selected User's Job Roles: 
-                <span className="ml-2 text-green-700">{profileJobRoles.join(', ')}</span>
+            {/* Suggested Certificates - Mandatory */}
+            {suggestedCertificates.mandatory.length > 0 && (
+              <div className="bg-red-50 border border-red-300 rounded-lg p-4">
+                <h3 className="font-medium text-red-800 mb-3 flex items-center">
+                  <span className="bg-red-600 text-white px-2 py-1 rounded text-xs mr-2">MANDATORY</span>
+                  Required Certificates ({suggestedCertificates.mandatory.length})
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {suggestedCertificates.mandatory.map((cert, index) => (
+                    <button
+                      key={`mandatory-${index}`}
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, certificateName: cert.code || cert }))}
+                      className="text-left p-2 bg-white border border-red-300 rounded hover:bg-red-100 text-sm"
+                      title={cert.description || cert.code || cert}
+                    >
+                      <div className="font-medium">{cert.code || cert}</div>
+                      {cert.description && (
+                        <div className="text-xs text-gray-600 truncate">{cert.description}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Suggested Certificates - Alternative */}
+            {suggestedCertificates.alternative.length > 0 && (
+              <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
+                <h3 className="font-medium text-blue-800 mb-3 flex items-center">
+                  <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs mr-2">ALTERNATIVE</span>
+                  Optional Certificates ({suggestedCertificates.alternative.length})
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {suggestedCertificates.alternative.map((cert, index) => (
+                    <button
+                      key={`alternative-${index}`}
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, certificateName: cert.code || cert }))}
+                      className="text-left p-2 bg-white border border-blue-300 rounded hover:bg-blue-100 text-sm"
+                      title={cert.description || cert.code || cert}
+                    >
+                      <div className="font-medium">{cert.code || cert}</div>
+                      {cert.description && (
+                        <div className="text-xs text-gray-600 truncate">{cert.description}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Certificate Name */}
+            <div>
+              <label className="block font-medium mb-1">Certificate Name <span className="text-red-500">*</span></label>
+              <SearchableDropdown
+                name="certificateName"
+                value={form.certificateName}
+                onChange={handleChange}
+                options={certificateNames}
+                placeholder="Type to search certificates or add new..."
+                onSearch={handleCertificateNameSearch}
+                onAddNew={handleAddCertificateName}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                You can type to search existing certificates or add a new one
               </p>
             </div>
-          )}
-
-          {/* Suggested Certificates - Mandatory */}
-          {suggestedCertificates.mandatory.length > 0 && (
-            <div className="bg-red-50 border border-red-300 rounded-lg p-4">
-              <h3 className="font-medium text-red-800 mb-3 flex items-center">
-                <span className="bg-red-600 text-white px-2 py-1 rounded text-xs mr-2">MANDATORY</span>
-                Required Certificates ({suggestedCertificates.mandatory.length})
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {suggestedCertificates.mandatory.map((cert, index) => (
-                  <button
-                    key={`mandatory-${index}`}
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, certificateName: cert.code || cert }))}
-                    className="text-left p-2 bg-white border border-red-300 rounded hover:bg-red-100 text-sm"
-                    title={cert.description || cert.code || cert}
-                  >
-                    <div className="font-medium">{cert.code || cert}</div>
-                    {cert.description && (
-                      <div className="text-xs text-gray-600 truncate">{cert.description}</div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Suggested Certificates - Alternative */}
-          {suggestedCertificates.alternative.length > 0 && (
-            <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-              <h3 className="font-medium text-blue-800 mb-3 flex items-center">
-                <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs mr-2">ALTERNATIVE</span>
-                Optional Certificates ({suggestedCertificates.alternative.length})
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {suggestedCertificates.alternative.map((cert, index) => (
-                  <button
-                    key={`alternative-${index}`}
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, certificateName: cert.code || cert }))}
-                    className="text-left p-2 bg-white border border-blue-300 rounded hover:bg-blue-100 text-sm"
-                    title={cert.description || cert.code || cert}
-                  >
-                    <div className="font-medium">{cert.code || cert}</div>
-                    {cert.description && (
-                      <div className="text-xs text-gray-600 truncate">{cert.description}</div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Certificate Name */}
-          <div>
-            <label className="block font-medium mb-1">Certificate Name <span className="text-red-500">*</span></label>
-            <SearchableDropdown
-              name="certificateName"
-              value={form.certificateName}
-              onChange={handleChange}
-              options={certificateNames}
-              placeholder="Type to search certificates or add new..."
-              onSearch={handleCertificateNameSearch}
-              onAddNew={handleAddCertificateName}
-              className="w-full"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              You can type to search existing certificates or add a new one
-            </p>
-          </div>
 
             {/* Account */}
             <div>
@@ -644,44 +653,53 @@ export default function CreateCertificate() {
             {/* Approval Status */}
             <div>
               <label className="block font-medium mb-1">Approval Status</label>
-              <select
-                name="approvalStatus"
+              <Select
                 value={form.approvalStatus}
-                onChange={handleChange}
-                className="w-full border rounded-lg p-2"
+                onValueChange={(value) => handleChange({ target: { name: 'approvalStatus', value } })}
               >
-                <option value="Approved">Approved</option>
-                <option value="Pending">Pending</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select approval status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Is Interim */}
             <div>
               <label className="block font-medium mb-1">Is Interim</label>
-              <select
-                name="isInterim"
+              <Select
                 value={form.isInterim}
-                onChange={handleChange}
-                className="w-full border rounded-lg p-2"
+                onValueChange={(value) => handleChange({ target: { name: 'isInterim', value } })}
               >
-                <option value="True">True</option>
-                <option value="False">False</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="True">True</SelectItem>
+                  <SelectItem value="False">False</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* File Required */}
             <div>
               <label className="block font-medium mb-1">File Required</label>
-              <select
-                name="fileRequired"
+              <Select
                 value={form.fileRequired}
-                onChange={handleChange}
-                className="w-full border rounded-lg p-2"
+                onValueChange={(value) => handleChange({ target: { name: 'fileRequired', value } })}
               >
-                <option value="True">True</option>
-                <option value="False">False</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="True">True</SelectItem>
+                  <SelectItem value="False">False</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Supplier */}

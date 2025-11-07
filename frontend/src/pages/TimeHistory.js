@@ -10,6 +10,7 @@ import { getTimeEntries, exportTimeEntries } from '../utils/clockApi';
 import { assignShift } from '../utils/rotaApi';
 import axios from 'axios';
 import LoadingScreen from '../components/LoadingScreen';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const TimeHistory = () => {
   const [timeEntries, setTimeEntries] = useState([]);
@@ -19,6 +20,7 @@ const TimeHistory = () => {
   const [employees, setEmployees] = useState([]);
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState({
     employeeId: '',
     date: '',
@@ -234,16 +236,15 @@ const TimeHistory = () => {
     }
   };
 
-  const handleDeleteSelected = async () => {
+  const initiateDelete = () => {
     if (selectedEntries.length === 0) {
       toast.warning('Please select entries to delete');
       return;
     }
+    setShowDeleteDialog(true);
+  };
 
-    if (!window.confirm(`Are you sure you want to delete ${selectedEntries.length} time ${selectedEntries.length === 1 ? 'entry' : 'entries'}?`)) {
-      return;
-    }
-
+  const handleDeleteSelected = async () => {
     try {
       const deletePromises = selectedEntries.map(entryId =>
         axios.delete(buildApiUrl(`/clock/entry/${entryId}`), { withCredentials: true })
@@ -456,7 +457,7 @@ const TimeHistory = () => {
                 Edit Entry
               </button>
               <button 
-                onClick={handleDeleteSelected}
+                onClick={initiateDelete}
                 style={{ 
                   padding: '8px 16px', 
                   background: '#dc2626', 
@@ -695,6 +696,18 @@ const TimeHistory = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Time Entries"
+        description={`Are you sure you want to delete ${selectedEntries.length} time ${selectedEntries.length === 1 ? 'entry' : 'entries'}? This action cannot be undone.`}
+        onConfirm={handleDeleteSelected}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </>
   );
 };

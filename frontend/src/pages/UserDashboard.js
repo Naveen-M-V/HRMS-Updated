@@ -22,6 +22,7 @@ import {
   CheckCircleIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -48,6 +49,9 @@ const UserDashboard = () => {
   const [processing, setProcessing] = useState(false);
   const [shiftInfo, setShiftInfo] = useState(null);
   const [attendanceStatus, setAttendanceStatus] = useState(null);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [showClockOutDialog, setShowClockOutDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
   
   // GPS location state
@@ -236,12 +240,16 @@ const UserDashboard = () => {
   };
 
 
-  const handleClockIn = async () => {
+  const initiateClockIn = () => {
     if (!workLocation) {
       toast.warning('Please select a location');
       return;
     }
+    setPendingAction('clockIn');
+    setShowLocationDialog(true);
+  };
 
+  const handleClockIn = async () => {
     setProcessing(true);
     setGpsError(null);
     
@@ -458,9 +466,12 @@ const UserDashboard = () => {
     }
   };
 
-  const handleClockOut = async () => {
-    if (!window.confirm('Are you sure you want to clock out?')) return;
+  const initiateClockOut = () => {
+    setPendingAction('clockOut');
+    setShowClockOutDialog(true);
+  };
 
+  const handleClockOut = async () => {
     setProcessing(true);
     setGpsError(null);
     
@@ -803,7 +814,7 @@ const UserDashboard = () => {
                     )}
                     
                     <button
-                      onClick={handleClockOut}
+                      onClick={initiateClockOut}
                       disabled={processing}
                       className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                     >
@@ -847,7 +858,7 @@ const UserDashboard = () => {
                   </div>
                   
                   <button
-                    onClick={handleClockIn}
+                    onClick={initiateClockIn}
                     disabled={processing}
                     className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-lg"
                   >
@@ -1358,6 +1369,34 @@ const UserDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Location Permission Dialog */}
+      <ConfirmDialog
+        open={showLocationDialog}
+        onOpenChange={setShowLocationDialog}
+        title="Location Access Required"
+        description="We need to access your location to record your clock-in/out position. This helps verify your work location and ensures accurate attendance tracking. Do you want to allow location access?"
+        onConfirm={() => {
+          if (pendingAction === 'clockIn') {
+            handleClockIn();
+          }
+        }}
+        confirmText="Allow Location"
+        cancelText="Cancel"
+        variant="default"
+      />
+
+      {/* Clock Out Confirmation Dialog */}
+      <ConfirmDialog
+        open={showClockOutDialog}
+        onOpenChange={setShowClockOutDialog}
+        title="Clock Out Confirmation"
+        description="Are you sure you want to clock out? This will end your current work session and capture your location."
+        onConfirm={handleClockOut}
+        confirmText="Clock Out"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 };

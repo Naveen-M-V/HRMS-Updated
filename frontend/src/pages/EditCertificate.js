@@ -7,6 +7,13 @@ import { getCertificatesForJobRole, getAllJobRoles } from "../data/certificateJo
 import SearchableDropdown from "../components/SearchableDropdown";
 import ModernDatePicker from "../components/ModernDatePicker";
 import { useAlert } from "../components/AlertNotification";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 export default function EditCertificate() {
   const { id } = useParams();
@@ -364,17 +371,19 @@ export default function EditCertificate() {
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Approval Status</label>
           <div className="col-span-10">
-            <select
-              name="approvalStatus"
+            <Select
               value={formData.approvalStatus}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              onValueChange={(value) => handleChange({ target: { name: 'approvalStatus', value } })}
             >
-              <option value="">Select Status</option>
-              <option value="Approved">Approved</option>
-              <option value="Pending">Pending</option>
-              <option value="Rejected">Rejected</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Approved">Approved</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -382,15 +391,18 @@ export default function EditCertificate() {
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Is Interim</label>
           <div className="col-span-10">
-            <select
-              name="isInterim"
+            <Select
               value={formData.isInterim}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              onValueChange={(value) => handleChange({ target: { name: 'isInterim', value } })}
             >
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Yes">Yes</SelectItem>
+                <SelectItem value="No">No</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -398,15 +410,18 @@ export default function EditCertificate() {
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">File Required</label>
           <div className="col-span-10">
-            <select
-              name="fileRequired"
+            <Select
               value={formData.fileRequired}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              onValueChange={(value) => handleChange({ target: { name: 'fileRequired', value } })}
             >
-              <option value="True">True</option>
-              <option value="False">False</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="True">True</SelectItem>
+                <SelectItem value="False">False</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -450,15 +465,18 @@ export default function EditCertificate() {
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Archived</label>
           <div className="col-span-10">
-            <select
-              name="archived"
+            <Select
               value={formData.archived}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
+              onValueChange={(value) => handleChange({ target: { name: 'archived', value } })}
             >
-              <option value="Unarchived">Unarchived</option>
-              <option value="Archived">Archived</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Unarchived">Unarchived</SelectItem>
+                <SelectItem value="Archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

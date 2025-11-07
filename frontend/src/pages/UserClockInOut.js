@@ -4,6 +4,14 @@ import 'react-toastify/dist/ReactToastify.css';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import LoadingScreen from '../components/LoadingScreen';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 /**
  * User Clock In/Out Page
@@ -18,6 +26,7 @@ const UserClockInOut = () => {
   const [shiftInfo, setShiftInfo] = useState(null);
   const [attendanceStatus, setAttendanceStatus] = useState(null);
   const [validation, setValidation] = useState(null);
+  const [showClockOutDialog, setShowClockOutDialog] = useState(false);
 
   useEffect(() => {
     fetchClockStatus();
@@ -111,10 +120,6 @@ const UserClockInOut = () => {
   };
 
   const handleClockOut = async () => {
-    if (!window.confirm('Are you sure you want to clock out?')) {
-      return;
-    }
-
     setProcessing(true);
     try {
       // ========== GPS LOCATION CAPTURE FOR CLOCK-OUT ==========
@@ -288,7 +293,7 @@ const UserClockInOut = () => {
               Select Clock-In Details
             </h2>
 
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '24px' }}>
               <label style={{
                 display: 'block',
                 fontSize: '14px',
@@ -296,25 +301,22 @@ const UserClockInOut = () => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Location <span style={{ color: '#dc2626' }}>*</span>
+                Location
               </label>
-              <select
+              <Select
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '500'
-                }}
+                onValueChange={setLocation}
               >
-                <option value="Work From Office">🏢 Work From Office</option>
-                <option value="Work From Home">🏠 Work From Home</option>
-                <option value="Field">🌍 Field</option>
-                <option value="Client Side">🤝 Client Site</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Work From Office">🏢 Work From Office</SelectItem>
+                  <SelectItem value="Work From Home">🏠 Work From Home</SelectItem>
+                  <SelectItem value="Field">🌍 Field</SelectItem>
+                  <SelectItem value="Client Side">🤝 Client Site</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div style={{ marginBottom: '24px' }}>
@@ -327,23 +329,20 @@ const UserClockInOut = () => {
               }}>
                 Work Type
               </label>
-              <select
+              <Select
                 value={workType}
-                onChange={(e) => setWorkType(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '500'
-                }}
+                onValueChange={setWorkType}
               >
-                <option value="Regular">⏰ Regular</option>
-                <option value="Overtime">⏱️ Overtime</option>
-                <option value="Weekend Overtime">📅 Weekend Overtime</option>
-                <option value="Client-side Overtime">🤝 Client-side Overtime</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select work type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Regular">⏰ Regular</SelectItem>
+                  <SelectItem value="Overtime">⏱️ Overtime</SelectItem>
+                  <SelectItem value="Weekend Overtime">📅 Weekend Overtime</SelectItem>
+                  <SelectItem value="Client-side Overtime">🤝 Client-side Overtime</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <button
@@ -452,7 +451,7 @@ const UserClockInOut = () => {
               )}
               
               <button
-                onClick={handleClockOut}
+                onClick={() => setShowClockOutDialog(true)}
                 disabled={processing}
                 style={{
                   width: '100%',
@@ -473,6 +472,18 @@ const UserClockInOut = () => {
             </div>
           </div>
         )}
+
+        {/* Clock Out Confirmation Dialog */}
+        <ConfirmDialog
+          open={showClockOutDialog}
+          onOpenChange={setShowClockOutDialog}
+          title="Clock Out Confirmation"
+          description="Are you sure you want to clock out? This will end your current work session."
+          onConfirm={handleClockOut}
+          confirmText="Clock Out"
+          cancelText="Cancel"
+          variant="destructive"
+        />
 
         {/* Today's Summary */}
         {clockStatus && (

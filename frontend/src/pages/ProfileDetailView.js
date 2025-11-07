@@ -16,6 +16,7 @@ import { UserCircleIcon } from '@heroicons/react/24/outline';
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
 import ProfilePhotoPopup from "../components/ProfilePhotoPopup";
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function ProfileDetailView() {
   const { success, error } = useAlert();
@@ -28,6 +29,8 @@ export default function ProfileDetailView() {
     navigate(`/profiles/edit/${id}`);
   };
   const [profile, setProfile] = useState(null);
+  const [showDeleteCertDialog, setShowDeleteCertDialog] = useState(false);
+  const [certToDelete, setCertToDelete] = useState(null);
   const [showCertificates, setShowCertificates] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imageKey, setImageKey] = useState(Date.now());
@@ -59,10 +62,9 @@ const handleCertificateFileSelected = async (event) => {
   }
 };
 
-const handleDeleteCertificate = async (certId) => {
-  if (!window.confirm("Are you sure you want to delete this certificate?")) return;
+const handleDeleteCertificate = async () => {
   try {
-    await deleteCertificate(certId);
+    await deleteCertificate(certToDelete);
     success("Certificate deleted successfully");
   } catch (err) {
     error("Failed to delete certificate");
@@ -548,7 +550,7 @@ const handleDeleteCertificate = async (certId) => {
 
 
 <button
-  onClick={() => handleDeleteCertificate(cert.id || cert._id)}
+  onClick={() => { setCertToDelete(cert.id || cert._id); setShowDeleteCertDialog(true); }}
   title="Delete Certificate"
   className="inline-flex items-center px-2 py-1 text-sm bg-red-600 text-white hover:bg-red-700 rounded transition-colors"
 >
@@ -585,6 +587,18 @@ const handleDeleteCertificate = async (certId) => {
         onDelete={handleProfilePictureDelete}
         hasProfilePicture={!!profile.profilePicture}
         uploading={uploading}
+      />
+
+      {/* Delete Certificate Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteCertDialog}
+        onOpenChange={setShowDeleteCertDialog}
+        title="Delete Certificate"
+        description="Are you sure you want to delete this certificate? This action cannot be undone."
+        onConfirm={handleDeleteCertificate}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
       />
     </div>
   );

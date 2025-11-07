@@ -4,13 +4,16 @@ import { useNavigate, Link } from "react-router-dom";
 import { useCertificates } from "../context/CertificateContext";
 import { getImageUrl } from '../utils/config';
 import { useAlert } from "../components/AlertNotification";
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function CertificatesPage() {
   const { certificates, deleteCertificate } = useCertificates();
   const { success, error, warning, info } = useAlert();
   const [search, setSearch] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [selectedCertificate, setSelectedCertificate] = useState(null); // 
+  const [selectedCertificate, setSelectedCertificate] = useState(null); //
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [certToDelete, setCertToDelete] = useState({ id: null, name: '' }); 
   const navigate = useNavigate();
 
   // Get unique values for filter dropdowns
@@ -25,15 +28,13 @@ export default function CertificatesPage() {
     return { profiles, certificateNames, companies, teams, providers, activeStatuses };
   }, [certificates]);
 
-  const handleDeleteCertificate = async (certificateId, certificateName) => {
-    if (window.confirm(`Are you sure you want to delete the certificate "${certificateName}"? This action cannot be undone.`)) {
-      try {
-        await deleteCertificate(certificateId);
-        setSelectedCertificate(null); // close sidebar if open
-      } catch (err) {
-        console.error('Failed to delete certificate:', err);
-        error('Failed to delete certificate. Please try again.');
-      }
+  const handleDeleteCertificate = async () => {
+    try {
+      await deleteCertificate(certToDelete.id);
+      setSelectedCertificate(null); // close sidebar if open
+    } catch (err) {
+      console.error('Failed to delete certificate:', err);
+      error('Failed to delete certificate. Please try again.');
     }
   };
 
@@ -97,7 +98,8 @@ export default function CertificatesPage() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation(); // prevent sidebar opening
-                      handleDeleteCertificate(c.id || c._id, c.certificate);
+                      setCertToDelete({ id: c.id || c._id, name: c.certificate });
+                      setShowDeleteDialog(true);
                     }}
                     className="text-red-600 hover:text-red-800" 
                   >
@@ -152,7 +154,10 @@ export default function CertificatesPage() {
                 Edit
               </Link>
               <button 
-                onClick={() => handleDeleteCertificate(selectedCertificate.id || selectedCertificate._id, selectedCertificate.certificate)}
+                onClick={() => {
+                  setCertToDelete({ id: selectedCertificate.id || selectedCertificate._id, name: selectedCertificate.certificate });
+                  setShowDeleteDialog(true);
+                }}
                 className="px-4 py-2 bg-red-600 text-white rounded"
               >
                 Delete
@@ -161,6 +166,18 @@ export default function CertificatesPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Certificate Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Certificate"
+        description={`Are you sure you want to delete the certificate "${certToDelete.name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteCertificate}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 }

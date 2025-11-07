@@ -12,6 +12,13 @@ import {
   userResumeWork,
   getUserTimeEntries 
 } from '../utils/clockApi';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 
 /**
  * User Clock-ins Page
@@ -493,24 +500,20 @@ const UserClockIns = () => {
               }}>
                 Work Type
               </label>
-              <select
+              <Select
                 value={selectedWorkType}
-                onChange={(e) => setSelectedWorkType(e.target.value)}
+                onValueChange={setSelectedWorkType}
                 disabled={isCurrentlyClockedIn}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  background: isCurrentlyClockedIn ? '#f3f4f6' : '#ffffff',
-                  cursor: isCurrentlyClockedIn ? 'not-allowed' : 'pointer'
-                }}
               >
-                {workTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select work type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Location Section */}
@@ -524,24 +527,20 @@ const UserClockIns = () => {
               }}>
                 Select Location
               </label>
-              <select
+              <Select
                 value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
+                onValueChange={setSelectedLocation}
                 disabled={isCurrentlyClockedIn}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  background: isCurrentlyClockedIn ? '#f3f4f6' : '#ffffff',
-                  cursor: isCurrentlyClockedIn ? 'not-allowed' : 'pointer'
-                }}
               >
-                {locationTypes.map(location => (
-                  <option key={location} value={location}>{location}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locationTypes.map(location => (
+                    <SelectItem key={location} value={location}>{location}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

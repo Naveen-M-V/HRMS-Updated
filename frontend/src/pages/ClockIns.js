@@ -18,6 +18,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from '../components/ui/pagination';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 /**
  * Clock-ins Page
@@ -41,6 +42,9 @@ const ClockIns = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showEntries, setShowEntries] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState({ id: null, name: '' });
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [myStatus, setMyStatus] = useState(null); // Admin's own clock status
   const [showEditModal, setShowEditModal] = useState(false);
@@ -662,18 +666,14 @@ const ClockIns = () => {
     }
   };
 
-  const handleDeleteTimeEntry = async (timeEntryId, employeeName) => {
-    if (!timeEntryId) {
+  const handleDeleteTimeEntry = async () => {
+    if (!entryToDelete.id) {
       toast.error('No time entry to delete');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete the time entry for ${employeeName}?\n\nThis will:\n- Delete the clock-in/out record\n- Reset the shift status to "Scheduled"\n\nThis action cannot be undone.`)) {
-      return;
-    }
-
     try {
-      const response = await deleteTimeEntry(timeEntryId);
+      const response = await deleteTimeEntry(entryToDelete.id);
       if (response.success) {
         toast.success('Time entry deleted successfully');
         // Force immediate refresh
@@ -831,7 +831,6 @@ const ClockIns = () => {
   });
 
   // Pagination logic
-  const itemsPerPage = 10; // Fixed at 10 as per requirement
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -1834,6 +1833,18 @@ const ClockIns = () => {
           }}
         />
       )}
+
+      {/* Delete Time Entry Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Time Entry"
+        description={`Are you sure you want to delete the time entry for ${entryToDelete.name}?\n\nThis will:\n- Delete the clock-in/out record\n- Reset the shift status to "Scheduled"\n\nThis action cannot be undone.`}
+        onConfirm={handleDeleteTimeEntry}
+        confirmText="Delete Entry"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </>
   );
 };

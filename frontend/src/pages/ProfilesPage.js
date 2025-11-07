@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis
 } from '../components/ui/pagination';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
@@ -38,6 +39,8 @@ export default function ProfilesPage() {
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedManager, setSelectedManager] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [profileToDelete, setProfileToDelete] = useState({ id: null, name: '' });
   const navigate = useNavigate();
 
   // Get unique values for filter dropdowns
@@ -95,14 +98,8 @@ export default function ProfilesPage() {
       return;
     }
 
-    // Simple confirmation without fetching certificate count first
-    const confirmMessage = `Are you sure you want to delete the profile for ${profileName}?
-
-This will also delete any associated certificates and user account. This action cannot be undone.`;
-
-    if (window.confirm(confirmMessage)) {
-      console.log('User confirmed deletion');
-      setLoading(true);
+    console.log('User confirmed deletion');
+    setLoading(true);
       
       try {
         console.log('Calling deleteProfile function...');
@@ -140,9 +137,6 @@ This will also delete any associated certificates and user account. This action 
       } finally {
         setLoading(false);
       }
-    } else {
-      console.log('User cancelled deletion');
-    }
   }, [deleteProfile, profiles, fetchProfiles]);
 
   // Load profiles on mount and refresh when component becomes visible
@@ -378,7 +372,8 @@ This will also delete any associated certificates and user account. This action 
                           onClick={(e) => {
                             e.preventDefault();
                             console.log('Delete clicked for profile:', p._id, p.firstName, p.lastName);
-                            handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`);
+                            setProfileToDelete({ id: p._id, name: `${p.firstName} ${p.lastName}` });
+                            setShowDeleteDialog(true);
                           }}
                           className="text-red-600 hover:text-red-800"
                           title="Delete Profile"
@@ -444,6 +439,18 @@ This will also delete any associated certificates and user account. This action 
           )}
         </div>
       </div>
+
+      {/* Delete Profile Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Delete Profile"
+        description={`Are you sure you want to delete the profile for ${profileToDelete.name}? This will also delete any associated certificates and user account. This action cannot be undone.`}
+        onConfirm={() => handleDeleteProfile(profileToDelete.id, profileToDelete.name)}
+        confirmText="Delete Profile"
+        cancelText="Cancel"
+        variant="destructive"
+      />
     </div>
   );
 }
