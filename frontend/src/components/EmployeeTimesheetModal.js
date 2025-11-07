@@ -16,8 +16,10 @@ import dayjs from 'dayjs';
 import moment from 'moment-timezone';
 import { updateTimeEntry, deleteTimeEntry, addTimeEntry } from '../utils/clockApi';
 import { toast } from 'react-toastify';
+import { useClockStatus } from '../context/ClockStatusContext';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
+  const { triggerClockRefresh } = useClockStatus(); // For global refresh
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekData, setWeekData] = useState([]);
   const [statistics, setStatistics] = useState({
@@ -63,6 +65,17 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-refresh clock status every 10 seconds for real-time updates
+  useEffect(() => {
+    const statusInterval = setInterval(() => {
+      if (employee) {
+        fetchCurrentClockStatus();
+      }
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(statusInterval);
+  }, [employee]);
 
   // Fetch employee profile data (includes mobile number)
   const fetchEmployeeProfile = async () => {
@@ -133,19 +146,57 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const handleClockIn = async () => {
     try {
       const employeeId = employee._id || employee.id;
+      console.log('🔵 Clock In initiated for employee:', employeeId);
+      
+      let gpsData = {};
+      
+      // Capture GPS location
+      if (navigator.geolocation) {
+        try {
+          console.log('📍 Capturing GPS location...');
+          const locationToast = toast.info('Capturing location...', { autoClose: false });
+          
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+              }
+            );
+          });
+          
+          gpsData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          
+          toast.dismiss(locationToast);
+          console.log('✅ GPS captured:', gpsData);
+        } catch (gpsError) {
+          console.warn('⚠️ GPS capture failed:', gpsError);
+          // Continue without GPS - don't block clock-in
+        }
+      }
+      
       const { clockIn } = await import('../utils/clockApi');
-      const response = await clockIn({ employeeId });
+      const response = await clockIn({ employeeId, ...gpsData });
       
       if (response.success) {
         toast.success('Clocked in successfully');
-        fetchCurrentClockStatus();
-        fetchWeeklyTimesheet();
+        await fetchCurrentClockStatus();
+        await fetchWeeklyTimesheet();
+        // Trigger global refresh for all pages
+        triggerClockRefresh({ action: 'clock_in', employeeId });
       } else {
         toast.error(response.message || 'Failed to clock in');
       }
     } catch (error) {
       console.error('❌ Clock in error:', error);
-      toast.error(error.response?.data?.message || 'Failed to clock in');
+      toast.error(error.response?.data?.message || error.message || 'Failed to clock in');
     }
   };
 
@@ -153,19 +204,23 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const handleClockOut = async () => {
     try {
       const employeeId = employee._id || employee.id;
+      console.log('🔴 Clock Out initiated for employee:', employeeId);
+      
       const { clockOut } = await import('../utils/clockApi');
       const response = await clockOut(employeeId);
       
       if (response.success) {
         toast.success('Clocked out successfully');
-        fetchCurrentClockStatus();
-        fetchWeeklyTimesheet();
+        await fetchCurrentClockStatus();
+        await fetchWeeklyTimesheet();
+        // Trigger global refresh for all pages
+        triggerClockRefresh({ action: 'clock_out', employeeId });
       } else {
         toast.error(response.message || 'Failed to clock out');
       }
     } catch (error) {
       console.error('❌ Clock out error:', error);
-      toast.error(error.response?.data?.message || 'Failed to clock out');
+      toast.error(error.response?.data?.message || error.message || 'Failed to clock out');
     }
   };
 
@@ -173,19 +228,23 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const handleStartBreak = async () => {
     try {
       const employeeId = employee._id || employee.id;
+      console.log('🟡 Start Break initiated for employee:', employeeId);
+      
       const { setOnBreak } = await import('../utils/clockApi');
       const response = await setOnBreak(employeeId);
       
       if (response.success) {
         toast.success('Break started');
-        fetchCurrentClockStatus();
-        fetchWeeklyTimesheet();
+        await fetchCurrentClockStatus();
+        await fetchWeeklyTimesheet();
+        // Trigger global refresh for all pages
+        triggerClockRefresh({ action: 'start_break', employeeId });
       } else {
         toast.error(response.message || 'Failed to start break');
       }
     } catch (error) {
       console.error('❌ Start break error:', error);
-      toast.error(error.response?.data?.message || 'Failed to start break');
+      toast.error(error.response?.data?.message || error.message || 'Failed to start break');
     }
   };
 
@@ -1184,16 +1243,24 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               <button
                 onClick={async () => {
                   try {
-                    const { endBreak } = await import('../utils/clockApi');
                     const employeeId = employee._id || employee.id;
+                    console.log('🟢 Resume Work initiated for employee:', employeeId);
+                    
+                    const { endBreak } = await import('../utils/clockApi');
                     const response = await endBreak(employeeId);
+                    
                     if (response.success) {
                       toast.success('Break ended, work resumed');
-                      fetchCurrentClockStatus();
-                      fetchWeeklyTimesheet();
+                      await fetchCurrentClockStatus();
+                      await fetchWeeklyTimesheet();
+                      // Trigger global refresh for all pages
+                      triggerClockRefresh({ action: 'end_break', employeeId });
+                    } else {
+                      toast.error(response.message || 'Failed to end break');
                     }
                   } catch (error) {
-                    toast.error('Failed to end break');
+                    console.error('❌ End break error:', error);
+                    toast.error(error.response?.data?.message || error.message || 'Failed to end break');
                   }
                 }}
                 style={{

@@ -619,17 +619,61 @@ const parseExpiryDate = (dateString) => {
 // Routes
 
 // Get all profiles (optimized - excludes large binary data)
+// INCLUDES users without profiles (admins/super admins)
 app.get('/api/profiles', async (req, res) => {
   try {
     // Exclude large binary fields to optimize performance
     const profiles = await Profile.find()
       .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
       .sort({ createdOn: -1 })
-      .populate('userId', 'email role') // Add populate like certificates do
+      .populate('userId', 'email role firstName lastName') // Add populate like certificates do
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
-    console.log(`Fetched ${profiles.length} profiles (optimized)`);
-    res.json(profiles);
+    // Get all user IDs that have profiles
+    const profileUserIds = profiles
+      .map(p => p.userId?._id?.toString())
+      .filter(Boolean);
+    
+    // Find users WITHOUT profiles (typically admins/super admins)
+    const usersWithoutProfiles = await User.find({
+      _id: { $nin: profileUserIds },
+      isActive: { $ne: false },
+      deleted: { $ne: true }
+    })
+      .select('_id email role firstName lastName')
+      .lean();
+    
+    // Create pseudo-profiles for users without profiles
+    const pseudoProfiles = usersWithoutProfiles.map(user => ({
+      _id: null, // No profile ID
+      userId: {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName
+      },
+      firstName: user.firstName || 'N/A',
+      lastName: user.lastName || 'N/A',
+      email: user.email,
+      role: user.role,
+      jobTitle: user.role === 'admin' ? 'Administrator' : user.role === 'super_admin' ? 'Super Administrator' : 'N/A',
+      department: 'Administration',
+      company: 'Talent Shield',
+      staffType: 'Admin',
+      vtid: 'N/A',
+      mobileNumber: 'N/A',
+      isUserWithoutProfile: true, // Flag to identify these entries
+      createdOn: user.createdAt || new Date()
+    }));
+    
+    // Combine profiles with pseudo-profiles
+    const allProfiles = [...profiles, ...pseudoProfiles].sort((a, b) => {
+      return new Date(b.createdOn) - new Date(a.createdOn);
+    });
+    
+    console.log(`Fetched ${profiles.length} profiles + ${usersWithoutProfiles.length} users without profiles = ${allProfiles.length} total`);
+    res.json(allProfiles);
   } catch (error) {
     console.error('Error fetching profiles:', error);
     res.status(500).json({ message: error.message });

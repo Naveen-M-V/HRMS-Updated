@@ -52,6 +52,7 @@ const ClockIns = () => {
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [showTimesheetModal, setShowTimesheetModal] = useState(false);
+  const [selectedFromSearch, setSelectedFromSearch] = useState(false); // Track if employee was selected from search bar
 
   useEffect(() => {
     fetchData();
@@ -929,27 +930,61 @@ const ClockIns = () => {
           
           {/* Top Action Buttons - Always Visible */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            {/* Searchable Employee Input */}
-            <div className="employee-search-container" style={{ position: 'relative', minWidth: '250px' }}>
-              <input
-                type="text"
-                placeholder="Search employee to clock in..."
-                value={employeeSearchTerm}
-                onChange={(e) => {
-                  setEmployeeSearchTerm(e.target.value);
-                  setShowEmployeeDropdown(true);
-                }}
-                onFocus={() => setShowEmployeeDropdown(true)}
-                style={{
-                  width: '100%',
-                  padding: '10px 16px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
-              />
-              {showEmployeeDropdown && employeeSearchTerm && (
+            {/* Searchable Employee Input with Clear Button */}
+            <div className="employee-search-container" style={{ position: 'relative', minWidth: '300px' }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Search employee to clock in..."
+                  value={employeeSearchTerm}
+                  onChange={(e) => {
+                    setEmployeeSearchTerm(e.target.value);
+                    setShowEmployeeDropdown(true);
+                    if (!e.target.value) {
+                      setSelectedEmployee(null);
+                      setSelectedFromSearch(false);
+                    }
+                  }}
+                  onFocus={() => setShowEmployeeDropdown(true)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 40px 10px 16px',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    outline: 'none'
+                  }}
+                />
+                {employeeSearchTerm && (
+                  <button
+                    onClick={() => {
+                      setEmployeeSearchTerm('');
+                      setSelectedEmployee(null);
+                      setSelectedFromSearch(false);
+                      setShowEmployeeDropdown(false);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#6b7280'
+                    }}
+                  >
+                    <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {showEmployeeDropdown && (
                 <div style={{
                   position: 'absolute',
                   top: '100%',
@@ -966,13 +1001,14 @@ const ClockIns = () => {
                 }}>
                   {employees
                     .filter(emp => {
+                      if (!employeeSearchTerm) return true; // Show all if no search term
                       const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
                       const search = employeeSearchTerm.toLowerCase();
                       return fullName.includes(search) || 
                              emp.email?.toLowerCase().includes(search) ||
                              emp.vtid?.toString().includes(search);
                     })
-                    .slice(0, 10)
+                    .slice(0, 15)
                     .map(emp => (
                       <div
                         key={emp.id || emp._id}
@@ -987,6 +1023,7 @@ const ClockIns = () => {
                           setSelectedEmployee(emp);
                           setEmployeeSearchTerm(`${emp.firstName} ${emp.lastName}`);
                           setShowEmployeeDropdown(false);
+                          setSelectedFromSearch(true); // Mark as selected from search
                         }}
                         style={{
                           padding: '10px 16px',
@@ -1005,7 +1042,7 @@ const ClockIns = () => {
                         </div>
                       </div>
                     ))}
-                  {employees.filter(emp => {
+                  {employeeSearchTerm && employees.filter(emp => {
                     const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
                     const search = employeeSearchTerm.toLowerCase();
                     return fullName.includes(search) || 
@@ -1019,6 +1056,16 @@ const ClockIns = () => {
                       fontSize: '14px'
                     }}>
                       No employees found
+                    </div>
+                  )}
+                  {!employeeSearchTerm && employees.length === 0 && (
+                    <div style={{
+                      padding: '20px',
+                      textAlign: 'center',
+                      color: '#6b7280',
+                      fontSize: '14px'
+                    }}>
+                      No employees available
                     </div>
                   )}
                 </div>
@@ -1044,7 +1091,7 @@ const ClockIns = () => {
               </button>
             )}
             
-            {selectedEmployee?.status === 'clocked_in' || selectedEmployee?.status === 'on_break' ? (
+            {selectedFromSearch && selectedEmployee?.status === 'clocked_in' || selectedEmployee?.status === 'on_break' ? (
               <button
                 onClick={() => handleClockOut(selectedEmployee.id || selectedEmployee._id)}
                 style={{
@@ -1064,6 +1111,10 @@ const ClockIns = () => {
             ) : (
               <button
                 onClick={() => {
+                  if (!selectedFromSearch) {
+                    toast.warning('Please use the search bar above to select an employee for clock-in');
+                    return;
+                  }
                   console.log('🔘 Clock In button clicked. Selected employee:', {
                     id: selectedEmployee?.id,
                     _id: selectedEmployee?._id,
@@ -1074,20 +1125,20 @@ const ClockIns = () => {
                   if (selectedEmployee) {
                     openClockInModal(selectedEmployee);
                   } else {
-                    toast.warning('Please select an employee first');
+                    toast.warning('Please select an employee from the search bar');
                   }
                 }}
-                disabled={!selectedEmployee}
+                disabled={!selectedFromSearch || !selectedEmployee}
                 style={{
                   padding: '10px 24px',
-                  background: selectedEmployee ? '#10b981' : '#9ca3af',
+                  background: (selectedFromSearch && selectedEmployee) ? '#10b981' : '#9ca3af',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: selectedEmployee ? 'pointer' : 'not-allowed',
-                  boxShadow: selectedEmployee ? '0 2px 4px rgba(16, 185, 129, 0.3)' : 'none'
+                  cursor: (selectedFromSearch && selectedEmployee) ? 'pointer' : 'not-allowed',
+                  boxShadow: (selectedFromSearch && selectedEmployee) ? '0 2px 4px rgba(16, 185, 129, 0.3)' : 'none'
                 }}
               >
                  Clock In
