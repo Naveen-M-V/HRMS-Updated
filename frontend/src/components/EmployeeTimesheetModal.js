@@ -1835,7 +1835,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                             </span>
                           </div>
                         </div>
-                        </TooltipProvider>
                       ) : (
                         <div style={{
                           background: emptyColor,
