@@ -1,7 +1,8 @@
 // src/pages/UserCertificateView.js
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getImageUrl as getImageUrlFromConfig } from '../utils/config';
 import { 
   ArrowLeftIcon, 
   DocumentIcon,
@@ -15,6 +16,8 @@ import { useAlert } from "../components/AlertNotification";
 const UserCertificateView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTab = searchParams.get('returnTab') || 'overview';
   const { user } = useAuth();
   const { success, error: showError, warning, info } = useAlert();
   const [certificate, setCertificate] = useState(null);
@@ -71,7 +74,7 @@ const UserCertificateView = () => {
 
       if (response.ok) {
         success('Delete request sent to admin successfully!');
-        navigate('/user-dashboard');
+        navigate(`/user-dashboard?tab=${returnTab}`);
       } else {
         showError('Failed to send delete request. Please try again.');
       }
@@ -110,19 +113,8 @@ const UserCertificateView = () => {
     }
   };
 
-  const getImageUrl = (filename) => {
-    if (!filename) return null;
-    // If filename is already a full URL, return as is
-    if (filename.startsWith('http://') || filename.startsWith('https://')) {
-      return filename;
-    }
-    // If filename starts with /, concatenate with API_BASE_URL
-    if (filename.startsWith('/')) {
-      return `${API_BASE_URL}${filename}`;
-    }
-    // Otherwise, add /uploads/ prefix
-    return `${API_BASE_URL}/uploads/${filename}`;
-  };
+  // Use the getImageUrl from config which correctly uses SERVER_BASE_URL
+  const getImageUrl = getImageUrlFromConfig;
 
   if (loading) {
     return (
@@ -143,7 +135,7 @@ const UserCertificateView = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-2">Certificate not found</h3>
           <p className="text-gray-500 mb-4">{error || 'The certificate you are looking for does not exist.'}</p>
           <button
-            onClick={() => navigate('/user-dashboard')}
+            onClick={() => navigate(`/user-dashboard?tab=${returnTab}`)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Back to Dashboard
@@ -163,7 +155,7 @@ const UserCertificateView = () => {
           <div className="flex items-center justify-between py-6">
             <div className="flex items-center">
               <button
-                onClick={() => navigate('/user-dashboard')}
+                onClick={() => navigate(`/user-dashboard?tab=${returnTab}`)}
                 className="mr-4 p-2 text-gray-400 hover:text-gray-600"
               >
                 <ArrowLeftIcon className="h-6 w-6" />

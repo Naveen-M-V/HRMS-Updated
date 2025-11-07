@@ -1,7 +1,7 @@
 // src/pages/UserCertificateCreate.js
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   DocumentIcon, 
   ArrowLeftIcon,
@@ -18,6 +18,8 @@ import dayjs from 'dayjs';
 const UserCertificateCreate = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTab = searchParams.get('returnTab') || 'overview';
   const { success, error, warning, info } = useAlert();
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -291,7 +293,7 @@ const UserCertificateCreate = () => {
 
       if (response.ok) {
         success('Certificate added successfully!');
-        navigate('/user-dashboard');
+        navigate(`/user-dashboard?tab=${returnTab}`);
       } else {
         const errorData = await response.json();
         error(`Failed to add certificate: ${errorData.message || 'Unknown error'}`);
@@ -311,7 +313,7 @@ const UserCertificateCreate = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-6">
             <button
-              onClick={() => navigate('/user-dashboard')}
+              onClick={() => navigate(`/user-dashboard?tab=${returnTab}`)}
               className="mr-4 p-2 text-gray-400 hover:text-gray-600"
             >
               <ArrowLeftIcon className="h-6 w-6" />
@@ -558,7 +560,7 @@ const UserCertificateCreate = () => {
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
-                  onClick={() => navigate('/user-dashboard')}
+                  onClick={() => navigate(`/user-dashboard?tab=${returnTab}`)}
                   className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Cancel

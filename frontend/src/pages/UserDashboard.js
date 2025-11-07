@@ -641,11 +641,11 @@ const UserDashboard = () => {
   };
 
   const handleAddCertificate = () => {
-    navigate('/user/certificates/create');
+    navigate('/user/certificates/create?returnTab=certificates');
   };
 
   const handleViewCertificate = (certificateId) => {
-    navigate(`/user/certificates/${certificateId}`);
+    navigate(`/user/certificates/${certificateId}?returnTab=certificates`);
   };
 
   const getCertificateStatusColor = (expiryDate) => {
