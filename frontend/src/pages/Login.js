@@ -446,10 +446,62 @@ export default function Login() {
               
               <div className="p-6 overflow-y-auto max-h-[60vh]">
                 <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
-                  <h4 className="mb-4 font-semibold text-gray-900">Terms & Conditions</h4>
+                  <h4 className="mb-4 font-semibold text-gray-900">Terms and Conditions (T&Cs)</h4>
+                  <p className="mb-2 text-sm text-gray-600"><strong>Effective Date:</strong> 06/10/2025</p>
                   <p className="mb-4">
-                    Welcome to Vitrux Shield. By accessing and using this Application, you agree to comply with and be bound by these Terms & Conditions.
+                    Welcome to Talent Shield HRMS tool. By accessing and using this Application, you agree to comply with and be bound by these Terms & Conditions. If you do not agree, you should not use the Application.
                   </p>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">1. Definitions</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>"We", "Us", "Our" refer to Talent Shield, the owner and operator of this HRMS application.</li>
+                    <li>"You", "User" refer to the individual or organisation using the Application.</li>
+                    <li>"Application" refers to the HRMS system, its features, and associated services.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">2. Use of the Application</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>You agree to use the Application only for lawful HR and business purposes.</li>
+                    <li>You must not use the Application in any way that violates applicable UK law, including but not limited to employment and data protection regulations.</li>
+                    <li>Access credentials (such as usernames, passwords) must be kept confidential. You are responsible for all activities carried out under your account.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">3. Data Accuracy</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>Users are responsible for ensuring that all information entered into the Application is accurate and up to date.</li>
+                    <li>We are not liable for errors or consequences resulting from incorrect or incomplete data entered by Users.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">4. Intellectual Property</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>All content, design, logos, and software associated with the Application remain the intellectual property of Vitrux Shield Ltd or its licensors.</li>
+                    <li>Users are granted a limited, non-exclusive licence to use the Application for business purposes.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">5. Availability & Maintenance</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>We aim to provide continuous access to the Application but do not guarantee uninterrupted availability.</li>
+                    <li>We may carry out scheduled maintenance or updates.</li>
+                    <li>We are not liable for downtime, data loss, or interruptions beyond our reasonable control.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">6. Liability</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>The Application is provided on an "as-is" basis, without any warranties, whether express or implied.</li>
+                    <li>We are not liable for indirect, incidental, or consequential damages arising from your use of the Application.</li>
+                    <li>Nothing in these Terms excludes liability for death, personal injury, fraud, or any other liability which cannot be excluded under UK law.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">7. Termination</h5>
+                  <p className="mb-4">
+                    We reserve the right to suspend or terminate access to the Application if you breach these Terms.
+                  </p>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">8. Governing Law</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>These Terms are governed by and construed in accordance with the laws of England and Wales.</li>
+                    <li>Disputes will be subject to the exclusive jurisdiction of the courts of England and Wales.</li>
+                  </ul>
                 </div>
               </div>
               
@@ -484,9 +536,78 @@ export default function Login() {
               <div className="p-6 overflow-y-auto max-h-[60vh]">
                 <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
                   <h4 className="mb-4 font-semibold text-gray-900">Privacy Policy</h4>
+                  <p className="mb-2 text-sm text-gray-600"><strong>Effective Date:</strong> 06/10/2025</p>
                   <p className="mb-4">
-                    This Privacy Policy explains how Vitrux Shield collects, uses, and protects personal data within the HRMS application.
+                    This Privacy Policy explains how Talent Shield ("we", "our", "us") collects, uses, and protects personal data within the HRMS application. We comply with the UK GDPR and the Data Protection Act 2018.
                   </p>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">1. Data We Collect</h5>
+                  <p className="mb-2">We may collect and process the following categories of data:</p>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>Employee information: name, contact details, job title, payroll data, performance records.</li>
+                    <li>User account information: usernames, passwords, access logs.</li>
+                    <li>System usage data: device information, IP addresses, login times.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">2. How We Use Your Data</h5>
+                  <p className="mb-2">We process personal data to:</p>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>Provide HR management services through the Application.</li>
+                    <li>Maintain payroll, leave, and performance records.</li>
+                    <li>Ensure system security and prevent unauthorised access.</li>
+                    <li>Comply with UK employment, taxation, and legal obligations.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">3. Legal Basis for Processing</h5>
+                  <p className="mb-2">We process personal data under the following legal bases:</p>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>Contractual necessity – to deliver HRMS services.</li>
+                    <li>Legal obligations – to comply with UK law.</li>
+                    <li>Legitimate interests – for system improvement and security.</li>
+                    <li>Consent – where explicitly required.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">4. Data Sharing & Transfers</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>Data is stored on servers located in the United Kingdom.</li>
+                    <li>We do not transfer personal data outside the UK unless adequate safeguards are in place.</li>
+                    <li>We may share data with authorised third parties (e.g., payroll providers, IT support) under strict confidentiality agreements.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">5. Data Retention</h5>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>Personal data is retained only for as long as necessary to fulfil contractual and legal obligations.</li>
+                    <li>After this period, data will be securely deleted or anonymised.</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">6. Your Rights</h5>
+                  <p className="mb-2">Under the UK GDPR, you have the right to:</p>
+                  <ul className="mb-4 list-disc pl-5 space-y-1">
+                    <li>Access your personal data.</li>
+                    <li>Correct inaccurate data.</li>
+                    <li>Request erasure (right to be forgotten).</li>
+                    <li>Restrict or object to processing.</li>
+                    <li>Request data portability.</li>
+                    <li>Withdraw consent (where applicable).</li>
+                    <li>Lodge a complaint with the Information Commissioner's Office (ICO).</li>
+                  </ul>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">7. Security</h5>
+                  <p className="mb-4">
+                    We implement technical and organisational measures (e.g., encryption, access controls) to protect personal data from unauthorised access, loss, or misuse.
+                  </p>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">8. Updates to this Policy</h5>
+                  <p className="mb-4">
+                    We may update this Privacy Policy to reflect changes in law or application functionality. Updates will be communicated to users.
+                  </p>
+                  
+                  <h5 className="mb-3 font-semibold text-gray-900">9. Contact Us</h5>
+                  <p className="mb-2">If you have questions about this Privacy Policy or your data rights, contact us at:</p>
+                  <p className="mb-1 font-medium">Vitrux Shield Ltd</p>
+                  <p className="mb-1">1-7, Park Road, Caterham, England, CR3 5TB</p>
+                  <p className="mb-1">Email: <a href="mailto:IT@vitrux.co.uk" className="text-emerald-600 hover:text-emerald-700 underline">IT@vitrux.co.uk</a></p>
+                  <p className="mb-4">Phone: 07459734663</p>
                 </div>
               </div>
               
