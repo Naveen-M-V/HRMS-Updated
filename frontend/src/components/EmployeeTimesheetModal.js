@@ -834,13 +834,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   };
 
   // Convert old segment format to new TimelineBar format
-  const convertToTimelineBarSegments = (oldSegments) => {
+  const convertToTimelineBarSegments = (oldSegments, isToday, clockOutTime) => {
     if (!oldSegments || oldSegments.length === 0) return [];
     
     const workDayStart = 5 * 60; // 05:00 in minutes
     const totalMinutes = 18 * 60; // 18 hours
     
-    return oldSegments.map(segment => {
+    return oldSegments.map((segment, index) => {
       // Calculate start and end times from left and width percentages
       const startMinutes = workDayStart + (segment.left / 100) * totalMinutes;
       const endMinutes = startMinutes + (segment.width / 100) * totalMinutes;
@@ -852,10 +852,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       };
       
+      // Check if this is an ongoing segment (last segment, today, no clock out)
+      const isLastSegment = index === oldSegments.length - 1;
+      const isOngoing = isToday && isLastSegment && (!clockOutTime || clockOutTime === 'Present');
+      
       return {
         type: segment.type,
         startTime: formatTime(startMinutes),
-        endTime: formatTime(endMinutes),
+        endTime: isOngoing ? 'Present' : formatTime(endMinutes),
         label: segment.label
       };
     });
@@ -1719,7 +1723,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                       {day.clockIn && segments ? (
                         <div style={{ marginBottom: '16px' }}>
                           {/* New TimelineBar Component */}
-                          <TimelineBar segments={convertToTimelineBarSegments(segments)} />
+                          <TimelineBar 
+                            segments={convertToTimelineBarSegments(segments, day.isToday, day.clockOutTime)} 
+                            clockInTime={day.clockInTime}
+                            clockOutTime={day.clockOutTime}
+                            isToday={day.isToday}
+                          />
                           
                           {/* Legend */}
                           <div style={{ 
