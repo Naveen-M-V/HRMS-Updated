@@ -619,11 +619,11 @@ const parseExpiryDate = (dateString) => {
 // Routes
 
 // Get all profiles (optimized - excludes large binary data)
-// INCLUDES users without profiles (admins/super admins)
+// AUTO-CREATES profiles for users without them (admins/super admins)
 app.get('/api/profiles', async (req, res) => {
   try {
     // Exclude large binary fields to optimize performance
-    const profiles = await Profile.find()
+    let profiles = await Profile.find()
       .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
       .sort({ createdOn: -1 })
       .populate('userId', 'email role firstName lastName') // Add populate like certificates do
@@ -640,40 +640,66 @@ app.get('/api/profiles', async (req, res) => {
       isActive: { $ne: false },
       deleted: { $ne: true }
     })
-      .select('_id email role firstName lastName')
+      .select('_id email role firstName lastName createdAt')
       .lean();
     
-    // Create pseudo-profiles for users without profiles
-    const pseudoProfiles = usersWithoutProfiles.map(user => ({
-      _id: null, // No profile ID
-      userId: {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName
-      },
-      firstName: user.firstName || 'N/A',
-      lastName: user.lastName || 'N/A',
-      email: user.email,
-      role: user.role,
-      jobTitle: user.role === 'admin' ? 'Administrator' : user.role === 'super_admin' ? 'Super Administrator' : 'N/A',
-      department: 'Administration',
-      company: 'Talent Shield',
-      staffType: 'Admin',
-      vtid: 'N/A',
-      mobileNumber: 'N/A',
-      isUserWithoutProfile: true, // Flag to identify these entries
-      createdOn: user.createdAt || new Date()
-    }));
+    // Auto-create Profile documents for users without profiles
+    if (usersWithoutProfiles.length > 0) {
+      console.log(`🔧 Auto-creating ${usersWithoutProfiles.length} missing profiles for users...`);
+      
+      // Get the highest existing VTID to generate new ones
+      const allProfiles = await Profile.find().select('vtid').lean();
+      let maxVTID = 0;
+      allProfiles.forEach(p => {
+        if (p.vtid && typeof p.vtid === 'number') {
+          maxVTID = Math.max(maxVTID, p.vtid);
+        } else if (p.vtid && typeof p.vtid === 'string') {
+          const numericPart = parseInt(p.vtid.replace(/\D/g, ''));
+          if (!isNaN(numericPart)) {
+            maxVTID = Math.max(maxVTID, numericPart);
+          }
+        }
+      });
+      
+      const newProfiles = [];
+      for (const user of usersWithoutProfiles) {
+        maxVTID++; // Increment for each new profile
+        
+        const newProfile = new Profile({
+          userId: user._id,
+          firstName: user.firstName || 'N/A',
+          lastName: user.lastName || 'N/A',
+          email: user.email,
+          role: user.role,
+          jobTitle: user.role === 'admin' ? 'Administrator' : user.role === 'super_admin' ? 'Super Administrator' : 'Employee',
+          department: 'Administration',
+          company: 'Talent Shield',
+          staffType: user.role === 'admin' || user.role === 'super_admin' ? 'Admin' : 'Employee',
+          vtid: maxVTID, // Auto-generated VTID
+          mobileNumber: '',
+          address: '',
+          postcode: '',
+          nationality: '',
+          dateOfBirth: null,
+          createdOn: user.createdAt || new Date(),
+          autoCreated: true // Flag to track auto-created profiles
+        });
+        
+        await newProfile.save();
+        console.log(`✅ Created profile for ${user.email} with VTID: ${maxVTID}`);
+        newProfiles.push(newProfile);
+      }
+      
+      // Re-fetch all profiles including the newly created ones
+      profiles = await Profile.find()
+        .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
+        .sort({ createdOn: -1 })
+        .populate('userId', 'email role firstName lastName')
+        .lean();
+    }
     
-    // Combine profiles with pseudo-profiles
-    const allProfiles = [...profiles, ...pseudoProfiles].sort((a, b) => {
-      return new Date(b.createdOn) - new Date(a.createdOn);
-    });
-    
-    console.log(`Fetched ${profiles.length} profiles + ${usersWithoutProfiles.length} users without profiles = ${allProfiles.length} total`);
-    res.json(allProfiles);
+    console.log(`Fetched ${profiles.length} total profiles (including auto-created)`);
+    res.json(profiles);
   } catch (error) {
     console.error('Error fetching profiles:', error);
     res.status(500).json({ message: error.message });

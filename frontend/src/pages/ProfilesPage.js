@@ -337,95 +337,59 @@ This will also delete any associated certificates and user account. This action 
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {displayedProfiles.map((p, index) => {
-                  const isUserWithoutProfile = p.isUserWithoutProfile === true;
-                  const userId = p.userId?._id || p._id;
-                  
-                  return (
-                    <tr key={userId || index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">{startIndex + index + 1}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{generateVTID(p)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <div className="flex items-center gap-2">
-                          {p.role}
-                          {isUserWithoutProfile && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                              User Account
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{p.firstName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{p.lastName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{p.staffType}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{p.company}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {(() => {
-                          const jobRoles = Array.isArray(p.jobRole) ? p.jobRole : (p.jobRole ? [p.jobRole] : []);
-                          return jobRoles.length > 0 ? jobRoles.join(', ') : (p.jobTitle || "N/A");
-                        })()
-                        }
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{formatDate(p.lastSeen)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {!isUserWithoutProfile ? (
-                            <>
-                              <Link 
-                                to={`/profiles/${p._id}`} 
-                                className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
-                                title="View Profile"
-                              >
-                                <EyeIcon className="h-4 w-4" />
-                              </Link>
-                              <button
-                                onClick={() => {
-                                  console.log('Edit clicked for profile:', p._id);
-                                  console.log('Navigating to:', `/profiles/edit/${p._id}`);
-                                  navigate(`/profiles/edit/${p._id}`);
-                                }}
-                                className="text-gray-600 hover:text-gray-800"
-                                title="Edit Profile"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  console.log('Delete clicked for profile:', p._id, p.firstName, p.lastName);
-                                  handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`);
-                                }}
-                                className="text-red-600 hover:text-red-800"
-                                title="Delete Profile"
-                                disabled={loading}
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500 italic">User account only - No profile</span>
-                              <button
-                                disabled
-                                className="text-gray-300 cursor-not-allowed"
-                                title="Cannot edit user accounts without profiles"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                disabled
-                                className="text-gray-300 cursor-not-allowed"
-                                title="Cannot delete user accounts from profiles page"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {displayedProfiles.map((p, index) => (
+                  <tr key={p._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{startIndex + index + 1}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{generateVTID(p)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.role}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.firstName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.lastName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.staffType}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{p.company}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {(() => {
+                        const jobRoles = Array.isArray(p.jobRole) ? p.jobRole : (p.jobRole ? [p.jobRole] : []);
+                        return jobRoles.length > 0 ? jobRoles.join(', ') : (p.jobTitle || "N/A");
+                      })()
+                      }
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{formatDate(p.lastSeen)}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <Link 
+                          to={`/profiles/${p._id}`} 
+                          className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                          title="View Profile"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => {
+                            console.log('Edit clicked for profile:', p._id);
+                            console.log('Navigating to:', `/profiles/edit/${p._id}`);
+                            navigate(`/profiles/edit/${p._id}`);
+                          }}
+                          className="text-gray-600 hover:text-gray-800"
+                          title="Edit Profile"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            console.log('Delete clicked for profile:', p._id, p.firstName, p.lastName);
+                            handleDeleteProfile(p._id, `${p.firstName} ${p.lastName}`);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete Profile"
+                          disabled={loading}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -216,7 +216,7 @@ const TimeHistory = () => {
 
     try {
       const response = await axios.put(
-        buildApiUrl(`/clock/entries/${editingEntry._id}`),
+        buildApiUrl(`/clock/entry/${editingEntry._id}`),
         editFormData,
         { withCredentials: true }
       );
@@ -246,7 +246,7 @@ const TimeHistory = () => {
 
     try {
       const deletePromises = selectedEntries.map(entryId =>
-        axios.delete(buildApiUrl(`/clock/entries/${entryId}`), { withCredentials: true })
+        axios.delete(buildApiUrl(`/clock/entry/${entryId}`), { withCredentials: true })
       );
       
       await Promise.all(deletePromises);

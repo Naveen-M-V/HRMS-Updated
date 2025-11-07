@@ -1398,107 +1398,32 @@ const ClockIns = () => {
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
-                        {employee.status === 'clocked_in' ? (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOnBreak(employee.id || employee._id);
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                background: '#f59e0b',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: '500'
-                              }}
-                            >
-                              Break
-                            </button>
-                            <button
-                              onClick={() => handleClockOut(employee.id || employee._id)}
-                              style={{
-                                padding: '6px 12px',
-                                background: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: '500'
-                              }}
-                            >
-                              Clock Out
-                            </button>
-                          </>
-                        ) : employee.status === 'on_break' ? (
-                          <>
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  const { endBreak } = await import('../utils/clockApi');
-                                  const response = await endBreak(employee.id || employee._id);
-                                  if (response.success) {
-                                    toast.success('Work resumed successfully');
-                                    fetchData();
-                                  }
-                                } catch (error) {
-                                  toast.error('Failed to resume work');
-                                }
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                background: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: '500'
-                              }}
-                            >
-                              Resume Work
-                            </button>
-                            <button
-                              onClick={() => handleClockOut(employee.id || employee._id)}
-                              style={{
-                                padding: '6px 12px',
-                                background: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: '500'
-                              }}
-                            >
-                              Clock Out
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openClockInModal(employee);
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              background: '#10b981',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              fontWeight: '500'
-                            }}
-                          >
-                            Clock In
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEmployee(employee);
+                            setShowTimesheetModal(true);
+                          }}
+                          style={{
+                            padding: '6px 16px',
+                            background: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View Details
+                        </button>
                         {/* Edit Button - Only show if employee has a time entry */}
                         {employee.timeEntryId && (
                         <button

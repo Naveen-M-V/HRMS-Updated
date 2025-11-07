@@ -207,7 +207,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       console.log('🔴 Clock Out initiated for employee:', employeeId);
       
       const { clockOut } = await import('../utils/clockApi');
-      const response = await clockOut(employeeId);
+      const response = await clockOut({ employeeId });
       
       if (response.success) {
         toast.success('Clocked out successfully');
