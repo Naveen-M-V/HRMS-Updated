@@ -17,6 +17,7 @@ import moment from 'moment-timezone';
 import { updateTimeEntry, deleteTimeEntry, addTimeEntry } from '../utils/clockApi';
 import { toast } from 'react-toastify';
 import { useClockStatus } from '../context/ClockStatusContext';
+import TimelineBar from './TimelineBar';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const { triggerClockRefresh } = useClockStatus(); // For global refresh
@@ -830,6 +831,34 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     }
 
     return segments;
+  };
+
+  // Convert old segment format to new TimelineBar format
+  const convertToTimelineBarSegments = (oldSegments) => {
+    if (!oldSegments || oldSegments.length === 0) return [];
+    
+    const workDayStart = 5 * 60; // 05:00 in minutes
+    const totalMinutes = 18 * 60; // 18 hours
+    
+    return oldSegments.map(segment => {
+      // Calculate start and end times from left and width percentages
+      const startMinutes = workDayStart + (segment.left / 100) * totalMinutes;
+      const endMinutes = startMinutes + (segment.width / 100) * totalMinutes;
+      
+      // Convert minutes to HH:MM format
+      const formatTime = (mins) => {
+        const hours = Math.floor(mins / 60);
+        const minutes = Math.floor(mins % 60);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      };
+      
+      return {
+        type: segment.type,
+        startTime: formatTime(startMinutes),
+        endTime: formatTime(endMinutes),
+        label: segment.label
+      };
+    });
   };
 
   const navigateDay = (direction) => {
@@ -1688,135 +1717,34 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
                       {/* Timeline Progress Bar */}
                       {day.clockIn && segments ? (
-                        <TooltipProvider>
-                          <div style={{ marginBottom: '16px' }}>
-                            {/* Progress Bar with progressive animation */}
-                            <div style={{
-                              position: 'relative',
-                              height: '16px',
-                              background: '#e5e7eb',
-                              borderRadius: '3px',
-                              overflow: 'hidden',
-                              marginBottom: '12px',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-                            }}>
-                              {segments.map((segment, idx) => {
-                                // Calculate progressive width based on current time
-                                const now = new Date();
-                                const currentMinutes = now.getHours() * 60 + now.getMinutes();
-                                const parseTime = (timeStr) => {
-                                  if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
-                                  const [hours, minutes] = timeStr.split(':').map(Number);
-                                  return hours * 60 + minutes;
-                                };
-                                
-                                const clockInMinutes = parseTime(day.clockInTime);
-                                const clockOutMinutes = day.clockOutTime && day.clockOutTime !== 'Present' ? parseTime(day.clockOutTime) : null;
-                                const isToday = day.isToday;
-                                
-                                // Calculate segment start and end in minutes
-                                const workDayStart = 5 * 60;
-                                const totalMinutes = 18 * 60;
-                                const segmentStartMinutes = workDayStart + (segment.left / 100) * totalMinutes;
-                                const segmentEndMinutes = segmentStartMinutes + (segment.width / 100) * totalMinutes;
-                                
-                                let displayWidth = segment.width;
-                                
-                                // If today and not clocked out, animate to current time
-                                if (isToday && !clockOutMinutes) {
-                                  if (currentMinutes < segmentStartMinutes) {
-                                    displayWidth = 0;
-                                  } else if (currentMinutes < segmentEndMinutes) {
-                                    const progressMinutes = currentMinutes - segmentStartMinutes;
-                                    const segmentTotalMinutes = segmentEndMinutes - segmentStartMinutes;
-                                    displayWidth = (progressMinutes / segmentTotalMinutes) * segment.width;
-                                  }
-                                }
-                                
-                                return (
-                                  <Tooltip key={idx}>
-                                    <TooltipTrigger asChild>
-                                      <div
-                                        style={{
-                                          position: 'absolute',
-                                          left: `${segment.left}%`,
-                                          width: `${displayWidth}%`,
-                                          height: '100%',
-                                          background: segment.color,
-                                          borderRadius: idx === 0 ? '3px 0 0 3px' : idx === segments.length - 1 ? '0 3px 3px 0' : '0',
-                                          transition: 'width 1s linear',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          fontSize: '9px',
-                                          color: 'white',
-                                          fontWeight: '600',
-                                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
-                                          marginLeft: idx > 0 ? '1px' : '0'
-                                        }}
-                                      >
-                                        {displayWidth > 8 ? segment.label : ''}
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{segment.label}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                );
-                              })}
-                            </div>
-
-                          {/* Time Labels Below Bar */}
-                          <div style={{ 
-                            position: 'relative', 
-                            height: '18px',
-                            marginBottom: '12px',
-                            borderTop: '1px solid #e5e7eb',
-                            paddingTop: '4px'
-                          }}>
-                            {[5, 7, 9, 11, 13, 15, 17, 19, 21, 23].map((hour) => {
-                              const position = ((hour - 5) / 18) * 100;
-                              return (
-                                <div
-                                  key={hour}
-                                  style={{
-                                    position: 'absolute',
-                                    left: `${position}%`,
-                                    transform: 'translateX(-50%)',
-                                    fontSize: '10px',
-                                    color: '#6b7280',
-                                    fontWeight: '500'
-                                  }}
-                                >
-                                  {hour.toString().padStart(2, '0')}:00
-                                </div>
-                              );
-                            })}
-                          </div>
-
+                        <div style={{ marginBottom: '16px' }}>
+                          {/* New TimelineBar Component */}
+                          <TimelineBar segments={convertToTimelineBarSegments(segments)} />
+                          
                           {/* Legend */}
                           <div style={{ 
                             display: 'flex', 
                             gap: '12px', 
                             fontSize: '11px',
                             color: '#6b7280',
+                            marginTop: '12px',
                             marginBottom: '12px',
                             flexWrap: 'wrap'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#ff6b35', borderRadius: '2px' }}></div>
+                              <div style={{ width: '10px', height: '10px', background: '#EF4444', borderRadius: '2px' }}></div>
                               <span>Late</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#007bff', borderRadius: '2px' }}></div>
+                              <div style={{ width: '10px', height: '10px', background: '#3B82F6', borderRadius: '2px' }}></div>
                               <span>Working</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#4ade80', borderRadius: '2px' }}></div>
+                              <div style={{ width: '10px', height: '10px', background: '#06B6D4', borderRadius: '2px' }}></div>
                               <span>Break</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#f97316', borderRadius: '2px' }}></div>
+                              <div style={{ width: '10px', height: '10px', background: '#F97316', borderRadius: '2px' }}></div>
                               <span>Overtime</span>
                             </div>
                           </div>
