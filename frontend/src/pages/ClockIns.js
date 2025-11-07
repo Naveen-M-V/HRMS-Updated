@@ -1398,6 +1398,91 @@ const ClockIns = () => {
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+                        {/* Clock In Button - Show when not clocked in */}
+                        {(employee.status === 'absent' || employee.status === 'clocked_out' || !employee.status) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openClockInModal(employee);
+                            }}
+                            style={{
+                              padding: '6px 16px',
+                              background: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Clock In
+                          </button>
+                        )}
+                        
+                        {/* Clock Out Button - Show when clocked in or on break */}
+                        {(employee.status === 'clocked_in' || employee.status === 'on_break') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClockOut(employee.id || employee._id);
+                            }}
+                            style={{
+                              padding: '6px 16px',
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Clock Out
+                          </button>
+                        )}
+                        
+                        {/* Break Button - Show when clocked in */}
+                        {employee.status === 'clocked_in' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOnBreak(employee.id || employee._id);
+                            }}
+                            style={{
+                              padding: '6px 16px',
+                              background: '#f59e0b',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              fontWeight: '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Break
+                          </button>
+                        )}
+                        
+                        {/* View Details Button */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1405,47 +1490,19 @@ const ClockIns = () => {
                             setShowTimesheetModal(true);
                           }}
                           style={{
-                            padding: '6px 16px',
-                            background: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
+                            padding: '6px 12px',
+                            background: '#ffffff',
+                            color: '#3b82f6',
+                            border: '1px solid #3b82f6',
                             borderRadius: '4px',
                             fontSize: '12px',
                             cursor: 'pointer',
-                            fontWeight: '500',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          View Details
-                        </button>
-                        {/* Edit Button - Only show if employee has a time entry */}
-                        {employee.timeEntryId && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditEntry(employee);
-                          }}
-                        style={{
-                          padding: '6px 12px',
-                          background: '#ffffff',
-                          color: '#3b82f6',
-                          border: '1px solid #3b82f6',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
                             fontWeight: '500'
                           }}
-                            title="Edit time entry"
+                          title="View timesheet details"
                         >
-                            Edit
-                            </button>
-                        )}
+                          Details
+                        </button>
                       </div>
                     </td>
                   </tr>

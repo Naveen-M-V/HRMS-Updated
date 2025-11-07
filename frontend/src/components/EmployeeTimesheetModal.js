@@ -46,6 +46,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [employeeProfile, setEmployeeProfile] = useState(null);
   const [timelineRefresh, setTimelineRefresh] = useState(0);
   const [currentClockStatus, setCurrentClockStatus] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('All Status');
 
   useEffect(() => {
     if (employee) {
@@ -1161,7 +1162,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 <div><span style={{ fontWeight: '500' }}>Role:</span> {employee.jobTitle || employee.jobRole || 'Employee'}</div>
                 <div><span style={{ fontWeight: '500' }}>VTID:</span> {employeeProfile?.vtid || employee.vtid || 'N/A'}</div>
                 <div>
-                  <span style={{ fontWeight: '500' }}>Mobile:</span> {employeeProfile?.mobileNumber || employeeProfile?.phone || employee.phone || employee.mobileNumber || 'N/A'}
+                  <span style={{ fontWeight: '500' }}>Mobile:</span> {employeeProfile?.mobile || employee.mobile || employeeProfile?.phone || employee.phone || 'N/A'}
                 </div>
               </div>
             </div>
@@ -1428,6 +1429,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               }}
             />
             <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
               style={{
                 padding: '8px 12px',
                 border: '1px solid #e5e7eb',
@@ -1461,7 +1464,24 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {weekData.map((day, index) => {
+              {weekData.filter(day => {
+                if (statusFilter === 'All Status') return true;
+                if (statusFilter === 'Present') return day.clockIn && day.clockOut;
+                if (statusFilter === 'Absent') return !day.clockIn || day.isAbsent;
+                if (statusFilter === 'Late') {
+                  // Check if employee was late based on shift start time
+                  if (!day.clockInTime || !day.shiftStartTime) return false;
+                  const parseTime = (timeStr) => {
+                    if (!timeStr || timeStr === 'Present' || timeStr === 'N/A') return null;
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return hours * 60 + minutes;
+                  };
+                  const clockInMinutes = parseTime(day.clockInTime);
+                  const shiftStartMinutes = parseTime(day.shiftStartTime);
+                  return clockInMinutes > shiftStartMinutes;
+                }
+                return true;
+              }).map((day, index) => {
                   // Determine what to show when not clocked in
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
