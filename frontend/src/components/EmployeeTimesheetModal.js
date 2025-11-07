@@ -37,7 +37,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [editForm, setEditForm] = useState({
     date: null,
     clockIn: null,
-    clockOut: null
+    clockOut: null,
+    location: 'Work From Office',
+    workType: 'Regular',
+    breaks: []
   });
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
@@ -871,7 +874,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     setEditForm({
       date: dayjs(day.date),
       clockIn: day.clockIn ? dayjs(day.clockIn, 'HH:mm') : dayjs().hour(9).minute(0),
-      clockOut: day.clockOut ? dayjs(day.clockOut, 'HH:mm') : dayjs().hour(17).minute(0)
+      clockOut: day.clockOut ? dayjs(day.clockOut, 'HH:mm') : dayjs().hour(17).minute(0),
+      location: day.location || 'Work From Office',
+      workType: day.workType || 'Regular',
+      breaks: day.breaks || []
     });
     setShowEditModal(true);
   };
@@ -891,7 +897,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       const timeData = {
         date: editForm.date.format('YYYY-MM-DD'),
         clockIn: editForm.clockIn.format('HH:mm'),
-        clockOut: editForm.clockOut ? editForm.clockOut.format('HH:mm') : null
+        clockOut: editForm.clockOut ? editForm.clockOut.format('HH:mm') : null,
+        location: editForm.location,
+        workType: editForm.workType,
+        breaks: editForm.breaks
       };
 
       let response;
@@ -901,9 +910,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         // Create new time entry
         const newEntryData = {
           ...timeData,
-          employeeId: employee._id || employee.id,
-          location: 'Office',
-          workType: 'Regular'
+          employeeId: employee._id || employee.id
         };
         console.log('Creating new time entry:', newEntryData);
         response = await addTimeEntry(newEntryData);
@@ -925,6 +932,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         setShowEditModal(false);
         setEditingEntry(null);
         fetchWeeklyTimesheet(); // Refresh data
+        // Trigger global refresh for all pages
+        triggerClockRefresh({ action: 'edit_entry', employeeId: employee._id || employee.id });
       } else {
         toast.error(response.message || 'Failed to save entry');
       }
@@ -1598,15 +1607,20 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                                   zIndex: 1000,
                                   minWidth: '160px',
                                   overflow: 'hidden'
-                                }}>
+                                }}
+                              >
                                 <button
                                   onClick={() => {
                                     setEditingEntry(day);
                                     setEditForm({
-                                      date: day.date,
-                                      clockIn: day.clockIn,
-                                      clockOut: day.clockOut
+                                      date: day.date ? dayjs(day.date) : dayjs(),
+                                      clockIn: day.clockInTime ? dayjs(`2000-01-01 ${day.clockInTime}`) : dayjs().hour(9).minute(0),
+                                      clockOut: day.clockOutTime && day.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${day.clockOutTime}`) : null,
+                                      location: day.location || 'Work From Office',
+                                      workType: day.workType || 'Regular',
+                                      breaks: day.breaks || []
                                     });
+                                    setShowEditModal(true);
                                     setOpenMenuIndex(null);
                                   }}
                                   style={{
@@ -1991,7 +2005,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 : 'Edit Time Entry'}
             </h3>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   Date
@@ -2020,6 +2034,120 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   value={editForm.clockOut}
                   onChange={(time) => setEditForm({ ...editForm, clockOut: time })}
                 />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Location
+                </label>
+                <select
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    color: '#374151',
+                    background: 'white',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="Work From Office">Work From Office</option>
+                  <option value="Work From Home">Work From Home</option>
+                  <option value="Field">Field</option>
+                  <option value="Client Side">Client Side</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Work Type
+                </label>
+                <select
+                  value={editForm.workType}
+                  onChange={(e) => setEditForm({ ...editForm, workType: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    color: '#374151',
+                    background: 'white',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="Regular">Regular</option>
+                  <option value="Overtime">Overtime</option>
+                  <option value="Weekend Overtime">Weekend Overtime</option>
+                  <option value="Client-side Overtime">Client-side Overtime</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Breaks
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {editForm.breaks && editForm.breaks.length > 0 ? (
+                    editForm.breaks.map((breakItem, idx) => (
+                      <div key={idx} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        padding: '12px',
+                        background: '#f9fafb',
+                        borderRadius: '6px',
+                        border: '1px solid #e5e7eb'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Break {idx + 1}</div>
+                          <div style={{ fontSize: '13px', color: '#111827', fontWeight: '500' }}>
+                            {breakItem.startTime} - {breakItem.endTime}
+                            {breakItem.duration && (
+                              <span style={{ color: '#6b7280', fontWeight: '400', marginLeft: '8px' }}>
+                                ({Math.floor(breakItem.duration / 60)}h {breakItem.duration % 60}m)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newBreaks = editForm.breaks.filter((_, i) => i !== idx);
+                            setEditForm({ ...editForm, breaks: newBreaks });
+                          }}
+                          style={{
+                            padding: '6px',
+                            background: '#fee2e2',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            color: '#dc2626'
+                          }}
+                        >
+                          <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#f9fafb', 
+                      borderRadius: '6px',
+                      textAlign: 'center',
+                      color: '#6b7280',
+                      fontSize: '13px'
+                    }}>
+                      No breaks recorded
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
