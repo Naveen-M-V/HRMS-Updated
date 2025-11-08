@@ -70,17 +70,17 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                   <div className="space-y-1">
                     {record.sessions.map((session, index) => (
                       <div key={index} className="flex items-center font-mono text-sm">
-                        <span className={record.overtime !== '-' ? 'text-orange-600 w-[72px] text-right mr-2' : 'text-gray-900 w-[72px] text-right mr-2'}>
+                        <span className={record.overtime !== '-' ? 'text-orange-600 w-[50px] text-right' : 'text-gray-900 w-[50px] text-right'}>
                           {session.clockIn}
                         </span>
-                        <div className="flex items-center">
+                        <div className="flex items-center mx-2">
                           <span className="text-gray-400 leading-none">•</span>
-                          <div className="h-[2px] w-3 bg-gray-300"></div>
-                          <span className="text-gray-400 text-xs px-2">{session.duration}</span>
-                          <div className="h-[2px] w-3 bg-gray-300"></div>
+                          <div className="h-[2px] w-2 bg-gray-300"></div>
+                          <span className="text-gray-400 text-xs px-1 min-w-[60px] text-center">{session.duration}</span>
+                          <div className="h-[2px] w-2 bg-gray-300"></div>
                           <span className="text-gray-400 leading-none">•</span>
                         </div>
-                        <span className={record.overtime !== '-' ? 'text-orange-600 w-[72px] ml-2' : 'text-gray-900 w-[72px] ml-2'}>
+                        <span className={record.overtime !== '-' ? 'text-orange-600 w-[50px]' : 'text-gray-900 w-[50px]'}>
                           {session.clockOut}
                         </span>
                       </div>
