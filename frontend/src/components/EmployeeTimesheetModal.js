@@ -1629,18 +1629,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <input
-              type="text"
-              placeholder="Search"
-              style={{
-                padding: '8px 12px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                fontSize: '13px',
-                width: '200px',
-                outline: 'none'
-              }}
-            />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}

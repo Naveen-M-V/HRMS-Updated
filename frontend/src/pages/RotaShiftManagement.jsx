@@ -298,16 +298,19 @@ const RotaShiftManagement = () => {
       }
     } catch (error) {
       console.error('❌ Assign shift error:', error);
-      console.error('Error response:', error.response);
-      console.error('Error data:', error.response?.data);
-      console.error('Error status:', error.response?.status);
       console.error('Error message:', error.message);
       
-      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to assign shift';
+      // The error thrown from rotaApi is already error.response.data
+      // So 'error' here is the actual error data from the backend
+      const errorMsg = error.message || 'Failed to assign shift';
+      
+      console.log('📋 Error data:', error);
+      console.log('📋 Has conflicts?', !!error.conflicts);
+      console.log('📋 Conflicts array:', error.conflicts);
       
       // Show conflict details if available
-      if (error.response?.data?.conflicts && error.response.data.conflicts.length > 0) {
-        const conflicts = error.response.data.conflicts;
+      if (error.conflicts && error.conflicts.length > 0) {
+        const conflicts = error.conflicts;
         console.error('⚠️ Shift conflicts:', conflicts);
         
         // Find the date range that includes all conflicts
@@ -364,12 +367,40 @@ const RotaShiftManagement = () => {
           { autoClose: 10000 }
         );
       } else {
+        // No conflicts, just show the error message
         toast.error(errorMsg, { autoClose: 5000 });
+        
+        // If it's a conflict but no conflicts array, try to expand to show today's date
+        if (errorMsg.includes('conflict') || errorMsg.includes('already has')) {
+          console.log('⚠️ Conflict detected but no conflicts array, expanding to include assigned date');
+          const assignedDate = new Date(formData.date);
+          const currentStart = new Date(filters.startDate);
+          const currentEnd = new Date(filters.endDate);
+          const newStartDate = assignedDate < currentStart ? assignedDate : currentStart;
+          const newEndDate = assignedDate > currentEnd ? assignedDate : currentEnd;
+          
+          const newFilters = {
+            ...filters,
+            startDate: newStartDate.toISOString().split('T')[0],
+            endDate: newEndDate.toISOString().split('T')[0]
+          };
+          
+          setFilters(newFilters);
+          
+          try {
+            localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
+            console.log('💾 Expanded filters to show conflict date:', newFilters);
+          } catch (err) {
+            console.error('Error saving filters:', err);
+          }
+          
+          toast.info('Date range expanded to show the conflict', { autoClose: 3000 });
+        }
       }
       
       // Show detailed error in console for debugging
-      if (error.response?.data?.details) {
-        console.error('Backend stack trace:', error.response.data.details);
+      if (error.details) {
+        console.error('Backend stack trace:', error.details);
       }
     } finally {
       setLoading(false);
@@ -559,40 +590,6 @@ const RotaShiftManagement = () => {
           <p style={{ fontSize: '14px', color: '#6b7280' }}>
             Assign, manage, and track employee shift schedules
           </p>
-          
-          {/* Debug Info */}
-          <div style={{ 
-            marginTop: '16px', 
-            padding: '12px', 
-            background: '#f0f9ff', 
-            border: '1px solid #bfdbfe',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontFamily: 'monospace'
-          }}>
-            <div style={{ fontWeight: '600', marginBottom: '8px', color: '#1e40af' }}>📊 Debug Info:</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px', color: '#1e3a8a' }}>
-              <span>Shifts in state:</span>
-              <span style={{ fontWeight: '600' }}>{shifts.length}</span>
-              
-              <span>Loading:</span>
-              <span style={{ fontWeight: '600' }}>{loading ? 'Yes' : 'No'}</span>
-              
-              <span>Date Range:</span>
-              <span style={{ fontWeight: '600' }}>
-                {filters.startDate} to {filters.endDate}
-              </span>
-              
-              <span>Location Filter:</span>
-              <span style={{ fontWeight: '600' }}>{filters.location}</span>
-              
-              <span>Work Type Filter:</span>
-              <span style={{ fontWeight: '600' }}>{filters.workType}</span>
-            </div>
-            <div style={{ marginTop: '8px', fontSize: '11px', color: '#64748b' }}>
-              💡 Open browser console (F12) to see detailed logs
-            </div>
-          </div>
         </div>
 
         {statistics && (
