@@ -1178,17 +1178,47 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
       // Calculate late arrival
       const calculateLateArrival = () => {
-        if (!day.shiftStartTime || !day.clockInTime) return '--';
+        // Check if we have the required data
+        if (!day.shiftStartTime || !day.clockInTime) {
+          console.log(`⏰ Late arrival calc skipped for ${day.dayName}: shiftStartTime=${day.shiftStartTime}, clockInTime=${day.clockInTime}`);
+          return '--';
+        }
         
         const parseTime = (timeStr) => {
-          const [hours, minutes] = timeStr.split(':').map(Number);
-          return hours * 60 + minutes;
+          if (!timeStr || timeStr === 'Present' || timeStr === 'N/A' || timeStr === '--') {
+            return null;
+          }
+          
+          // Handle HH:mm format
+          const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+          if (match) {
+            const hours = parseInt(match[1], 10);
+            const minutes = parseInt(match[2], 10);
+            return hours * 60 + minutes;
+          }
+          
+          return null;
         };
         
         try {
           const shiftStartMins = parseTime(day.shiftStartTime);
           const clockInMins = parseTime(day.clockInTime);
+          
+          if (shiftStartMins === null || clockInMins === null) {
+            console.log(`⏰ Late arrival calc failed for ${day.dayName}: Could not parse times`);
+            return '--';
+          }
+          
           const lateMins = clockInMins - shiftStartMins;
+          
+          console.log(`⏰ Late arrival calc for ${day.dayName}:`, {
+            shiftStartTime: day.shiftStartTime,
+            clockInTime: day.clockInTime,
+            shiftStartMins,
+            clockInMins,
+            lateMins,
+            isLate: lateMins > 0
+          });
           
           if (lateMins <= 0) return '--'; // On time or early
           
@@ -1196,6 +1226,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           const mins = lateMins % 60;
           return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
         } catch (e) {
+          console.error(`❌ Late arrival calc error for ${day.dayName}:`, e);
           return '--';
         }
       };

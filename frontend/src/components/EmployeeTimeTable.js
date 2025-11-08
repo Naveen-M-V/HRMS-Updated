@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Pencil, Trash2, MoreVertical } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -11,6 +11,20 @@ import {
 import { Button } from './ui/button';
 
 export function EmployeeTimeTable({ records, onEdit, onDelete }) {
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openMenuId && !event.target.closest('.relative')) {
+        setOpenMenuId(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
+
   // Function to check if geolocation is GPS coordinates and open map
   const handleGeolocationClick = (geolocation) => {
     // Check if geolocation is in GPS coordinate format (e.g., "51.507351, -0.127758")
@@ -52,18 +66,53 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
               <TableHead className="w-48">
                 <div className="text-gray-700 font-semibold">Geolocation</div>
               </TableHead>
-              <TableHead className="w-24 text-center">
-                <div className="text-gray-700 font-semibold">Action</div>
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {records.map((record) => (
               <TableRow key={record.id} className="hover:bg-gray-50/50">
                 <TableCell>
-                  <div>
-                    <div className="text-gray-900">{record.day}</div>
-                    <div className="text-gray-500 text-sm">{record.date}</div>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-gray-900">{record.day}</div>
+                      <div className="text-gray-500 text-sm">{record.date}</div>
+                    </div>
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setOpenMenuId(openMenuId === record.id ? null : record.id)}
+                      >
+                        <MoreVertical className="h-4 w-4 text-gray-500" />
+                      </Button>
+                      {openMenuId === record.id && (
+                        <div className="absolute right-0 top-8 z-50 w-32 bg-white rounded-md shadow-lg border border-gray-200">
+                          <div className="py-1">
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              onClick={() => {
+                                onEdit(record);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-blue-500" />
+                              Edit
+                            </button>
+                            <button
+                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              onClick={() => {
+                                onDelete(record);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -155,26 +204,6 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                     title={/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(record.geolocation) ? 'Click to view on map' : ''}
                   >
                     <span className="truncate">{record.geolocation}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => onEdit(record)}
-                    >
-                      <Pencil className="h-4 w-4 text-blue-500" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => onDelete(record)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

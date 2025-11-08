@@ -1246,7 +1246,7 @@ const ClockIns = () => {
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#ef4444' }}>
-              {statsLoading ? '...' : (employees.filter(e => e.status === 'absent' || !e.status).length)}
+              {statsLoading ? '...' : (stats?.absent ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Absent</div>
           </div>

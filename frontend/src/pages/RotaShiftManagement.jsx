@@ -43,16 +43,22 @@ const RotaShiftManagement = () => {
       console.error('Error loading filters from localStorage:', error);
     }
     
-    // Default filters
+    // Default filters - show all shifts (2 year range)
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1); // 1 year ago
+    
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
+    
     const defaultFilters = {
-      startDate: getMonday(new Date()).toISOString().split('T')[0],
-      endDate: getFriday(new Date()).toISOString().split('T')[0],
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
       employeeId: '',
       location: 'all',
       workType: 'all',
       status: ''
     };
-    console.log('📂 Using default filters:', defaultFilters);
+    console.log('📂 Using default filters (2 year range):', defaultFilters);
     return defaultFilters;
   };
   
@@ -500,9 +506,15 @@ const RotaShiftManagement = () => {
   };
 
   const resetFilters = () => {
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1); // 1 year ago
+    
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
+    
     const defaultFilters = {
-      startDate: getMonday(new Date()).toISOString().split('T')[0],
-      endDate: getFriday(new Date()).toISOString().split('T')[0],
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
       employeeId: '',
       location: 'all',
       workType: 'all',
@@ -513,43 +525,14 @@ const RotaShiftManagement = () => {
     // Save to localStorage
     try {
       localStorage.setItem('rotaShiftFilters', JSON.stringify(defaultFilters));
-      console.log('🔄 Reset filters to default:', defaultFilters);
+      console.log('🔄 Reset filters to default (2 year range):', defaultFilters);
     } catch (error) {
       console.error('Error saving filters to localStorage:', error);
     }
     
-    toast.info('Filters reset to current week', { autoClose: 2000 });
+    toast.info('Filters reset to show all shifts', { autoClose: 2000 });
   };
 
-  const viewAllShifts = () => {
-    // Set a very wide date range to show all shifts
-    const startDate = new Date();
-    startDate.setFullYear(startDate.getFullYear() - 1); // 1 year ago
-    
-    const endDate = new Date();
-    endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
-    
-    const allShiftsFilters = {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      employeeId: '',
-      location: 'all',
-      workType: 'all',
-      status: ''
-    };
-    
-    setFilters(allShiftsFilters);
-    
-    // Save to localStorage
-    try {
-      localStorage.setItem('rotaShiftFilters', JSON.stringify(allShiftsFilters));
-      console.log('📅 Viewing all shifts (2 year range):', allShiftsFilters);
-    } catch (error) {
-      console.error('Error saving filters to localStorage:', error);
-    }
-    
-    toast.info('Showing all shifts (past year to next year)', { autoClose: 2000 });
-  };
 
   const exportToCSV = () => {
     const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
@@ -676,38 +659,6 @@ const RotaShiftManagement = () => {
               </Select>
             </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              <button
-                onClick={viewAllShifts}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #3b82f6',
-                  background: '#eff6ff',
-                  color: '#3b82f6',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-                title="View all shifts (2 year range)"
-              >
-                📅 View All
-              </button>
-              <button
-                onClick={resetFilters}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  background: '#ffffff',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-                title="Reset to current week"
-              >
-                🔄 Reset
-              </button>
               <button
                 onClick={() => setShowModal(true)}
                 style={{

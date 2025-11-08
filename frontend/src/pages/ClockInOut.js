@@ -415,7 +415,7 @@ const ClockInOut = () => {
               fontWeight: '700',
               color: '#111827'
             }}>
-              {stats.absent}
+              {stats.absent || 0}
             </div>
           </div>
         </div>
