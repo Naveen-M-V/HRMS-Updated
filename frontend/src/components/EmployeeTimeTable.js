@@ -11,38 +11,55 @@ import {
 import { Button } from './ui/button';
 
 export function EmployeeTimeTable({ records, onEdit, onDelete }) {
+  // Function to check if location is GPS coordinates and open map
+  const handleLocationClick = (location) => {
+    // Check if location is in GPS coordinate format (e.g., "51.507351, -0.127758")
+    const gpsPattern = /^-?\d+\.\d+,\s*-?\d+\.\d+$/;
+    if (gpsPattern.test(location)) {
+      const [lat, lng] = location.split(',').map(coord => coord.trim());
+      // Open Google Maps in a new tab
+      window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="border rounded-lg overflow-hidden bg-white">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 border-b">
-              <TableHead className="w-44">
-                <div className="flex items-center gap-2 text-gray-700">
+              <TableHead className="w-40">
+                <div className="flex items-center gap-2 text-gray-700 font-semibold">
                   <Calendar className="h-4 w-4" />
                   Day
                 </div>
               </TableHead>
-              <TableHead className="w-96">
-                <div className="flex items-center gap-2 text-gray-700">
+              <TableHead className="w-80">
+                <div className="flex items-center gap-2 text-gray-700 font-semibold">
                   <Clock className="h-4 w-4" />
                   Clock-in & Out
                 </div>
               </TableHead>
-              <TableHead className="w-32">
-                <div className="flex items-center gap-2 text-gray-700">
+              <TableHead className="w-32 text-center">
+                <div className="flex items-center justify-center gap-2 text-gray-700 font-semibold">
+                  <Timer className="h-4 w-4" />
+                  Total Duration
+                </div>
+              </TableHead>
+              <TableHead className="w-28 text-center">
+                <div className="flex items-center justify-center gap-2 text-gray-700 font-semibold">
                   <Timer className="h-4 w-4" />
                   Overtime
                 </div>
               </TableHead>
-              <TableHead>
-                <div className="flex items-center gap-2 text-gray-700">
+              <TableHead className="w-56">
+                <div className="flex items-center gap-2 text-gray-700 font-semibold">
                   <MapPin className="h-4 w-4" />
                   GPS Location
                 </div>
               </TableHead>
-              <TableHead className="w-32">
-                <div className="text-gray-700">
+              <TableHead className="w-28 text-center">
+                <div className="text-gray-700 font-semibold">
                   Action
                 </div>
               </TableHead>
@@ -78,11 +95,24 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                     ))}
                   </div>
                 </TableCell>
-                <TableCell className="text-gray-900">
-                  {record.overtime}
+                <TableCell className="text-center">
+                  <span className="font-semibold text-gray-900">{record.totalDuration}</span>
+                </TableCell>
+                <TableCell className="text-center">
+                  <span className={record.overtime !== '-' ? 'text-orange-600 font-semibold' : 'text-gray-500'}>
+                    {record.overtime}
+                  </span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2 text-blue-500 text-sm">
+                  <div 
+                    className={`flex items-center gap-2 text-sm ${
+                      /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(record.location) 
+                        ? 'text-blue-600 cursor-pointer hover:text-blue-800 hover:underline' 
+                        : 'text-gray-600'
+                    }`}
+                    onClick={() => handleLocationClick(record.location)}
+                    title={/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(record.location) ? 'Click to view on map' : ''}
+                  >
                     <MapPin className="h-4 w-4 flex-shrink-0" />
                     <span className="truncate max-w-xs">{record.location}</span>
                   </div>

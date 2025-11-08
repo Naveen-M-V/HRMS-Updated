@@ -1162,6 +1162,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         day: getDayLabel(),
         date: getDateLabel(),
         sessions: formatSessions(),
+        totalDuration: day.totalHours || '--',
         overtime: day.overtime || '-',
         location: day.gpsLocation && day.gpsLocation.latitude != null && day.gpsLocation.longitude != null
           ? `${day.gpsLocation.latitude.toFixed(6)}, ${day.gpsLocation.longitude.toFixed(6)}`
