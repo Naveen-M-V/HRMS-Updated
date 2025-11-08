@@ -814,7 +814,8 @@ const ClockIns = () => {
     .filter(employee => {
       // Status filter
       if (statusFilter) {
-        if (employee.status !== statusFilter) return false;
+        // Only show employees with matching status (exclude null/undefined)
+        if (!employee.status || employee.status !== statusFilter) return false;
       }
       return true;
     })

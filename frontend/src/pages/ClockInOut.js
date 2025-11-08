@@ -465,7 +465,11 @@ const ClockInOut = () => {
               overflowY: 'auto'
             }}>
               {clockData
-                .filter(employee => !selectedFilter || employee.status === selectedFilter)
+                .filter(employee => {
+                  if (!selectedFilter) return true;
+                  // Only show employees with matching status (exclude null/undefined)
+                  return employee.status && employee.status === selectedFilter;
+                })
                 .map((employee, index, filteredArray) => (
                 <div key={employee.id || index} style={{
                   display: 'flex',
