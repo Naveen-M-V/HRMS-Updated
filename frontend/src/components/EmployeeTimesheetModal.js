@@ -1697,434 +1697,6 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                     Select Session to Edit
                   </label>
                   <select
-                        // Determine what to show when not clocked in
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const dayDate = new Date(day.date);
-                        dayDate.setHours(0, 0, 0, 0);
-                        const isFutureDate = dayDate > today;
-                  
-                  let emptyLabel = 'Absent';
-                  let emptyColor = '#fef2f2';
-                  let emptyTextColor = '#dc2626';
-                  
-                  if (isFutureDate) {
-                    emptyLabel = 'None';
-                    emptyColor = '#f9fafb';
-                    emptyTextColor = '#9ca3af';
-                  } else if (day.isWeekend) {
-                    emptyLabel = 'Week-End';
-                    emptyColor = '#f3f4f6';
-                    emptyTextColor = '#9ca3af';
-                  }
-                  
-                  const segments = calculateTimelineSegments(day);
-                  const isApproved = day.clockOut && !day.isAbsent;
-                  
-                  return (
-                    <div 
-                      key={index}
-                      style={{ 
-                        background: day.isToday ? '#eff6ff' : '#ffffff',
-                        borderRadius: '12px',
-                        padding: '16px 20px',
-                        border: day.isToday ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                        boxShadow: day.isToday ? '0 4px 12px rgba(59, 130, 246, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.05)'
-                      }}
-                    >
-                      {/* Day Header */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', minWidth: '120px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {day.isToday && <span style={{ fontSize: '16px' }}>🟢</span>}
-                            {day.isToday ? 'Today' : `${day.dayName}, ${day.dayNumber}`}
-                          </div>
-                          {/* Show all sessions if multiple exist */}
-                          {day.sessions && day.sessions.length > 1 ? (
-                            <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                              {day.sessions.map((session, idx) => (
-                                <div key={idx}>
-                                  <span style={{ fontWeight: '600', color: '#3b82f6' }}>Session {idx + 1}:</span>{' '}
-                                  <span style={{ fontWeight: '500', color: '#111827' }}>
-                                    {session.clockInTime} - {session.clockOutTime}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                              Clock-in: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockInTime || '--'}</span>
-                              {day.clockOutTime && day.clockOutTime !== 'Present' && (
-                                <span> | Clock-out: <span style={{ fontWeight: '500', color: '#111827' }}>{day.clockOutTime}</span></span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          {isApproved && (
-                            <div style={{
-                              background: '#d1fae5',
-                              color: '#065f46',
-                              padding: '4px 12px',
-                              borderRadius: '12px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              ✓ Approved
-                            </div>
-                          )}
-                          <div style={{ position: 'relative' }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuIndex(openMenuIndex === index ? null : index);
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '4px',
-                                borderRadius: '4px',
-                                transition: 'background 0.2s'
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
-                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                              <EllipsisVerticalIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-                            </button>
-                            
-                            {/* Dropdown Menu */}
-                            {openMenuIndex === index && (
-                              <div 
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  position: 'absolute',
-                                  right: 0,
-                                  top: '100%',
-                                  marginTop: '4px',
-                                  background: '#ffffff',
-                                  border: '1px solid #e5e7eb',
-                                  borderRadius: '8px',
-                                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                  zIndex: 1000,
-                                  minWidth: '160px',
-                                  overflow: 'hidden'
-                                }}
-                              >
-                                <button
-                                  onClick={() => {
-                                    setEditingEntry(day);
-                                    // For entries with multiple sessions, default to first session
-                                    const firstSession = day.sessions && day.sessions.length > 0 ? day.sessions[0] : null;
-                                    setEditForm({
-                                      date: day.date ? dayjs(day.date) : dayjs(),
-                                      clockIn: firstSession ? dayjs(`2000-01-01 ${firstSession.clockInTime}`) : (day.clockInTime ? dayjs(`2000-01-01 ${day.clockInTime}`) : dayjs().hour(9).minute(0)),
-                                      clockOut: firstSession ? (firstSession.clockOutTime && firstSession.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${firstSession.clockOutTime}`) : null) : (day.clockOutTime && day.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${day.clockOutTime}`) : null),
-                                      location: firstSession ? (firstSession.location || 'Work From Office') : (day.location || 'Work From Office'),
-                                      workType: firstSession ? (firstSession.workType || 'Regular') : (day.workType || 'Regular'),
-                                      breaks: firstSession ? (firstSession.breaks || []) : (day.breaks || []),
-                                      sessionIndex: 0,
-                                      entryId: firstSession ? firstSession.entryId : day.entryId
-                                    });
-                                    setShowEditModal(true);
-                                    setOpenMenuIndex(null);
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '10px 16px',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#374151',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    transition: 'background 0.2s'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
-                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                >
-                                  <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                  Edit Entry
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    handleDeleteEntry(day.entryId);
-                                    setOpenMenuIndex(null);
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '10px 16px',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    borderTop: '1px solid #f3f4f6',
-                                    textAlign: 'left',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#dc2626',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    transition: 'background 0.2s'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
-                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                >
-                                  <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  Delete Entry
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Timeline Progress Bar */}
-                      {day.clockIn && segments ? (
-                        <div style={{ marginBottom: '16px' }}>
-                          {/* New TimelineBar Component */}
-                          <TimelineBar 
-                            segments={convertToTimelineBarSegments(segments, day.isToday, day.clockOutTime)} 
-                            clockInTime={day.clockInTime}
-                            clockOutTime={day.clockOutTime}
-                            isToday={day.isToday}
-                          />
-                          
-                          {/* Legend */}
-                          <div style={{ 
-                            display: 'flex', 
-                            gap: '12px', 
-                            fontSize: '11px',
-                            color: '#6b7280',
-                            marginTop: '12px',
-                            marginBottom: '12px',
-                            flexWrap: 'wrap'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#EF4444', borderRadius: '2px' }}></div>
-                              <span>Late</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#3B82F6', borderRadius: '2px' }}></div>
-                              <span>Working</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#06B6D4', borderRadius: '2px' }}></div>
-                              <span>Break</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <div style={{ width: '10px', height: '10px', background: '#F97316', borderRadius: '2px' }}></div>
-                              <span>Overtime</span>
-                            </div>
-                          </div>
-
-                          {/* Break Details Section */}
-                          {day.breaks && day.breaks.length > 0 && (
-                            <div style={{
-                              background: '#f0fdf4',
-                              border: '1px solid #bbf7d0',
-                              borderRadius: '8px',
-                              padding: '12px',
-                              marginBottom: '12px'
-                            }}>
-                              <div style={{ 
-                                fontSize: '12px', 
-                                fontWeight: '600', 
-                                color: '#166534',
-                                marginBottom: '8px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px'
-                              }}>
-                                <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Break Details
-                              </div>
-                              {day.breaks.map((breakItem, idx) => {
-                                const breakDuration = breakItem.duration || 0;
-                                const breakHours = Math.floor(breakDuration / 60);
-                                const breakMins = breakDuration % 60;
-                                return (
-                                  <div key={idx} style={{ 
-                                    fontSize: '11px', 
-                                    color: '#15803d',
-                                    marginBottom: idx < day.breaks.length - 1 ? '4px' : '0',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                  }}>
-                                    <span>
-                                      Break {idx + 1}: {breakItem.startTime} - {breakItem.endTime}
-                                    </span>
-                                    <span style={{ fontWeight: '600' }}>
-                                      {breakHours > 0 ? `${breakHours}h ` : ''}{breakMins}m
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                              <div style={{
-                                marginTop: '8px',
-                                paddingTop: '8px',
-                                borderTop: '1px solid #bbf7d0',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                color: '#166534',
-                                display: 'flex',
-                                justifyContent: 'space-between'
-                              }}>
-                                <span>Total Break Time:</span>
-                                <span>
-                                  {(() => {
-                                    const totalBreakMins = day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
-                                    const hours = Math.floor(totalBreakMins / 60);
-                                    const mins = totalBreakMins % 60;
-                                    return `${hours > 0 ? `${hours}h ` : ''}${mins}m`;
-                                  })()}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Duration Display */}
-                          <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '12px',
-                            background: '#f9fafb',
-                            borderRadius: '8px',
-                            border: '1px solid #e5e7eb'
-                          }}>
-                            <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>
-                              Total Working Duration:
-                            </span>
-                            <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
-                              {day.totalHours || '0h 0m'}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{
-                          background: emptyColor,
-                          padding: '16px',
-                          borderRadius: '8px',
-                          textAlign: 'center',
-                          color: emptyTextColor,
-                          fontSize: '13px',
-                          fontWeight: '500',
-                          marginBottom: '16px'
-                        }}>
-                          {emptyLabel}
-                        </div>
-                      )}
-
-                      {/* GPS Location - Moved outside timeline section */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', marginTop: '8px' }}>
-                        
-                        {/* GPS Location Display */}
-                        {day.gpsLocation && day.gpsLocation.latitude && day.gpsLocation.longitude && (
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '12px', 
-                            padding: '8px 12px', 
-                            background: '#f0fdf4', 
-                            borderRadius: '6px',
-                            border: '1px solid #bbf7d0'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#166534' }}>
-                              <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              <span style={{ fontSize: '11px', fontWeight: '500' }}>
-                                {day.gpsLocation.latitude.toFixed(6)}, {day.gpsLocation.longitude.toFixed(6)}
-                              </span>
-                            </div>
-                            <a
-                              href={`https://www.google.com/maps?q=${day.gpsLocation.latitude},${day.gpsLocation.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                marginLeft: 'auto',
-                                color: '#2563eb',
-                                textDecoration: 'none',
-                                fontSize: '11px',
-                                fontWeight: '500',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              View Map
-                              <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      </div>
-      </div>
-
-      {/* Edit Modal */}
-      {showEditModal && editingEntry && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10001
-          }}
-          onClick={() => setShowEditModal(false)}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '32px',
-              maxWidth: '500px',
-              width: '90%',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '24px', color: '#111827' }}>
-              {editingEntry.isAbsent || !editingEntry.entryId || editingEntry.entryId.startsWith('absent-') 
-                ? 'Add Time Entry' 
-                : 'Edit Time Entry'}
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
-              {/* Session Selector - Only show if there are multiple sessions */}
-              {editingEntry.sessions && editingEntry.sessions.length > 1 && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Select Session to Edit
-                  </label>
-                  <select
                     value={editForm.sessionIndex}
                     onChange={(e) => {
                       const selectedIndex = parseInt(e.target.value);
@@ -2170,7 +1742,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                     alignItems: 'center',
                     gap: '6px'
                   }}>
-                    <svg style={{ width: '14px', height: '14px', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg style={{ width: '14px', height: '14px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span>You are editing Session {editForm.sessionIndex + 1} of {editingEntry.sessions.length}</span>
@@ -2221,16 +1793,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    color: '#374151',
-                    background: 'white',
-                    cursor: 'pointer',
                     outline: 'none'
                   }}
                 >
                   <option value="Work From Office">Work From Office</option>
                   <option value="Work From Home">Work From Home</option>
-                  <option value="Field">Field</option>
-                  <option value="Client Side">Client Side</option>
+                  <option value="Client Site">Client Site</option>
                 </select>
               </div>
 
@@ -2247,52 +1815,105 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                     border: '1px solid #d1d5db',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    color: '#374151',
-                    background: 'white',
-                    cursor: 'pointer',
                     outline: 'none'
                   }}
                 >
                   <option value="Regular">Regular</option>
                   <option value="Overtime">Overtime</option>
-                  <option value="Weekend Overtime">Weekend Overtime</option>
-                  <option value="Client-side Overtime">Client-side Overtime</option>
+                  <option value="Holiday">Holiday</option>
                 </select>
               </div>
 
+              {/* Breaks Section */}
               <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Breaks
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                    Breaks
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditForm({
+                        ...editForm,
+                        breaks: [...editForm.breaks, { startTime: '', endTime: '', duration: 0 }]
+                      });
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      fontWeight: '500'
+                    }}
+                  >
+                    + Add Break
+                  </button>
+                </div>
+                
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {editForm.breaks && editForm.breaks.length > 0 ? (
                     editForm.breaks.map((breakItem, idx) => (
-                      <div key={idx} style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '8px',
-                        padding: '12px',
-                        background: '#f9fafb',
-                        borderRadius: '6px',
-                        border: '1px solid #e5e7eb'
-                      }}>
+                      <div 
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          padding: '12px',
+                          background: '#f9fafb',
+                          borderRadius: '6px',
+                          border: '1px solid #e5e7eb'
+                        }}
+                      >
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Break {idx + 1}</div>
-                          <div style={{ fontSize: '13px', color: '#111827', fontWeight: '500' }}>
-                            {breakItem.startTime} - {breakItem.endTime}
-                            {breakItem.duration && (
-                              <span style={{ color: '#6b7280', fontWeight: '400', marginLeft: '8px' }}>
-                                ({Math.floor(breakItem.duration / 60)}h {breakItem.duration % 60}m)
-                              </span>
-                            )}
-                          </div>
+                          <label style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>Start</label>
+                          <input
+                            type="time"
+                            value={breakItem.startTime}
+                            onChange={(e) => {
+                              const newBreaks = [...editForm.breaks];
+                              newBreaks[idx].startTime = e.target.value;
+                              setEditForm({ ...editForm, breaks: newBreaks });
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '6px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '4px',
+                              fontSize: '12px'
+                            }}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', display: 'block' }}>End</label>
+                          <input
+                            type="time"
+                            value={breakItem.endTime}
+                            onChange={(e) => {
+                              const newBreaks = [...editForm.breaks];
+                              newBreaks[idx].endTime = e.target.value;
+                              setEditForm({ ...editForm, breaks: newBreaks });
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '6px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '4px',
+                              fontSize: '12px'
+                            }}
+                          />
                         </div>
                         <button
+                          type="button"
                           onClick={() => {
                             const newBreaks = editForm.breaks.filter((_, i) => i !== idx);
                             setEditForm({ ...editForm, breaks: newBreaks });
                           }}
                           style={{
+                            marginTop: '16px',
                             padding: '6px',
                             background: '#fee2e2',
                             border: 'none',
