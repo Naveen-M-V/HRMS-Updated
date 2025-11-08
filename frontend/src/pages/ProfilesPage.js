@@ -14,6 +14,7 @@ import {
   PaginationEllipsis
 } from '../components/ui/pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
@@ -261,46 +262,62 @@ export default function ProfilesPage() {
             {/* Filters */}
             <div className="border-t pt-4">
               <div className="grid grid-cols-5 gap-4">
-                <select 
+                <Select 
                   value={selectedRole} 
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  onValueChange={setSelectedRole}
                 >
-                  <option value="">All Roles</option>
-                  {filterOptions.roles.map(role => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </select>
-                <select 
+                  <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2">
+                    <SelectValue placeholder="All Roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Roles</SelectItem>
+                    {filterOptions.roles.map(role => (
+                      <SelectItem key={role} value={role}>{role}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select 
                   value={selectedStaffType} 
-                  onChange={(e) => setSelectedStaffType(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  onValueChange={setSelectedStaffType}
                 >
-                  <option value="">All Staff Types</option>
-                  {filterOptions.staffTypes.map(staffType => (
-                    <option key={staffType} value={staffType}>{staffType}</option>
-                  ))}
-                </select>
-                <select 
+                  <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2">
+                    <SelectValue placeholder="All Staff Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Staff Types</SelectItem>
+                    {filterOptions.staffTypes.map(staffType => (
+                      <SelectItem key={staffType} value={staffType}>{staffType}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select 
                   value={selectedCompany} 
-                  onChange={(e) => setSelectedCompany(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  onValueChange={setSelectedCompany}
                 >
-                  <option value="">All Companies</option>
-                  {filterOptions.companies.map(company => (
-                    <option key={company} value={company}>{company}</option>
-                  ))}
-                </select>
-                <select 
+                  <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2">
+                    <SelectValue placeholder="All Companies" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Companies</SelectItem>
+                    {filterOptions.companies.map(company => (
+                      <SelectItem key={company} value={company}>{company}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select 
                   value={selectedManager} 
-                  onChange={(e) => setSelectedManager(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  onValueChange={setSelectedManager}
                 >
-                  <option value="">All Managers</option>
-                  {filterOptions.managers.map(manager => (
-                    <option key={manager} value={manager}>{manager}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2">
+                    <SelectValue placeholder="All Managers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Managers</SelectItem>
+                    {filterOptions.managers.map(manager => (
+                      <SelectItem key={manager} value={manager}>{manager}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <button
                   onClick={clearAllFilters}
                   className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg border border-gray-300"

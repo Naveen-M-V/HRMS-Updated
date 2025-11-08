@@ -9,7 +9,7 @@ import {
   EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '../utils/apiConfig';
-import MUIDatePicker from './MUIDatePicker';
+import { DatePicker } from './ui/date-picker';
 import MUITimePicker from './MUITimePicker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import dayjs from 'dayjs';
@@ -18,6 +18,7 @@ import { updateTimeEntry, deleteTimeEntry, addTimeEntry } from '../utils/clockAp
 import { toast } from 'react-toastify';
 import { useClockStatus } from '../context/ClockStatusContext';
 import TimelineBar from './TimelineBar';
+import { EmployeeTimeTable } from './EmployeeTimeTable';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const { triggerClockRefresh } = useClockStatus(); // For global refresh
@@ -1083,6 +1084,123 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     document.body.removeChild(link);
   };
 
+  // Transform weekData to table format
+  const transformToTableData = () => {
+    return weekData.map((day, index) => {
+      // Calculate total duration for all sessions
+      const calculateTotalDuration = () => {
+        if (!day.sessions || day.sessions.length === 0) {
+          // Single session
+          if (!day.clockInTime || !day.clockOutTime || day.clockOutTime === 'Present') {
+            return '--';
+          }
+          return day.totalHours || '--';
+        }
+        // Multiple sessions - use totalHours
+        return day.totalHours || '--';
+      };
+
+      // Format sessions for display
+      const formatSessions = () => {
+        if (!day.sessions || day.sessions.length === 0) {
+          // Single session
+          return [{
+            clockIn: day.clockInTime || '--',
+            clockOut: day.clockOutTime || '--',
+            duration: day.totalHours || '--'
+          }];
+        }
+        // Multiple sessions
+        return day.sessions.map(session => ({
+          clockIn: session.clockInTime || '--',
+          clockOut: session.clockOutTime || '--',
+          duration: calculateSessionDuration(session)
+        }));
+      };
+
+      const calculateSessionDuration = (session) => {
+        if (!session.clockInTime || !session.clockOutTime || session.clockOutTime === 'Present') {
+          return '--';
+        }
+        // Parse times and calculate duration
+        const parseTime = (timeStr) => {
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return hours * 60 + minutes;
+        };
+        try {
+          const startMins = parseTime(session.clockInTime);
+          const endMins = parseTime(session.clockOutTime);
+          const durationMins = endMins - startMins;
+          const hours = Math.floor(durationMins / 60);
+          const mins = durationMins % 60;
+          return `${hours}h ${mins}m`;
+        } catch (e) {
+          return '--';
+        }
+      };
+
+      // Format day label
+      const getDayLabel = () => {
+        if (day.isToday) return 'Today';
+        const date = new Date(day.date);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+        
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      };
+
+      const getDateLabel = () => {
+        const date = new Date(day.date);
+        return date.toLocaleDateString('en-US', { weekday: 'long' });
+      };
+
+      return {
+        id: day.entryId || `day-${index}`,
+        day: getDayLabel(),
+        date: getDateLabel(),
+        sessions: formatSessions(),
+        overtime: day.overtime || '-',
+        location: day.gpsLocation 
+          ? `${day.gpsLocation.latitude.toFixed(6)}, ${day.gpsLocation.longitude.toFixed(6)}`
+          : day.location || 'N/A',
+        rawData: day // Keep original data for edit/delete operations
+      };
+    });
+  };
+
+  // Handle edit from table
+  const handleEditFromTable = (record) => {
+    const day = record.rawData;
+    setEditingEntry(day);
+    
+    // For entries with multiple sessions, default to first session
+    const firstSession = day.sessions && day.sessions.length > 0 ? day.sessions[0] : null;
+    setEditForm({
+      date: day.date ? dayjs(day.date) : dayjs(),
+      clockIn: firstSession 
+        ? dayjs(`2000-01-01 ${firstSession.clockInTime}`) 
+        : (day.clockInTime ? dayjs(`2000-01-01 ${day.clockInTime}`) : dayjs().hour(9).minute(0)),
+      clockOut: firstSession 
+        ? (firstSession.clockOutTime && firstSession.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${firstSession.clockOutTime}`) : null)
+        : (day.clockOutTime && day.clockOutTime !== 'Present' ? dayjs(`2000-01-01 ${day.clockOutTime}`) : null),
+      location: firstSession ? (firstSession.location || 'Work From Office') : (day.location || 'Work From Office'),
+      workType: firstSession ? (firstSession.workType || 'Regular') : (day.workType || 'Regular'),
+      breaks: firstSession ? (firstSession.breaks || []) : (day.breaks || []),
+      sessionIndex: 0,
+      entryId: firstSession ? firstSession.entryId : day.entryId
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle delete from table
+  const handleDeleteFromTable = (record) => {
+    const day = record.rawData;
+    handleDeleteEntry(day.entryId);
+  };
+
   if (!employee) return null;
 
   return (
@@ -1495,7 +1613,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           </div>
         </div>
 
-        {/* Timeline Calendar View */}
+        {/* Timesheet Table View */}
         <div style={{ 
           padding: '24px',
           overflowY: 'auto',
@@ -1509,8 +1627,9 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               Loading timesheet...
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {weekData.filter(day => {
+            <EmployeeTimeTable 
+              records={transformToTableData().filter(record => {
+                const day = record.rawData;
                 if (statusFilter === 'All Status') return true;
                 if (statusFilter === 'Present') return day.clockIn && day.clockOut;
                 if (statusFilter === 'Absent') return !day.clockIn || day.isAbsent;
@@ -1527,13 +1646,63 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                   return clockInMinutes > shiftStartMinutes;
                 }
                 return true;
-              }).map((day, index) => {
-                  // Determine what to show when not clocked in
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const dayDate = new Date(day.date);
-                  dayDate.setHours(0, 0, 0, 0);
-                  const isFutureDate = dayDate > today;
+              })}
+              onEdit={handleEditFromTable}
+              onDelete={handleDeleteFromTable}
+            />
+          )}
+        </div>
+      </div>
+      </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingEntry && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001
+          }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '32px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '24px', color: '#111827' }}>
+              {editingEntry.isAbsent || !editingEntry.entryId || editingEntry.entryId.startsWith('absent-') 
+                ? 'Add Time Entry' 
+                : 'Edit Time Entry'}
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
+              {/* Session Selector - Only show if there are multiple sessions */}
+              {editingEntry.sessions && editingEntry.sessions.length > 1 && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Select Session to Edit
+                  </label>
+                  <select
+                        // Determine what to show when not clocked in
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const dayDate = new Date(day.date);
+                        dayDate.setHours(0, 0, 0, 0);
+                        const isFutureDate = dayDate > today;
                   
                   let emptyLabel = 'Absent';
                   let emptyColor = '#fef2f2';
@@ -2013,7 +2182,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   Date
                 </label>
-                <MUIDatePicker
+                <DatePicker
                   value={editForm.date}
                   onChange={(date) => setEditForm({ ...editForm, date })}
                 />

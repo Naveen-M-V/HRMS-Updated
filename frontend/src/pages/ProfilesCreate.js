@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
-import ModernDatePicker from "../components/ModernDatePicker";
+import { DatePicker } from "../components/ui/date-picker";
 import ProfilePictureUpload from "../components/ProfilePictureUpload";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
@@ -290,7 +290,7 @@ export default function ProfilesCreate() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium">Date of Birth</label>
-              <ModernDatePicker
+              <DatePicker
                 name="dob"
                 value={formData.dob}
                 onChange={handleChange}
@@ -443,7 +443,7 @@ export default function ProfilesCreate() {
           {/* Start Date */}
           <div>
             <label className="block text-sm font-medium">Start Date</label>
-            <ModernDatePicker
+            <DatePicker
               name="startDate"
               value={formData.startDate}
               onChange={handleChange}

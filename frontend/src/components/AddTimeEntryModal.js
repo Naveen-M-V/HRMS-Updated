@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { addTimeEntry } from '../utils/clockApi';
-import MUIDatePicker from './MUIDatePicker';
+import { DatePicker } from './ui/date-picker';
 import MUITimePicker from './MUITimePicker';
 import dayjs from 'dayjs';
 
@@ -292,7 +292,7 @@ const AddTimeEntryModal = ({ onClose, onSuccess }) => {
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <div style={{ flex: 1 }}>
-                    <MUIDatePicker
+                    <DatePicker
                       value={formData.clockIn.date || null}
                       onChange={(date) => handleInputChange('clockIn.date', date ? date.format('YYYY-MM-DD') : '')}
                     />
@@ -319,7 +319,7 @@ const AddTimeEntryModal = ({ onClose, onSuccess }) => {
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <div style={{ flex: 1 }}>
-                    <MUIDatePicker
+                    <DatePicker
                       value={formData.clockOut.date || null}
                       onChange={(date) => handleInputChange('clockOut.date', date ? date.format('YYYY-MM-DD') : '')}
                     />

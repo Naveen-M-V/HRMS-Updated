@@ -23,6 +23,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -829,31 +830,33 @@ const UserDashboard = () => {
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Location <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        value={workLocation}
-                        onChange={(e) => setWorkLocation(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      >
-                        <option value="Work From Office">Work From Office</option>
-                        <option value="Work From Home">Work From Home</option>
-                        <option value="Field">Field</option>
-                        <option value="Client Side">Client Site</option>
-                      </select>
+                      <Select value={workLocation} onValueChange={setWorkLocation}>
+                        <SelectTrigger className="w-full px-4 py-3">
+                          <SelectValue placeholder="Select location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Work From Office">Work From Office</SelectItem>
+                          <SelectItem value="Work From Home">Work From Home</SelectItem>
+                          <SelectItem value="Field">Field</SelectItem>
+                          <SelectItem value="Client Side">Client Site</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Work Type
                       </label>
-                      <select
-                        value={workType}
-                        onChange={(e) => setWorkType(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      >
-                        <option value="Regular">Regular</option>
-                        <option value="Overtime">Overtime</option>
-                        <option value="Weekend Overtime">Weekend Overtime</option>
-                        <option value="Client-side Overtime">Client-side Overtime</option>
-                      </select>
+                      <Select value={workType} onValueChange={setWorkType}>
+                        <SelectTrigger className="w-full px-4 py-3">
+                          <SelectValue placeholder="Select work type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Regular">Regular</SelectItem>
+                          <SelectItem value="Overtime">Overtime</SelectItem>
+                          <SelectItem value="Weekend Overtime">Weekend Overtime</SelectItem>
+                          <SelectItem value="Client-side Overtime">Client-side Overtime</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   
@@ -1132,16 +1135,16 @@ const UserDashboard = () => {
                     </label>
                     {isEditingProfile && !fieldConfig.disabled ? (
                       fieldConfig.type === 'select' ? (
-                        <select
-                          value={editedProfile[fieldConfig.field] || ''}
-                          onChange={(e) => handleInputChange(fieldConfig.field, e.target.value)}
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        >
-                          <option value="">Select {fieldConfig.label}</option>
-                          {fieldConfig.options.map(option => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
-                        </select>
+                        <Select value={editedProfile[fieldConfig.field] || ''} onValueChange={(value) => handleInputChange(fieldConfig.field, value)}>
+                          <SelectTrigger className="mt-1 w-full">
+                            <SelectValue placeholder={`Select ${fieldConfig.label}`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {fieldConfig.options.map(option => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <input
                           type={fieldConfig.type}

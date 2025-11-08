@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../utils/apiConfig';
 import { toast, ToastContainer } from 'react-toastify';
-import MUIDatePicker from '../components/MUIDatePicker';
+import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
 import 'react-toastify/dist/ReactToastify.css';
@@ -11,6 +11,7 @@ import { assignShift } from '../utils/rotaApi';
 import axios from 'axios';
 import LoadingScreen from '../components/LoadingScreen';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const TimeHistory = () => {
   const [timeEntries, setTimeEntries] = useState([]);
@@ -408,14 +409,14 @@ const TimeHistory = () => {
               <input type="text" placeholder="Select Location" value={filters.locationSearch} onChange={(e) => setFilters(prev => ({ ...prev, locationSearch: e.target.value }))} style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }} />
             </div>
             <div style={{ flex: '1', minWidth: '200px' }}>
-              <MUIDatePicker
+              <DatePicker
                 label="Start Date"
                 value={filters.dateRange.start || null}
                 onChange={(date) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, start: date ? date.format('YYYY-MM-DD') : '' } }))}
               />
             </div>
             <div style={{ flex: '1', minWidth: '200px' }}>
-              <MUIDatePicker
+              <DatePicker
                 label="End Date"
                 value={filters.dateRange.end || null}
                 onChange={(date) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, end: date ? date.format('YYYY-MM-DD') : '' } }))}
@@ -560,21 +561,25 @@ const TimeHistory = () => {
             <form onSubmit={handleAssignShift}>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Employee <span style={{ color: '#dc2626' }}>*</span></label>
-                <select value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} required style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}>
-                  <option value="">Select Employee</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName} {emp.vtid ? `(${emp.vtid})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })} required>
+                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                    <SelectValue placeholder="Select Employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.firstName} {emp.lastName} {emp.vtid ? `(${emp.vtid})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <MUIDatePicker
-                  label="Date *"
+                <DatePicker
+                  label="Date"
+                  required
                   value={formData.date || null}
                   onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
-                  required
                 />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
@@ -595,21 +600,31 @@ const TimeHistory = () => {
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Location</label>
-                <select value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}>
-                  <option value="Office">Work From Office</option>
-                  <option value="Home">Work From Home</option>
-                  <option value="Field">Field</option>
-                  <option value="Client Site">Client Site</option>
-                </select>
+                <Select value={formData.location} onValueChange={(value) => setFormData({ ...formData, location: value })}>
+                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Office">Work From Office</SelectItem>
+                    <SelectItem value="Home">Work From Home</SelectItem>
+                    <SelectItem value="Field">Field</SelectItem>
+                    <SelectItem value="Client Site">Client Site</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Work Type</label>
-                <select value={formData.workType} onChange={(e) => setFormData({ ...formData, workType: e.target.value })} style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}>
-                  <option value="Regular">Regular</option>
-                  <option value="Overtime">Overtime</option>
-                  <option value="Weekend overtime">Weekend Overtime</option>
-                  <option value="Client side overtime">Client Side Overtime</option>
-                </select>
+                <Select value={formData.workType} onValueChange={(value) => setFormData({ ...formData, workType: value })}>
+                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                    <SelectValue placeholder="Select work type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Regular">Regular</SelectItem>
+                    <SelectItem value="Overtime">Overtime</SelectItem>
+                    <SelectItem value="Weekend overtime">Weekend Overtime</SelectItem>
+                    <SelectItem value="Client side overtime">Client Side Overtime</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAssignModal(false)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#ffffff', color: '#374151', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
@@ -650,29 +665,37 @@ const TimeHistory = () => {
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Location</label>
-                <select 
+                <Select 
                   value={editFormData.location} 
-                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })} 
-                  style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, location: value })}
                 >
-                  <option value="Office">Office</option>
-                  <option value="Work From Home">Work From Home</option>
-                  <option value="Client Site">Client Site</option>
-                  <option value="Other">Other</option>
-                </select>
+                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Office">Office</SelectItem>
+                    <SelectItem value="Work From Home">Work From Home</SelectItem>
+                    <SelectItem value="Client Site">Client Site</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Work Type</label>
-                <select 
+                <Select 
                   value={editFormData.workType} 
-                  onChange={(e) => setEditFormData({ ...editFormData, workType: e.target.value })} 
-                  style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+                  onValueChange={(value) => setEditFormData({ ...editFormData, workType: value })}
                 >
-                  <option value="Regular">Regular</option>
-                  <option value="Overtime">Overtime</option>
-                  <option value="Holiday">Holiday</option>
-                  <option value="Weekend">Weekend</option>
-                </select>
+                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                    <SelectValue placeholder="Select work type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Regular">Regular</SelectItem>
+                    <SelectItem value="Overtime">Overtime</SelectItem>
+                    <SelectItem value="Holiday">Holiday</SelectItem>
+                    <SelectItem value="Weekend">Weekend</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button 

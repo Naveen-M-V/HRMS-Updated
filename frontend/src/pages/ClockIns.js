@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry, userClockIn, userClockOut, userStartBreak } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 import EmployeeTimesheetModal from '../components/EmployeeTimesheetModal';
-import MUIDatePicker from '../components/MUIDatePicker';
+import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
 import { useAuth } from '../context/AuthContext';

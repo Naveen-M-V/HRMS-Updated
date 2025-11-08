@@ -12,7 +12,7 @@ import {
 import SearchableDropdown from '../components/SearchableDropdown';
 import { useAlert } from "../components/AlertNotification";
 import { getCertificatesForMultipleJobRoles, allCertificates } from '../data/certificateJobRoleMapping';
-import MUIDatePicker from '../components/MUIDatePicker';
+import { DatePicker } from '../components/ui/date-picker';
 import dayjs from 'dayjs';
 import {
   Select,
@@ -491,7 +491,7 @@ const UserCertificateCreate = () => {
               {/* Dates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <MUIDatePicker
+                  <DatePicker
                     label="Issue Date *"
                     value={formData.issueDate || null}
                     onChange={(date) => handleInputChange({ target: { name: 'issueDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
@@ -501,7 +501,7 @@ const UserCertificateCreate = () => {
                 </div>
 
                 <div>
-                  <MUIDatePicker
+                  <DatePicker
                     label="Expiry Date"
                     value={formData.expiryDate || null}
                     onChange={(date) => handleInputChange({ target: { name: 'expiryDate', value: date ? date.format('YYYY-MM-DD') : '' } })}

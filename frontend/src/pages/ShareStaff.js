@@ -4,6 +4,7 @@ import { useProfiles } from "../context/ProfileContext";
 import { useCertificates } from "../context/CertificateContext";
 import { EyeIcon, UserIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { getImageUrl } from '../utils/config';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 export default function Sharestaff() {
   const [search, setSearch] = useState("");
@@ -72,19 +73,23 @@ export default function Sharestaff() {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <label className="text-sm font-medium text-gray-700">Show</label>
-              <select 
-                value={entriesPerPage}
-                onChange={(e) => {
-                  setEntriesPerPage(Number(e.target.value));
+              <Select 
+                value={String(entriesPerPage)}
+                onValueChange={(value) => {
+                  setEntriesPerPage(Number(value));
                   setCurrentPage(1);
                 }}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+                <SelectTrigger className="w-[80px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
               <span className="text-sm text-gray-700">entries</span>
             </div>
           </div>

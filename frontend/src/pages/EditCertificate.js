@@ -5,7 +5,7 @@ import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
 import { getCertificatesForJobRole, getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
-import ModernDatePicker from "../components/ModernDatePicker";
+import { DatePicker } from "../components/ui/date-picker";
 import { useAlert } from "../components/AlertNotification";
 import {
   Select,
@@ -328,7 +328,7 @@ export default function EditCertificate() {
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Issue Date</label>
           <div className="col-span-10">
-            <ModernDatePicker
+            <DatePicker
               name="issueDate"
               value={formData.issueDate}
               onChange={handleChange}
@@ -342,7 +342,7 @@ export default function EditCertificate() {
         <div className="grid grid-cols-12 gap-4 items-center">
           <label className="col-span-2 text-right font-medium">Expiry Date</label>
           <div className="col-span-10">
-            <ModernDatePicker
+            <DatePicker
               name="expiryDate"
               value={formData.expiryDate}
               onChange={handleChange}

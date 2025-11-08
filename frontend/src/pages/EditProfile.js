@@ -5,7 +5,7 @@ import { useProfiles } from "../context/ProfileContext";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import SearchableDropdown from "../components/SearchableDropdown";
 import JobLevelDropdown from "../components/JobLevelDropdown";
-import ModernDatePicker from "../components/ModernDatePicker";
+import { DatePicker } from "../components/ui/date-picker";
 import { useAlert } from "../components/AlertNotification";
 import {
   Select,
@@ -379,11 +379,12 @@ export default function EditProfile() {
                 className="mt-1 w-full border rounded px-3 py-2"
               />
             </div>
+
             {/* DOB + Gender */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
               <div>
                 <label className="block text-sm text-gray-600">Date of Birth</label>
-                <ModernDatePicker
+                <DatePicker
                   name="dob"
                   value={formData.dob}
                   onChange={handleChange}

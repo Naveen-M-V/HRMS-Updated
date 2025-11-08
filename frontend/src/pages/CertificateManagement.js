@@ -5,6 +5,7 @@ import { useCertificates } from "../context/CertificateContext";
 import { useProfiles } from "../context/ProfileContext";
 import { useAlert } from "../components/AlertNotification";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { 
   AcademicCapIcon, 
   PlusIcon, 
@@ -295,38 +296,50 @@ export default function CertificateManagement() {
             {showFilters && (
               <div className="border-t pt-4">
                 <div className="grid grid-cols-4 gap-4">
-                  <select
+                  <Select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    onValueChange={setSelectedCategory}
                   >
-                    <option value="">All Categories</option>
-                    {filterOptions.categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Categories</SelectItem>
+                      {filterOptions.categories.map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                  <select
+                  <Select
                     value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    onValueChange={setSelectedStatus}
                   >
-                    <option value="">All Statuses</option>
-                    {filterOptions.statuses.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Statuses</SelectItem>
+                      {filterOptions.statuses.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                  <select
+                  <Select
                     value={selectedProvider}
-                    onChange={(e) => setSelectedProvider(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    onValueChange={setSelectedProvider}
                   >
-                    <option value="">All Providers</option>
-                    {filterOptions.providers.map(provider => (
-                      <option key={provider} value={provider}>{provider}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="border border-gray-300 rounded-lg px-3 py-2">
+                      <SelectValue placeholder="All Providers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Providers</SelectItem>
+                      {filterOptions.providers.map(provider => (
+                        <SelectItem key={provider} value={provider}>{provider}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
                   <button
                     onClick={clearFilters}

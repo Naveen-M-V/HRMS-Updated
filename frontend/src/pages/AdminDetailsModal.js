@@ -1,8 +1,9 @@
 // src/pages/AdminDetailsModal.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ModernDatePicker from '../components/ModernDatePicker';
+import { DatePicker } from '../components/ui/date-picker';
 import { useAlert } from "../components/AlertNotification";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 export default function AdminDetailsModal() {
   const navigate = useNavigate();
@@ -173,7 +174,7 @@ export default function AdminDetailsModal() {
                 </div>
                 <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                <ModernDatePicker
+                <DatePicker
                     name="dateOfBirth"
                   value={formData.dateOfBirth}
                   onChange={onChange}
@@ -183,12 +184,17 @@ export default function AdminDetailsModal() {
               </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                  <select name="gender" value={formData.gender} onChange={onChange} className="w-full border rounded px-3 py-2">
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
+                  <Select value={formData.gender} onValueChange={(value) => onChange({ target: { name: 'gender', value } })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -208,12 +214,17 @@ export default function AdminDetailsModal() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Staff Type</label>
-                  <select name="staffType" value={formData.staffType} onChange={onChange} className="w-full border rounded px-3 py-2">
-                    <option value="Admin">Admin</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Supervisor">Supervisor</option>
-                    <option value="Executive">Executive</option>
-                  </select>
+                  <Select value={formData.staffType} onValueChange={(value) => onChange({ target: { name: 'staffType', value } })}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select staff type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Manager">Manager</SelectItem>
+                      <SelectItem value="Supervisor">Supervisor</SelectItem>
+                      <SelectItem value="Executive">Executive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

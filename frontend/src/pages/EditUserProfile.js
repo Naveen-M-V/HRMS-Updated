@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useProfiles } from "../context/ProfileContext";
 import MultiJobRoleSelector from '../components/MultiJobRoleSelector';
 import { useAlert } from "../components/AlertNotification";
-import MUIDatePicker from '../components/MUIDatePicker';
+import { DatePicker } from '../components/ui/date-picker';
 import dayjs from 'dayjs';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 export default function EditUserProfile() {
   console.log('EditUserProfile component loaded');
@@ -330,7 +331,7 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <MUIDatePicker
+                <DatePicker
                   label="Date of Birth"
                   value={formData.dateOfBirth || null}
                   onChange={(date) => handleChange({ target: { name: 'dateOfBirth', value: date ? date.format('YYYY-MM-DD') : '' } })}
@@ -338,19 +339,20 @@ export default function EditUserProfile() {
               </div>
               <div>
                 <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                <select
-                  id="gender"
-                  name="gender"
+                <Select
                   value={formData.gender}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                  onValueChange={(value) => handleChange({ target: { name: 'gender', value } })}
                 >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2">
                 <label htmlFor="jobRole" className="block text-sm font-medium text-gray-700 mb-2">Job Roles (Select Multiple)</label>
@@ -362,37 +364,39 @@ export default function EditUserProfile() {
               </div>
               <div>
                 <label htmlFor="jobLevel" className="block text-sm font-medium text-gray-700 mb-1">Job Level</label>
-                <select
-                  id="jobLevel"
-                  name="jobLevel"
+                <Select
                   value={formData.jobLevel}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                  onValueChange={(value) => handleChange({ target: { name: 'jobLevel', value } })}
                 >
-                  <option value="">Select Job Level</option>
-                  <option value="Operative">Operative</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Director">Director</option>
-                  <option value="Senior">Senior</option>
-                  <option value="Junior">Junior</option>
-                  <option value="Associate">Associate</option>
-
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Job Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Operative">Operative</SelectItem>
+                    <SelectItem value="Manager">Manager</SelectItem>
+                    <SelectItem value="Director">Director</SelectItem>
+                    <SelectItem value="Senior">Senior</SelectItem>
+                    <SelectItem value="Junior">Junior</SelectItem>
+                    <SelectItem value="Associate">Associate</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-                <select
-                  id="language"
-                  name="language"
+                <Select
                   value={formData.language}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                  onValueChange={(value) => handleChange({ target: { name: 'language', value } })}
                 >
-                  <option value="English">English</option>
-                  <option value="French">French</option>
-                  <option value="Spanish">Spanish</option>
-                  <option value="Polish">Polish</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="English">English</SelectItem>
+                    <SelectItem value="French">French</SelectItem>
+                    <SelectItem value="Spanish">Spanish</SelectItem>
+                    <SelectItem value="Polish">Polish</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-1">Company</label>
@@ -426,35 +430,37 @@ export default function EditUserProfile() {
             <div className="grid grid-cols-2 gap-x-4 gap-y-6">
               <div>
                 <label htmlFor="staffType" className="block text-sm font-medium text-gray-700 mb-2">Staff Type</label>
-                <select
-                  id="staffType"
-                  name="staffType"
+                <Select
                   value={formData.staffType}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                  onValueChange={(value) => handleChange({ target: { name: 'staffType', value } })}
                 >
-                  <option value="">Select Staff Type</option>
-                  <option value="Direct">Direct</option>
-                  <option value="Contractor">Contractor</option>
-                  <option value="Agency">Agency</option>
-                  <option value="Team">Team</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Staff Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Direct">Direct</SelectItem>
+                    <SelectItem value="Contractor">Contractor</SelectItem>
+                    <SelectItem value="Agency">Agency</SelectItem>
+                    <SelectItem value="Team">Team</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  id="status"
-                  name="status"
+                <Select
                   value={formData.status}
-                  onChange={handleChange}
-                  className="border p-2 rounded w-full"
+                  onValueChange={(value) => handleChange({ target: { name: 'status', value } })}
                 >
-                  <option value="">Select Status</option>
-                  <option value="Onboarded">Onboarded</option>
-                  <option value="Onboarding">Onboarding</option>
-                  <option value="Dropped Out">Dropped Out</option>
-                  <option value="Left">Left</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Onboarded">Onboarded</SelectItem>
+                    <SelectItem value="Onboarding">Onboarding</SelectItem>
+                    <SelectItem value="Dropped Out">Dropped Out</SelectItem>
+                    <SelectItem value="Left">Left</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label htmlFor="poc" className="block text-sm font-medium text-gray-700 mb-2">Point of Contact (POC)</label>
