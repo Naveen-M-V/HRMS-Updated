@@ -83,8 +83,10 @@ const RotaShiftManagement = () => {
   }
 
   useEffect(() => {
+    console.log('🔄 useEffect triggered - filters changed:', filters);
     fetchData();
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.startDate, filters.endDate, filters.employeeId, filters.location, filters.workType, filters.status]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -308,6 +310,42 @@ const RotaShiftManagement = () => {
         const conflicts = error.response.data.conflicts;
         console.error('⚠️ Shift conflicts:', conflicts);
         
+        // Find the date range that includes all conflicts
+        const conflictDates = conflicts.map(c => new Date(c.date));
+        const assignedDate = new Date(formData.date);
+        const allDates = [...conflictDates, assignedDate];
+        
+        const minDate = new Date(Math.min(...allDates));
+        const maxDate = new Date(Math.max(...allDates));
+        
+        console.log('📅 Conflict date range:', {
+          minDate: minDate.toISOString().split('T')[0],
+          maxDate: maxDate.toISOString().split('T')[0],
+          conflicts: conflicts.map(c => ({ date: c.date, time: `${c.startTime}-${c.endTime}` }))
+        });
+        
+        // Expand filters to show conflicting shifts
+        const currentStart = new Date(filters.startDate);
+        const currentEnd = new Date(filters.endDate);
+        const newStartDate = minDate < currentStart ? minDate : currentStart;
+        const newEndDate = maxDate > currentEnd ? maxDate : currentEnd;
+        
+        const newFilters = {
+          ...filters,
+          startDate: newStartDate.toISOString().split('T')[0],
+          endDate: newEndDate.toISOString().split('T')[0]
+        };
+        
+        setFilters(newFilters);
+        
+        // Save to localStorage
+        try {
+          localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
+          console.log('💾 Expanded filters to show conflicts:', newFilters);
+        } catch (err) {
+          console.error('Error saving filters:', err);
+        }
+        
         // Show detailed conflict message
         toast.error(
           <div>
@@ -315,12 +353,15 @@ const RotaShiftManagement = () => {
             <div style={{ fontSize: '12px' }}>
               {conflicts.map((c, i) => (
                 <div key={i} style={{ marginTop: '4px' }}>
-                  • {c.startTime} - {c.endTime} at {c.location}
+                  • {new Date(c.date).toLocaleDateString()} {c.startTime} - {c.endTime} at {c.location}
                 </div>
               ))}
             </div>
+            <div style={{ marginTop: '8px', fontSize: '11px', fontStyle: 'italic' }}>
+              Date range expanded to show conflicting shifts
+            </div>
           </div>,
-          { autoClose: 8000 }
+          { autoClose: 10000 }
         );
       } else {
         toast.error(errorMsg, { autoClose: 5000 });
@@ -449,6 +490,36 @@ const RotaShiftManagement = () => {
     toast.info('Filters reset to current week', { autoClose: 2000 });
   };
 
+  const viewAllShifts = () => {
+    // Set a very wide date range to show all shifts
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1); // 1 year ago
+    
+    const endDate = new Date();
+    endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
+    
+    const allShiftsFilters = {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      employeeId: '',
+      location: 'all',
+      workType: 'all',
+      status: ''
+    };
+    
+    setFilters(allShiftsFilters);
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('rotaShiftFilters', JSON.stringify(allShiftsFilters));
+      console.log('📅 Viewing all shifts (2 year range):', allShiftsFilters);
+    } catch (error) {
+      console.error('Error saving filters to localStorage:', error);
+    }
+    
+    toast.info('Showing all shifts (past year to next year)', { autoClose: 2000 });
+  };
+
   const exportToCSV = () => {
     const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
     const rows = shifts.map(s => [
@@ -488,6 +559,40 @@ const RotaShiftManagement = () => {
           <p style={{ fontSize: '14px', color: '#6b7280' }}>
             Assign, manage, and track employee shift schedules
           </p>
+          
+          {/* Debug Info */}
+          <div style={{ 
+            marginTop: '16px', 
+            padding: '12px', 
+            background: '#f0f9ff', 
+            border: '1px solid #bfdbfe',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontFamily: 'monospace'
+          }}>
+            <div style={{ fontWeight: '600', marginBottom: '8px', color: '#1e40af' }}>📊 Debug Info:</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px', color: '#1e3a8a' }}>
+              <span>Shifts in state:</span>
+              <span style={{ fontWeight: '600' }}>{shifts.length}</span>
+              
+              <span>Loading:</span>
+              <span style={{ fontWeight: '600' }}>{loading ? 'Yes' : 'No'}</span>
+              
+              <span>Date Range:</span>
+              <span style={{ fontWeight: '600' }}>
+                {filters.startDate} to {filters.endDate}
+              </span>
+              
+              <span>Location Filter:</span>
+              <span style={{ fontWeight: '600' }}>{filters.location}</span>
+              
+              <span>Work Type Filter:</span>
+              <span style={{ fontWeight: '600' }}>{filters.workType}</span>
+            </div>
+            <div style={{ marginTop: '8px', fontSize: '11px', color: '#64748b' }}>
+              💡 Open browser console (F12) to see detailed logs
+            </div>
+          </div>
         </div>
 
         {statistics && (
@@ -573,7 +678,23 @@ const RotaShiftManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                onClick={viewAllShifts}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #3b82f6',
+                  background: '#eff6ff',
+                  color: '#3b82f6',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+                title="View all shifts (2 year range)"
+              >
+                📅 View All
+              </button>
               <button
                 onClick={resetFilters}
                 style={{
