@@ -647,40 +647,40 @@ export default function Signup() {
                   
                   <h5 className="mb-3 font-bold text-gray-900">2. Use of the Application</h5>
                   <ul className="mb-4 list-disc pl-5 space-y-1">
-                    <li>You agree to use the <strong>Application</strong> only for lawful HR and business purposes.</li>
-                    <li>You must not use the <strong>Application</strong> in any way that violates applicable UK law, including but not limited to employment and data protection regulations.</li>
+                    <li>You agree to use the Application only for lawful HR and business purposes.</li>
+                    <li>You must not use the Application in any way that violates applicable UK law, including but not limited to employment and data protection regulations.</li>
                     <li>Access credentials (such as usernames, passwords) must be kept confidential. You are responsible for all activities carried out under your account.</li>
                   </ul>
                   
                   <h5 className="mb-3 font-bold text-gray-900">3. Data Accuracy</h5>
                   <ul className="mb-4 list-disc pl-5 space-y-1">
-                    <li>Users are responsible for ensuring that all information entered into the <strong>Application</strong> is accurate and up to date.</li>
+                    <li>Users are responsible for ensuring that all information entered into the Application is accurate and up to date.</li>
                     <li>We are not liable for errors or consequences resulting from incorrect or incomplete data entered by Users.</li>
                   </ul>
                   
                   <h5 className="mb-3 font-bold text-gray-900">4. Intellectual Property</h5>
                   <ul className="mb-4 list-disc pl-5 space-y-1">
-                    <li>All content, design, logos, and software associated with the <strong>Application</strong> remain the intellectual property of <strong>Vitrux Shield Ltd</strong> or its licensors.</li>
-                    <li>Users are granted a limited, non-exclusive licence to use the <strong>Application</strong> for business purposes.</li>
+                    <li>All content, design, logos, and software associated with the Application remain the intellectual property of <strong>Vitrux Shield Ltd</strong> or its licensors.</li>
+                    <li>Users are granted a limited, non-exclusive licence to use the Application for business purposes.</li>
                   </ul>
                   
                   <h5 className="mb-3 font-bold text-gray-900">5. Availability & Maintenance</h5>
                   <ul className="mb-4 list-disc pl-5 space-y-1">
-                    <li>We aim to provide continuous access to the <strong>Application</strong> but do not guarantee uninterrupted availability.</li>
+                    <li>We aim to provide continuous access to the Application but do not guarantee uninterrupted availability.</li>
                     <li>We may carry out scheduled maintenance or updates.</li>
                     <li>We are not liable for downtime, data loss, or interruptions beyond our reasonable control.</li>
                   </ul>
                   
                   <h5 className="mb-3 font-bold text-gray-900">6. Liability</h5>
                   <ul className="mb-4 list-disc pl-5 space-y-1">
-                    <li>The <strong>Application</strong> is provided on an "as-is" basis, without any warranties, whether express or implied.</li>
-                    <li>We are not liable for indirect, incidental, or consequential damages arising from your use of the <strong>Application</strong>.</li>
+                    <li>The Application is provided on an "as-is" basis, without any warranties, whether express or implied.</li>
+                    <li>We are not liable for indirect, incidental, or consequential damages arising from your use of the Application.</li>
                     <li>Nothing in these Terms excludes liability for death, personal injury, fraud, or any other liability which cannot be excluded under UK law.</li>
                   </ul>
                   
                   <h5 className="mb-3 font-bold text-gray-900">7. Termination</h5>
                   <p className="mb-4">
-                    We reserve the right to suspend or terminate access to the <strong>Application</strong> if you breach these Terms.
+                    We reserve the right to suspend or terminate access to the Application if you breach these Terms.
                   </p>
                   
                   <h5 className="mb-3 font-bold text-gray-900">8. Governing Law</h5>
