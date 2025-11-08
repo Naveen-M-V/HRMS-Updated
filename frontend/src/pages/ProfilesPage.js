@@ -75,10 +75,10 @@ export default function ProfilesPage() {
   const clearAllFilters = useCallback(() => {
     setSearch("");
     setCurrentPage(1);
-    setSelectedRole("");
-    setSelectedStaffType("");
-    setSelectedCompany("");
-    setSelectedManager("");
+    setSelectedRole("all");
+    setSelectedStaffType("all");
+    setSelectedCompany("all");
+    setSelectedManager("all");
   }, []);
 
   // Handle profile deletion
@@ -163,10 +163,10 @@ export default function ProfilesPage() {
       const matchesSearch = `${p.firstName} ${p.lastName}`
         .toLowerCase()
         .includes(search.toLowerCase());
-      const matchesRole = !selectedRole || p.role === selectedRole;
-      const matchesStaffType = !selectedStaffType || p.staffType === selectedStaffType;
-      const matchesCompany = !selectedCompany || p.company === selectedCompany;
-      const matchesManager = !selectedManager || p.poc === selectedManager;
+      const matchesRole = !selectedRole || selectedRole === 'all' || p.role === selectedRole;
+      const matchesStaffType = !selectedStaffType || selectedStaffType === 'all' || p.staffType === selectedStaffType;
+      const matchesCompany = !selectedCompany || selectedCompany === 'all' || p.company === selectedCompany;
+      const matchesManager = !selectedManager || selectedManager === 'all' || p.poc === selectedManager;
 
       return matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
     });
@@ -270,7 +270,7 @@ export default function ProfilesPage() {
                     <SelectValue placeholder="All Roles" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Roles</SelectItem>
+                    <SelectItem value="all">All Roles</SelectItem>
                     {filterOptions.roles.map(role => (
                       <SelectItem key={role} value={role}>{role}</SelectItem>
                     ))}
@@ -284,7 +284,7 @@ export default function ProfilesPage() {
                     <SelectValue placeholder="All Staff Types" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Staff Types</SelectItem>
+                    <SelectItem value="all">All Staff Types</SelectItem>
                     {filterOptions.staffTypes.map(staffType => (
                       <SelectItem key={staffType} value={staffType}>{staffType}</SelectItem>
                     ))}
@@ -298,7 +298,7 @@ export default function ProfilesPage() {
                     <SelectValue placeholder="All Companies" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Companies</SelectItem>
+                    <SelectItem value="all">All Companies</SelectItem>
                     {filterOptions.companies.map(company => (
                       <SelectItem key={company} value={company}>{company}</SelectItem>
                     ))}
@@ -312,7 +312,7 @@ export default function ProfilesPage() {
                     <SelectValue placeholder="All Managers" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Managers</SelectItem>
+                    <SelectItem value="all">All Managers</SelectItem>
                     {filterOptions.managers.map(manager => (
                       <SelectItem key={manager} value={manager}>{manager}</SelectItem>
                     ))}

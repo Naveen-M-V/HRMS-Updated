@@ -77,9 +77,9 @@ export default function CertificateManagement() {
     let filtered = certificates.filter((cert) => {
       const matchesSearch = cert.certificate.toLowerCase().includes(search.toLowerCase()) ||
                            cert.profileName.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = !selectedCategory || cert.category === selectedCategory;
-      const matchesStatus = !selectedStatus || cert.status === selectedStatus;
-      const matchesProvider = !selectedProvider || cert.provider === selectedProvider;
+      const matchesCategory = !selectedCategory || selectedCategory === 'all' || cert.category === selectedCategory;
+      const matchesStatus = !selectedStatus || selectedStatus === 'all' || cert.status === selectedStatus;
+      const matchesProvider = !selectedProvider || selectedProvider === 'all' || cert.provider === selectedProvider;
       
       return matchesSearch && matchesCategory && matchesStatus && matchesProvider;
     });
@@ -155,9 +155,9 @@ export default function CertificateManagement() {
 
   const clearFilters = () => {
     setSearch("");
-    setSelectedCategory("");
-    setSelectedStatus("");
-    setSelectedProvider("");
+    setSelectedCategory("all");
+    setSelectedStatus("all");
+    setSelectedProvider("all");
   };
 
   return (
@@ -304,7 +304,7 @@ export default function CertificateManagement() {
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Categories</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       {filterOptions.categories.map(category => (
                         <SelectItem key={category} value={category}>{category}</SelectItem>
                       ))}
@@ -319,7 +319,7 @@ export default function CertificateManagement() {
                       <SelectValue placeholder="All Statuses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Statuses</SelectItem>
+                      <SelectItem value="all">All Statuses</SelectItem>
                       {filterOptions.statuses.map(status => (
                         <SelectItem key={status} value={status}>{status}</SelectItem>
                       ))}
@@ -334,7 +334,7 @@ export default function CertificateManagement() {
                       <SelectValue placeholder="All Providers" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Providers</SelectItem>
+                      <SelectItem value="all">All Providers</SelectItem>
                       {filterOptions.providers.map(provider => (
                         <SelectItem key={provider} value={provider}>{provider}</SelectItem>
                       ))}

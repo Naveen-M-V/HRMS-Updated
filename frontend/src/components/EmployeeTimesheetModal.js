@@ -1163,7 +1163,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         date: getDateLabel(),
         sessions: formatSessions(),
         overtime: day.overtime || '-',
-        location: day.gpsLocation 
+        location: day.gpsLocation && day.gpsLocation.latitude != null && day.gpsLocation.longitude != null
           ? `${day.gpsLocation.latitude.toFixed(6)}, ${day.gpsLocation.longitude.toFixed(6)}`
           : day.location || 'N/A',
         rawData: day // Keep original data for edit/delete operations

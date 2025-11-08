@@ -32,8 +32,8 @@ const RotaShiftManagement = () => {
     startDate: getMonday(new Date()).toISOString().split('T')[0],
     endDate: getFriday(new Date()).toISOString().split('T')[0],
     employeeId: '',
-    location: '',
-    workType: '',
+    location: 'all',
+    workType: 'all',
     status: ''
   });
   const [formData, setFormData] = useState({
@@ -455,7 +455,7 @@ const RotaShiftManagement = () => {
                   <SelectValue placeholder="All Locations" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Locations</SelectItem>
+                  <SelectItem value="all">All Locations</SelectItem>
                   <SelectItem value="Office">Office</SelectItem>
                   <SelectItem value="Home">Home</SelectItem>
                   <SelectItem value="Field">Field</SelectItem>
@@ -475,7 +475,7 @@ const RotaShiftManagement = () => {
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="Regular">Regular</SelectItem>
                   <SelectItem value="Overtime">Overtime</SelectItem>
                   <SelectItem value="Weekend overtime">Weekend Overtime</SelectItem>
