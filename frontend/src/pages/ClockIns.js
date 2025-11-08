@@ -204,7 +204,7 @@ const ClockIns = () => {
             staffType: profile.staffType || '-',
             poc: profile.poc || '-',
             // Clock status data - CRITICAL for button functionality
-            status: clockStatus.status || 'absent',
+            status: clockStatus.status || null,
             clockIn: clockStatus.clockIn || null,
             clockOut: clockStatus.clockOut || null,
             location: clockStatus.location || null,
