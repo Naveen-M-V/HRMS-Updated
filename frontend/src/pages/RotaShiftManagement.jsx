@@ -18,6 +18,7 @@ import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import dayjs from 'dayjs';
 
 const RotaShiftManagement = () => {
   const [shifts, setShifts] = useState([]);
@@ -705,7 +706,7 @@ const RotaShiftManagement = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999
+          zIndex: 50
         }}>
           <div style={{
             background: '#ffffff',
@@ -714,7 +715,9 @@ const RotaShiftManagement = () => {
             maxWidth: '600px',
             width: '90%',
             maxHeight: '90vh',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            position: 'relative',
+            zIndex: 51
           }}>
             <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>
               Assign New Shift
@@ -732,7 +735,7 @@ const RotaShiftManagement = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     {employees.map(emp => (
                       <SelectItem key={emp.id || emp._id} value={emp.id || emp._id}>
                         {emp.firstName} {emp.lastName}
@@ -745,7 +748,7 @@ const RotaShiftManagement = () => {
                 <DatePicker
                   label="Date"
                   required
-                  value={formData.date || null}
+                  value={formData.date ? dayjs(formData.date) : null}
                   onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
                 />
               </div>
@@ -788,7 +791,7 @@ const RotaShiftManagement = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="Office">Work From Office</SelectItem>
                     <SelectItem value="Home">Work From Home</SelectItem>
                     <SelectItem value="Field">Field</SelectItem>
@@ -807,7 +810,7 @@ const RotaShiftManagement = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select work type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="Regular">Regular</SelectItem>
                     <SelectItem value="Overtime">Overtime</SelectItem>
                     <SelectItem value="Weekend overtime">Weekend Overtime</SelectItem>

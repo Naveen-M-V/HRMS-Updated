@@ -411,16 +411,16 @@ const TimeHistory = () => {
             <div style={{ flex: '1', minWidth: '200px' }}>
               <DatePicker
                 label="Start Date"
-                value={filters.dateRange.start || null}
+                value={filters.dateRange.start ? dayjs(filters.dateRange.start) : null}
                 onChange={(date) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, start: date ? date.format('YYYY-MM-DD') : '' } }))}
               />
             </div>
             <div style={{ flex: '1', minWidth: '200px' }}>
               <DatePicker
                 label="End Date"
-                value={filters.dateRange.end || null}
+                value={filters.dateRange.end ? dayjs(filters.dateRange.end) : null}
                 onChange={(date) => setFilters(prev => ({ ...prev, dateRange: { ...prev.dateRange, end: date ? date.format('YYYY-MM-DD') : '' } }))}
-                minDate={filters.dateRange.start || undefined}
+                minDate={filters.dateRange.start ? dayjs(filters.dateRange.start) : undefined}
               />
             </div>
             <button onClick={() => setShowAssignModal(true)} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap' }}>
@@ -555,8 +555,8 @@ const TimeHistory = () => {
       </div>
 
       {showAssignModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto', position: 'relative', zIndex: 51 }}>
             <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>Assign New Shift</h2>
             <form onSubmit={handleAssignShift}>
               <div style={{ marginBottom: '20px' }}>
@@ -565,7 +565,7 @@ const TimeHistory = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     {employees.map(emp => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.firstName} {emp.lastName} {emp.vtid ? `(${emp.vtid})` : ''}
@@ -578,7 +578,7 @@ const TimeHistory = () => {
                 <DatePicker
                   label="Date"
                   required
-                  value={formData.date || null}
+                  value={formData.date ? dayjs(formData.date) : null}
                   onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
                 />
               </div>
@@ -604,7 +604,7 @@ const TimeHistory = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="Office">Work From Office</SelectItem>
                     <SelectItem value="Home">Work From Home</SelectItem>
                     <SelectItem value="Field">Field</SelectItem>
@@ -618,7 +618,7 @@ const TimeHistory = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select work type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100]">
                     <SelectItem value="Regular">Regular</SelectItem>
                     <SelectItem value="Overtime">Overtime</SelectItem>
                     <SelectItem value="Weekend overtime">Weekend Overtime</SelectItem>
@@ -640,8 +640,8 @@ const TimeHistory = () => {
       )}
 
       {showEditModal && editingEntry && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '32px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto', position: 'relative', zIndex: 51 }}>
             <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Edit Time Entry</h2>
             <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
               {editingEntry.employee ? `${editingEntry.employee.firstName} ${editingEntry.employee.lastName}` : 'Employee'} - {formatDate(editingEntry.date)}
@@ -672,7 +672,7 @@ const TimeHistory = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
-                  <SelectContent className="z-[10000]">
+                  <SelectContent className="z-[100]">
                     <SelectItem value="Office">Office</SelectItem>
                     <SelectItem value="Work From Home">Work From Home</SelectItem>
                     <SelectItem value="Client Site">Client Site</SelectItem>
@@ -689,7 +689,7 @@ const TimeHistory = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select work type" />
                   </SelectTrigger>
-                  <SelectContent className="z-[10000]">
+                  <SelectContent className="z-[100]">
                     <SelectItem value="Regular">Regular</SelectItem>
                     <SelectItem value="Overtime">Overtime</SelectItem>
                     <SelectItem value="Holiday">Holiday</SelectItem>
