@@ -217,11 +217,6 @@ const RotaShiftManagement = () => {
       if (response.success) {
         toast.success('Shift assigned successfully');
         
-        // Add the new shift to state immediately (it's already populated from backend)
-        if (response.data) {
-          setShifts(prevShifts => [...prevShifts, response.data]);
-        }
-        
         setShowModal(false);
         setFormData({
           employeeId: '',
@@ -234,8 +229,8 @@ const RotaShiftManagement = () => {
           notes: ''
         });
         
-        // Refresh data to ensure consistency
-        setTimeout(() => fetchData(), 500);
+        // Refresh data immediately to show the new shift
+        await fetchData();
       }
     } catch (error) {
       console.error('❌ Assign shift error:', error);

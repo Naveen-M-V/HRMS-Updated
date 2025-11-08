@@ -126,8 +126,9 @@ export const getAllShiftAssignments = async (filters = {}) => {
     if (filters.startDate) params.append('startDate', filters.startDate);
     if (filters.endDate) params.append('endDate', filters.endDate);
     if (filters.employeeId) params.append('employeeId', filters.employeeId);
-    if (filters.location) params.append('location', filters.location);
-    if (filters.workType) params.append('workType', filters.workType);
+    // Only add location and workType if they're not 'all'
+    if (filters.location && filters.location !== 'all') params.append('location', filters.location);
+    if (filters.workType && filters.workType !== 'all') params.append('workType', filters.workType);
     if (filters.status) params.append('status', filters.status);
     
     if (params.toString()) {
