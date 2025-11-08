@@ -1592,8 +1592,9 @@ const ClockIns = () => {
             </h2>
             <form onSubmit={handleUpdateTimeEntry}>
               <div style={{ marginBottom: '24px' }}>
-                <MUIDatePicker
+                <DatePicker
                   label="Date"
+                  required
                   value={editForm.date || null}
                   onChange={(date) => setEditForm({ ...editForm, date: date ? date.format('YYYY-MM-DD') : '' })}
                 />

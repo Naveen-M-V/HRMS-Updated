@@ -475,7 +475,7 @@ export default function EditUserProfile() {
                 />
               </div>
               <div>
-                <MUIDatePicker
+                <DatePicker
                   label="Start Date"
                   value={formData.startDate || null}
                   onChange={(date) => handleChange({ target: { name: 'startDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
