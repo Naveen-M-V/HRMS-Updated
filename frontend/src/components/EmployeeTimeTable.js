@@ -61,11 +61,7 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
             {records.map((record) => (
               <TableRow key={record.id} className="hover:bg-gray-50/50">
                 <TableCell>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-gray-900">{record.day}</div>
-                      <div className="text-gray-500 text-sm">{record.date}</div>
-                    </div>
+                  <div className="flex items-start gap-2">
                     <div className="relative">
                       <Button
                         variant="ghost"
@@ -76,7 +72,7 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                         <MoreVertical className="h-4 w-4 text-gray-500" />
                       </Button>
                       {openMenuId === record.id && (
-                        <div className="absolute right-0 top-8 z-50 w-32 bg-white rounded-md shadow-lg border border-gray-200">
+                        <div className="absolute left-0 top-8 z-50 w-32 bg-white rounded-md shadow-lg border border-gray-200">
                           <div className="py-1">
                             <button
                               className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -101,6 +97,10 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                           </div>
                         </div>
                       )}
+                    </div>
+                    <div>
+                      <div className="text-gray-900">{record.day}</div>
+                      <div className="text-gray-500 text-sm">{record.date}</div>
                     </div>
                   </div>
                 </TableCell>

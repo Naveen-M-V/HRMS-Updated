@@ -255,7 +255,7 @@ const ClockIns = () => {
       onBreak: employeeList.filter(e => e.status === 'on_break').length,
       clockedOut: employeeList.filter(e => e.status === 'clocked_out').length,
       onLeave: employeeList.filter(e => e.status === 'on_leave').length,
-      absent: employeeList.filter(e => e.status === 'absent' || !e.status).length,
+      absent: employeeList.filter(e => e.status === 'absent').length,
       total: employeeList.length
     };
     console.log('📊 Calculated stats from employees:', calculated);
@@ -814,11 +814,7 @@ const ClockIns = () => {
     .filter(employee => {
       // Status filter
       if (statusFilter) {
-        if (statusFilter === 'absent') {
-          if (employee.status !== 'absent' && employee.status) return false;
-        } else {
-          if (employee.status !== statusFilter) return false;
-        }
+        if (employee.status !== statusFilter) return false;
       }
       return true;
     })
@@ -890,7 +886,7 @@ const ClockIns = () => {
   };
 
   // Calculate absent count
-  const absentCount = employees.filter(e => e.status === 'absent' || !e.status).length;
+  const absentCount = employees.filter(e => e.status === 'absent').length;
 
   if (loading) {
     return <LoadingScreen />;
