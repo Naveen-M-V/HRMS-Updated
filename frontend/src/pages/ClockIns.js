@@ -1361,7 +1361,7 @@ const ClockIns = () => {
                     }}
                   >
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
-                      {index + 1}
+                      {startIndex + index + 1}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.vtid || '-'}
