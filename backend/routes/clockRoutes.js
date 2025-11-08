@@ -385,9 +385,12 @@ router.get('/dashboard', async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Get Profile model to count total active employees
     const Profile = require('mongoose').model('Profile');
+    const ShiftAssignment = require('../models/ShiftAssignment');
     
     // Get only ACTIVE profiles with valid user accounts
     const profiles = await Profile.find({
@@ -426,6 +429,18 @@ router.get('/dashboard', async (req, res) => {
       employee: { $in: allUserIds }
     }).sort({ createdAt: -1 }); // Sort by most recent first
 
+    // Get today's shift assignments
+    const shiftAssignments = await ShiftAssignment.find({
+      date: { $gte: today, $lt: tomorrow },
+      employeeId: { $in: allUserIds }
+    }).lean();
+
+    // Create a map of shift assignments by employee ID
+    const shiftMap = new Map();
+    shiftAssignments.forEach(shift => {
+      shiftMap.set(shift.employeeId.toString(), shift);
+    });
+
     // Count only CURRENT status - each user counted once based on latest entry
     const employeeStatusMap = new Map();
     
@@ -441,6 +456,7 @@ router.get('/dashboard', async (req, res) => {
     let clockedIn = 0;
     let onBreak = 0;
     let clockedOut = 0;
+    let absent = 0;
     
     employeeStatusMap.forEach(status => {
       if (status === 'clocked_in') clockedIn++;
@@ -448,8 +464,24 @@ router.get('/dashboard', async (req, res) => {
       else if (status === 'clocked_out') clockedOut++;
     });
 
-    // Absent = users who have no time entry today
-    const absent = Math.max(0, totalEmployees - employeeStatusMap.size);
+    // Calculate absent: only count as absent if they have a shift today and haven't clocked in
+    // after their shift start time has passed
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    allUserIds.forEach(userId => {
+      const empId = userId.toString();
+      const hasTimeEntry = employeeStatusMap.has(empId);
+      const shift = shiftMap.get(empId);
+      
+      // Only mark as absent if:
+      // 1. They have a shift assigned today
+      // 2. They haven't clocked in yet
+      // 3. Current time is past their shift start time
+      if (shift && !hasTimeEntry && currentTime > shift.startTime) {
+        absent++;
+      }
+    });
 
     const stats = {
       clockedIn,

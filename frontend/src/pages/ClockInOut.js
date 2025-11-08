@@ -19,6 +19,7 @@ const ClockInOut = () => {
   const [clockData, setClockData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
+    total: 0,
     clockedIn: 0,
     clockedOut: 0,
     onBreak: 0,
@@ -104,6 +105,7 @@ const ClockInOut = () => {
 
   const calculateStats = (data) => {
     const stats = {
+      total: data.length,
       clockedIn: 0,
       clockedOut: 0,
       onBreak: 0,
@@ -202,6 +204,49 @@ const ClockInOut = () => {
           gap: '20px',
           marginBottom: '32px'
         }}>
+          {/* All Profiles Card */}
+          <div 
+            onClick={() => setSelectedFilter(null)}
+            style={{
+              background: selectedFilter === null ? '#f3f4f6' : '#ffffff',
+              borderRadius: '12px',
+              padding: '24px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              border: selectedFilter === null ? '2px solid #6b7280' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '8px'
+            }}>
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                fontWeight: '500'
+              }}>
+                All Profiles
+              </span>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#6b7280'
+              }}></div>
+            </div>
+            <div style={{
+              fontSize: '32px',
+              fontWeight: '700',
+              color: '#111827'
+            }}>
+              {stats.total}
+            </div>
+          </div>
           <div 
             onClick={() => setSelectedFilter(selectedFilter === 'clocked_in' ? null : 'clocked_in')}
             style={{

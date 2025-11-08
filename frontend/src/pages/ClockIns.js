@@ -1150,10 +1150,30 @@ const ClockIns = () => {
         {/* Statistics Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(5, 1fr)',
           gap: '16px',
           marginBottom: '24px'
         }}>
+          {/* All Profiles Card */}
+          <div 
+            onClick={() => setStatusFilter(null)}
+            style={{
+              background: statusFilter === null ? '#f3f4f6' : '#ffffff',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+              border: statusFilter === null ? '2px solid #6b7280' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#6b7280' }}>
+              {statsLoading ? '...' : (stats?.total ?? employees.length)}
+            </div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>All Profiles</div>
+          </div>
           <div 
             onClick={() => setStatusFilter(statusFilter === 'clocked_in' ? null : 'clocked_in')}
             style={{
