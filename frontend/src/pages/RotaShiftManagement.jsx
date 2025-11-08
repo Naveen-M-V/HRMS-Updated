@@ -29,14 +29,34 @@ const RotaShiftManagement = () => {
   const [viewMode, setViewMode] = useState('list');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState(null);
-  const [filters, setFilters] = useState({
-    startDate: getMonday(new Date()).toISOString().split('T')[0],
-    endDate: getFriday(new Date()).toISOString().split('T')[0],
-    employeeId: '',
-    location: 'all',
-    workType: 'all',
-    status: ''
-  });
+  
+  // Initialize filters from localStorage or use defaults
+  const getInitialFilters = () => {
+    try {
+      const savedFilters = localStorage.getItem('rotaShiftFilters');
+      if (savedFilters) {
+        const parsed = JSON.parse(savedFilters);
+        console.log('📂 Loaded filters from localStorage:', parsed);
+        return parsed;
+      }
+    } catch (error) {
+      console.error('Error loading filters from localStorage:', error);
+    }
+    
+    // Default filters
+    const defaultFilters = {
+      startDate: getMonday(new Date()).toISOString().split('T')[0],
+      endDate: getFriday(new Date()).toISOString().split('T')[0],
+      employeeId: '',
+      location: 'all',
+      workType: 'all',
+      status: ''
+    };
+    console.log('📂 Using default filters:', defaultFilters);
+    return defaultFilters;
+  };
+  
+  const [filters, setFilters] = useState(getInitialFilters);
   const [formData, setFormData] = useState({
     employeeId: '',
     date: '',
@@ -252,11 +272,20 @@ const RotaShiftManagement = () => {
           const newEndDate = assignedDate > filterEnd ? assignedDate : filterEnd;
           
           // Update filters - this will trigger useEffect to fetch data
-          setFilters(prev => ({
-            ...prev,
+          const newFilters = {
+            ...filters,
             startDate: newStartDate.toISOString().split('T')[0],
             endDate: newEndDate.toISOString().split('T')[0]
-          }));
+          };
+          setFilters(newFilters);
+          
+          // Save to localStorage
+          try {
+            localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
+            console.log('💾 Saved expanded filters to localStorage:', newFilters);
+          } catch (error) {
+            console.error('Error saving filters to localStorage:', error);
+          }
           
           toast.info('Date range expanded to show the new shift', { autoClose: 3000 });
         } else {
@@ -385,7 +414,39 @@ const RotaShiftManagement = () => {
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
+    setFilters(prev => {
+      const newFilters = { ...prev, [field]: value };
+      // Save to localStorage
+      try {
+        localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
+        console.log('💾 Saved filters to localStorage:', newFilters);
+      } catch (error) {
+        console.error('Error saving filters to localStorage:', error);
+      }
+      return newFilters;
+    });
+  };
+
+  const resetFilters = () => {
+    const defaultFilters = {
+      startDate: getMonday(new Date()).toISOString().split('T')[0],
+      endDate: getFriday(new Date()).toISOString().split('T')[0],
+      employeeId: '',
+      location: 'all',
+      workType: 'all',
+      status: ''
+    };
+    setFilters(defaultFilters);
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('rotaShiftFilters', JSON.stringify(defaultFilters));
+      console.log('🔄 Reset filters to default:', defaultFilters);
+    } catch (error) {
+      console.error('Error saving filters to localStorage:', error);
+    }
+    
+    toast.info('Filters reset to current week', { autoClose: 2000 });
   };
 
   const exportToCSV = () => {
@@ -513,6 +574,22 @@ const RotaShiftManagement = () => {
               </Select>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={resetFilters}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+                title="Reset to current week"
+              >
+                🔄 Reset
+              </button>
               <button
                 onClick={() => setShowModal(true)}
                 style={{
