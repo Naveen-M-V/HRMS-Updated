@@ -127,7 +127,8 @@ const ClockInOut = () => {
           stats.absent++;
           break;
         default:
-          stats.absent++;
+          // Don't count null/undefined status as absent
+          break;
       }
     });
 

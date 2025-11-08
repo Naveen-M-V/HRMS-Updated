@@ -631,6 +631,22 @@ router.get('/status', async (req, res) => {
       }
     });
 
+    // Get today's shift assignments
+    const shiftAssignments = await ShiftAssignment.find({
+      date: { $gte: today, $lt: tomorrow },
+      employeeId: { $in: allUserIds }
+    }).lean();
+
+    // Create a map of shift assignments by employee ID
+    const shiftMap = new Map();
+    shiftAssignments.forEach(shift => {
+      shiftMap.set(shift.employeeId.toString(), shift);
+    });
+
+    // Get current time for absent check
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
     // Build response with valid employees only
     const employeeStatus = validProfiles.map(profile => {
         const empId = profile.userId._id.toString();
@@ -663,7 +679,18 @@ router.get('/status', async (req, res) => {
         };
       }
       
-      // Otherwise use time entry status or default to absent
+      // Otherwise use time entry status or check if absent
+      const shift = shiftMap.get(empId);
+      let employeeStatus = status?.status || null;
+      
+      // Only mark as absent if:
+      // 1. They have a shift assigned today
+      // 2. They haven't clocked in yet (no status)
+      // 3. Current time is past their shift start time
+      if (!employeeStatus && shift && currentTime > shift.startTime) {
+        employeeStatus = 'absent';
+      }
+      
       return {
         id: empId,
         _id: empId,
@@ -677,7 +704,7 @@ router.get('/status', async (req, res) => {
         jobRole: profile.jobTitle || '-',
         profilePicture: profile.profilePicture || null,
         role: profile.userId.role || 'employee',
-        status: status?.status || 'absent',
+        status: employeeStatus,
         clockIn: status?.clockIn || null,
         clockOut: status?.clockOut || null,
         location: status?.location || null,
