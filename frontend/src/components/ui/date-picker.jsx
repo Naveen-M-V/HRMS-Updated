@@ -1,16 +1,6 @@
 import * as React from "react"
-import { format } from "date-fns"
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Datepicker } from "flowbite-react"
 import dayjs from "dayjs"
-
-import { cn } from "../../lib/utils"
-import { Button } from "./button"
-import { Calendar } from "./calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./popover"
 
 export function DatePicker({ 
   value, 
@@ -33,7 +23,7 @@ export function DatePicker({
 
   // Convert value to Date object
   const getDateValue = () => {
-    if (!value) return undefined
+    if (!value) return null
     if (value instanceof Date) return value
     if (dayjs.isDayjs(value)) return value.toDate()
     
@@ -43,17 +33,15 @@ export function DatePicker({
       return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`)
     }
     
-    return new Date(value)
+    // Handle YYYY-MM-DD format
+    if (typeof value === 'string') {
+      return new Date(value)
+    }
+    
+    return null
   }
 
-  const [date, setDate] = React.useState(getDateValue())
-
-  React.useEffect(() => {
-    setDate(getDateValue())
-  }, [value])
-
-  const handleSelect = (selectedDate) => {
-    setDate(selectedDate)
+  const handleDateChange = (selectedDate) => {
     if (onChange) {
       // Check if onChange expects a synthetic event (for ModernDatePicker compatibility)
       if (name) {
@@ -72,41 +60,21 @@ export function DatePicker({
   }
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={className}>
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant={"outline"}
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
-            )}
-            disabled={disabled}
-            {...props}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, "dd/MM/yyyy") : <span>{placeholder}</span>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 z-[9999]" align="start">
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleSelect}
-            disabled={(date) => {
-              if (effectiveMinDate && date < new Date(effectiveMinDate)) return true
-              if (effectiveMaxDate && date > new Date(effectiveMaxDate)) return true
-              return false
-            }}
-            initialFocus
-          />
-        </PopoverContent>
-      </Popover>
+      <Datepicker
+        value={getDateValue()}
+        onSelectedDateChanged={handleDateChange}
+        minDate={effectiveMinDate ? new Date(effectiveMinDate) : undefined}
+        maxDate={effectiveMaxDate ? new Date(effectiveMaxDate) : undefined}
+        disabled={disabled}
+        placeholder={placeholder}
+        {...props}
+      />
     </div>
   )
 }
