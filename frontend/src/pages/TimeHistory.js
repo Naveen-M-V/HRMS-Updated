@@ -672,7 +672,7 @@ const TimeHistory = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select location" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[10000]">
                     <SelectItem value="Office">Office</SelectItem>
                     <SelectItem value="Work From Home">Work From Home</SelectItem>
                     <SelectItem value="Client Site">Client Site</SelectItem>
@@ -689,7 +689,7 @@ const TimeHistory = () => {
                   <SelectTrigger style={{ width: '100%', padding: '12px' }}>
                     <SelectValue placeholder="Select work type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[10000]">
                     <SelectItem value="Regular">Regular</SelectItem>
                     <SelectItem value="Overtime">Overtime</SelectItem>
                     <SelectItem value="Holiday">Holiday</SelectItem>

@@ -1157,16 +1157,52 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         return date.toLocaleDateString('en-US', { weekday: 'long' });
       };
 
+      // Calculate total break time
+      const calculateBreakTime = () => {
+        if (!day.breaks || day.breaks.length === 0) return '--';
+        const totalBreakMinutes = day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
+        const hours = Math.floor(totalBreakMinutes / 60);
+        const mins = totalBreakMinutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      };
+
+      // Calculate late arrival
+      const calculateLateArrival = () => {
+        if (!day.shiftStartTime || !day.clockInTime) return '--';
+        
+        const parseTime = (timeStr) => {
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return hours * 60 + minutes;
+        };
+        
+        try {
+          const shiftStartMins = parseTime(day.shiftStartTime);
+          const clockInMins = parseTime(day.clockInTime);
+          const lateMins = clockInMins - shiftStartMins;
+          
+          if (lateMins <= 0) return '--'; // On time or early
+          
+          const hours = Math.floor(lateMins / 60);
+          const mins = lateMins % 60;
+          return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        } catch (e) {
+          return '--';
+        }
+      };
+
       return {
         id: day.entryId || `day-${index}`,
         day: getDayLabel(),
         date: getDateLabel(),
         sessions: formatSessions(),
-        totalDuration: day.totalHours || '--',
+        breakTime: calculateBreakTime(),
+        lateArrival: calculateLateArrival(),
+        workType: day.workType || 'Regular',
+        location: day.location || 'N/A',
         overtime: day.overtime || '-',
-        location: day.gpsLocation && day.gpsLocation.latitude != null && day.gpsLocation.longitude != null
+        geolocation: day.gpsLocation && day.gpsLocation.latitude != null && day.gpsLocation.longitude != null
           ? `${day.gpsLocation.latitude.toFixed(6)}, ${day.gpsLocation.longitude.toFixed(6)}`
-          : day.location || 'N/A',
+          : '--',
         rawData: day // Keep original data for edit/delete operations
       };
     });
