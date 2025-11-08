@@ -1157,13 +1157,23 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         return date.toLocaleDateString('en-US', { weekday: 'long' });
       };
 
+      // Format breaks for display
+      const formatBreaks = () => {
+        if (!day.breaks || day.breaks.length === 0) return [];
+        return day.breaks.map(breakItem => ({
+          startTime: breakItem.startTime || '--',
+          endTime: breakItem.endTime || '--',
+          duration: breakItem.duration ? `${Math.floor(breakItem.duration / 60)}h ${breakItem.duration % 60}m` : '--'
+        }));
+      };
+
       // Calculate total break time
-      const calculateBreakTime = () => {
+      const calculateTotalBreakTime = () => {
         if (!day.breaks || day.breaks.length === 0) return '--';
         const totalBreakMinutes = day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
         const hours = Math.floor(totalBreakMinutes / 60);
         const mins = totalBreakMinutes % 60;
-        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        return `${hours}h ${mins}m`;
       };
 
       // Calculate late arrival
@@ -1195,11 +1205,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         day: getDayLabel(),
         date: getDateLabel(),
         sessions: formatSessions(),
-        breakTime: calculateBreakTime(),
+        breaks: formatBreaks(),
+        totalBreakTime: calculateTotalBreakTime(),
         lateArrival: calculateLateArrival(),
         workType: day.workType || 'Regular',
         location: day.location || 'N/A',
         overtime: day.overtime || '-',
+        overtimeHours: day.overtimeHours || '--',
         geolocation: day.gpsLocation && day.gpsLocation.latitude != null && day.gpsLocation.longitude != null
           ? `${day.gpsLocation.latitude.toFixed(6)}, ${day.gpsLocation.longitude.toFixed(6)}`
           : '--',

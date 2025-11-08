@@ -34,7 +34,7 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
               <TableHead className="w-64">
                 <div className="text-gray-700 font-semibold">Clock-in & Out</div>
               </TableHead>
-              <TableHead className="w-24 text-center">
+              <TableHead className="w-64">
                 <div className="text-gray-700 font-semibold">Break</div>
               </TableHead>
               <TableHead className="w-28 text-center">
@@ -46,7 +46,7 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
               <TableHead className="w-32 text-center">
                 <div className="text-gray-700 font-semibold">Location</div>
               </TableHead>
-              <TableHead className="w-24 text-center">
+              <TableHead className="w-48">
                 <div className="text-gray-700 font-semibold">Overtime</div>
               </TableHead>
               <TableHead className="w-48">
@@ -87,8 +87,35 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                     ))}
                   </div>
                 </TableCell>
-                <TableCell className="text-center">
-                  <span className="font-mono text-sm text-gray-900">{record.breakTime}</span>
+                <TableCell>
+                  {record.breaks && record.breaks.length > 0 ? (
+                    <div className="space-y-1">
+                      {record.breaks.map((breakItem, index) => (
+                        <div key={index} className="flex items-center font-mono text-sm">
+                          <span className="text-amber-600 w-[50px] text-right">
+                            {breakItem.startTime}
+                          </span>
+                          <div className="flex items-center mx-2">
+                            <span className="text-gray-400 leading-none">•</span>
+                            <div className="h-[2px] w-2 bg-gray-300"></div>
+                            <span className="text-gray-400 text-xs px-1 min-w-[60px] text-center">{breakItem.duration}</span>
+                            <div className="h-[2px] w-2 bg-gray-300"></div>
+                            <span className="text-gray-400 leading-none">•</span>
+                          </div>
+                          <span className="text-amber-600 w-[50px]">
+                            {breakItem.endTime}
+                          </span>
+                        </div>
+                      ))}
+                      {record.breaks.length > 1 && (
+                        <div className="text-xs text-gray-500 mt-1 text-center">
+                          Total: {record.totalBreakTime}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 text-sm">--</div>
+                  )}
                 </TableCell>
                 <TableCell className="text-center">
                   <span className={record.lateArrival !== '--' ? 'font-mono text-sm text-red-600 font-semibold' : 'font-mono text-sm text-gray-500'}>
@@ -101,10 +128,21 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                 <TableCell className="text-center">
                   <span className="text-sm text-gray-900">{record.location}</span>
                 </TableCell>
-                <TableCell className="text-center">
-                  <span className={record.overtime !== '-' ? 'text-orange-600 font-semibold' : 'text-gray-500'}>
-                    {record.overtime}
-                  </span>
+                <TableCell>
+                  {record.overtime !== '-' && record.overtimeHours !== '--' ? (
+                    <div className="font-mono text-sm">
+                      <div className="flex items-center justify-center">
+                        <span className="text-orange-600 font-semibold">
+                          {record.overtimeHours}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 text-center">
+                        {record.overtime}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 text-sm">--</div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div 
