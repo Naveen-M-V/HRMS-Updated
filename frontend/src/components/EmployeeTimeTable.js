@@ -25,17 +25,6 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenuId]);
 
-  // Function to check if geolocation is GPS coordinates and open map
-  const handleGeolocationClick = (geolocation) => {
-    // Check if geolocation is in GPS coordinate format (e.g., "51.507351, -0.127758")
-    const gpsPattern = /^-?\d+\.\d+,\s*-?\d+\.\d+$/;
-    if (gpsPattern.test(geolocation)) {
-      const [lat, lng] = geolocation.split(',').map(coord => coord.trim());
-      // Open Google Maps in a new tab
-      window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
-    }
-  };
-
   return (
     <div className="w-full">
       <div className="border rounded-lg overflow-hidden bg-white">
@@ -194,16 +183,20 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <div 
-                    className={`text-sm ${
-                      /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(record.geolocation) 
-                        ? 'text-blue-600 cursor-pointer hover:text-blue-800 hover:underline' 
-                        : 'text-gray-500'
-                    }`}
-                    onClick={() => handleGeolocationClick(record.geolocation)}
-                    title={/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(record.geolocation) ? 'Click to view on map' : ''}
-                  >
-                    <span className="truncate">{record.geolocation}</span>
+                  <div className="text-sm">
+                    {/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(record.geolocation) ? (
+                      <a
+                        href={`https://www.google.com/maps?q=${record.geolocation.replace(/\s/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Show map
+                      </a>
+                    ) : (
+                      <span className="text-gray-500">{record.geolocation}</span>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
