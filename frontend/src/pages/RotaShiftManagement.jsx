@@ -77,6 +77,8 @@ const RotaShiftManagement = () => {
         { withCredentials: true }
       );
       
+      console.log('🔍 Fetching with filters:', filters);
+      
       const [shiftsRes, statsRes] = await Promise.all([
         getAllShiftAssignments(filters),
         getShiftStatistics(filters.startDate, filters.endDate)
@@ -84,24 +86,26 @@ const RotaShiftManagement = () => {
       
       console.log('📋 Profiles Response:', profilesResponse.data);
       console.log('📅 Shifts Response:', shiftsRes);
+      console.log('📊 Total shifts received:', shiftsRes.data?.length || 0);
       
       if (shiftsRes.success) {
-        console.log('📊 Shift details:', shiftsRes.data?.map(s => ({
+        console.log('📊 First 3 shifts details:', shiftsRes.data?.slice(0, 3).map(s => ({
           shiftId: s._id,
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          location: s.location,
+          workType: s.workType,
           employeeId: s.employeeId,
           employeeIdType: typeof s.employeeId,
-          employeeIdIsObject: typeof s.employeeId === 'object',
-          employeeIdKeys: s.employeeId ? Object.keys(s.employeeId) : null,
           hasFirstName: !!s.employeeId?.firstName,
-          has_id: !!s.employeeId?._id,
-          _id: s.employeeId?._id,
-          firstName: s.employeeId?.firstName,
-          lastName: s.employeeId?.lastName,
-          role: s.employeeId?.role,
-          employeeName: s.employeeId?.firstName ? `${s.employeeId.firstName} ${s.employeeId.lastName}` : 'N/A',
-          rawEmployeeId: JSON.stringify(s.employeeId)
+          employeeName: s.employeeId?.firstName ? `${s.employeeId.firstName} ${s.employeeId.lastName}` : 'N/A'
         })));
+        console.log('✅ Setting', shiftsRes.data?.length || 0, 'shifts to state');
         setShifts(shiftsRes.data || []);
+      } else {
+        console.warn('⚠️ Shifts fetch unsuccessful:', shiftsRes);
+        setShifts([]);
       }
       if (statsRes.success) setStatistics(statsRes.data);
       
@@ -217,6 +221,18 @@ const RotaShiftManagement = () => {
       if (response.success) {
         toast.success('Shift assigned successfully');
         
+        // Check if the assigned date is within current filter range
+        const assignedDate = new Date(formData.date);
+        const filterStart = new Date(filters.startDate);
+        const filterEnd = new Date(filters.endDate);
+        
+        console.log('📅 Checking date range:', {
+          assignedDate: assignedDate.toISOString().split('T')[0],
+          filterStart: filterStart.toISOString().split('T')[0],
+          filterEnd: filterEnd.toISOString().split('T')[0],
+          isWithinRange: assignedDate >= filterStart && assignedDate <= filterEnd
+        });
+        
         setShowModal(false);
         setFormData({
           employeeId: '',
@@ -229,8 +245,25 @@ const RotaShiftManagement = () => {
           notes: ''
         });
         
-        // Refresh data immediately to show the new shift
-        await fetchData();
+        // If assigned date is outside current filter range, expand the range
+        if (assignedDate < filterStart || assignedDate > filterEnd) {
+          console.log('⚠️ Assigned date is outside filter range, expanding...');
+          const newStartDate = assignedDate < filterStart ? assignedDate : filterStart;
+          const newEndDate = assignedDate > filterEnd ? assignedDate : filterEnd;
+          
+          // Update filters - this will trigger useEffect to fetch data
+          setFilters(prev => ({
+            ...prev,
+            startDate: newStartDate.toISOString().split('T')[0],
+            endDate: newEndDate.toISOString().split('T')[0]
+          }));
+          
+          toast.info('Date range expanded to show the new shift', { autoClose: 3000 });
+        } else {
+          // Date is within range, just refresh data
+          console.log('✅ Assigned date is within filter range, refreshing...');
+          await fetchData();
+        }
       }
     } catch (error) {
       console.error('❌ Assign shift error:', error);
@@ -427,16 +460,16 @@ const RotaShiftManagement = () => {
             <div style={{ flex: '1', minWidth: '200px' }}>
               <DatePicker
                 label="Start Date"
-                value={filters.startDate || null}
+                value={filters.startDate ? dayjs(filters.startDate) : null}
                 onChange={(date) => handleFilterChange('startDate', date ? date.format('YYYY-MM-DD') : '')}
               />
             </div>
             <div style={{ flex: '1', minWidth: '200px' }}>
               <DatePicker
                 label="End Date"
-                value={filters.endDate || null}
+                value={filters.endDate ? dayjs(filters.endDate) : null}
                 onChange={(date) => handleFilterChange('endDate', date ? date.format('YYYY-MM-DD') : '')}
-                minDate={filters.startDate || undefined}
+                minDate={filters.startDate ? dayjs(filters.startDate) : undefined}
               />
             </div>
             <div style={{ flex: '1', minWidth: '150px' }}>
