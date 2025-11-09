@@ -9,6 +9,7 @@ import LocationMap from './LocationMap';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import { getUserClockStatus, userClockOut, userStartBreak, userResumeWork } from '../utils/clockApi';
 import { toast } from 'react-toastify';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const ComplianceDashboard = () => {
   const navigate = useNavigate();
@@ -255,16 +256,20 @@ const ComplianceDashboard = () => {
           )}
           <div className="flex items-center space-x-2">
             <label className="text-sm font-medium text-gray-700">Expiry Alert Period:</label>
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(parseInt(e.target.value))}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <Select
+              value={selectedTimeframe.toString()}
+              onValueChange={(value) => setSelectedTimeframe(parseInt(value))}
             >
-              <option value={7}>7 days</option>
-              <option value={30}>30 days</option>
-              <option value={60}>60 days</option>
-              <option value={90}>90 days</option>
-            </select>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="60">60 days</SelectItem>
+                <SelectItem value="90">90 days</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
