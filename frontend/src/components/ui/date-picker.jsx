@@ -1,8 +1,12 @@
 import * as React from "react"
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
-import { DatePicker as MUIDatePicker } from '@mui/x-date-pickers/DatePicker'
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { format } from "date-fns"
+import { Calendar as CalendarIcon } from "lucide-react"
 import dayjs from "dayjs"
+
+import { cn } from "../../lib/utils"
+import { Button } from "./button"
+import { Calendar } from "./calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 
 export function DatePicker({ 
   value, 
@@ -23,24 +27,41 @@ export function DatePicker({
   const effectiveMinDate = minDate || min
   const effectiveMaxDate = maxDate || max
 
-  // Convert value to dayjs object
+  // Convert value to Date object for react-day-picker
   const getDateValue = () => {
-    if (!value) return null
-    if (dayjs.isDayjs(value)) return value
-    if (value instanceof Date) return dayjs(value)
+    if (!value) return undefined
+    if (value instanceof Date) return value
+    if (dayjs.isDayjs(value)) return value.toDate()
     
     // Handle DD/MM/YYYY format
     if (typeof value === 'string' && value.includes('/')) {
       const [day, month, year] = value.split('/')
-      return dayjs(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`)
+      return new Date(year, parseInt(month) - 1, parseInt(day))
     }
     
     // Handle YYYY-MM-DD format
     if (typeof value === 'string') {
-      return dayjs(value)
+      return new Date(value)
     }
     
-    return null
+    return undefined
+  }
+
+  // Convert min/max dates to Date objects
+  const getMinDate = () => {
+    if (!effectiveMinDate) return undefined
+    if (effectiveMinDate instanceof Date) return effectiveMinDate
+    if (dayjs.isDayjs(effectiveMinDate)) return effectiveMinDate.toDate()
+    if (typeof effectiveMinDate === 'string') return new Date(effectiveMinDate)
+    return undefined
+  }
+
+  const getMaxDate = () => {
+    if (!effectiveMaxDate) return undefined
+    if (effectiveMaxDate instanceof Date) return effectiveMaxDate
+    if (dayjs.isDayjs(effectiveMaxDate)) return effectiveMaxDate.toDate()
+    if (typeof effectiveMaxDate === 'string') return new Date(effectiveMaxDate)
+    return undefined
   }
 
   const handleDateChange = (selectedDate) => {
@@ -50,42 +71,57 @@ export function DatePicker({
         const syntheticEvent = {
           target: {
             name: name,
-            value: selectedDate ? selectedDate.format('YYYY-MM-DD') : ''
+            value: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''
           }
         }
         onChange(syntheticEvent)
       } else {
-        // Pass dayjs object directly
-        onChange(selectedDate)
+        // Pass dayjs object for compatibility with existing code
+        onChange(selectedDate ? dayjs(selectedDate) : null)
       }
     }
   }
 
+  const dateValue = getDateValue()
+  const minDateValue = getMinDate()
+  const maxDateValue = getMaxDate()
+
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <MUIDatePicker
-          value={getDateValue()}
-          onChange={handleDateChange}
-          minDate={effectiveMinDate ? dayjs(effectiveMinDate) : undefined}
-          maxDate={effectiveMaxDate ? dayjs(effectiveMaxDate) : undefined}
-          disabled={disabled}
-          slotProps={{
-            textField: {
-              placeholder: placeholder,
-              fullWidth: true,
-              size: "small",
-              required: required
-            }
-          }}
-          {...props}
-        />
-      </LocalizationProvider>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant={"outline"}
+            disabled={disabled}
+            className={cn(
+              "w-full justify-start text-left font-normal h-10 border-gray-300 hover:bg-gray-50",
+              !dateValue && "text-gray-500"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {dateValue ? format(dateValue, "PPP") : <span>{placeholder}</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0 z-[100]" align="start">
+          <Calendar
+            mode="single"
+            selected={dateValue}
+            onSelect={handleDateChange}
+            disabled={(date) => {
+              if (minDateValue && date < minDateValue) return true
+              if (maxDateValue && date > maxDateValue) return true
+              return disabled
+            }}
+            initialFocus
+            {...props}
+          />
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }
