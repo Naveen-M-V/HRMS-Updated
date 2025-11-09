@@ -1,5 +1,5 @@
 import * as React from "react"
-import { format } from "date-fns"
+import { format, getMonth, getYear, setMonth, setYear } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 import dayjs from "dayjs"
 
@@ -7,6 +7,13 @@ import { cn } from "../../lib/utils"
 import { Button } from "./button"
 import { Calendar } from "./calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
+import { 
+  DatePickerSelect, 
+  DatePickerSelectContent, 
+  DatePickerSelectItem, 
+  DatePickerSelectTrigger, 
+  DatePickerSelectValue 
+} from "./date-picker-select"
 
 export function DatePicker({ 
   value, 
@@ -21,6 +28,9 @@ export function DatePicker({
   name,
   min,
   max,
+  startYear = getYear(new Date()) - 100,
+  endYear = getYear(new Date()) + 100,
+  showMonthYearPicker = true,
   ...props 
 }) {
   // Support both minDate/min and maxDate/max for compatibility
@@ -46,6 +56,16 @@ export function DatePicker({
     
     return undefined
   }
+
+  const dateValue = getDateValue()
+  const [internalDate, setInternalDate] = React.useState(dateValue || new Date())
+
+  // Update internal date when value changes
+  React.useEffect(() => {
+    if (dateValue) {
+      setInternalDate(dateValue)
+    }
+  }, [dateValue])
 
   // Convert min/max dates to Date objects
   const getMinDate = () => {
@@ -80,11 +100,43 @@ export function DatePicker({
         onChange(selectedDate ? dayjs(selectedDate) : null)
       }
     }
+    if (selectedDate) {
+      setInternalDate(selectedDate)
+    }
   }
 
-  const dateValue = getDateValue()
   const minDateValue = getMinDate()
   const maxDateValue = getMaxDate()
+
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ]
+  
+  const years = Array.from(
+    { length: endYear - startYear + 1 },
+    (_, i) => startYear + i
+  )
+
+  const handleMonthChange = (month) => {
+    const newDate = setMonth(internalDate, months.indexOf(month))
+    setInternalDate(newDate)
+  }
+
+  const handleYearChange = (year) => {
+    const newDate = setYear(internalDate, parseInt(year))
+    setInternalDate(newDate)
+  }
 
   return (
     <div className={className}>
@@ -108,6 +160,40 @@ export function DatePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 z-[100]" align="start">
+          {showMonthYearPicker && (
+            <div className="flex justify-between gap-2 p-3 border-b">
+              <DatePickerSelect
+                onValueChange={handleMonthChange}
+                value={months[getMonth(internalDate)]}
+              >
+                <DatePickerSelectTrigger className="w-[130px]">
+                  <DatePickerSelectValue placeholder="Month" />
+                </DatePickerSelectTrigger>
+                <DatePickerSelectContent>
+                  {months.map(month => (
+                    <DatePickerSelectItem key={month} value={month}>
+                      {month}
+                    </DatePickerSelectItem>
+                  ))}
+                </DatePickerSelectContent>
+              </DatePickerSelect>
+              <DatePickerSelect
+                onValueChange={handleYearChange}
+                value={getYear(internalDate).toString()}
+              >
+                <DatePickerSelectTrigger className="w-[100px]">
+                  <DatePickerSelectValue placeholder="Year" />
+                </DatePickerSelectTrigger>
+                <DatePickerSelectContent>
+                  {years.map(year => (
+                    <DatePickerSelectItem key={year} value={year.toString()}>
+                      {year}
+                    </DatePickerSelectItem>
+                  ))}
+                </DatePickerSelectContent>
+              </DatePickerSelect>
+            </div>
+          )}
           <Calendar
             mode="single"
             selected={dateValue}
@@ -118,6 +204,8 @@ export function DatePicker({
               return disabled
             }}
             initialFocus
+            month={internalDate}
+            onMonthChange={setInternalDate}
             {...props}
           />
         </PopoverContent>
