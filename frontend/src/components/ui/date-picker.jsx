@@ -161,12 +161,12 @@ export function DatePicker({
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 z-[100]" align="start">
           {showMonthYearPicker && (
-            <div className="flex justify-between gap-2 p-3 border-b">
+            <div className="flex items-center justify-center gap-2 p-3 border-b border-gray-200">
               <DatePickerSelect
                 onValueChange={handleMonthChange}
                 value={months[getMonth(internalDate)]}
               >
-                <DatePickerSelectTrigger className="w-[130px]">
+                <DatePickerSelectTrigger className="w-[140px] h-9">
                   <DatePickerSelectValue placeholder="Month" />
                 </DatePickerSelectTrigger>
                 <DatePickerSelectContent>
@@ -181,7 +181,7 @@ export function DatePicker({
                 onValueChange={handleYearChange}
                 value={getYear(internalDate).toString()}
               >
-                <DatePickerSelectTrigger className="w-[100px]">
+                <DatePickerSelectTrigger className="w-[100px] h-9">
                   <DatePickerSelectValue placeholder="Year" />
                 </DatePickerSelectTrigger>
                 <DatePickerSelectContent>
