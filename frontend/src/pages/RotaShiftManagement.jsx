@@ -18,6 +18,7 @@ import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { formatDateDDMMYY, getShortDayName } from '../utils/dateFormatter';
 import dayjs from 'dayjs';
 
 const RotaShiftManagement = () => {
@@ -362,7 +363,7 @@ const RotaShiftManagement = () => {
             <div style={{ fontSize: '12px' }}>
               {conflicts.map((c, i) => (
                 <div key={i} style={{ marginTop: '4px' }}>
-                  • {new Date(c.date).toLocaleDateString()} {c.startTime} - {c.endTime} at {c.location}
+                  • {formatDateDDMMYY(c.date)} {c.startTime} - {c.endTime} at {c.location}
                 </div>
               ))}
             </div>
@@ -444,14 +445,7 @@ const RotaShiftManagement = () => {
    */
   const formatUKDate = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleString("en-GB", {
-      timeZone: "Europe/London",
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    return `${getShortDayName(dateString)}, ${formatDateDDMMYY(dateString)}`;
   };
 
   /**
@@ -538,7 +532,7 @@ const RotaShiftManagement = () => {
     const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
     const rows = shifts.map(s => [
       `${s.employeeId?.firstName || ''} ${s.employeeId?.lastName || ''}`,
-      new Date(s.date).toLocaleDateString(),
+      formatDateDDMMYY(s.date),
       s.startTime,
       s.endTime,
       s.location,

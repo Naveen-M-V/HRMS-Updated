@@ -10,6 +10,7 @@ import { ClockIcon } from '@heroicons/react/24/outline';
 import { getUserClockStatus, userClockOut, userStartBreak, userResumeWork } from '../utils/clockApi';
 import { toast } from 'react-toastify';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 const ComplianceDashboard = () => {
   const navigate = useNavigate();
@@ -123,14 +124,7 @@ const ComplianceDashboard = () => {
 
 
   const formatDate = (dateString) => {
-    const [day, month, year] = dateString.split('/');
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'Europe/London'
-    });
+    return formatDateDDMMYY(dateString);
   };
 
   const getDaysUntilExpiry = (expiryDate) => {
@@ -347,7 +341,7 @@ const ComplianceDashboard = () => {
                 fontWeight: '600',
                 color: '#111827'
               }}>
-                {nextLeave ? new Date(nextLeave.startDate).toLocaleDateString('en-GB', { timeZone: 'Europe/London' }) : 'None scheduled'}
+                {nextLeave ? formatDateDDMMYY(nextLeave.startDate) : 'None scheduled'}
               </div>
               <div style={{
                 fontSize: '12px',

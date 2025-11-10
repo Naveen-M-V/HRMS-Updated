@@ -6,6 +6,7 @@ import { useProfiles } from "../context/ProfileContext";
 import { useAlert } from "../components/AlertNotification";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 import { 
   AcademicCapIcon, 
   PlusIcon, 
@@ -48,11 +49,7 @@ export default function CertificateManagement() {
   // Format date to show only date without timestamp
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return formatDateDDMMYY(date);
   };
 
   // Check if certificate is expiring soon (within 30 days)

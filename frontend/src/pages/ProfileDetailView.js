@@ -17,6 +17,7 @@ import { TrashIcon } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
 import ProfilePhotoPopup from "../components/ProfilePhotoPopup";
 import ConfirmDialog from '../components/ConfirmDialog';
+import { formatDateDDMMYY, formatDateTimeDDMMYY } from '../utils/dateFormatter';
 
 export default function ProfileDetailView() {
   const { success, error } = useAlert();
@@ -129,22 +130,12 @@ const handleDeleteCertificate = async () => {
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return formatDateDDMMYY(date);
   };
 
   const formatDateTime = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDateTimeDDMMYY(date);
   };
 
   const userCertificates = certificates.filter(cert =>

@@ -17,6 +17,7 @@ import {
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '../utils/apiConfig';
+import { formatDateDDMMYY, getDayName } from '../utils/dateFormatter';
 
 const EmployeeProfileModal = ({ employee, onClose }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -363,7 +364,7 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                   <div>
                     <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Start Date</div>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                      {employee.startDate ? new Date(employee.startDate).toLocaleDateString() : 'N/A'}
+                      {employee.startDate ? formatDateDDMMYY(employee.startDate) : 'N/A'}
                     </div>
                   </div>
                   <div>
@@ -492,7 +493,7 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                           <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#6b7280' }}>
                             <span>Category: {cert.category || 'General'}</span>
                             {cert.expiryDate && (
-                              <span>Expires: {new Date(cert.expiryDate).toLocaleDateString()}</span>
+                              <span>Expires: {formatDateDDMMYY(cert.expiryDate)}</span>
                             )}
                           </div>
                         </div>
@@ -569,12 +570,7 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                       </div>
                       <div style={{ flex: 1 }}>
                         <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
-                          {new Date(entry.date).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
+                          {getDayName(entry.date)}, {formatDateDDMMYY(entry.date)}
                         </h4>
                         <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#6b7280' }}>
                           <span>In: {entry.clockIn ? new Date(entry.clockIn).toLocaleTimeString() : 'N/A'}</span>

@@ -24,6 +24,7 @@ import {
 } from '@heroicons/react/24/outline';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -989,7 +990,7 @@ const UserDashboard = () => {
                               <div key={idx} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded">
                                 <div className="flex-1">
                                   <p className="text-sm font-medium text-gray-900">{cert.certificate || cert.certificateName}</p>
-                                  <p className="text-xs text-gray-600">Expires: {new Date(cert.expiryDate).toLocaleDateString()}</p>
+                                  <p className="text-xs text-gray-600">Expires: {formatDateDDMMYY(cert.expiryDate)}</p>
                                 </div>
                                 <div className="text-right">
                                   <span className={`text-xs font-semibold px-2 py-1 rounded ${
@@ -1074,7 +1075,7 @@ const UserDashboard = () => {
                         <div className="flex-1">
                           <p className="text-sm text-gray-900">{notification.message}</p>
                           <p className="text-xs text-gray-500">
-                            {new Date(notification.createdAt).toLocaleDateString()}
+                            {formatDateDDMMYY(notification.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -1156,7 +1157,7 @@ const UserDashboard = () => {
                     ) : (
                       <p className="mt-1 text-sm text-gray-900">
                         {fieldConfig.field === 'dateOfBirth' && userProfile[fieldConfig.field]
-                          ? new Date(userProfile[fieldConfig.field]).toLocaleDateString()
+                          ? formatDateDDMMYY(userProfile[fieldConfig.field])
                           : userProfile[fieldConfig.field] || 'Not specified'
                         }
                       </p>
@@ -1314,7 +1315,7 @@ const UserDashboard = () => {
                                 </span>
                               </td>
                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${getCertificateStatusColor(certificate.expiryDate)}`}>
-                                {certificate.expiryDate ? new Date(certificate.expiryDate).toLocaleDateString() : 'No expiry'}
+                                {certificate.expiryDate ? formatDateDDMMYY(certificate.expiryDate) : 'No expiry'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <button

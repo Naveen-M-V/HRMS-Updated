@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
 import ShiftCalendar from '../components/ShiftCalendar';
+import { formatDateDDMMYY, getDayName } from '../utils/dateFormatter';
 import { 
   getUserClockStatus, 
   userClockIn, 
@@ -221,11 +222,7 @@ const UserClockIns = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit'
-    });
+    return formatDateDDMMYY(dateString);
   };
 
   const calculateOvertime = (entry) => {
@@ -275,11 +272,10 @@ const UserClockIns = () => {
 
   const getCurrentDate = () => {
     const today = new Date();
-    return today.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }) + '\n' + today.toLocaleDateString('en-US', { weekday: 'long' });
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = today.getFullYear();
+    return `${day}/${month}/${year}\n${getDayName(today)}`;
   };
 
   const isCurrentlyClockedIn = currentStatus?.status === 'clocked_in' || currentStatus?.status === 'on_break';

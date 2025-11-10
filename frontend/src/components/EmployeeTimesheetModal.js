@@ -19,6 +19,7 @@ import { toast } from 'react-toastify';
 import { useClockStatus } from '../context/ClockStatusContext';
 import TimelineBar from './TimelineBar';
 import { EmployeeTimeTable } from './EmployeeTimeTable';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const { triggerClockRefresh } = useClockStatus(); // For global refresh
@@ -1050,7 +1051,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     
     let csvContent = `Timesheet Report\n`;
     csvContent += `Employee: ${employee.firstName} ${employee.lastName}\n`;
-    csvContent += `Period: ${monday.toLocaleDateString('en-GB')} - ${sunday.toLocaleDateString('en-GB')}\n`;
+    csvContent += `Period: ${formatDateDDMMYY(monday)} - ${formatDateDDMMYY(sunday)}\n`;
     csvContent += `Week ${getWeekNumber(currentDate)}\n\n`;
     
     // Headers
@@ -1149,7 +1150,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         
         if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
         
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return formatDateDDMMYY(date);
       };
 
       const getDateLabel = () => {
@@ -1619,7 +1620,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 const monday = getMonday(currentDate);
                 const sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
-                return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                return `${formatDateDDMMYY(monday)} - ${formatDateDDMMYY(sunday)}`;
               })()}
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
