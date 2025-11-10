@@ -3,6 +3,7 @@ import { useProfiles } from '../context/ProfileContext';
 import { getCertificatesForJobRole } from '../data/certificateJobRoleMapping';
 import { getCertificatesForAnyJobRole } from '../utils/jobRoleResolver';
 import JobRoleDropdown from './JobRoleDropdown';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 const ProfilesList = () => {
   const { profiles, loading, updateProfileJobRole } = useProfiles();
@@ -11,13 +12,7 @@ const ProfilesList = () => {
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDateDDMMYY(date);
   };
 
   const toggleExpanded = (profileId) => setExpandedProfile(expandedProfile === profileId ? null : profileId);

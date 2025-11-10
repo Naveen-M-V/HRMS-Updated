@@ -5,6 +5,7 @@ import { useProfiles } from "../context/ProfileContext";
 import { getImageUrl } from "../utils/config";
 import { useAlert } from "../components/AlertNotification";
 import ProfilePictureUpload from "../components/ProfilePictureUpload";
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 export default function MyAccount() {
   const { success, error: showError } = useAlert();
@@ -438,7 +439,7 @@ export default function MyAccount() {
 
               <div className="flex justify-between">
                 <span className="font-medium text-gray-700">D.O.B.</span>
-                <span>{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-GB') : "Not provided"}</span>
+                <span>{profile.dateOfBirth ? formatDateDDMMYY(profile.dateOfBirth) : "Not provided"}</span>
               </div>
 
               <div className="flex justify-between">

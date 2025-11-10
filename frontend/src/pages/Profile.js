@@ -17,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
 import ProfilePhotoPopup from "../components/ProfilePhotoPopup";
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 export default function Profile() {
   const { success, error: showError } = useAlert();
@@ -124,11 +125,7 @@ export default function Profile() {
 
   const formatDate = (date) => {
     if (!date) return "Not specified";
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return formatDateDDMMYY(date);
   };
 
   const tabs = [

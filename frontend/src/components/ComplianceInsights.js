@@ -8,6 +8,7 @@ import {
   ClockIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 const ComplianceInsights = () => {
   const {
@@ -30,11 +31,7 @@ const ComplianceInsights = () => {
   // Format date to show only date without timestamp
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return formatDateDDMMYY(date);
   };
 
   useEffect(() => {

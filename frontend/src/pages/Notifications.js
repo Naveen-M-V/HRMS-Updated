@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNotifications } from "../context/NotificationContext";
 import { Mail, Check } from "lucide-react";
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 export default function Notifications() {
   const { notifications, markAsRead, refreshNotifications } = useNotifications();
@@ -61,7 +62,7 @@ export default function Notifications() {
             {/* Header */}
             <h2 className="text-lg font-bold mb-2">{selected.title}</h2>
             <p className="text-sm text-gray-500 mb-1">
-              Created: {selected.createdAt ? new Date(selected.createdAt).toLocaleDateString() : 'N/A'}
+              Created: {selected.createdAt ? formatDateDDMMYY(selected.createdAt) : 'N/A'}
             </p>
             <p className="text-sm text-gray-500 mb-4">
               Status: {selected.status}

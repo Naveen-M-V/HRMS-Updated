@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
 import ConfirmDialog from '../components/ConfirmDialog';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 const UserCertificateView = () => {
   const { id } = useParams();
@@ -88,11 +89,7 @@ const UserCertificateView = () => {
     // First ensure we have a valid date
     if (isNaN(date.getTime())) return 'Not specified';
     // For display in view, use localized format
-    return new Date(date.toISOString()).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return formatDateDDMMYY(date);
   };
 
   const getCertificateStatus = (expiryDate) => {

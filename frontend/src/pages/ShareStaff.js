@@ -5,6 +5,7 @@ import { useCertificates } from "../context/CertificateContext";
 import { EyeIcon, UserIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { getImageUrl } from '../utils/config';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 export default function Sharestaff() {
   const [search, setSearch] = useState("");
@@ -36,7 +37,7 @@ export default function Sharestaff() {
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString('en-GB');
+    return formatDateDDMMYY(date);
   };
 
   if (loading) {

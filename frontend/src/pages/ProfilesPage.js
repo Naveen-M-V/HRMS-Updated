@@ -15,6 +15,7 @@ import {
 } from '../components/ui/pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
@@ -62,13 +63,7 @@ export default function ProfilesPage() {
   // Format date helper function
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDateDDMMYY(date);
   };
 
   // Clear all filters

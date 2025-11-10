@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { formatDateDDMMYY, getDayName } from '../utils/dateFormatter';
 
 /**
  * User Clock In/Out Page
@@ -262,12 +263,7 @@ const UserClockInOut = () => {
             {currentTime}
           </div>
           <div style={{ fontSize: '14px', color: '#6b7280' }}>
-            {new Date().toLocaleDateString('en-GB', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
+            {getDayName(new Date())}, {formatDateDDMMYY(new Date())}
           </div>
         </div>
 

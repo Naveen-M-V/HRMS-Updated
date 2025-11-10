@@ -1,7 +1,8 @@
 // src/pages/ViewCertificate.js
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { useCertificates } from "../context/CertificateContext";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useCertificates } from '../context/CertificateContext';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 import { buildApiUrl } from "../utils/apiConfig";
 import { useAlert } from "../components/AlertNotification";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -68,11 +69,7 @@ export default function ViewCertificate() {
 
   const formatDate = (date) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return formatDateDDMMYY(date);
   };
 
   const handleDeleteCertificate = async () => {

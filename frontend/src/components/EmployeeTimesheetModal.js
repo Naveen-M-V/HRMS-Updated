@@ -19,7 +19,7 @@ import { toast } from 'react-toastify';
 import { useClockStatus } from '../context/ClockStatusContext';
 import TimelineBar from './TimelineBar';
 import { EmployeeTimeTable } from './EmployeeTimeTable';
-import { formatDateDDMMYY } from '../utils/dateFormatter';
+import { formatDateDDMMYY, getShortDayName, getDayName } from '../utils/dateFormatter';
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const { triggerClockRefresh } = useClockStatus(); // For global refresh
@@ -359,7 +359,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       
       emptyWeek.push({
         date: date,
-        dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayName: getShortDayName(date),
         dayNumber: date.getDate().toString().padStart(2, '0'),
         clockedHours: null,
         location: '--',
@@ -485,7 +485,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         weekEntries.push({
           entryId: dayEntry._id || dayEntry.id,
           date: date,
-          dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          dayName: getShortDayName(date),
           dayNumber: date.getDate().toString().padStart(2, '0'),
           clockedHours: clockedHoursDisplay,
           clockIn: clockIn,
@@ -515,7 +515,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         weekEntries.push({
           entryId: `absent-${dateStr}`, // Unique ID for absent days
           date: date,
-          dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          dayName: getShortDayName(date),
           dayNumber: date.getDate().toString().padStart(2, '0'),
           clockedHours: null,
           location: '--',
@@ -573,11 +573,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
   const formatDateRange = () => {
     const monday = getMonday(currentDate);
-    return monday.toLocaleDateString('en-US', { 
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long'
-    });
+    return `${getDayName(monday)}, ${formatDateDDMMYY(monday)}`;
   };
 
   // Timeline helper function to calculate position and width percentages
@@ -1155,7 +1151,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
       const getDateLabel = () => {
         const date = new Date(day.date);
-        return date.toLocaleDateString('en-US', { weekday: 'long' });
+        return getDayName(date);
       };
 
       // Format breaks for display

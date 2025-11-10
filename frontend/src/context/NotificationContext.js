@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from './AuthContext';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 const NotificationContext = createContext();
 
@@ -85,7 +86,7 @@ export const NotificationProvider = ({ children }) => {
         priority: notif.priority,
         read: notif.read,
         status: notif.read ? 'Read' : 'Open',
-        date: new Date(notif.createdOn || notif.createdAt).toLocaleDateString(),
+        date: formatDateDDMMYY(notif.createdOn || notif.createdAt),
         createdAt: notif.createdOn || notif.createdAt,
         metadata: notif.metadata || {}
       }));
