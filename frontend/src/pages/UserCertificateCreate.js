@@ -442,7 +442,7 @@ const UserCertificateCreate = () => {
               {/* Category */}
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                  Category
+                  Category *
                 </label>
                 <Select
                   value={formData.category}

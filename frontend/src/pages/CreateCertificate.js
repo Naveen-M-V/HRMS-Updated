@@ -6,6 +6,7 @@ import { getCertificatesForMultipleJobRoles, getAllJobRoles, allCertificates } f
 import SearchableDropdown from "../components/SearchableDropdown";
 import { DatePicker } from "../components/ui/date-picker";
 import { useAlert } from "../components/AlertNotification";
+import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import {
   Select,
   SelectContent,
@@ -735,21 +736,35 @@ export default function CreateCertificate() {
 
             {/* Certificate PDF Upload */}
             <div>
-              <label className="block font-medium mb-1">Upload Certificate File</label>
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleFileChange}
-                className="w-full border rounded-lg p-2"
-              />
-              {form.certificateFile && (
-                <p className="text-sm text-green-600 mt-1">
-                  Selected: {form.certificateFile.name}
-                </p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">
-                Please upload the certificate in PDF, JPEG, or PNG format (max 10MB)
-              </p>
+              <label htmlFor="certificateFile" className="block font-medium mb-1">Upload Certificate File</label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                  <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="certificateFile"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-green-500"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="certificateFile"
+                        name="certificateFile"
+                        type="file"
+                        className="sr-only"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">PDF, PNG, JPG up to 10MB</p>
+                  {form.certificateFile && (
+                    <p className="text-sm text-green-600">
+                      Selected: {form.certificateFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Buttons */}

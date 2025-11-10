@@ -1604,7 +1604,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           )}
         </div>
 
-        {/* Month Navigation */}
+        {/* Week Navigation */}
         <div style={{
           padding: '16px 24px',
           borderBottom: '1px solid #e5e7eb',
@@ -1615,15 +1615,20 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-              {selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              {(() => {
+                const monday = getMonday(currentDate);
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+              })()}
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 onClick={() => {
-                  const newMonth = new Date(selectedMonth);
-                  newMonth.setMonth(newMonth.getMonth() - 1);
-                  setSelectedMonth(newMonth);
-                  setCurrentDate(newMonth);
+                  const newDate = new Date(currentDate);
+                  newDate.setDate(newDate.getDate() - 7);
+                  setCurrentDate(newDate);
+                  setSelectedMonth(newDate);
                 }}
                 style={{
                   background: 'transparent',
@@ -1639,10 +1644,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               </button>
               <button
                 onClick={() => {
-                  const newMonth = new Date(selectedMonth);
-                  newMonth.setMonth(newMonth.getMonth() + 1);
-                  setSelectedMonth(newMonth);
-                  setCurrentDate(newMonth);
+                  const newDate = new Date(currentDate);
+                  newDate.setDate(newDate.getDate() + 7);
+                  setCurrentDate(newDate);
+                  setSelectedMonth(newDate);
                 }}
                 style={{
                   background: 'transparent',
