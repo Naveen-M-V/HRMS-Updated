@@ -17,6 +17,8 @@ import {
   CalendarDaysIcon,
   ClockIcon,
   CalendarIcon,
+  UsersIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
 
 export default function ModernSidebar({ isOpen, toggleSidebar }) {
@@ -34,6 +36,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
   const [openClockInOut, setOpenClockInOut] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
   const [openRotaShift, setOpenRotaShift] = useState(false);
+  const [openEmployees, setOpenEmployees] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
@@ -118,7 +121,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
       </div>
 
       {/* Scrollable Content */}
-      <div 
+      <div
         onClick={(e) => {
           // Toggle sidebar when clicking empty space in scrollable area
           if (e.target === e.currentTarget) {
@@ -340,6 +343,58 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           )}
         </div>
 
+        {/* Employees Section */}
+        <div className="pt-2 border-t border-sidebar-border">
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenEmployees(!openEmployees);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              openEmployees ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <UsersIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Employees</span>
+                {openEmployees ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openEmployees && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/employee-hub")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/employee-hub")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <UserIcon className="h-4 w-4" />
+                <span>Employee Hub</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/manage-teams")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/manage-teams")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <UserGroupIcon className="h-4 w-4" />
+                <span>Manage Teams</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer - Profile Section with Dropdown */}

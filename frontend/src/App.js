@@ -50,6 +50,8 @@ import RotaShiftManagement from "./pages/RotaShiftManagement";
 import ClockInOut from "./pages/ClockInOut";
 import ClockIns from "./pages/ClockIns";
 import TimeHistory from "./pages/TimeHistory";
+import EmployeeHub from "./pages/EmployeeHub";
+import ManageTeams from "./pages/ManageTeams";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -338,6 +340,14 @@ function App() {
                                   <Route
                                     path="/time-history"
                                     element={<TimeHistory />}
+                                  />
+                                  <Route
+                                    path="/employee-hub"
+                                    element={<EmployeeHub />}
+                                  />
+                                  <Route
+                                    path="/manage-teams"
+                                    element={<ManageTeams />}
                                   />
                                 </Routes>
                               </div>
