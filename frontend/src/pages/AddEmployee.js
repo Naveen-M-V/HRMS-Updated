@@ -47,11 +47,34 @@ export default function AddEmployee() {
     postcode: "",
     // Emergency contact
     emergencyContacts: [],
+    // Salary details
+    salary: "0",
+    rate: "",
+    paymentFrequency: "",
+    effectiveFrom: "",
+    reason: "",
+    payrollNumber: "",
     // Bank details
     accountName: "",
     bankName: "",
-    sortCode: "",
+    bankBranch: "",
     accountNumber: "",
+    sortCode: "",
+    // Sensitive details
+    taxCode: "",
+    niNumber: "",
+    // Passport
+    passportNumber: "",
+    passportCountry: "",
+    passportExpiryDate: "",
+    // Driving licence
+    licenceNumber: "",
+    licenceCountry: "",
+    licenceClass: "",
+    licenceExpiryDate: "",
+    // Visa
+    visaNumber: "",
+    visaExpiryDate: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -510,6 +533,109 @@ export default function AddEmployee() {
           </button>
         </div>
 
+        {/* Salary details */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Salary details
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Salary
+              </label>
+              <input
+                type="number"
+                value={formData.salary}
+                onChange={(e) => handleInputChange("salary", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rate
+              </label>
+              <select
+                value={formData.rate}
+                onChange={(e) => handleInputChange("rate", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select rate</option>
+                <option value="Hourly">Hourly</option>
+                <option value="Daily">Daily</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Annually">Annually</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment frequency
+              </label>
+              <select
+                value={formData.paymentFrequency}
+                onChange={(e) =>
+                  handleInputChange("paymentFrequency", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select frequency</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Bi-weekly">Bi-weekly</option>
+                <option value="Monthly">Monthly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Effective from
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.effectiveFrom}
+                onChange={(e) =>
+                  handleInputChange("effectiveFrom", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason
+              </label>
+              <select
+                value={formData.reason}
+                onChange={(e) => handleInputChange("reason", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select reason</option>
+                <option value="New starter">New starter</option>
+                <option value="Promotion">Promotion</option>
+                <option value="Annual increase">Annual increase</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payroll number
+              </label>
+              <input
+                type="text"
+                placeholder="ABC123"
+                value={formData.payrollNumber}
+                onChange={(e) =>
+                  handleInputChange("payrollNumber", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Bank details */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -548,6 +674,256 @@ export default function AddEmployee() {
               <p className="text-xs text-gray-500 mt-1">
                 Bank name. Max 60 chars
               </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bank branch
+              </label>
+              <input
+                type="text"
+                placeholder="Bank branch"
+                value={formData.bankBranch}
+                onChange={(e) =>
+                  handleInputChange("bankBranch", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Bank branch location
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Account number
+              </label>
+              <input
+                type="text"
+                placeholder="8 digit number"
+                value={formData.accountNumber}
+                onChange={(e) =>
+                  handleInputChange("accountNumber", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">8 digit number</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sort code
+              </label>
+              <input
+                type="text"
+                placeholder="00-00-00"
+                value={formData.sortCode}
+                onChange={(e) => handleInputChange("sortCode", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">E.g. 00-00-00</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Sensitive details */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Sensitive details
+          </h3>
+          <h4 className="text-base font-semibold text-gray-800 mb-3">
+            Tax, NI and eligibility information
+          </h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tax code
+              </label>
+              <input
+                type="text"
+                placeholder="Tax code"
+                value={formData.taxCode}
+                onChange={(e) => handleInputChange("taxCode", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                NI number
+              </label>
+              <input
+                type="text"
+                placeholder="NI number"
+                value={formData.niNumber}
+                onChange={(e) => handleInputChange("niNumber", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Passport */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Passport</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Passport number
+              </label>
+              <input
+                type="text"
+                placeholder="Passport number"
+                value={formData.passportNumber}
+                onChange={(e) =>
+                  handleInputChange("passportNumber", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country of issue
+              </label>
+              <select
+                value={formData.passportCountry}
+                onChange={(e) =>
+                  handleInputChange("passportCountry", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Country of issue</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="United States">United States</option>
+                <option value="India">India</option>
+                <option value="Pakistan">Pakistan</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Passport expiry date
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.passportExpiryDate}
+                onChange={(e) =>
+                  handleInputChange("passportExpiryDate", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Driving licence */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Driving licence
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Licence number
+              </label>
+              <input
+                type="text"
+                placeholder="Licence number"
+                value={formData.licenceNumber}
+                onChange={(e) =>
+                  handleInputChange("licenceNumber", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country of issue
+              </label>
+              <select
+                value={formData.licenceCountry}
+                onChange={(e) =>
+                  handleInputChange("licenceCountry", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Country of issue</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="United States">United States</option>
+                <option value="India">India</option>
+                <option value="Pakistan">Pakistan</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Licence class
+              </label>
+              <input
+                type="text"
+                placeholder="Licence class"
+                value={formData.licenceClass}
+                onChange={(e) =>
+                  handleInputChange("licenceClass", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date of expiry
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.licenceExpiryDate}
+                onChange={(e) =>
+                  handleInputChange("licenceExpiryDate", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Visa */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Visa</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visa number
+              </label>
+              <input
+                type="text"
+                placeholder="Visa number"
+                value={formData.visaNumber}
+                onChange={(e) =>
+                  handleInputChange("visaNumber", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visa expiry date
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.visaExpiryDate}
+                onChange={(e) =>
+                  handleInputChange("visaExpiryDate", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
           </div>
         </div>
