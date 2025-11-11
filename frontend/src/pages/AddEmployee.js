@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -109,7 +110,7 @@ export default function AddEmployee() {
     return emailRegex.test(email);
   };
 
-  const handleSaveAndContinue = () => {
+  const handleSaveAndContinue = async () => {
     const newErrors = {};
 
     // Validate based on current step
@@ -137,9 +138,33 @@ export default function AddEmployee() {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Final save logic
-      console.log("Saving employee:", formData);
-      navigate("/employee-hub");
+      // Final save logic - save to EmployeeHub schema
+      try {
+        const employeeData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.emailAddress,
+          phone: formData.mobileNumber,
+          jobTitle: formData.jobTitle || 'Employee',
+          department: 'General',
+          team: '',
+          office: 'Main Office',
+          startDate: formData.employmentStartDate,
+          employmentType: 'Full-time',
+          status: 'Active',
+          isActive: true
+        };
+
+        const response = await axios.post('http://localhost:5003/api/employees', employeeData);
+        
+        if (response.data.success) {
+          console.log("Employee saved successfully:", response.data.data);
+          navigate("/employee-hub");
+        }
+      } catch (error) {
+        console.error('Error saving employee:', error);
+        alert('Failed to save employee. Please try again.');
+      }
     }
   };
 
@@ -1101,8 +1126,8 @@ export default function AddEmployee() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8">
-          <div className="max-w-4xl">
+        <div className="flex-1 p-8 flex flex-col">
+          <div className="max-w-4xl flex-1 flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold text-gray-900">
@@ -1116,11 +1141,13 @@ export default function AddEmployee() {
               </button>
             </div>
 
-            {/* Form Content */}
-            <div className="bg-white rounded-lg border border-gray-200 p-8">
-              {currentStep === 1 && renderEmployeeDetails()}
-              {currentStep === 2 && renderEmploymentDetails()}
-              {currentStep === 3 && renderSummary()}
+            {/* Form Content - Scrollable Box */}
+            <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden flex flex-col">
+              <div className="overflow-y-auto p-8 flex-1">
+                {currentStep === 1 && renderEmployeeDetails()}
+                {currentStep === 2 && renderEmploymentDetails()}
+                {currentStep === 3 && renderSummary()}
+              </div>
             </div>
 
             {/* Footer Actions */}

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   PencilIcon,
   TrashIcon,
@@ -14,76 +15,58 @@ export default function ManageTeams() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  // Mock employees data - replace with actual API call
-  const [allEmployees, setAllEmployees] = useState([
-    {
-      id: 1,
-      firstName: "Darren",
-      lastName: "Jones",
-      jobTitle: "Operation Manager",
-      currentTeam: "WES",
-    },
-    {
-      id: 2,
-      firstName: "Jack",
-      lastName: "Cutler",
-      jobTitle: "Apprentice",
-      currentTeam: "WES",
-    },
-    {
-      id: 3,
-      firstName: "Jo",
-      lastName: "Evans",
-      jobTitle: "Work Coordinator (Admin)",
-      currentTeam: "Work From Home",
-    },
-    {
-      id: 4,
-      firstName: "Bob",
-      lastName: "Harries",
-      jobTitle: "Electrician",
-      currentTeam: null,
-    },
-    {
-      id: 5,
-      firstName: "Shahab Ahmed",
-      lastName: "Syed",
-      jobTitle: "IT Admin",
-      currentTeam: null,
-    },
-  ]);
+  // Employees data from API
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API call
-  const [teams, setTeams] = useState([
-    {
-      id: 1,
-      name: "Office",
-      initials: "O",
-      memberCount: 3,
-      color: "#3B82F6",
-    },
-    {
-      id: 2,
-      name: "Site Work",
-      initials: "SW",
-      memberCount: 2,
-      color: "#3B82F6",
-    },
-    {
-      id: 3,
-      name: "WES",
-      initials: "W",
-      memberCount: 2,
-      color: "#3B82F6",
-    },
-    {
-      id: 4,
-      name: "Work From Home",
-      initials: "WFH",
-      memberCount: 1,
-      color: "#3B82F6",
-    },
-  ]);
+  // Teams data from API
+  const [teams, setTeams] = useState([]);
+
+  // Fetch employees and teams from API
+  useEffect(() => {
+    fetchEmployees();
+    fetchTeams();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await axios.get('http://localhost:5003/api/employees');
+      if (response.data.success) {
+        // Transform API data to match component structure
+        const transformedEmployees = response.data.data.map(emp => ({
+          id: emp._id,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          jobTitle: emp.jobTitle,
+          currentTeam: emp.team || null
+        }));
+        setAllEmployees(transformedEmployees);
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get('http://localhost:5003/api/teams');
+      if (response.data.success) {
+        // Transform API data to match component structure
+        const transformedTeams = response.data.data.map(team => ({
+          id: team._id,
+          name: team.name,
+          initials: team.initials,
+          memberCount: team.memberCount,
+          color: team.color
+        }));
+        setTeams(transformedTeams);
+      }
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    }
+  };
 
   const handleOpenAssignModal = () => {
     if (newTeamName.trim()) {
@@ -128,27 +111,38 @@ export default function ManageTeams() {
     setSelectedEmployees((prev) => prev.filter((id) => !groupEmployees.includes(id)));
   };
 
-  const handleCreateTeam = () => {
+  const handleCreateTeam = async () => {
     if (newTeamName.trim()) {
-      // Generate initials from team name
-      const words = newTeamName.trim().split(" ");
-      const initials = words.length > 1 
-        ? words.map(w => w[0]).join("").toUpperCase()
-        : newTeamName.substring(0, 2).toUpperCase();
-      
-      const newTeam = {
-        id: teams.length + 1,
-        name: newTeamName,
-        initials: initials,
-        memberCount: selectedEmployees.length,
-        color: "#3B82F6",
-      };
-      setTeams([...teams, newTeam]);
-      
-      // Reset states
-      setNewTeamName("");
-      setSelectedEmployees([]);
-      setShowAssignModal(false);
+      try {
+        // Generate initials from team name
+        const words = newTeamName.trim().split(" ");
+        const initials = words.length > 1 
+          ? words.map(w => w[0]).join("").toUpperCase()
+          : newTeamName.substring(0, 2).toUpperCase();
+        
+        const teamData = {
+          name: newTeamName,
+          initials: initials,
+          members: selectedEmployees,
+          color: "#3B82F6",
+        };
+
+        const response = await axios.post('http://localhost:5003/api/teams', teamData);
+        
+        if (response.data.success) {
+          // Refresh teams and employees
+          await fetchTeams();
+          await fetchEmployees();
+          
+          // Reset states
+          setNewTeamName("");
+          setSelectedEmployees([]);
+          setShowAssignModal(false);
+        }
+      } catch (error) {
+        console.error('Error creating team:', error);
+        alert('Failed to create team. Please try again.');
+      }
     }
   };
 
@@ -159,9 +153,18 @@ export default function ManageTeams() {
     setSelectedEmployees([]);
   };
 
-  const handleDeleteTeam = (teamId) => {
+  const handleDeleteTeam = async (teamId) => {
     if (window.confirm("Are you sure you want to delete this team?")) {
-      setTeams(teams.filter((team) => team.id !== teamId));
+      try {
+        const response = await axios.delete(`http://localhost:5003/api/teams/${teamId}`);
+        if (response.data.success) {
+          await fetchTeams();
+          await fetchEmployees();
+        }
+      } catch (error) {
+        console.error('Error deleting team:', error);
+        alert('Failed to delete team. Please try again.');
+      }
     }
   };
 
