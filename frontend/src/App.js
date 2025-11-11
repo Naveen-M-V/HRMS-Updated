@@ -52,6 +52,7 @@ import ClockIns from "./pages/ClockIns";
 import TimeHistory from "./pages/TimeHistory";
 import EmployeeHub from "./pages/EmployeeHub";
 import ManageTeams from "./pages/ManageTeams";
+import AddEmployee from "./pages/AddEmployee";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -348,6 +349,10 @@ function App() {
                                   <Route
                                     path="/manage-teams"
                                     element={<ManageTeams />}
+                                  />
+                                  <Route
+                                    path="/add-employee"
+                                    element={<AddEmployee />}
                                   />
                                 </Routes>
                               </div>

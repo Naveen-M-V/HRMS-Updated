@@ -1,0 +1,764 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  TrashIcon,
+  CheckIcon,
+} from "@heroicons/react/24/outline";
+
+export default function AddEmployee() {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("Added");
+  const [employees, setEmployees] = useState([
+    {
+      id: 1,
+      firstName: "Syed",
+      lastName: "Ahmed",
+      hasError: true,
+    },
+  ]);
+  const [selectedEmployee, setSelectedEmployee] = useState(employees[0]);
+
+  // Form data state
+  const [formData, setFormData] = useState({
+    // Basic details
+    title: "",
+    firstName: "Syed",
+    middleName: "",
+    lastName: "Ahmed",
+    gender: "Unspecified",
+    ethnicity: "Unspecified",
+    dateOfBirth: "",
+    emailAddress: "",
+    mobileNumber: "",
+    workPhone: "",
+    jobTitle: "",
+    employmentStartDate: "",
+    probationEndDate: "",
+    // Address details
+    address1: "",
+    address2: "",
+    address3: "",
+    townCity: "",
+    county: "",
+    postcode: "",
+    // Emergency contact
+    emergencyContacts: [],
+    // Bank details
+    accountName: "",
+    bankName: "",
+    sortCode: "",
+    accountNumber: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [emailError, setEmailError] = useState("");
+
+  const steps = [
+    { id: 1, name: "Employee details", active: true },
+    { id: 2, name: "Employment details", active: false },
+    { id: 3, name: "Summary", active: false },
+  ];
+
+  const sortOptions = [
+    "Added",
+    "First name",
+    "Last name",
+    "Email address",
+  ];
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+    if (field === "emailAddress" && emailError) {
+      setEmailError("");
+    }
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleSaveAndContinue = () => {
+    const newErrors = {};
+
+    // Validate based on current step
+    if (currentStep === 1) {
+      if (!formData.firstName) newErrors.firstName = "Required";
+      if (!formData.lastName) newErrors.lastName = "Required";
+      if (!formData.emailAddress) {
+        newErrors.emailAddress = "Required";
+        setEmailError("Please provide a valid email address.");
+      } else if (!validateEmail(formData.emailAddress)) {
+        newErrors.emailAddress = "Invalid";
+        setEmailError("Please provide a valid email address.");
+      }
+      if (!formData.employmentStartDate) {
+        newErrors.employmentStartDate = "Required";
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    // Move to next step or save
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      // Final save logic
+      console.log("Saving employee:", formData);
+      navigate("/employee-hub");
+    }
+  };
+
+  const handleStartOver = () => {
+    setFormData({
+      title: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      gender: "Unspecified",
+      ethnicity: "Unspecified",
+      dateOfBirth: "",
+      emailAddress: "",
+      mobileNumber: "",
+      workPhone: "",
+      jobTitle: "",
+      employmentStartDate: "",
+      probationEndDate: "",
+      address1: "",
+      address2: "",
+      address3: "",
+      townCity: "",
+      county: "",
+      postcode: "",
+      emergencyContacts: [],
+      accountName: "",
+      bankName: "",
+      sortCode: "",
+      accountNumber: "",
+    });
+    setErrors({});
+    setEmailError("");
+    setCurrentStep(1);
+  };
+
+  const handleDeleteEmployee = (employeeId) => {
+    setEmployees(employees.filter((emp) => emp.id !== employeeId));
+  };
+
+  const handleAddEmployee = () => {
+    // Add new employee to the list
+    const newEmployee = {
+      id: employees.length + 1,
+      firstName: "",
+      lastName: "",
+      hasError: false,
+    };
+    setEmployees([...employees, newEmployee]);
+    setSelectedEmployee(newEmployee);
+  };
+
+  const renderEmployeeDetails = () => {
+    return (
+      <div className="space-y-6">
+        {/* Basic details */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Basic details
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title
+              </label>
+              <select
+                value={formData.title}
+                onChange={(e) => handleInputChange("title", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select Title</option>
+                <option value="Mr">Mr</option>
+                <option value="Mrs">Mrs</option>
+                <option value="Miss">Miss</option>
+                <option value="Ms">Ms</option>
+                <option value="Dr">Dr</option>
+              </select>
+            </div>
+
+            {/* First name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                First name{" "}
+                <span className="text-pink-600 text-xs">Required</span>
+              </label>
+              <input
+                type="text"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange("firstName", e.target.value)}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.firstName ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+            </div>
+
+            {/* Middle name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Middle name
+              </label>
+              <input
+                type="text"
+                placeholder="Middle name"
+                value={formData.middleName}
+                onChange={(e) => handleInputChange("middleName", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Last name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Last name{" "}
+                <span className="text-pink-600 text-xs">Required</span>
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange("lastName", e.target.value)}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.lastName ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+            </div>
+
+            {/* Gender */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gender
+              </label>
+              <select
+                value={formData.gender}
+                onChange={(e) => handleInputChange("gender", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="Unspecified">Unspecified</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* Ethnicity */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ethnicity
+              </label>
+              <select
+                value={formData.ethnicity}
+                onChange={(e) => handleInputChange("ethnicity", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="Unspecified">Unspecified</option>
+                <option value="Asian">Asian</option>
+                <option value="Black">Black</option>
+                <option value="White">White</option>
+                <option value="Mixed">Mixed</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* Date of birth */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date of birth
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.dateOfBirth}
+                onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Email address */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email address{" "}
+                <span className="text-pink-600 text-xs">Required</span>
+              </label>
+              <input
+                type="email"
+                placeholder="Email address"
+                value={formData.emailAddress}
+                onChange={(e) =>
+                  handleInputChange("emailAddress", e.target.value)
+                }
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.emailAddress ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+              {emailError && (
+                <p className="text-red-500 text-xs mt-1">{emailError}</p>
+              )}
+            </div>
+
+            {/* Mobile number */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mobile number
+              </label>
+              <input
+                type="tel"
+                placeholder="Mobile number"
+                value={formData.mobileNumber}
+                onChange={(e) =>
+                  handleInputChange("mobileNumber", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Work phone */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Work phone
+              </label>
+              <input
+                type="tel"
+                placeholder="Work phone"
+                value={formData.workPhone}
+                onChange={(e) => handleInputChange("workPhone", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Job title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Job title
+              </label>
+              <input
+                type="text"
+                placeholder="Job title"
+                value={formData.jobTitle}
+                onChange={(e) => handleInputChange("jobTitle", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Employment start date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Employment start date{" "}
+                <span className="text-pink-600 text-xs">Required</span>
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.employmentStartDate}
+                onChange={(e) =>
+                  handleInputChange("employmentStartDate", e.target.value)
+                }
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.employmentStartDate
+                    ? "border-red-500"
+                    : "border-gray-300"
+                }`}
+              />
+              {errors.employmentStartDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  Start date is required.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Probation end date */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Probation end date
+            </label>
+            <input
+              type="text"
+              placeholder="dd/mm/yyyy"
+              value={formData.probationEndDate}
+              onChange={(e) =>
+                handleInputChange("probationEndDate", e.target.value)
+              }
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {/* Address details */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Address details
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address 1
+              </label>
+              <input
+                type="text"
+                placeholder="Address 1"
+                value={formData.address1}
+                onChange={(e) => handleInputChange("address1", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address 2
+              </label>
+              <input
+                type="text"
+                placeholder="Address 2"
+                value={formData.address2}
+                onChange={(e) => handleInputChange("address2", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Address 3
+              </label>
+              <input
+                type="text"
+                placeholder="Address 3"
+                value={formData.address3}
+                onChange={(e) => handleInputChange("address3", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Town/City
+              </label>
+              <input
+                type="text"
+                placeholder="Town/City"
+                value={formData.townCity}
+                onChange={(e) => handleInputChange("townCity", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                County
+              </label>
+              <input
+                type="text"
+                placeholder="County"
+                value={formData.county}
+                onChange={(e) => handleInputChange("county", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Postcode
+              </label>
+              <input
+                type="text"
+                placeholder="Postcode"
+                value={formData.postcode}
+                onChange={(e) => handleInputChange("postcode", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Emergency contact */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Emergency contact
+          </h3>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-xs font-bold">i</span>
+              </div>
+              <p className="text-sm text-gray-700">
+                Add an emergency contact in case something unexpected happens.
+              </p>
+            </div>
+          </div>
+          <button className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
+            Add Emergency Contact
+          </button>
+        </div>
+
+        {/* Bank details */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Bank details
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Name on account
+              </label>
+              <input
+                type="text"
+                placeholder="Account name"
+                value={formData.accountName}
+                onChange={(e) =>
+                  handleInputChange("accountName", e.target.value)
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Account name. Max 60 chars
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Name of bank
+              </label>
+              <input
+                type="text"
+                placeholder="Bank name"
+                value={formData.bankName}
+                onChange={(e) => handleInputChange("bankName", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Bank name. Max 60 chars
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEmploymentDetails = () => {
+    return (
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Employment details content
+        </h3>
+        <p className="text-gray-600">
+          Employment details form fields will go here...
+        </p>
+      </div>
+    );
+  };
+
+  const renderSummary = () => {
+    return (
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold text-gray-900">Summary</h3>
+        <p className="text-gray-600">Summary of employee details...</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Progress Steps */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex items-center">
+          {steps.map((step, index) => (
+            <div key={step.id} className="flex items-center flex-1">
+              <button
+                onClick={() => setCurrentStep(step.id)}
+                className={`relative flex-1 py-4 px-6 text-sm font-medium transition-colors ${
+                  currentStep === step.id
+                    ? "bg-blue-600 text-white"
+                    : currentStep > step.id
+                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    : "bg-white text-gray-500"
+                } ${index === 0 ? "rounded-tl-lg" : ""}`}
+                style={
+                  currentStep === step.id
+                    ? {
+                        clipPath: "polygon(0 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 0 100%)",
+                      }
+                    : {}
+                }
+              >
+                {step.name}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex">
+        {/* Left Sidebar */}
+        <div className="w-80 bg-white border-r border-gray-200 p-6 min-h-screen">
+          {/* Search and Sort */}
+          <div className="space-y-4 mb-6">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                >
+                  <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                </button>
+              )}
+            </div>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {sortOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Record count */}
+          <div className="text-sm text-gray-600 mb-4 text-right">
+            {employees.length} record{employees.length !== 1 ? "s" : ""}
+          </div>
+
+          {/* Error banner */}
+          {employees.some((emp) => emp.hasError) && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center gap-2">
+              <div className="h-5 w-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-bold">!</span>
+              </div>
+              <span className="text-sm text-red-700">1 record with error</span>
+            </div>
+          )}
+
+          {/* Employee list */}
+          <div className="space-y-2 mb-6">
+            {employees.map((employee) => (
+              <div
+                key={employee.id}
+                className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedEmployee?.id === employee.id
+                    ? "border-blue-400 bg-blue-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+                onClick={() => setSelectedEmployee(employee)}
+              >
+                <div className="flex items-center gap-2">
+                  {employee.hasError && (
+                    <div className="h-5 w-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                      <XMarkIcon className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-gray-900">
+                    {employee.firstName} {employee.lastName}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteEmployee(employee.id);
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <TrashIcon className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add employee inputs */}
+          <div className="flex gap-2 mb-6">
+            <input
+              type="text"
+              placeholder="First name"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            <input
+              type="text"
+              placeholder="Last name"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            />
+            <button
+              onClick={handleAddEmployee}
+              className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+            >
+              <CheckIcon className="h-5 w-5 text-gray-600" />
+            </button>
+          </div>
+
+          {/* Start over button */}
+          <button
+            onClick={handleStartOver}
+            className="w-full px-6 py-2.5 border-2 border-pink-600 text-pink-600 hover:bg-pink-50 rounded-lg font-medium transition-colors"
+          >
+            Start over
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-8">
+          <div className="max-w-4xl">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {selectedEmployee?.firstName} {selectedEmployee?.lastName}
+              </h1>
+              <button
+                onClick={() => navigate("/employee-hub")}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <div className="bg-white rounded-lg border border-gray-200 p-8">
+              {currentStep === 1 && renderEmployeeDetails()}
+              {currentStep === 2 && renderEmploymentDetails()}
+              {currentStep === 3 && renderSummary()}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={handleSaveAndContinue}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-8 py-2.5 rounded-lg font-medium transition-colors"
+              >
+                Save and continue
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -97,7 +97,7 @@ export default function EmployeeHub() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => navigate("/create-user")}
+            onClick={() => navigate("/add-employee")}
             className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
           >
             Add employees
