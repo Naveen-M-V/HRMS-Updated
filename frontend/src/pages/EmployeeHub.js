@@ -14,52 +14,13 @@ export default function EmployeeHub() {
   const [filterBy, setFilterBy] = useState("All");
   const [sortBy, setSortBy] = useState("First name (A - Z)");
   const [status, setStatus] = useState("All");
-  const [expandedTeams, setExpandedTeams] = useState({ Office: true });
+  const [expandedTeams, setExpandedTeams] = useState({});
 
-  // Mock data - replace with actual API call
-  const [employees, setEmployees] = useState([
-    {
-      id: 1,
-      firstName: "Darren",
-      lastName: "Jones",
-      jobTitle: "Operation Manager",
-      team: "Office",
-      office: "SCB Office",
-      avatar: null,
-      initials: "DJ",
-      color: "#3B82F6",
-    },
-    {
-      id: 2,
-      firstName: "Gareth",
-      lastName: "Leonard",
-      jobTitle: "Operations Director",
-      team: "Office",
-      office: "SCB Group Office",
-      avatar: null,
-      initials: "GL",
-      color: "#3B82F6",
-    },
-    {
-      id: 3,
-      firstName: "Stefan",
-      lastName: "Bond",
-      jobTitle: "Managing Director",
-      team: "Office",
-      office: "SCB Office",
-      avatar: null,
-      initials: "SB",
-      color: "#3B82F6",
-    },
-  ]);
+  // Employees data from API
+  const [employees, setEmployees] = useState([]);
 
-  const [teams, setTeams] = useState([
-    {
-      name: "Office",
-      count: 3,
-      employees: [1, 2, 3],
-    },
-  ]);
+  // Teams data from API
+  const [teams, setTeams] = useState([]);
 
   const toggleTeam = (teamName) => {
     setExpandedTeams((prev) => ({
