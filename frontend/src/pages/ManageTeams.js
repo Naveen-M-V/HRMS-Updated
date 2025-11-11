@@ -9,7 +9,49 @@ export default function ManageTeams() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
+  const [expandedGroups, setExpandedGroups] = useState({});
+
+  // Mock employees data - replace with actual API call
+  const [allEmployees, setAllEmployees] = useState([
+    {
+      id: 1,
+      firstName: "Darren",
+      lastName: "Jones",
+      jobTitle: "Operation Manager",
+      currentTeam: "WES",
+    },
+    {
+      id: 2,
+      firstName: "Jack",
+      lastName: "Cutler",
+      jobTitle: "Apprentice",
+      currentTeam: "WES",
+    },
+    {
+      id: 3,
+      firstName: "Jo",
+      lastName: "Evans",
+      jobTitle: "Work Coordinator (Admin)",
+      currentTeam: "Work From Home",
+    },
+    {
+      id: 4,
+      firstName: "Bob",
+      lastName: "Harries",
+      jobTitle: "Electrician",
+      currentTeam: null,
+    },
+    {
+      id: 5,
+      firstName: "Shahab Ahmed",
+      lastName: "Syed",
+      jobTitle: "IT Admin",
+      currentTeam: null,
+    },
+  ]);
 
   // Mock data - replace with actual API call
   const [teams, setTeams] = useState([
@@ -43,6 +85,49 @@ export default function ManageTeams() {
     },
   ]);
 
+  const handleOpenAssignModal = () => {
+    if (newTeamName.trim()) {
+      setShowCreateModal(false);
+      setShowAssignModal(true);
+      // Initialize expanded groups
+      const groups = {};
+      teams.forEach(team => {
+        groups[team.name] = true;
+      });
+      groups["No group"] = true;
+      setExpandedGroups(groups);
+    }
+  };
+
+  const toggleEmployeeSelection = (employeeId) => {
+    setSelectedEmployees((prev) =>
+      prev.includes(employeeId)
+        ? prev.filter((id) => id !== employeeId)
+        : [...prev, employeeId]
+    );
+  };
+
+  const toggleGroup = (groupName) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupName]: !prev[groupName],
+    }));
+  };
+
+  const selectGroup = (groupName) => {
+    const groupEmployees = allEmployees
+      .filter((emp) => emp.currentTeam === groupName || (groupName === "No group" && !emp.currentTeam))
+      .map((emp) => emp.id);
+    setSelectedEmployees((prev) => [...new Set([...prev, ...groupEmployees])]);
+  };
+
+  const deselectGroup = (groupName) => {
+    const groupEmployees = allEmployees
+      .filter((emp) => emp.currentTeam === groupName || (groupName === "No group" && !emp.currentTeam))
+      .map((emp) => emp.id);
+    setSelectedEmployees((prev) => prev.filter((id) => !groupEmployees.includes(id)));
+  };
+
   const handleCreateTeam = () => {
     if (newTeamName.trim()) {
       // Generate initials from team name
@@ -55,13 +140,23 @@ export default function ManageTeams() {
         id: teams.length + 1,
         name: newTeamName,
         initials: initials,
-        memberCount: 0,
+        memberCount: selectedEmployees.length,
         color: "#3B82F6",
       };
       setTeams([...teams, newTeam]);
+      
+      // Reset states
       setNewTeamName("");
-      setShowCreateModal(false);
+      setSelectedEmployees([]);
+      setShowAssignModal(false);
     }
+  };
+
+  const handleCloseModals = () => {
+    setShowCreateModal(false);
+    setShowAssignModal(false);
+    setNewTeamName("");
+    setSelectedEmployees([]);
   };
 
   const handleDeleteTeam = (teamId) => {
@@ -81,11 +176,14 @@ export default function ManageTeams() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
+      {/* Page Title */}
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Team Management</h1>
+
       {/* Header */}
       <div className="mb-6">
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors mb-6"
+          className="bg-green-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors mb-6"
         >
           Add a new team
         </button>
@@ -167,46 +265,255 @@ export default function ManageTeams() {
         </div>
       )}
 
-      {/* Create Team Modal */}
+      {/* Step 1: Create Team Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Create New Team
-            </h2>
+          <div className="bg-white rounded-lg max-w-md w-full">
+            {/* Modal Header */}
+            <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+              <h2 className="text-xl font-bold">Add a new team</h2>
+              <button
+                onClick={handleCloseModals}
+                className="text-white hover:text-gray-200"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-            <div className="space-y-4">
-              <div>
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Team Name *
+                  Name
                 </label>
                 <input
                   type="text"
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
-                  placeholder="Enter team name"
+                  placeholder="Please enter a team name..."
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   autoFocus
                 />
               </div>
+
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={handleCloseModals}
+                  className="border-2 border-pink-600 text-pink-600 hover:bg-pink-50 px-6 py-2 rounded font-medium transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleOpenAssignModal}
+                  disabled={!newTeamName.trim()}
+                  className="bg-gray-300 hover:bg-green-600 hover:text-white disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-600 disabled:text-gray-400 px-6 py-2 rounded font-medium transition-colors"
+                >
+                  Select employees
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Assign Employees Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+              <h2 className="text-xl font-bold">Assign employees to "{newTeamName}"</h2>
+              <button
+                onClick={handleCloseModals}
+                className="text-white hover:text-gray-200"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            <div className="flex items-center gap-3 mt-6">
-              <button
-                onClick={handleCreateTeam}
-                disabled={!newTeamName.trim()}
-                className="flex-1 bg-pink-600 hover:bg-pink-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
-              >
-                Create Team
-              </button>
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Group by existing teams */}
+              {teams.map((team) => {
+                const teamEmployees = allEmployees.filter((emp) => emp.currentTeam === team.name);
+                if (teamEmployees.length === 0) return null;
+
+                const teamSelectedCount = teamEmployees.filter((emp) =>
+                  selectedEmployees.includes(emp.id)
+                ).length;
+
+                return (
+                  <div key={team.name} className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggleGroup(team.name)}
+                          className="text-pink-600 hover:text-pink-700"
+                        >
+                          <svg
+                            className={`h-6 w-6 transform transition-transform ${
+                              expandedGroups[team.name] ? "rotate-180" : ""
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <span className="font-semibold text-gray-900">{team.name}</span>
+                        <span className="bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                          {teamSelectedCount}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => selectGroup(team.name)}
+                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                        >
+                          Select group
+                        </button>
+                        <button
+                          onClick={() => deselectGroup(team.name)}
+                          className="text-gray-500 hover:text-gray-700 font-medium text-sm"
+                        >
+                          Deselect group
+                        </button>
+                      </div>
+                    </div>
+
+                    {expandedGroups[team.name] && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {teamEmployees.map((employee) => (
+                          <button
+                            key={employee.id}
+                            onClick={() => toggleEmployeeSelection(employee.id)}
+                            className={`relative p-4 rounded-lg border-2 text-left transition-all ${
+                              selectedEmployees.includes(employee.id)
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="font-semibold text-gray-900">
+                              {employee.firstName} {employee.lastName}
+                            </div>
+                            <div className="text-sm text-gray-600">{employee.jobTitle}</div>
+                            {selectedEmployees.includes(employee.id) && (
+                              <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* No group section */}
+              {(() => {
+                const noGroupEmployees = allEmployees.filter((emp) => !emp.currentTeam);
+                if (noGroupEmployees.length === 0) return null;
+
+                const noGroupSelectedCount = noGroupEmployees.filter((emp) =>
+                  selectedEmployees.includes(emp.id)
+                ).length;
+
+                return (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggleGroup("No group")}
+                          className="text-pink-600 hover:text-pink-700"
+                        >
+                          <svg
+                            className={`h-6 w-6 transform transition-transform ${
+                              expandedGroups["No group"] ? "rotate-180" : ""
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <span className="font-semibold text-gray-900">No group</span>
+                        <span className="bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                          {noGroupSelectedCount}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => selectGroup("No group")}
+                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                        >
+                          Select group
+                        </button>
+                        <button
+                          onClick={() => deselectGroup("No group")}
+                          className="text-gray-500 hover:text-gray-700 font-medium text-sm"
+                        >
+                          Deselect group
+                        </button>
+                      </div>
+                    </div>
+
+                    {expandedGroups["No group"] && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {noGroupEmployees.map((employee) => (
+                          <button
+                            key={employee.id}
+                            onClick={() => toggleEmployeeSelection(employee.id)}
+                            className={`relative p-4 rounded-lg border-2 text-left transition-all ${
+                              selectedEmployees.includes(employee.id)
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div className="font-semibold text-gray-900">
+                              {employee.firstName} {employee.lastName}
+                            </div>
+                            <div className="text-sm text-gray-600">{employee.jobTitle}</div>
+                            {selectedEmployees.includes(employee.id) && (
+                              <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between">
               <button
                 onClick={() => {
-                  setShowCreateModal(false);
-                  setNewTeamName("");
+                  setShowAssignModal(false);
+                  setShowCreateModal(true);
                 }}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg font-medium transition-colors"
+                className="border-2 border-pink-600 text-pink-600 hover:bg-pink-50 px-6 py-2 rounded font-medium transition-colors"
               >
-                Cancel
+                Back
+              </button>
+              <button
+                onClick={handleCreateTeam}
+                className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded font-medium transition-colors"
+              >
+                Save ({selectedEmployees.length})
               </button>
             </div>
           </div>

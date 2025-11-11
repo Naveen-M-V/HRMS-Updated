@@ -357,7 +357,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <UsersIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
               <>
-                <span className="text-sm font-medium flex-1 text-left">Employees</span>
+                <span className="text-sm font-medium flex-1 text-left">Employees Hub</span>
                 {openEmployees ? (
                   <ChevronDownIcon className="h-4 w-4" />
                 ) : (
@@ -378,7 +378,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                 }`}
               >
                 <UserIcon className="h-4 w-4" />
-                <span>Employee Hub</span>
+                <span>Employees</span>
               </button>
 
               <button
