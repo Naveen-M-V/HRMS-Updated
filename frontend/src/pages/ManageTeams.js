@@ -81,8 +81,9 @@ export default function ManageTeams() {
       teams.forEach(team => {
         groups[team.name] = true;
       });
-      groups["No group"] = true;
+      groups["No group"] = true; // Always expand "No group" section
       setExpandedGroups(groups);
+      console.log('Initialized expanded groups:', groups);
     }
   };
 
@@ -470,9 +471,13 @@ export default function ManageTeams() {
                 );
               })}
 
-              {/* No group section */}
+              {/* No group section - Show all employees if no teams exist */}
               {(() => {
-                const noGroupEmployees = allEmployees.filter((emp) => !emp.currentTeam);
+                const noGroupEmployees = teams.length === 0 
+                  ? allEmployees 
+                  : allEmployees.filter((emp) => !emp.currentTeam);
+                
+                console.log('No group employees:', noGroupEmployees);
                 if (noGroupEmployees.length === 0) return null;
 
                 const noGroupSelectedCount = noGroupEmployees.filter((emp) =>
@@ -559,6 +564,48 @@ export default function ManageTeams() {
                   </div>
                 );
               })()}
+
+              {/* Fallback: Show all employees if no sections are visible */}
+              {teams.length === 0 && allEmployees.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">All Employees</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allEmployees.map((employee) => (
+                      <button
+                        key={employee.id}
+                        onClick={() => toggleEmployeeSelection(employee.id)}
+                        className={`relative p-4 rounded-lg border-2 text-left transition-all ${
+                          selectedEmployees.includes(employee.id)
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="font-semibold text-gray-900">
+                            {employee.firstName} {employee.lastName}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {employee.department || "-"}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {employee.jobTitle || "-"}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {formatDateOfBirth(employee.dateOfBirth)}
+                          </div>
+                        </div>
+                        {selectedEmployees.includes(employee.id) && (
+                          <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
                 </>
               )}
             </div>
