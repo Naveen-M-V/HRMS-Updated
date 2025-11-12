@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import dayjs from "dayjs"; 
+
 
 export default function AddEmployee() {
   const navigate = useNavigate();
@@ -83,67 +85,80 @@ export default function AddEmployee() {
     return emailRegex.test(email);
   };
 
-  const handleSaveEmployee = async () => {
-    const newErrors = {};
+ const handleSaveEmployee = async () => {
+  const newErrors = {};
 
-    // Validate required fields
-    if (!formData.firstName) newErrors.firstName = "Required";
-    if (!formData.lastName) newErrors.lastName = "Required";
-    if (!formData.emailAddress) {
-      newErrors.emailAddress = "Required";
-      setEmailError("Please provide a valid email address.");
-    } else if (!validateEmail(formData.emailAddress)) {
-      newErrors.emailAddress = "Invalid";
-      setEmailError("Please provide a valid email address.");
-    }
-    if (!formData.jobTitle) newErrors.jobTitle = "Required";
-    if (!formData.department) newErrors.department = "Required";
-    if (!formData.office) newErrors.office = "Required";
-    if (!formData.employmentStartDate) {
-      newErrors.employmentStartDate = "Required";
-    }
+  // Validate required fields
+  if (!formData.firstName) newErrors.firstName = "Required";
+  if (!formData.lastName) newErrors.lastName = "Required";
+  if (!formData.emailAddress) {
+    newErrors.emailAddress = "Required";
+    setEmailError("Please provide a valid email address.");
+  } else if (!validateEmail(formData.emailAddress)) {
+    newErrors.emailAddress = "Invalid";
+    setEmailError("Please provide a valid email address.");
+  }
+  if (!formData.jobTitle) newErrors.jobTitle = "Required";
+  if (!formData.department) newErrors.department = "Required";
+  if (!formData.office) newErrors.office = "Required";
+  if (!formData.employmentStartDate) {
+    newErrors.employmentStartDate = "Required";
+  }
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
 
-    // Save to EmployeeHub schema
-    setLoading(true);
-    try {
-      const employeeData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.emailAddress,
-        phone: formData.mobileNumber,
-        jobTitle: formData.jobTitle,
-        department: formData.department,
-        team: formData.team || '',
-        office: formData.office,
-        startDate: formData.employmentStartDate,
-        employmentType: 'Full-time',
-        status: 'Active',
-        isActive: true
-      };
+  // Save to EmployeeHub schema
+  setLoading(true);
 
-      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/employees`, employeeData);
-      
-      if (response.data.success) {
-        console.log("Employee saved successfully:", response.data.data);
-        alert('Employee created successfully!');
-        navigate("/employee-hub");
-      }
-    } catch (error) {
-      console.error('Error saving employee:', error);
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      } else {
-        alert('Failed to save employee. Please try again.');
-      }
-    } finally {
-      setLoading(false);
+  try {
+    // ✅ Convert start date format (DD/MM/YYYY → YYYY-MM-DD)
+    const formattedStartDate = dayjs(
+      formData.employmentStartDate,
+      "DD/MM/YYYY"
+    ).format("YYYY-MM-DD");
+
+    const employeeData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.emailAddress,
+      phone: formData.mobileNumber,
+      jobTitle: formData.jobTitle,
+      department: formData.department,
+      team: formData.team || "",
+      office: formData.office,
+      startDate: formattedStartDate, // ✅ Correct format
+      employmentType: "Full-time",
+      status: "Active",
+      isActive: true,
+    };
+
+    console.log("Payload being sent:", employeeData);
+
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_BASE_URL}/employees`,
+      employeeData
+    );
+
+    if (response.data.success) {
+      console.log("Employee saved successfully:", response.data.data);
+      alert("Employee created successfully!");
+      navigate("/employee-hub");
     }
-  };
+  } catch (error) {
+    console.error("Error saving employee:", error);
+    if (error.response?.data?.message) {
+      alert(error.response.data.message);
+    } else {
+      alert("Failed to save employee. Please try again.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleCancel = () => {
     navigate("/employee-hub");
