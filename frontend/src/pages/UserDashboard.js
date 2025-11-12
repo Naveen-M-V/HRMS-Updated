@@ -9,6 +9,7 @@ import UserClockIns from './UserClockIns';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import LocationMap from '../components/LocationMap';
+import LiveLocationMap from '../components/LiveLocationMap';
 import UserNavigation from '../components/UserNavigation';
 import { jobRoleCertificateMapping } from '../data/new';
 import { 
@@ -743,12 +744,22 @@ const UserDashboard = () => {
                 </div>
               )}
               
-              {/* Persistent Location Map - Always Visible */}
+              {/* Enhanced Location Map with Protomaps */}
               <div className="mb-6">
-                <LocationMap 
-                  latitude={gpsCoordinates?.latitude || null}
-                  longitude={gpsCoordinates?.longitude || null}
-                  accuracy={locationAccuracy}
+                <LiveLocationMap 
+                  height="400px"
+                  enableLiveTracking={true}
+                  showControls={true}
+                  mapProvider="protomaps"
+                  style="light"
+                  onLocationUpdate={(location) => {
+                    setGpsCoordinates({
+                      latitude: location.latitude,
+                      longitude: location.longitude
+                    });
+                    setLocationAccuracy(location.accuracy);
+                  }}
+                  className="shadow-lg"
                 />
               </div>
               
