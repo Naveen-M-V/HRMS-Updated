@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   MagnifyingGlassIcon,
   EyeIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   BuildingOfficeIcon,
+  UserGroupIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 
 export default function EmployeeHub() {
@@ -15,12 +18,35 @@ export default function EmployeeHub() {
   const [sortBy, setSortBy] = useState("First name (A - Z)");
   const [status, setStatus] = useState("All");
   const [expandedTeams, setExpandedTeams] = useState({});
+  const [showEmployeeList, setShowEmployeeList] = useState(false);
 
   // Employees data from API
   const [employees, setEmployees] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // Teams data from API
   const [teams, setTeams] = useState([]);
+
+  // Fetch employees from EmployeesHub schema
+  const fetchAllEmployees = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
+      if (response.data.success) {
+        setAllEmployees(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load employees on component mount
+  useEffect(() => {
+    fetchAllEmployees();
+  }, []);
 
   const toggleTeam = (teamName) => {
     setExpandedTeams((prev) => ({
@@ -146,6 +172,93 @@ export default function EmployeeHub() {
             </select>
           </div>
         </div>
+      </div>
+
+      {/* Employee List Section */}
+      <div className="mb-6">
+        <button
+          onClick={() => setShowEmployeeList(!showEmployeeList)}
+          className="flex items-center justify-between w-full text-left mb-4 group bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <UserGroupIcon className="h-6 w-6 text-blue-600" />
+            <span className="text-lg font-semibold text-gray-900">
+              List of Employees ({allEmployees.length})
+            </span>
+          </div>
+          {showEmployeeList ? (
+            <ChevronUpIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700" />
+          ) : (
+            <ChevronDownIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700" />
+          )}
+        </button>
+
+        {/* Employee Table */}
+        {showEmployeeList && (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 mt-2">Loading employees...</p>
+              </div>
+            ) : allEmployees.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                No employees found
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Team Name</th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Job Role</th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {allEmployees.map((employee, index) => (
+                      <tr key={employee._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">{index + 1}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
+                              style={{ backgroundColor: employee.color || '#3B82F6' }}
+                            >
+                              {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {employee.firstName || '-'} {employee.lastName || '-'}
+                              </div>
+                              <div className="text-xs text-gray-500">{employee.email || '-'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{employee.team || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{employee.jobTitle || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{employee.department || '-'}</td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => handleViewProfile(employee._id)}
+                            className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                            title="View Documents"
+                          >
+                            <DocumentTextIcon className="h-4 w-4" />
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Teams Section */}

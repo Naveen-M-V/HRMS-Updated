@@ -30,7 +30,7 @@ export default function ManageTeams() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get('http://localhost:5003/api/employees');
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
       if (response.data.success) {
         // Transform API data to match component structure
         const transformedEmployees = response.data.data.map(emp => ({
@@ -51,7 +51,7 @@ export default function ManageTeams() {
 
   const fetchTeams = async () => {
     try {
-      const response = await axios.get('http://localhost:5003/api/teams');
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/teams`);
       if (response.data.success) {
         // Transform API data to match component structure
         const transformedTeams = response.data.data.map(team => ({
@@ -156,7 +156,7 @@ export default function ManageTeams() {
   const handleDeleteTeam = async (teamId) => {
     if (window.confirm("Are you sure you want to delete this team?")) {
       try {
-        const response = await axios.delete(`http://localhost:5003/api/teams/${teamId}`);
+        const response = await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/teams/${teamId}`);
         if (response.data.success) {
           await fetchTeams();
           await fetchEmployees();
