@@ -747,9 +747,9 @@ const UserDashboard = () => {
               
               {/* Pure Protomaps Location Map */}
               <div className="mb-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                  <p className="text-sm text-blue-800 font-medium">
-                    🗺️ Now using Pure Protomaps - No external mapping libraries required!
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                  <p className="text-sm text-green-800 font-medium">
+                    🗺️ Now loading real map tiles with high-accuracy GPS tracking!
                   </p>
                 </div>
                 <PureProtomapsComponent 

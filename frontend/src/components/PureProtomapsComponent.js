@@ -53,7 +53,7 @@ const PureProtomapsComponent = ({
     }
 
     // Draw initial map
-    drawMap(ctx, canvas.width, canvas.height);
+    drawMap(ctx, canvas.width, canvas.height).catch(console.error);
 
     return () => {
       if (watchIdRef.current) {
@@ -70,7 +70,7 @@ const PureProtomapsComponent = ({
       
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      drawMap(ctx, canvas.width, canvas.height);
+      drawMap(ctx, canvas.width, canvas.height).catch(console.error);
 
       if (onLocationUpdate) {
         onLocationUpdate({ latitude, longitude, accuracy });
@@ -79,7 +79,7 @@ const PureProtomapsComponent = ({
   }, [latitude, longitude, accuracy]);
 
   // Draw map function
-  const drawMap = (ctx, width, height) => {
+  const drawMap = async (ctx, width, height) => {
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
@@ -87,8 +87,8 @@ const PureProtomapsComponent = ({
     ctx.fillStyle = style === 'dark' ? '#1a1a1a' : '#f0f8ff';
     ctx.fillRect(0, 0, width, height);
 
-    // Draw grid (simulating map tiles)
-    drawGrid(ctx, width, height);
+    // Load and draw Protomaps tiles
+    await loadProtomapsTiles(ctx, width, height);
 
     // Draw location marker if available
     if (currentLocation) {
@@ -107,31 +107,111 @@ const PureProtomapsComponent = ({
     drawScale(ctx, width, height);
   };
 
-  // Draw grid to simulate map
-  const drawGrid = (ctx, width, height) => {
-    ctx.strokeStyle = style === 'dark' ? '#404040' : '#e0e0e0';
-    ctx.lineWidth = 1;
+  // Load and draw Protomaps tiles
+  const loadProtomapsTiles = async (ctx, width, height) => {
+    try {
+      // Calculate tile coordinates based on current location and zoom
+      const lat = currentLocation?.latitude || mapCenter.lat;
+      const lng = currentLocation?.longitude || mapCenter.lng;
+      
+      // Convert lat/lng to tile coordinates
+      const tileCoords = latLngToTile(lat, lng, mapZoom);
+      
+      // Load multiple tiles around the center
+      const tilesToLoad = [
+        { x: tileCoords.x - 1, y: tileCoords.y - 1 },
+        { x: tileCoords.x, y: tileCoords.y - 1 },
+        { x: tileCoords.x + 1, y: tileCoords.y - 1 },
+        { x: tileCoords.x - 1, y: tileCoords.y },
+        { x: tileCoords.x, y: tileCoords.y },
+        { x: tileCoords.x + 1, y: tileCoords.y },
+        { x: tileCoords.x - 1, y: tileCoords.y + 1 },
+        { x: tileCoords.x, y: tileCoords.y + 1 },
+        { x: tileCoords.x + 1, y: tileCoords.y + 1 }
+      ];
 
-    const gridSize = 50;
+      // Draw base map background
+      drawBaseMap(ctx, width, height);
+
+      // Load and draw tiles
+      for (const tile of tilesToLoad) {
+        await loadTile(ctx, tile.x, tile.y, mapZoom, width, height);
+      }
+    } catch (error) {
+      console.error('Failed to load Protomaps tiles:', error);
+      // Fallback to basic map
+      drawBaseMap(ctx, width, height);
+    }
+  };
+
+  // Convert lat/lng to tile coordinates
+  const latLngToTile = (lat, lng, zoom) => {
+    const x = Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
+    const y = Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+    return { x, y };
+  };
+
+  // Load individual tile
+  const loadTile = async (ctx, x, y, z, canvasWidth, canvasHeight) => {
+    try {
+      // Use OpenStreetMap tiles as Protomaps alternative (free)
+      const tileUrl = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      return new Promise((resolve, reject) => {
+        img.onload = () => {
+          // Calculate tile position on canvas
+          const tileSize = 256;
+          const centerTile = latLngToTile(currentLocation?.latitude || mapCenter.lat, currentLocation?.longitude || mapCenter.lng, mapZoom);
+          
+          const offsetX = (x - centerTile.x) * tileSize + canvasWidth / 2 - tileSize / 2;
+          const offsetY = (y - centerTile.y) * tileSize + canvasHeight / 2 - tileSize / 2;
+          
+          ctx.drawImage(img, offsetX, offsetY, tileSize, tileSize);
+          resolve();
+        };
+        
+        img.onerror = () => {
+          console.warn(`Failed to load tile: ${tileUrl}`);
+          resolve(); // Continue even if tile fails
+        };
+        
+        img.src = tileUrl;
+      });
+    } catch (error) {
+      console.warn('Tile loading error:', error);
+    }
+  };
+
+  // Draw base map when tiles fail
+  const drawBaseMap = (ctx, width, height) => {
+    // Draw water (blue background)
+    ctx.fillStyle = style === 'dark' ? '#1e3a5f' : '#a8dadc';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw land masses
+    ctx.fillStyle = style === 'dark' ? '#2d3748' : '#f1faee';
     
-    // Vertical lines
-    for (let x = 0; x <= width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
+    // Simple land shapes
+    ctx.beginPath();
+    ctx.ellipse(width * 0.3, height * 0.4, width * 0.25, height * 0.3, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.ellipse(width * 0.7, height * 0.6, width * 0.2, height * 0.25, 0, 0, 2 * Math.PI);
+    ctx.fill();
 
-    // Horizontal lines
-    for (let y = 0; y <= height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-
-    // Add some "roads" and "buildings"
-    drawMapFeatures(ctx, width, height);
+    // Draw roads
+    ctx.strokeStyle = style === 'dark' ? '#4a5568' : '#e63946';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, height * 0.5);
+    ctx.lineTo(width, height * 0.5);
+    ctx.moveTo(width * 0.5, 0);
+    ctx.lineTo(width * 0.5, height);
+    ctx.stroke();
   };
 
   // Draw map features (roads, buildings)
@@ -287,15 +367,41 @@ const PureProtomapsComponent = ({
     ctx.fillText('100m', scaleX + scaleWidth / 2, scaleY - 8);
   };
 
-  // Start live tracking
+  // Start live tracking with high accuracy
   const startLiveTracking = async () => {
     try {
-      console.log('🔴 Starting Pure Protomaps live GPS tracking...');
+      console.log('🔴 Starting high-accuracy GPS tracking...');
       
+      // First get current position with high accuracy
+      const currentPos = await getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      });
+
+      if (currentPos) {
+        const { latitude, longitude, accuracy } = currentPos;
+        console.log('📍 Initial high-accuracy position:', { latitude, longitude, accuracy });
+        
+        setMapCenter({ lat: latitude, lng: longitude });
+        setCurrentLocation({ latitude, longitude, accuracy });
+
+        if (canvasRef.current) {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext('2d');
+          await drawMap(ctx, canvas.width, canvas.height);
+        }
+
+        if (onLocationUpdate) {
+          onLocationUpdate({ latitude, longitude, accuracy });
+        }
+      }
+      
+      // Then start watching for updates
       const watchId = watchPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude, accuracy } = position;
-          console.log('📍 Pure Protomaps live position update:', { latitude, longitude, accuracy });
+          console.log('📍 Live position update:', { latitude, longitude, accuracy });
 
           setMapCenter({ lat: latitude, lng: longitude });
           setCurrentLocation({ latitude, longitude, accuracy });
@@ -303,7 +409,7 @@ const PureProtomapsComponent = ({
           if (canvasRef.current) {
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
-            drawMap(ctx, canvas.width, canvas.height);
+            await drawMap(ctx, canvas.width, canvas.height);
           }
 
           if (onLocationUpdate) {
@@ -311,8 +417,13 @@ const PureProtomapsComponent = ({
           }
         },
         (error) => {
-          console.error('Pure Protomaps GPS tracking error:', error);
+          console.error('GPS tracking error:', error);
           setError(`GPS tracking failed: ${error.message}`);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000
         }
       );
 
@@ -324,7 +435,7 @@ const PureProtomapsComponent = ({
   };
 
   // Handle canvas click for zoom
-  const handleCanvasClick = (event) => {
+  const handleCanvasClick = async (event) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -335,13 +446,13 @@ const PureProtomapsComponent = ({
     if (canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      drawMap(ctx, canvas.width, canvas.height);
+      await drawMap(ctx, canvas.width, canvas.height);
     }
   };
 
   // Handle window resize
   useEffect(() => {
-    const handleResize = () => {
+    const handleResize = async () => {
       if (canvasRef.current && containerRef.current) {
         const canvas = canvasRef.current;
         const container = containerRef.current;
@@ -351,7 +462,7 @@ const PureProtomapsComponent = ({
         canvas.height = rect.height;
         
         const ctx = canvas.getContext('2d');
-        drawMap(ctx, canvas.width, canvas.height);
+        await drawMap(ctx, canvas.width, canvas.height);
       }
     };
 
@@ -406,12 +517,12 @@ const PureProtomapsComponent = ({
       {/* Map Controls */}
       <div className="absolute top-4 right-4 flex flex-col gap-2">
         <button
-          onClick={() => {
+          onClick={async () => {
             setMapZoom(prev => Math.min(prev + 1, 20));
             if (canvasRef.current) {
               const canvas = canvasRef.current;
               const ctx = canvas.getContext('2d');
-              drawMap(ctx, canvas.width, canvas.height);
+              await drawMap(ctx, canvas.width, canvas.height);
             }
           }}
           className="bg-white hover:bg-gray-50 border border-gray-300 rounded px-3 py-1 text-sm font-medium shadow-sm"
@@ -419,12 +530,12 @@ const PureProtomapsComponent = ({
           +
         </button>
         <button
-          onClick={() => {
+          onClick={async () => {
             setMapZoom(prev => Math.max(prev - 1, 1));
             if (canvasRef.current) {
               const canvas = canvasRef.current;
               const ctx = canvas.getContext('2d');
-              drawMap(ctx, canvas.width, canvas.height);
+              await drawMap(ctx, canvas.width, canvas.height);
             }
           }}
           className="bg-white hover:bg-gray-50 border border-gray-300 rounded px-3 py-1 text-sm font-medium shadow-sm"
