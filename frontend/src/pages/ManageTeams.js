@@ -38,6 +38,8 @@ export default function ManageTeams() {
           firstName: emp.firstName,
           lastName: emp.lastName,
           jobTitle: emp.jobTitle,
+          department: emp.department,
+          dateOfBirth: emp.dateOfBirth,
           currentTeam: emp.team || null
         }));
         setAllEmployees(transformedEmployees);
@@ -171,6 +173,21 @@ export default function ManageTeams() {
   const handleEditTeam = (teamId) => {
     // Implement edit logic
     console.log("Edit team:", teamId);
+  };
+
+  // Helper function to format date of birth
+  const formatDateOfBirth = (dateString) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return "-";
+    }
   };
 
   const filteredTeams = teams.filter((team) =>
@@ -311,7 +328,11 @@ export default function ManageTeams() {
                 <button
                   onClick={handleOpenAssignModal}
                   disabled={!newTeamName.trim()}
-                  className="bg-gray-300 hover:bg-green-600 hover:text-white disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-600 disabled:text-gray-400 px-6 py-2 rounded font-medium transition-colors"
+                  className={`${
+                    newTeamName.trim() 
+                      ? "bg-green-600 hover:bg-green-700 text-white" 
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  } px-6 py-2 rounded font-medium transition-colors`}
                 >
                   Select employees
                 </button>
@@ -390,7 +411,7 @@ export default function ManageTeams() {
                     </div>
 
                     {expandedGroups[team.name] && (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {teamEmployees.map((employee) => (
                           <button
                             key={employee.id}
@@ -401,10 +422,20 @@ export default function ManageTeams() {
                                 : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
-                            <div className="font-semibold text-gray-900">
-                              {employee.firstName} {employee.lastName}
+                            <div className="space-y-1">
+                              <div className="font-semibold text-gray-900">
+                                {employee.firstName} {employee.lastName}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {employee.department || "-"}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {employee.jobTitle || "-"}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {formatDateOfBirth(employee.dateOfBirth)}
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600">{employee.jobTitle}</div>
                             {selectedEmployees.includes(employee.id) && (
                               <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -470,7 +501,7 @@ export default function ManageTeams() {
                     </div>
 
                     {expandedGroups["No group"] && (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {noGroupEmployees.map((employee) => (
                           <button
                             key={employee.id}
@@ -481,10 +512,20 @@ export default function ManageTeams() {
                                 : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
-                            <div className="font-semibold text-gray-900">
-                              {employee.firstName} {employee.lastName}
+                            <div className="space-y-1">
+                              <div className="font-semibold text-gray-900">
+                                {employee.firstName} {employee.lastName}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {employee.department || "-"}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {employee.jobTitle || "-"}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {formatDateOfBirth(employee.dateOfBirth)}
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600">{employee.jobTitle}</div>
                             {selectedEmployees.includes(employee.id) && (
                               <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
