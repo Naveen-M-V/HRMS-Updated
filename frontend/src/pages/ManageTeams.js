@@ -127,7 +127,7 @@ export default function ManageTeams() {
           color: "#3B82F6",
         };
 
-        const response = await axios.post('http://localhost:5003/api/teams', teamData);
+        const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/employees`, teamData);
         
         if (response.data.success) {
           // Refresh teams and employees

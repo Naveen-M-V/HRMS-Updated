@@ -126,7 +126,7 @@ export default function AddEmployee() {
         isActive: true
       };
 
-      const response = await axios.post('http://localhost:5003/api/employees', employeeData);
+      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/employees`, employeeData);
       
       if (response.data.success) {
         console.log("Employee saved successfully:", response.data.data);
