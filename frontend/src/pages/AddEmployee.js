@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import dayjs from "dayjs"; 
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
+
+dayjs.extend(customParseFormat); 
 
 
 export default function AddEmployee() {
@@ -103,6 +106,12 @@ export default function AddEmployee() {
   if (!formData.office) newErrors.office = "Required";
   if (!formData.employmentStartDate) {
     newErrors.employmentStartDate = "Required";
+  } else {
+    // Validate date format
+    const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
+    if (!parsedDate.isValid()) {
+      newErrors.employmentStartDate = "Invalid date format. Please use DD/MM/YYYY";
+    }
   }
 
   if (Object.keys(newErrors).length > 0) {
@@ -114,11 +123,16 @@ export default function AddEmployee() {
   setLoading(true);
 
   try {
-    // ✅ Convert start date format (DD/MM/YYYY → YYYY-MM-DD)
-    const formattedStartDate = dayjs(
-      formData.employmentStartDate,
-      "DD/MM/YYYY"
-    ).format("YYYY-MM-DD");
+    // Convert start date format (DD/MM/YYYY → YYYY-MM-DD)
+    let formattedStartDate;
+    
+    // Check if the date is valid before formatting
+    const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
+    if (!parsedDate.isValid()) {
+      throw new Error("Invalid date format. Please use DD/MM/YYYY format.");
+    }
+    
+    formattedStartDate = parsedDate.format("YYYY-MM-DD");
 
     const employeeData = {
       firstName: formData.firstName,

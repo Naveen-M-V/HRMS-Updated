@@ -42,7 +42,7 @@ const employeeHubSchema = new mongoose.Schema({
   },
   team: {
     type: String,
-    required: [true, 'Team is required'],
+    required: false,
     trim: true
   },
   
