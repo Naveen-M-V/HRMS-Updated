@@ -117,25 +117,53 @@ const PureProtomapsComponent = ({
       // Convert lat/lng to tile coordinates
       const tileCoords = latLngToTile(lat, lng, mapZoom);
       
-      // Load multiple tiles around the center
+      // Load multiple tiles around the center for better coverage
       const tilesToLoad = [
+        { x: tileCoords.x - 2, y: tileCoords.y - 2 },
+        { x: tileCoords.x - 1, y: tileCoords.y - 2 },
+        { x: tileCoords.x, y: tileCoords.y - 2 },
+        { x: tileCoords.x + 1, y: tileCoords.y - 2 },
+        { x: tileCoords.x + 2, y: tileCoords.y - 2 },
+        { x: tileCoords.x - 2, y: tileCoords.y - 1 },
         { x: tileCoords.x - 1, y: tileCoords.y - 1 },
         { x: tileCoords.x, y: tileCoords.y - 1 },
         { x: tileCoords.x + 1, y: tileCoords.y - 1 },
+        { x: tileCoords.x + 2, y: tileCoords.y - 1 },
+        { x: tileCoords.x - 2, y: tileCoords.y },
         { x: tileCoords.x - 1, y: tileCoords.y },
         { x: tileCoords.x, y: tileCoords.y },
         { x: tileCoords.x + 1, y: tileCoords.y },
+        { x: tileCoords.x + 2, y: tileCoords.y },
+        { x: tileCoords.x - 2, y: tileCoords.y + 1 },
         { x: tileCoords.x - 1, y: tileCoords.y + 1 },
         { x: tileCoords.x, y: tileCoords.y + 1 },
-        { x: tileCoords.x + 1, y: tileCoords.y + 1 }
+        { x: tileCoords.x + 1, y: tileCoords.y + 1 },
+        { x: tileCoords.x + 2, y: tileCoords.y + 1 },
+        { x: tileCoords.x - 2, y: tileCoords.y + 2 },
+        { x: tileCoords.x - 1, y: tileCoords.y + 2 },
+        { x: tileCoords.x, y: tileCoords.y + 2 },
+        { x: tileCoords.x + 1, y: tileCoords.y + 2 },
+        { x: tileCoords.x + 2, y: tileCoords.y + 2 }
       ];
 
-      // Draw base map background
-      drawBaseMap(ctx, width, height);
+      // Only draw base map if no tiles load successfully
+      let tilesLoaded = 0;
 
       // Load and draw tiles
-      for (const tile of tilesToLoad) {
-        await loadTile(ctx, tile.x, tile.y, mapZoom, width, height);
+      const tilePromises = tilesToLoad.map(async (tile) => {
+        const loaded = await loadTile(ctx, tile.x, tile.y, mapZoom, width, height);
+        if (loaded) tilesLoaded++;
+        return loaded;
+      });
+
+      await Promise.all(tilePromises);
+
+      // If no tiles loaded, show fallback
+      if (tilesLoaded === 0) {
+        console.warn('No tiles loaded, showing fallback map');
+        drawBaseMap(ctx, width, height);
+      } else {
+        console.log(`✅ Loaded ${tilesLoaded} map tiles successfully`);
       }
     } catch (error) {
       console.error('Failed to load Protomaps tiles:', error);
@@ -160,28 +188,47 @@ const PureProtomapsComponent = ({
       const img = new Image();
       img.crossOrigin = 'anonymous';
       
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         img.onload = () => {
-          // Calculate tile position on canvas
-          const tileSize = 256;
-          const centerTile = latLngToTile(currentLocation?.latitude || mapCenter.lat, currentLocation?.longitude || mapCenter.lng, mapZoom);
-          
-          const offsetX = (x - centerTile.x) * tileSize + canvasWidth / 2 - tileSize / 2;
-          const offsetY = (y - centerTile.y) * tileSize + canvasHeight / 2 - tileSize / 2;
-          
-          ctx.drawImage(img, offsetX, offsetY, tileSize, tileSize);
-          resolve();
+          try {
+            // Calculate tile position on canvas
+            const tileSize = 256;
+            const centerTile = latLngToTile(currentLocation?.latitude || mapCenter.lat, currentLocation?.longitude || mapCenter.lng, mapZoom);
+            
+            const offsetX = (x - centerTile.x) * tileSize + canvasWidth / 2 - tileSize / 2;
+            const offsetY = (y - centerTile.y) * tileSize + canvasHeight / 2 - tileSize / 2;
+            
+            // Only draw if tile is visible on canvas
+            if (offsetX > -tileSize && offsetX < canvasWidth && offsetY > -tileSize && offsetY < canvasHeight) {
+              ctx.drawImage(img, offsetX, offsetY, tileSize, tileSize);
+              resolve(true); // Successfully loaded and drawn
+            } else {
+              resolve(false); // Outside canvas bounds
+            }
+          } catch (drawError) {
+            console.warn('Error drawing tile:', drawError);
+            resolve(false);
+          }
         };
         
         img.onerror = () => {
           console.warn(`Failed to load tile: ${tileUrl}`);
-          resolve(); // Continue even if tile fails
+          resolve(false); // Failed to load
         };
+        
+        // Add timeout for tile loading
+        setTimeout(() => {
+          if (!img.complete) {
+            console.warn(`Tile loading timeout: ${tileUrl}`);
+            resolve(false);
+          }
+        }, 5000);
         
         img.src = tileUrl;
       });
     } catch (error) {
       console.warn('Tile loading error:', error);
+      return false;
     }
   };
 
@@ -381,7 +428,11 @@ const PureProtomapsComponent = ({
 
       if (currentPos) {
         const { latitude, longitude, accuracy } = currentPos;
-        console.log('📍 Initial high-accuracy position:', { latitude, longitude, accuracy });
+        console.log('📍 Initial GPS position (high-accuracy):', { 
+          latitude: latitude.toFixed(6), 
+          longitude: longitude.toFixed(6), 
+          accuracy: Math.round(accuracy) + 'm' 
+        });
         
         setMapCenter({ lat: latitude, lng: longitude });
         setCurrentLocation({ latitude, longitude, accuracy });
@@ -401,7 +452,12 @@ const PureProtomapsComponent = ({
       const watchId = watchPosition(
         async (position) => {
           const { latitude, longitude, accuracy } = position;
-          console.log('📍 Live position update:', { latitude, longitude, accuracy });
+          console.log('🔴 Live GPS update:', { 
+            latitude: latitude.toFixed(6), 
+            longitude: longitude.toFixed(6), 
+            accuracy: Math.round(accuracy) + 'm',
+            timestamp: new Date().toLocaleTimeString()
+          });
 
           setMapCenter({ lat: latitude, lng: longitude });
           setCurrentLocation({ latitude, longitude, accuracy });
@@ -434,14 +490,12 @@ const PureProtomapsComponent = ({
     }
   };
 
-  // Handle canvas click for zoom
+  // Handle canvas click - only zoom, don't change location
   const handleCanvasClick = async (event) => {
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    // Only zoom on click, don't change the actual GPS location
+    console.log('🖱️ Map clicked - zooming in (GPS location unchanged)');
     
-    // Simple zoom on click
-    setMapZoom(prev => Math.min(prev + 1, 20));
+    setMapZoom(prev => Math.min(prev + 1, 18));
     
     if (canvasRef.current) {
       const canvas = canvasRef.current;
@@ -544,27 +598,41 @@ const PureProtomapsComponent = ({
         </button>
       </div>
 
-      {/* Location Info */}
+      {/* Location Info & Debug Panel */}
       {currentLocation && (
-        <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="text-sm font-medium text-gray-900">
-                {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
-              </span>
+        <div className="mt-3 space-y-2">
+          {/* Main Location Info */}
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="text-sm font-medium text-gray-900">
+                  {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
+                </span>
+              </div>
+              <div className="text-xs text-gray-600">
+                {currentLocation.accuracy && `±${Math.round(currentLocation.accuracy)}m`}
+                {enableLiveTracking && watchIdRef.current && <span className="ml-2 text-green-600">🔴 Live</span>}
+              </div>
             </div>
-            <div className="text-xs text-gray-600">
-              {currentLocation.accuracy && `±${Math.round(currentLocation.accuracy)}m`}
-              {enableLiveTracking && watchIdRef.current && <span className="ml-2 text-green-600">🔴 Live</span>}
+            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+              <span>Real Map Tiles • Zoom: {mapZoom}</span>
+              <span>Updated: {new Date().toLocaleTimeString()}</span>
             </div>
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-            <span>Pure Protomaps • Zoom: {mapZoom}</span>
-            <span>Updated: {new Date().toLocaleTimeString()}</span>
+
+          {/* Debug Panel */}
+          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+            <div className="text-xs text-blue-800">
+              <div className="font-medium mb-1">🔍 GPS Debug Info:</div>
+              <div>• Click map = Zoom only (location stays same)</div>
+              <div>• Red dot = Your actual GPS position</div>
+              <div>• Accuracy circle shows GPS precision</div>
+              <div>• Check browser console for detailed GPS logs</div>
+            </div>
           </div>
         </div>
       )}
