@@ -23,7 +23,7 @@ const PureProtomapsComponent = ({
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [mapCenter, setMapCenter] = useState({ lat: 51.5074, lng: -0.1278 }); // London default
+  const [mapCenter, setMapCenter] = useState({ lat: null, lng: null }); // No default location
   const [mapZoom, setMapZoom] = useState(zoom);
 
   // Initialize map
@@ -39,21 +39,56 @@ const PureProtomapsComponent = ({
     canvas.width = rect.width;
     canvas.height = rect.height;
 
-    // Set initial location if provided
-    if (latitude && longitude) {
-      setMapCenter({ lat: latitude, lng: longitude });
-      setCurrentLocation({ latitude, longitude, accuracy });
-    }
+    // Always try to get user's location first
+    const initializeLocation = async () => {
+      try {
+        // Try to get high-accuracy location immediately
+        const position = await getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
+        });
 
-    setIsLoading(false);
+        if (position) {
+          const { latitude, longitude, accuracy } = position;
+          console.log('🎯 Initial location detected:', { 
+            latitude: latitude.toFixed(6), 
+            longitude: longitude.toFixed(6), 
+            accuracy: Math.round(accuracy) + 'm' 
+          });
+          
+          setMapCenter({ lat: latitude, lng: longitude });
+          setCurrentLocation({ latitude, longitude, accuracy });
 
-    // Start live tracking if enabled
-    if (enableLiveTracking) {
-      startLiveTracking();
-    }
+          if (onLocationUpdate) {
+            onLocationUpdate({ latitude, longitude, accuracy });
+          }
 
-    // Draw initial map
-    drawMap(ctx, canvas.width, canvas.height).catch(console.error);
+          await drawMap(ctx, canvas.width, canvas.height);
+        }
+      } catch (error) {
+        console.warn('Could not get initial location:', error);
+        
+        // Fallback to provided coordinates or ask for permission
+        if (latitude && longitude) {
+          setMapCenter({ lat: latitude, lng: longitude });
+          setCurrentLocation({ latitude, longitude, accuracy });
+          await drawMap(ctx, canvas.width, canvas.height);
+        } else {
+          // Show permission request
+          setError('Location access required for accurate positioning');
+        }
+      }
+      
+      setIsLoading(false);
+
+      // Start live tracking if enabled
+      if (enableLiveTracking) {
+        startLiveTracking();
+      }
+    };
+
+    initializeLocation();
 
     return () => {
       if (watchIdRef.current) {
@@ -113,6 +148,13 @@ const PureProtomapsComponent = ({
       // Calculate tile coordinates based on current location and zoom
       const lat = currentLocation?.latitude || mapCenter.lat;
       const lng = currentLocation?.longitude || mapCenter.lng;
+      
+      // Don't load tiles if we don't have a valid location
+      if (!lat || !lng) {
+        console.warn('No valid location for tile loading');
+        drawBaseMap(ctx, width, height);
+        return;
+      }
       
       // Convert lat/lng to tile coordinates
       const tileCoords = latLngToTile(lat, lng, mapZoom);
@@ -419,11 +461,11 @@ const PureProtomapsComponent = ({
     try {
       console.log('🔴 Starting high-accuracy GPS tracking...');
       
-      // First get current position with high accuracy
+      // First get current position with maximum accuracy settings
       const currentPos = await getCurrentPosition({
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
+        timeout: 30000, // Longer timeout for better accuracy
+        maximumAge: 0 // Always get fresh location
       });
 
       if (currentPos) {
@@ -478,8 +520,8 @@ const PureProtomapsComponent = ({
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 5000
+          timeout: 15000, // Longer timeout for accuracy
+          maximumAge: 2000 // Fresher location data
         }
       );
 
@@ -572,6 +614,47 @@ const PureProtomapsComponent = ({
       <div className="absolute top-4 right-4 flex flex-col gap-2">
         <button
           onClick={async () => {
+            console.log('🎯 Requesting high-accuracy location...');
+            try {
+              const position = await getCurrentPosition({
+                enableHighAccuracy: true,
+                timeout: 30000,
+                maximumAge: 0
+              });
+              
+              if (position) {
+                const { latitude, longitude, accuracy } = position;
+                console.log('📍 High-accuracy location obtained:', { 
+                  latitude: latitude.toFixed(6), 
+                  longitude: longitude.toFixed(6), 
+                  accuracy: Math.round(accuracy) + 'm' 
+                });
+                
+                setMapCenter({ lat: latitude, lng: longitude });
+                setCurrentLocation({ latitude, longitude, accuracy });
+
+                if (canvasRef.current) {
+                  const canvas = canvasRef.current;
+                  const ctx = canvas.getContext('2d');
+                  await drawMap(ctx, canvas.width, canvas.height);
+                }
+
+                if (onLocationUpdate) {
+                  onLocationUpdate({ latitude, longitude, accuracy });
+                }
+              }
+            } catch (error) {
+              console.error('Failed to get high-accuracy location:', error);
+              setError('Failed to get precise location');
+            }
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded px-2 py-1 text-xs font-medium shadow-sm"
+          title="Get precise location"
+        >
+          📍
+        </button>
+        <button
+          onClick={async () => {
             setMapZoom(prev => Math.min(prev + 1, 20));
             if (canvasRef.current) {
               const canvas = canvasRef.current;
@@ -627,11 +710,12 @@ const PureProtomapsComponent = ({
           {/* Debug Panel */}
           <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
             <div className="text-xs text-blue-800">
-              <div className="font-medium mb-1">🔍 GPS Debug Info:</div>
-              <div>• Click map = Zoom only (location stays same)</div>
+              <div className="font-medium mb-1">🔍 High-Accuracy GPS:</div>
+              <div>• 📍 Blue button = Get precise location (30s timeout)</div>
+              <div>• Click map = Zoom only (location unchanged)</div>
               <div>• Red dot = Your actual GPS position</div>
-              <div>• Accuracy circle shows GPS precision</div>
-              <div>• Check browser console for detailed GPS logs</div>
+              <div>• Accuracy: {currentLocation?.accuracy ? `±${Math.round(currentLocation.accuracy)}m` : 'Calculating...'}</div>
+              <div>• Check console for detailed GPS logs</div>
             </div>
           </div>
         </div>
