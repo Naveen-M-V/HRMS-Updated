@@ -42,6 +42,7 @@ export default function ManageTeams() {
           dateOfBirth: emp.dateOfBirth,
           currentTeam: emp.team || null
         }));
+        console.log('Fetched employees:', transformedEmployees);
         setAllEmployees(transformedEmployees);
       }
     } catch (error) {
@@ -72,6 +73,7 @@ export default function ManageTeams() {
 
   const handleOpenAssignModal = () => {
     if (newTeamName.trim()) {
+      console.log('Opening assign modal with employees:', allEmployees.length);
       setShowCreateModal(false);
       setShowAssignModal(true);
       // Initialize expanded groups
@@ -129,7 +131,7 @@ export default function ManageTeams() {
           color: "#3B82F6",
         };
 
-        const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/employees`, teamData);
+        const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams`, teamData);
         
         if (response.data.success) {
           // Refresh teams and employees
@@ -361,7 +363,24 @@ export default function ManageTeams() {
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto flex-1">
-              {/* Group by existing teams */}
+              {/* Debug info and loading state */}
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Loading employees...</span>
+                </div>
+              ) : allEmployees.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No employees found. Please check if employees are loaded.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Debug info */}
+                  <div className="mb-4 p-2 bg-gray-100 rounded text-sm text-gray-600">
+                    Debug: Found {allEmployees.length} employees, {teams.length} teams
+                  </div>
+                  
+                  {/* Group by existing teams */}
               {teams.map((team) => {
                 const teamEmployees = allEmployees.filter((emp) => emp.currentTeam === team.name);
                 if (teamEmployees.length === 0) return null;
@@ -540,6 +559,8 @@ export default function ManageTeams() {
                   </div>
                 );
               })()}
+                </>
+              )}
             </div>
 
             {/* Modal Footer */}
