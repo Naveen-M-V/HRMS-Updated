@@ -1,15 +1,15 @@
 import React from 'react';
-import MapTilerMap from './MapTilerMap';
+import PureProtomapsComponent from './PureProtomapsComponent';
 
 /**
  * LocationMap Component
  * Wrapper component for backward compatibility
- * Uses MapTiler with MapLibre GL JS for map rendering
+ * Now uses Pure Protomaps implementation
  */
 const LocationMap = ({ latitude, longitude, accuracy }) => {
 
   return (
-    <MapTilerMap
+    <PureProtomapsComponent
       latitude={latitude}
       longitude={longitude}
       accuracy={accuracy}
@@ -17,6 +17,7 @@ const LocationMap = ({ latitude, longitude, accuracy }) => {
       zoom={15}
       showAccuracyCircle={true}
       enableLiveTracking={false}
+      style="light"
     />
   );
 };

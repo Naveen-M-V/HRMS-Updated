@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import PureProtomapsComponent from './PureProtomapsComponent';
-import LocationMap from './LocationMap';
 import useLiveLocation from '../hooks/useLiveLocation';
 import { MapPinIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 /**
- * LiveLocationMap - Enhanced location component with Protomaps integration
- * Supports both MapTiler (existing) and Protomaps with live tracking
+ * LiveLocationMap - Enhanced location component with Pure Protomaps
+ * Uses only Pure Protomaps implementation for live tracking
  */
 const LiveLocationMap = ({
   height = '400px',
   enableLiveTracking = false,
   showControls = true,
-  mapProvider = 'protomaps', // 'protomaps' or 'maptiler'
   style = 'light', // 'light', 'dark'
   onLocationUpdate = null,
   className = ''
 }) => {
-  const [mapType, setMapType] = useState(mapProvider);
   const [isVisible, setIsVisible] = useState(true);
   
   // Use live location hook
@@ -48,11 +45,6 @@ const LiveLocationMap = ({
     } catch (error) {
       console.error('Failed to request location permission:', error);
     }
-  };
-
-  // Toggle map provider
-  const toggleMapProvider = () => {
-    setMapType(prev => prev === 'protomaps' ? 'maptiler' : 'protomaps');
   };
 
   // Toggle map visibility
@@ -134,15 +126,11 @@ const LiveLocationMap = ({
           )}
         </button>
 
-        {/* Map Provider Toggle */}
+        {/* Pure Protomaps Label */}
         {isVisible && (
-          <button
-            onClick={toggleMapProvider}
-            className="bg-white hover:bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 shadow-sm transition-colors text-xs font-medium text-gray-700"
-            title="Switch Map Provider"
-          >
-            {mapType === 'protomaps' ? 'Proto' : 'Tiler'}
-          </button>
+          <div className="bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm text-xs font-medium text-gray-700">
+            Protomaps
+          </div>
         )}
 
         {/* Live Tracking Toggle */}
@@ -179,28 +167,18 @@ const LiveLocationMap = ({
 
       {/* Map Component */}
       {isVisible && location && (
-        <>
-          {mapType === 'protomaps' ? (
-            <PureProtomapsComponent
-              latitude={location.latitude}
-              longitude={location.longitude}
-              accuracy={location.accuracy}
-              height={height}
-              zoom={15}
-              showAccuracyCircle={true}
-              enableLiveTracking={isTracking}
-              onLocationUpdate={onLocationUpdate}
-              style={style}
-              className="transition-opacity duration-300"
-            />
-          ) : (
-            <LocationMap
-              latitude={location.latitude}
-              longitude={location.longitude}
-              accuracy={location.accuracy}
-            />
-          )}
-        </>
+        <PureProtomapsComponent
+          latitude={location.latitude}
+          longitude={location.longitude}
+          accuracy={location.accuracy}
+          height={height}
+          zoom={15}
+          showAccuracyCircle={true}
+          enableLiveTracking={isTracking}
+          onLocationUpdate={onLocationUpdate}
+          style={style}
+          className="transition-opacity duration-300"
+        />
       )}
 
       {/* Collapsed State */}
@@ -234,7 +212,7 @@ const LiveLocationMap = ({
             </div>
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-            <span>Powered by {mapType === 'protomaps' ? 'Protomaps' : 'MapTiler'}</span>
+            <span>Powered by Pure Protomaps</span>
             <span>Updated: {new Date().toLocaleTimeString()}</span>
           </div>
         </div>

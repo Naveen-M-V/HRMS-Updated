@@ -10,6 +10,7 @@ import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResu
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import LocationMap from '../components/LocationMap';
 import LiveLocationMap from '../components/LiveLocationMap';
+import PureProtomapsComponent from '../components/PureProtomapsComponent';
 import UserNavigation from '../components/UserNavigation';
 import { jobRoleCertificateMapping } from '../data/new';
 import { 
@@ -744,14 +745,21 @@ const UserDashboard = () => {
                 </div>
               )}
               
-              {/* Enhanced Location Map with Protomaps */}
+              {/* Pure Protomaps Location Map */}
               <div className="mb-6">
-                <LiveLocationMap 
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                  <p className="text-sm text-blue-800 font-medium">
+                    🗺️ Now using Pure Protomaps - No external mapping libraries required!
+                  </p>
+                </div>
+                <PureProtomapsComponent 
+                  latitude={gpsCoordinates?.latitude}
+                  longitude={gpsCoordinates?.longitude}
+                  accuracy={locationAccuracy}
                   height="400px"
+                  zoom={15}
+                  showAccuracyCircle={true}
                   enableLiveTracking={true}
-                  showControls={true}
-                  mapProvider="protomaps"
-                  style="light"
                   onLocationUpdate={(location) => {
                     setGpsCoordinates({
                       latitude: location.latitude,
@@ -759,6 +767,7 @@ const UserDashboard = () => {
                     });
                     setLocationAccuracy(location.accuracy);
                   }}
+                  style="light"
                   className="shadow-lg"
                 />
               </div>
