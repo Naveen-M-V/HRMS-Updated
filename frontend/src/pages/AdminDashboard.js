@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import PureProtomapsAdminDashboard from '../components/PureProtomapsAdminDashboard';
+import EnhancedTouristMap from '../components/EnhancedTouristMap';
 import ComplianceDashboard from '../components/ComplianceDashboard';
 import { 
   MapPinIcon, 
@@ -270,7 +271,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'locations' && (
-          <PureProtomapsAdminDashboard
+          <EnhancedTouristMap
             height="600px"
             style="light"
             autoRefresh={true}
