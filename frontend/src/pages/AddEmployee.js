@@ -33,6 +33,8 @@ export default function AddEmployee() {
     office: "",
     employmentStartDate: "",
     probationEndDate: "",
+    // Profile photo
+    profilePhoto: "",
     // Address details
     address1: "",
     address2: "",
@@ -78,6 +80,12 @@ export default function AddEmployee() {
   const [errors, setErrors] = useState({});
   const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Image editing states
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageRotation, setImageRotation] = useState(0);
+  const [imageZoom, setImageZoom] = useState(1);
 
   // Step definitions
   const steps = [
@@ -280,6 +288,91 @@ export default function AddEmployee() {
   };
 
   // Render step content
+  // Image upload handler
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setSelectedImage(event.target.result);
+        setShowImageEditor(true);
+        setImageRotation(0);
+        setImageZoom(1);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Image editing functions
+  const handleImageSave = () => {
+    if (selectedImage) {
+      // Create canvas to apply transformations
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        const size = 400; // Fixed size for profile photos
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, size, size);
+        
+        // Save context state
+        ctx.save();
+        
+        // Move to center for rotation
+        ctx.translate(size / 2, size / 2);
+        ctx.rotate((imageRotation * Math.PI) / 180);
+        ctx.scale(imageZoom, imageZoom);
+        
+        // Draw image centered
+        const drawSize = Math.min(img.width, img.height);
+        ctx.drawImage(
+          img,
+          (img.width - drawSize) / 2,
+          (img.height - drawSize) / 2,
+          drawSize,
+          drawSize,
+          -size / 2,
+          -size / 2,
+          size,
+          size
+        );
+        
+        // Restore context state
+        ctx.restore();
+        
+        // Get the processed image as data URL
+        const processedImage = canvas.toDataURL('image/jpeg', 0.9);
+        handleInputChange("profilePhoto", processedImage);
+        setShowImageEditor(false);
+        setSelectedImage(null);
+      };
+      
+      img.src = selectedImage;
+    }
+  };
+
+  const handleImageCancel = () => {
+    setShowImageEditor(false);
+    setSelectedImage(null);
+    setImageRotation(0);
+    setImageZoom(1);
+  };
+
+  const handleImageReset = () => {
+    setImageRotation(0);
+    setImageZoom(1);
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -300,6 +393,63 @@ export default function AddEmployee() {
   const renderBasicDetails = () => {
     return (
       <div className="space-y-6">
+        {/* Profile Photo Upload */}
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+            Profile Photo
+          </h3>
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              {formData.profilePhoto ? (
+                <img
+                  src={formData.profilePhoto}
+                  alt="Profile"
+                  className="h-24 w-24 rounded-full object-cover border-4 border-gray-200"
+                />
+              ) : (
+                <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-200">
+                  <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <input
+                type="file"
+                id="profilePhoto"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              <label
+                htmlFor="profilePhoto"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload Photo
+              </label>
+              {formData.profilePhoto && (
+                <button
+                  type="button"
+                  onClick={() => handleInputChange("profilePhoto", "")}
+                  className="ml-3 inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Remove
+                </button>
+              )}
+              <p className="text-sm text-gray-500 mt-2">
+                Upload a profile photo. Recommended size: 400x400px. Max file size: 5MB.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Basic details */}
         <div>
           <h3 className="text-xl font-semibold text-gray-900 mb-6">
@@ -1133,6 +1283,122 @@ export default function AddEmployee() {
           </div>
         </div>
       </div>
+
+      {/* Image Editor Modal */}
+      {showImageEditor && selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Edit Image</h2>
+              <button
+                onClick={handleImageCancel}
+                className="text-gray-400 hover:text-gray-600 p-2"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              {/* Image Preview */}
+              <div className="relative bg-gray-100 rounded-lg overflow-hidden mb-6" style={{ height: '400px' }}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative">
+                    {/* Circular crop overlay */}
+                    <div className="absolute inset-0 border-4 border-white rounded-full shadow-lg" style={{ width: '300px', height: '300px', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}></div>
+                    
+                    <img
+                      src={selectedImage}
+                      alt="Preview"
+                      className="max-w-none"
+                      style={{
+                        transform: `rotate(${imageRotation}deg) scale(${imageZoom})`,
+                        transformOrigin: 'center center',
+                        width: '400px',
+                        height: '400px',
+                        objectFit: 'cover'
+                      }}
+                    />
+                    
+                    {/* Drag instruction overlay */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
+                      Drag to reposition image
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="space-y-4">
+                {/* Rotate Control */}
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-gray-700 w-16">Rotate</label>
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-xs text-gray-500">|</span>
+                    <input
+                      type="range"
+                      min="-180"
+                      max="180"
+                      value={imageRotation}
+                      onChange={(e) => setImageRotation(parseInt(e.target.value))}
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500">|</span>
+                    <span className="text-sm font-medium text-gray-700 w-8">{imageRotation}</span>
+                  </div>
+                </div>
+
+                {/* Zoom Control */}
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-gray-700 w-16">Zoom</label>
+                  <div className="flex-1 flex items-center gap-2">
+                    <span className="text-xs text-gray-500">●</span>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="3"
+                      step="0.1"
+                      value={imageZoom}
+                      onChange={(e) => setImageZoom(parseFloat(e.target.value))}
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500">●</span>
+                    <span className="text-sm font-medium text-gray-700 w-8">{imageZoom.toFixed(1)}</span>
+                  </div>
+                  <button
+                    onClick={handleImageReset}
+                    className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+              <button
+                onClick={handleImageCancel}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImageSave}
+                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

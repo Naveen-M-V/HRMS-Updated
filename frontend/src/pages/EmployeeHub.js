@@ -21,6 +21,7 @@ export default function EmployeeHub() {
   const [showEmployeeList, setShowEmployeeList] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
 
   // Employees data from API
   const [employees, setEmployees] = useState([]);
@@ -226,7 +227,41 @@ export default function EmployeeHub() {
           )}
         </button>
 
-        {/* Employee Table */}
+        {/* View Toggle Buttons */}
+        {showEmployeeList && (
+          <div className="flex items-center justify-end gap-2 mb-4">
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'table'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 6h18m-9 8h9m-9 4h9m-9-8h9m-9 4h9" />
+                </svg>
+                Table
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Grid
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Employee Table/Grid */}
         {showEmployeeList && (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {loading ? (
@@ -238,7 +273,7 @@ export default function EmployeeHub() {
               <div className="p-8 text-center text-gray-500">
                 No employees found
               </div>
-            ) : (
+            ) : viewMode === 'table' ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
@@ -261,11 +296,21 @@ export default function EmployeeHub() {
                         <td className="px-6 py-4 text-sm text-gray-900">{index + 1}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div
-                              className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
-                              style={{ backgroundColor: employee.color || '#3B82F6' }}
-                            >
-                              {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                            <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                              {employee.profilePhoto ? (
+                                <img
+                                  src={employee.profilePhoto}
+                                  alt={`${employee.firstName} ${employee.lastName}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="h-full w-full flex items-center justify-center text-white font-medium text-sm"
+                                  style={{ backgroundColor: employee.color || '#3B82F6' }}
+                                >
+                                  {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                                </div>
+                              )}
                             </div>
                             <div>
                               <div className="font-medium text-gray-900">
@@ -295,6 +340,65 @@ export default function EmployeeHub() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            ) : (
+              /* Grid View */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                {allEmployees.map((employee) => (
+                  <div
+                    key={employee._id}
+                    onClick={() => handleViewProfile(employee._id)}
+                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all cursor-pointer hover:border-gray-300"
+                  >
+                    {/* Employee Avatar */}
+                    <div className="flex flex-col items-center text-center">
+                      <div className="h-16 w-16 rounded-full overflow-hidden mb-3">
+                        {employee.profilePhoto ? (
+                          <img
+                            src={employee.profilePhoto}
+                            alt={`${employee.firstName} ${employee.lastName}`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="h-full w-full flex items-center justify-center text-white font-bold text-lg"
+                            style={{ backgroundColor: employee.color || '#3B82F6' }}
+                          >
+                            {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Employee Info */}
+                      <div className="w-full">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {employee.firstName || '-'} {employee.lastName || '-'}
+                        </h3>
+                        <p className="text-sm text-gray-600 truncate mt-1">
+                          {employee.jobTitle || '-'}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {employee.department || '-'}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {employee.team || 'No team'}
+                        </p>
+                      </div>
+
+                      {/* View Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewProfile(employee._id);
+                        }}
+                        className="mt-3 w-full inline-flex items-center justify-center gap-1 px-3 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                      >
+                        <DocumentTextIcon className="h-4 w-4" />
+                        View Profile
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -427,11 +531,21 @@ export default function EmployeeHub() {
             {/* Modal Header */}
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div
-                  className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                  style={{ backgroundColor: selectedEmployee.color || '#3B82F6' }}
-                >
-                  {selectedEmployee.initials || `${selectedEmployee.firstName?.charAt(0) || ''}${selectedEmployee.lastName?.charAt(0) || ''}`}
+                <div className="h-10 w-10 rounded-full overflow-hidden">
+                  {selectedEmployee.profilePhoto ? (
+                    <img
+                      src={selectedEmployee.profilePhoto}
+                      alt={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="h-full w-full flex items-center justify-center text-white font-bold text-lg"
+                      style={{ backgroundColor: selectedEmployee.color || '#3B82F6' }}
+                    >
+                      {selectedEmployee.initials || `${selectedEmployee.firstName?.charAt(0) || ''}${selectedEmployee.lastName?.charAt(0) || ''}`}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Personal Details</h2>
@@ -463,11 +577,21 @@ export default function EmployeeHub() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="flex items-start gap-4">
-                    <div
-                      className="h-16 w-16 rounded-lg flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
-                      style={{ backgroundColor: selectedEmployee.color || '#3B82F6' }}
-                    >
-                      {selectedEmployee.initials || `${selectedEmployee.firstName?.charAt(0) || ''}${selectedEmployee.lastName?.charAt(0) || ''}`}
+                    <div className="h-16 w-16 rounded-lg flex-shrink-0 overflow-hidden">
+                      {selectedEmployee.profilePhoto ? (
+                        <img
+                          src={selectedEmployee.profilePhoto}
+                          alt={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="h-full w-full flex items-center justify-center text-white font-bold text-xl"
+                          style={{ backgroundColor: selectedEmployee.color || '#3B82F6' }}
+                        >
+                          {selectedEmployee.initials || `${selectedEmployee.firstName?.charAt(0) || ''}${selectedEmployee.lastName?.charAt(0) || ''}`}
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="space-y-3">
