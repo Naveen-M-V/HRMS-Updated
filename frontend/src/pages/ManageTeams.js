@@ -102,19 +102,6 @@ export default function ManageTeams() {
     }));
   };
 
-  const selectGroup = (groupName) => {
-    const groupEmployees = allEmployees
-      .filter((emp) => emp.currentTeam === groupName || (groupName === "No group" && !emp.currentTeam))
-      .map((emp) => emp.id);
-    setSelectedEmployees((prev) => [...new Set([...prev, ...groupEmployees])]);
-  };
-
-  const deselectGroup = (groupName) => {
-    const groupEmployees = allEmployees
-      .filter((emp) => emp.currentTeam === groupName || (groupName === "No group" && !emp.currentTeam))
-      .map((emp) => emp.id);
-    setSelectedEmployees((prev) => prev.filter((id) => !groupEmployees.includes(id)));
-  };
 
   const handleCreateTeam = async () => {
     if (newTeamName.trim()) {
@@ -414,20 +401,6 @@ export default function ManageTeams() {
                           {teamSelectedCount}
                         </span>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => selectGroup(team.name)}
-                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-                        >
-                          Select group
-                        </button>
-                        <button
-                          onClick={() => deselectGroup(team.name)}
-                          className="text-gray-500 hover:text-gray-700 font-medium text-sm"
-                        >
-                          Deselect group
-                        </button>
-                      </div>
                     </div>
 
                     {expandedGroups[team.name] && (
@@ -507,20 +480,6 @@ export default function ManageTeams() {
                         <span className="bg-blue-600 text-white text-sm font-semibold px-3 py-1 rounded-full">
                           {noGroupSelectedCount}
                         </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => selectGroup("No group")}
-                          className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-                        >
-                          Select group
-                        </button>
-                        <button
-                          onClick={() => deselectGroup("No group")}
-                          className="text-gray-500 hover:text-gray-700 font-medium text-sm"
-                        >
-                          Deselect group
-                        </button>
                       </div>
                     </div>
 

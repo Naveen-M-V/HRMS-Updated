@@ -143,20 +143,63 @@ exports.assignShiftToEmployee = async (req, res) => {
             }
           }
         }
+      } else {
+        // Not found in Profile, check EmployeesHub collection
+        console.log('Not found in Profile collection, checking EmployeesHub collection...');
+        const EmployeeHub = mongoose.model('EmployeeHub');
+        const employeeHub = await EmployeeHub.findById(employeeId);
+        console.log('EmployeeHub lookup result:', employeeHub ? 'Found' : 'Not found');
+        
+        if (employeeHub) {
+          // Try to find existing user by email first
+          console.log('EmployeeHub found. Looking for existing user by email...');
+          const existingUser = await User.findOne({ email: employeeHub.email });
+          
+          if (existingUser) {
+            // User exists, use it
+            console.log('✅ Found existing user by email:', existingUser._id);
+            employee = existingUser;
+            actualEmployeeId = existingUser._id;
+            console.log('✅ Using existing user for EmployeeHub record');
+          } else {
+            // No user exists, create one
+            console.log('No existing user found. Creating new user for EmployeeHub record...');
+            try {
+              const newUser = new User({
+                email: employeeHub.email,
+                firstName: employeeHub.firstName,
+                lastName: employeeHub.lastName,
+                role: 'user',
+                password: Math.random().toString(36).slice(-8)
+              });
+              await newUser.save();
+              
+              employee = newUser;
+              actualEmployeeId = newUser._id;
+              console.log('✅ Created new user for EmployeeHub:', newUser._id);
+            } catch (createError) {
+              console.error('❌ Error creating user for EmployeeHub:', createError);
+              // If user creation fails, just use the EmployeeHub ID
+              actualEmployeeId = employeeId;
+              employee = { _id: employeeId, email: employeeHub.email, firstName: employeeHub.firstName, lastName: employeeHub.lastName };
+            }
+          }
+        }
       }
     } else {
       console.log('Found employee in User collection');
     }
     
     if (!employee) {
-      console.error('Employee not found in User or Profile:', employeeId);
+      console.error('Employee not found in User, Profile, or EmployeesHub:', employeeId);
       return res.status(404).json({
         success: false,
         message: 'Employee not found in system',
         debug: {
           searchedId: employeeId,
           checkedUser: true,
-          checkedProfile: true
+          checkedProfile: true,
+          checkedEmployeesHub: true
         }
       });
     }

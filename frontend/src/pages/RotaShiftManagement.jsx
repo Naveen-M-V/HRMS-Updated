@@ -466,10 +466,16 @@ const RotaShiftManagement = () => {
     try {
       console.log('📤 Assigning shifts to team:', selectedTeam.name);
       console.log('📤 Team members:', teamMembers.length);
+      console.log('📤 Team members details:', teamMembers.map(m => ({
+        id: m._id,
+        name: `${m.firstName} ${m.lastName}`,
+        email: m.email,
+        userId: m.userId
+      })));
       
       // Assign shift to each team member
       const assignments = teamMembers.map(member => ({
-        employeeId: member._id || member.userId,
+        employeeId: member._id, // Use EmployeesHub ID - backend will handle User lookup/creation
         date: formData.date,
         startTime: formData.startTime,
         endTime: formData.endTime,
@@ -478,6 +484,13 @@ const RotaShiftManagement = () => {
         breakDuration: formData.breakDuration,
         notes: `${formData.notes} (Team: ${selectedTeam.name})`
       }));
+      
+      console.log('📤 Assignment payloads:', assignments.map(a => ({
+        employeeId: a.employeeId,
+        date: a.date,
+        startTime: a.startTime,
+        endTime: a.endTime
+      })));
 
       let successCount = 0;
       let errorCount = 0;
