@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import {
   MagnifyingGlassIcon,
@@ -13,6 +13,7 @@ import {
 
 export default function EmployeeHub() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState("All");
   const [sortBy, setSortBy] = useState("First name (A - Z)");
@@ -38,7 +39,15 @@ export default function EmployeeHub() {
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
       if (response.data.success) {
-        setAllEmployees(response.data.data);
+        const employees = response.data.data;
+        
+        // Debug: Check if profile photos are being loaded
+        console.log('Fetched employees:', employees);
+        const employeesWithPhotos = employees.filter(emp => emp.profilePhoto);
+        console.log(`${employeesWithPhotos.length} employees have profile photos out of ${employees.length} total`);
+        
+        setAllEmployees(employees);
+        setEmployees(employees);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -52,6 +61,18 @@ export default function EmployeeHub() {
     fetchAllEmployees();
     fetchTeams();
   }, []);
+
+  // Listen for refresh parameter to reload data after edits
+  useEffect(() => {
+    const refreshParam = searchParams.get('refresh');
+    if (refreshParam) {
+      console.log('Refreshing employee data after edit/create');
+      fetchAllEmployees();
+      // Clean up the URL parameter
+      navigate('/employee-hub', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
 
   // Fetch teams from API
   const fetchTeams = async () => {
@@ -75,11 +96,25 @@ export default function EmployeeHub() {
     }));
   };
 
-  const handleViewProfile = (employeeId) => {
-    const employee = allEmployees.find(emp => emp._id === employeeId);
+  const handleViewProfile = async (employeeId) => {
+    // First try to find employee in current data
+    let employee = allEmployees.find(emp => emp._id === employeeId);
+    
     if (employee) {
       setSelectedEmployee(employee);
       setShowProfileModal(true);
+      
+      // Fetch fresh employee data in the background to ensure we have latest info
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees/${employeeId}`);
+        if (response.data.success) {
+          const freshEmployee = response.data.data;
+          console.log('Fresh employee data:', freshEmployee);
+          setSelectedEmployee(freshEmployee);
+        }
+      } catch (error) {
+        console.error('Error fetching fresh employee data:', error);
+      }
     }
   };
 

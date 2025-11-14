@@ -304,6 +304,12 @@ export default function AddEmployee() {
         isActive: true,
       };
 
+      // Debug: Check if profile photo is being sent
+      console.log('Submitting employee data:', {
+        ...employeeData,
+        profilePhoto: employeeData.profilePhoto ? `[Base64 data - ${employeeData.profilePhoto.length} chars]` : 'No photo'
+      });
+
       let response;
       if (isEditMode) {
         // Update existing employee
@@ -321,7 +327,8 @@ export default function AddEmployee() {
 
       if (response.data.success) {
         alert(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
-        navigate("/employee-hub");
+        // Add a timestamp to force refresh of employee data
+        navigate("/employee-hub?refresh=" + Date.now());
       }
     } catch (error) {
       if (error.response?.data?.message) {
@@ -463,6 +470,7 @@ export default function AddEmployee() {
         
         // Get the processed image as data URL
         const processedImage = canvas.toDataURL('image/jpeg', 0.9);
+        console.log('Processed image saved:', processedImage.substring(0, 50) + '...');
         handleInputChange("profilePhoto", processedImage);
         setShowImageEditor(false);
         setSelectedImage(null);
