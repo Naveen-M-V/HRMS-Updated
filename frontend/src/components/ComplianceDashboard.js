@@ -77,7 +77,6 @@ const ComplianceDashboard = () => {
       setClockStatus(response.data);
     }
   } catch (error) {
-    console.error('Error fetching clock status:', error);
   }
 };
 
@@ -105,7 +104,6 @@ const ComplianceDashboard = () => {
         jobRoleCounts: getCertificatesByJobRole()
       });
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
       // Set empty data on error so UI doesn't hang
       setDashboardData({
         activeCount: 0,
@@ -160,7 +158,6 @@ const ComplianceDashboard = () => {
         toast.error(response.message || 'Failed to start break');
       }
     } catch (error) {
-      console.error('Start break error:', error);
       toast.error('Failed to start break');
     } finally {
       setClockLoading(false);
@@ -178,7 +175,6 @@ const ComplianceDashboard = () => {
         toast.error(response.message || 'Failed to resume work');
       }
     } catch (error) {
-      console.error('Resume work error:', error);
       toast.error('Failed to resume work');
     } finally {
       setClockLoading(false);

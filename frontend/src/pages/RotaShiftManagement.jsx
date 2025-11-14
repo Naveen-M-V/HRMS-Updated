@@ -24,12 +24,18 @@ import dayjs from 'dayjs';
 const RotaShiftManagement = () => {
   const [shifts, setShifts] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statistics, setStatistics] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState(null);
+  
+  // Modal state
+  const [assignmentType, setAssignmentType] = useState('employee'); // 'employee' or 'team'
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
   
   // Initialize filters from localStorage or use defaults
   const getInitialFilters = () => {
@@ -106,6 +112,12 @@ const RotaShiftManagement = () => {
         { withCredentials: true }
       );
       
+      // Fetch teams
+      const teamsResponse = await axios.get(
+        buildApiUrl('/teams'),
+        { withCredentials: true }
+      );
+      
       console.log('🔍 Fetching with filters:', filters);
       
       const [shiftsRes, statsRes] = await Promise.all([
@@ -114,8 +126,15 @@ const RotaShiftManagement = () => {
       ]);
       
       console.log('📋 Profiles Response:', profilesResponse.data);
+      console.log('👥 Teams Response:', teamsResponse.data);
       console.log('📅 Shifts Response:', shiftsRes);
       console.log('📊 Total shifts received:', shiftsRes.data?.length || 0);
+      
+      // Set teams data
+      if (teamsResponse.data && teamsResponse.data.success) {
+        setTeams(teamsResponse.data.data || []);
+        console.log('✅ Loaded teams:', teamsResponse.data.data?.length || 0);
+      }
       
       if (shiftsRes.success) {
         console.log('📊 First 3 shifts details:', shiftsRes.data?.slice(0, 3).map(s => ({
@@ -263,16 +282,7 @@ const RotaShiftManagement = () => {
         });
         
         setShowModal(false);
-        setFormData({
-          employeeId: '',
-          date: '',
-          startTime: '09:00',
-          endTime: '17:00',
-          location: 'Office',
-          workType: 'Regular',
-          breakDuration: 60,
-          notes: ''
-        });
+        resetModalState();
         
         // If assigned date is outside current filter range, expand the range
         if (assignedDate < filterStart || assignedDate > filterEnd) {
@@ -428,6 +438,122 @@ const RotaShiftManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle team selection
+  const handleTeamSelect = (teamId) => {
+    const team = teams.find(t => t._id === teamId);
+    setSelectedTeam(team);
+    
+    if (team && team.members) {
+      // Get team members from the team's members array
+      setTeamMembers(team.members || []);
+    } else {
+      setTeamMembers([]);
+    }
+  };
+
+  // Handle team shift assignment
+  const handleTeamSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedTeam || teamMembers.length === 0 || !formData.date) {
+      toast.warning('Please select a team and fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('📤 Assigning shifts to team:', selectedTeam.name);
+      console.log('📤 Team members:', teamMembers.length);
+      
+      // Assign shift to each team member
+      const assignments = teamMembers.map(member => ({
+        employeeId: member._id || member.userId,
+        date: formData.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        location: formData.location,
+        workType: formData.workType,
+        breakDuration: formData.breakDuration,
+        notes: `${formData.notes} (Team: ${selectedTeam.name})`
+      }));
+
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      // Process assignments one by one to handle conflicts individually
+      for (const assignment of assignments) {
+        try {
+          const response = await assignShift(assignment);
+          if (response.success) {
+            successCount++;
+          }
+        } catch (error) {
+          errorCount++;
+          const memberName = teamMembers.find(m => (m._id || m.userId) === assignment.employeeId);
+          errors.push({
+            member: memberName ? `${memberName.firstName} ${memberName.lastName}` : 'Unknown',
+            error: error.message
+          });
+        }
+      }
+
+      // Show results
+      if (successCount > 0) {
+        toast.success(`Successfully assigned shifts to ${successCount} team members`);
+      }
+      
+      if (errorCount > 0) {
+        toast.error(
+          <div>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+              Failed to assign shifts to {errorCount} members:
+            </div>
+            {errors.slice(0, 3).map((err, i) => (
+              <div key={i} style={{ fontSize: '12px', marginTop: '4px' }}>
+                • {err.member}: {err.error}
+              </div>
+            ))}
+            {errors.length > 3 && (
+              <div style={{ fontSize: '12px', marginTop: '4px', fontStyle: 'italic' }}>
+                ...and {errors.length - 3} more
+              </div>
+            )}
+          </div>,
+          { autoClose: 10000 }
+        );
+      }
+
+      if (successCount > 0) {
+        setShowModal(false);
+        resetModalState();
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('❌ Team shift assignment error:', error);
+      toast.error('Failed to assign team shifts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset modal state
+  const resetModalState = () => {
+    setAssignmentType('employee');
+    setSelectedTeam(null);
+    setTeamMembers([]);
+    setFormData({
+      employeeId: '',
+      date: '',
+      startTime: '09:00',
+      endTime: '17:00',
+      location: 'Office',
+      workType: 'Regular',
+      breakDuration: 60,
+      notes: ''
+    });
   };
 
   const getLocationColor = (location) => {
@@ -880,38 +1006,144 @@ const RotaShiftManagement = () => {
             background: '#ffffff',
             borderRadius: '16px',
             padding: '32px',
-            maxWidth: '600px',
-            width: '90%',
+            maxWidth: '700px',
+            width: '95%',
             maxHeight: '90vh',
             overflowY: 'auto',
             position: 'relative',
             zIndex: 51
           }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '24px' }}>
-              Assign New Shift
-            </h2>
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Employee <span style={{ color: '#dc2626' }}>*</span>
-                </label>
-                <Select
-                  value={formData.employeeId}
-                  onValueChange={(value) => setFormData({ ...formData, employeeId: value })}
-                  required
-                >
-                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
-                    <SelectValue placeholder="Select Employee" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    {employees.map(emp => (
-                      <SelectItem key={emp.id || emp._id} value={emp.id || emp._id}>
-                        {emp.firstName} {emp.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Modal Header */}
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
+                Assign New Shift
+              </h2>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                Assign shifts to individual employees or entire teams
+              </p>
+            </div>
+
+            {/* Tab Navigation */}
+            <div style={{ 
+              display: 'flex', 
+              borderBottom: '1px solid #e5e7eb', 
+              marginBottom: '24px' 
+            }}>
+              <button
+                type="button"
+                onClick={() => setAssignmentType('employee')}
+                style={{
+                  padding: '12px 24px',
+                  borderBottom: assignmentType === 'employee' ? '2px solid #3b82f6' : '2px solid transparent',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '16px',
+                  fontWeight: assignmentType === 'employee' ? '600' : '500',
+                  color: assignmentType === 'employee' ? '#3b82f6' : '#6b7280',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                👤 Employee
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignmentType('team')}
+                style={{
+                  padding: '12px 24px',
+                  borderBottom: assignmentType === 'team' ? '2px solid #3b82f6' : '2px solid transparent',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '16px',
+                  fontWeight: assignmentType === 'team' ? '600' : '500',
+                  color: assignmentType === 'team' ? '#3b82f6' : '#6b7280',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                👥 Teams
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <form onSubmit={assignmentType === 'employee' ? handleSubmit : handleTeamSubmit}>
+              {/* Employee/Team Selection */}
+              {assignmentType === 'employee' ? (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Employee <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <Select
+                    value={formData.employeeId}
+                    onValueChange={(value) => setFormData({ ...formData, employeeId: value })}
+                    required
+                  >
+                    <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                      <SelectValue placeholder="Select Employee" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      {employees.map(emp => (
+                        <SelectItem key={emp.id || emp._id} value={emp.id || emp._id}>
+                          {emp.firstName} {emp.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Team <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <Select
+                    value={selectedTeam?._id || ''}
+                    onValueChange={handleTeamSelect}
+                    required
+                  >
+                    <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                      <SelectValue placeholder="Select Team" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      {teams.map(team => (
+                        <SelectItem key={team._id} value={team._id}>
+                          {team.name} ({team.members?.length || 0} members)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Team Members Display */}
+                  {selectedTeam && teamMembers.length > 0 && (
+                    <div style={{ 
+                      marginTop: '12px', 
+                      padding: '16px', 
+                      background: '#f8fafc', 
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                        Team Members ({teamMembers.length})
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
+                        {teamMembers.map((member, index) => (
+                          <div key={index} style={{
+                            padding: '8px 12px',
+                            background: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            color: '#374151',
+                            border: '1px solid #e5e7eb'
+                          }}>
+                            {member.firstName} {member.lastName}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Date Selection */}
               <div style={{ marginBottom: '20px' }}>
                 <DatePicker
                   label="Date"
@@ -920,6 +1152,8 @@ const RotaShiftManagement = () => {
                   onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
                 />
               </div>
+
+              {/* Time Selection */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>
                   <MUITimePicker
@@ -948,44 +1182,50 @@ const RotaShiftManagement = () => {
                   />
                 </div>
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Location
-                </label>
-                <Select
-                  value={formData.location}
-                  onValueChange={(value) => setFormData({ ...formData, location: value })}
-                >
-                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="Office">Work From Office</SelectItem>
-                    <SelectItem value="Home">Work From Home</SelectItem>
-                    <SelectItem value="Field">Field</SelectItem>
-                    <SelectItem value="Client Site">Client Site</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              {/* Location and Work Type */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Location
+                  </label>
+                  <Select
+                    value={formData.location}
+                    onValueChange={(value) => setFormData({ ...formData, location: value })}
+                  >
+                    <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="Office">Work From Office</SelectItem>
+                      <SelectItem value="Home">Work From Home</SelectItem>
+                      <SelectItem value="Field">Field</SelectItem>
+                      <SelectItem value="Client Site">Client Site</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                    Work Type
+                  </label>
+                  <Select
+                    value={formData.workType}
+                    onValueChange={(value) => setFormData({ ...formData, workType: value })}
+                  >
+                    <SelectTrigger style={{ width: '100%', padding: '12px' }}>
+                      <SelectValue placeholder="Select work type" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100]">
+                      <SelectItem value="Regular">Regular</SelectItem>
+                      <SelectItem value="Overtime">Overtime</SelectItem>
+                      <SelectItem value="Weekend overtime">Weekend Overtime</SelectItem>
+                      <SelectItem value="Client side overtime">Client Side Overtime</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Work Type
-                </label>
-                <Select
-                  value={formData.workType}
-                  onValueChange={(value) => setFormData({ ...formData, workType: value })}
-                >
-                  <SelectTrigger style={{ width: '100%', padding: '12px' }}>
-                    <SelectValue placeholder="Select work type" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    <SelectItem value="Regular">Regular</SelectItem>
-                    <SelectItem value="Overtime">Overtime</SelectItem>
-                    <SelectItem value="Weekend overtime">Weekend Overtime</SelectItem>
-                    <SelectItem value="Client side overtime">Client Side Overtime</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
+              {/* Break Duration */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   Break Duration (minutes)
@@ -1003,6 +1243,8 @@ const RotaShiftManagement = () => {
                   }}
                 />
               </div>
+
+              {/* Notes */}
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   Notes
@@ -1021,10 +1263,15 @@ const RotaShiftManagement = () => {
                   }}
                 />
               </div>
+
+              {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    resetModalState();
+                  }}
                   style={{
                     padding: '10px 20px',
                     borderRadius: '8px',
@@ -1052,7 +1299,10 @@ const RotaShiftManagement = () => {
                     cursor: loading ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {loading ? 'Assigning...' : 'Assign Shift'}
+                  {loading 
+                    ? (assignmentType === 'employee' ? 'Assigning...' : 'Assigning to Team...') 
+                    : (assignmentType === 'employee' ? 'Assign Shift' : `Assign to ${teamMembers.length} Members`)
+                  }
                 </button>
               </div>
             </form>

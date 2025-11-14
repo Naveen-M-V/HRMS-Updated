@@ -25,6 +25,50 @@ const PureProtomapsComponent = ({
   const [currentLocation, setCurrentLocation] = useState(null);
   const [mapCenter, setMapCenter] = useState({ lat: null, lng: null }); // No default location
   const [mapZoom, setMapZoom] = useState(zoom);
+  const [areaName, setAreaName] = useState('Loading location...');
+
+  // Reverse geocoding function to get area name from coordinates
+  const getAreaName = async (latitude, longitude) => {
+    try {
+      // Using OpenStreetMap Nominatim API for reverse geocoding (free)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=14&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'TalentShield-HRMS/1.0'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Extract meaningful location parts
+        const address = data.address || {};
+        const locationParts = [];
+        
+        // Priority order for location display
+        if (address.neighbourhood) locationParts.push(address.neighbourhood);
+        else if (address.suburb) locationParts.push(address.suburb);
+        else if (address.village) locationParts.push(address.village);
+        else if (address.town) locationParts.push(address.town);
+        else if (address.city) locationParts.push(address.city);
+        
+        if (address.state) locationParts.push(address.state);
+        if (address.country) locationParts.push(address.country);
+        
+        const areaName = locationParts.length > 0 
+          ? locationParts.slice(0, 2).join(', ') // Show max 2 parts
+          : data.display_name?.split(',')[0] || 'Unknown Location';
+          
+        setAreaName(areaName);
+      } else {
+        setAreaName('Location unavailable');
+      }
+    } catch (error) {
+      setAreaName('Location unavailable');
+    }
+  };
 
   // Initialize map
   useEffect(() => {
@@ -54,6 +98,9 @@ const PureProtomapsComponent = ({
           
           setMapCenter({ lat: latitude, lng: longitude });
           setCurrentLocation({ latitude, longitude, accuracy });
+          
+          // Get area name from coordinates
+          await getAreaName(latitude, longitude);
 
           if (onLocationUpdate) {
             onLocationUpdate({ latitude, longitude, accuracy });
@@ -67,6 +114,10 @@ const PureProtomapsComponent = ({
         if (latitude && longitude) {
           setMapCenter({ lat: latitude, lng: longitude });
           setCurrentLocation({ latitude, longitude, accuracy });
+          
+          // Get area name from coordinates
+          await getAreaName(latitude, longitude);
+          
           await drawMap(ctx, canvas.width, canvas.height);
         } else {
           // Show permission request
@@ -96,6 +147,9 @@ const PureProtomapsComponent = ({
     if (latitude && longitude && canvasRef.current) {
       setMapCenter({ lat: latitude, lng: longitude });
       setCurrentLocation({ latitude, longitude, accuracy });
+      
+      // Get area name from coordinates
+      getAreaName(latitude, longitude);
       
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -458,6 +512,9 @@ const PureProtomapsComponent = ({
         setMapCenter({ lat: latitude, lng: longitude });
         setCurrentLocation({ latitude, longitude, accuracy });
 
+        // Get area name from coordinates
+        await getAreaName(latitude, longitude);
+
         if (canvasRef.current) {
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
@@ -476,6 +533,9 @@ const PureProtomapsComponent = ({
 
           setMapCenter({ lat: latitude, lng: longitude });
           setCurrentLocation({ latitude, longitude, accuracy });
+
+          // Get area name from coordinates
+          await getAreaName(latitude, longitude);
 
           if (canvasRef.current) {
             const canvas = canvasRef.current;
@@ -597,6 +657,9 @@ const PureProtomapsComponent = ({
                 setMapCenter({ lat: latitude, lng: longitude });
                 setCurrentLocation({ latitude, longitude, accuracy });
 
+                // Get area name from coordinates
+                await getAreaName(latitude, longitude);
+
                 if (canvasRef.current) {
                   const canvas = canvasRef.current;
                   const ctx = canvas.getContext('2d');
@@ -646,17 +709,17 @@ const PureProtomapsComponent = ({
 
       {/* Location Info & Debug Panel */}
       {currentLocation && (
-        <div className="mt-3 space-y-2">
+        <div className="absolute bottom-4 left-4 right-4 space-y-2">
           {/* Main Location Info */}
           <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 616 0z" />
                 </svg>
                 <span className="text-sm font-medium text-gray-900">
-                  {currentLocation.latitude.toFixed(6)}, {currentLocation.longitude.toFixed(6)}
+                  {areaName}
                 </span>
               </div>
               <div className="text-xs text-gray-600">
@@ -667,18 +730,6 @@ const PureProtomapsComponent = ({
             <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
               <span>Real Map Tiles • Zoom: {mapZoom}</span>
               <span>Updated: {new Date().toLocaleTimeString()}</span>
-            </div>
-          </div>
-
-          {/* Debug Panel */}
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <div className="text-xs text-blue-800">
-              <div className="font-medium mb-1">🔍 High-Accuracy GPS:</div>
-              <div>• 📍 Blue button = Get precise location (30s timeout)</div>
-              <div>• Click map = Zoom only (location unchanged)</div>
-              <div>• Red dot = Your actual GPS position</div>
-              <div>• Accuracy: {currentLocation?.accuracy ? `±${Math.round(currentLocation.accuracy)}m` : 'Calculating...'}</div>
-              <div>• Check console for detailed GPS logs</div>
             </div>
           </div>
         </div>

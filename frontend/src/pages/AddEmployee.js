@@ -3,12 +3,16 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
+import { CheckIcon } from "@heroicons/react/24/solid";
 
 dayjs.extend(customParseFormat); 
 
-
 export default function AddEmployee() {
   const navigate = useNavigate();
+
+  // Step management
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 5;
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -37,7 +41,10 @@ export default function AddEmployee() {
     county: "",
     postcode: "",
     // Emergency contact
-    emergencyContacts: [],
+    emergencyContactName: "",
+    emergencyContactRelation: "",
+    emergencyContactPhone: "",
+    emergencyContactEmail: "",
     // Salary details
     salary: "0",
     rate: "",
@@ -72,6 +79,15 @@ export default function AddEmployee() {
   const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Step definitions
+  const steps = [
+    { id: 1, name: "Basic Details", description: "Personal information" },
+    { id: 2, name: "Address Details", description: "Home address" },
+    { id: 3, name: "Emergency Contact", description: "Emergency contact info" },
+    { id: 4, name: "Account & Pay Details", description: "Salary and bank info" },
+    { id: 5, name: "Sensitive Details", description: "Tax and document info" }
+  ];
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -83,108 +99,211 @@ export default function AddEmployee() {
     }
   };
 
+  // Step navigation functions
+  const goToStep = (stepNumber) => {
+    if (stepNumber >= 1 && stepNumber <= totalSteps) {
+      setCurrentStep(stepNumber);
+    }
+  };
+
+  const nextStep = () => {
+    if (validateCurrentStep()) {
+      setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  // Validation for current step
+  const validateCurrentStep = () => {
+    const newErrors = {};
+    
+    if (currentStep === 1) {
+      // Basic Details validation
+      if (!formData.firstName) newErrors.firstName = "Required";
+      if (!formData.lastName) newErrors.lastName = "Required";
+      if (!formData.emailAddress) {
+        newErrors.emailAddress = "Required";
+        setEmailError("Please provide a valid email address.");
+      } else if (!validateEmail(formData.emailAddress)) {
+        newErrors.emailAddress = "Invalid";
+        setEmailError("Please provide a valid email address.");
+      }
+      if (!formData.jobTitle) newErrors.jobTitle = "Required";
+      if (!formData.department) newErrors.department = "Required";
+      if (!formData.office) newErrors.office = "Required";
+      if (!formData.employmentStartDate) {
+        newErrors.employmentStartDate = "Required";
+      } else {
+        const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
+        if (!parsedDate.isValid()) {
+          newErrors.employmentStartDate = "Invalid date format. Please use DD/MM/YYYY";
+        }
+      }
+    }
+    // Steps 2, 3, 4, 5 have no required fields, so they can be skipped
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return false;
+    }
+    
+    setErrors({});
+    return true;
+  };
+
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
- const handleSaveEmployee = async () => {
-  const newErrors = {};
-
-  // Validate required fields
-  if (!formData.firstName) newErrors.firstName = "Required";
-  if (!formData.lastName) newErrors.lastName = "Required";
-  if (!formData.emailAddress) {
-    newErrors.emailAddress = "Required";
-    setEmailError("Please provide a valid email address.");
-  } else if (!validateEmail(formData.emailAddress)) {
-    newErrors.emailAddress = "Invalid";
-    setEmailError("Please provide a valid email address.");
-  }
-  if (!formData.jobTitle) newErrors.jobTitle = "Required";
-  if (!formData.department) newErrors.department = "Required";
-  if (!formData.office) newErrors.office = "Required";
-  if (!formData.employmentStartDate) {
-    newErrors.employmentStartDate = "Required";
-  } else {
-    // Validate date format
-    const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
-    if (!parsedDate.isValid()) {
-      newErrors.employmentStartDate = "Invalid date format. Please use DD/MM/YYYY";
+  const handleSaveEmployee = async () => {
+    // Final validation before saving
+    if (!validateCurrentStep()) {
+      return;
     }
-  }
 
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return;
-  }
+    // Save to EmployeeHub schema
+    setLoading(true);
 
-  // Save to EmployeeHub schema
-  setLoading(true);
+    try {
+      // Convert start date format (DD/MM/YYYY → YYYY-MM-DD)
+      let formattedStartDate;
+      
+      // Check if the date is valid before formatting
+      const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
+      if (!parsedDate.isValid()) {
+        throw new Error("Invalid date format. Please use DD/MM/YYYY format.");
+      }
+      
+      formattedStartDate = parsedDate.format("YYYY-MM-DD");
 
-  try {
-    // Convert start date format (DD/MM/YYYY → YYYY-MM-DD)
-    let formattedStartDate;
-    
-    // Check if the date is valid before formatting
-    const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
-    if (!parsedDate.isValid()) {
-      throw new Error("Invalid date format. Please use DD/MM/YYYY format.");
+      const employeeData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.emailAddress,
+        phone: formData.mobileNumber,
+        jobTitle: formData.jobTitle,
+        department: formData.department,
+        team: formData.team || "",
+        office: formData.office,
+        startDate: formattedStartDate,
+        employmentType: "Full-time",
+        status: "Active",
+        isActive: true,
+      };
+
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/employees`,
+        employeeData
+      );
+
+      if (response.data.success) {
+        alert("Employee created successfully!");
+        navigate("/employee-hub");
+      }
+    } catch (error) {
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert("Failed to save employee. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
-    
-    formattedStartDate = parsedDate.format("YYYY-MM-DD");
-
-    const employeeData = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.emailAddress,
-      phone: formData.mobileNumber,
-      jobTitle: formData.jobTitle,
-      department: formData.department,
-      team: formData.team || "",
-      office: formData.office,
-      startDate: formattedStartDate, // ✅ Correct format
-      employmentType: "Full-time",
-      status: "Active",
-      isActive: true,
-    };
-
-    console.log("Payload being sent:", employeeData);
-
-    const response = await axios.post(
-      `${process.env.REACT_APP_API_BASE_URL}/employees`,
-      employeeData
-    );
-
-    if (response.data.success) {
-      console.log("Employee saved successfully:", response.data.data);
-      alert("Employee created successfully!");
-      navigate("/employee-hub");
-    }
-  } catch (error) {
-    console.error("Error saving employee:", error);
-    if (error.response?.data?.message) {
-      alert(error.response.data.message);
-    } else {
-      alert("Failed to save employee. Please try again.");
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   const handleCancel = () => {
     navigate("/employee-hub");
   };
 
-  const renderEmployeeDetails = () => {
+  // Render step indicator
+  const renderStepIndicator = () => {
+    return (
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const isCompleted = step.id < currentStep;
+            const isCurrent = step.id === currentStep;
+            const isClickable = step.id <= currentStep || step.id === currentStep + 1;
+            
+            return (
+              <div key={step.id} className="flex items-center">
+                {/* Step Circle */}
+                <div className="flex flex-col items-center">
+                  <button
+                    onClick={() => isClickable && goToStep(step.id)}
+                    disabled={!isClickable}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+                      isCompleted
+                        ? "bg-purple-600 text-white hover:bg-purple-700"
+                        : isCurrent
+                        ? "bg-purple-600 text-white"
+                        : isClickable
+                        ? "bg-gray-200 text-gray-600 hover:bg-gray-300 cursor-pointer"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <CheckIcon className="w-5 h-5" />
+                    ) : (
+                      step.id
+                    )}
+                  </button>
+                  <div className="mt-2 text-center">
+                    <div className={`text-sm font-medium ${
+                      isCurrent ? "text-purple-600" : "text-gray-600"
+                    }`}>
+                      {step.name}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {step.description}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Connector Line */}
+                {index < steps.length - 1 && (
+                  <div className={`flex-1 h-0.5 mx-4 ${
+                    step.id < currentStep ? "bg-purple-600" : "bg-gray-200"
+                  }`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // Render step content
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return renderBasicDetails();
+      case 2:
+        return renderAddressDetails();
+      case 3:
+        return renderEmergencyContact();
+      case 4:
+        return renderAccountPayDetails();
+      case 5:
+        return renderSensitiveDetails();
+      default:
+        return renderBasicDetails();
+    }
+  };
+
+  const renderBasicDetails = () => {
     return (
       <div className="space-y-6">
         {/* Basic details */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Basic details
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+            Basic Details
           </h3>
           <div className="grid grid-cols-2 gap-4">
             {/* Title */}
@@ -449,9 +568,9 @@ export default function AddEmployee() {
 
         {/* Probation end date */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">
             Probation Period
-          </h3>
+          </h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -464,16 +583,23 @@ export default function AddEmployee() {
                 onChange={(e) =>
                   handleInputChange("probationEndDate", e.target.value)
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const renderAddressDetails = () => {
+    return (
+      <div className="space-y-6">
 
         {/* Address details */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Address details
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+            Address Details
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -974,35 +1100,453 @@ export default function AddEmployee() {
     );
   };
 
+  const renderEmergencyContact = () => {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+            Emergency Contact
+          </h3>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-white text-xs font-bold">i</span>
+              </div>
+              <p className="text-sm text-gray-700">
+                Add an emergency contact in case something unexpected happens.
+              </p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contact Name
+              </label>
+              <input
+                type="text"
+                placeholder="Full name"
+                value={formData.emergencyContactName}
+                onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Relationship
+              </label>
+              <select
+                value={formData.emergencyContactRelation}
+                onChange={(e) => handleInputChange("emergencyContactRelation", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Select relationship</option>
+                <option value="Spouse">Spouse</option>
+                <option value="Parent">Parent</option>
+                <option value="Sibling">Sibling</option>
+                <option value="Child">Child</option>
+                <option value="Friend">Friend</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                placeholder="Phone number"
+                value={formData.emergencyContactPhone}
+                onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                placeholder="Email address"
+                value={formData.emergencyContactEmail}
+                onChange={(e) => handleInputChange("emergencyContactEmail", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAccountPayDetails = () => {
+    return (
+      <div className="space-y-6">
+        {/* Salary details */}
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+            Salary Details
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Salary
+              </label>
+              <input
+                type="number"
+                value={formData.salary}
+                onChange={(e) => handleInputChange("salary", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rate
+              </label>
+              <select
+                value={formData.rate}
+                onChange={(e) => handleInputChange("rate", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Select rate</option>
+                <option value="Hourly">Hourly</option>
+                <option value="Daily">Daily</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Annually">Annually</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment frequency
+              </label>
+              <select
+                value={formData.paymentFrequency}
+                onChange={(e) => handleInputChange("paymentFrequency", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Select frequency</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Bi-weekly">Bi-weekly</option>
+                <option value="Monthly">Monthly</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payroll number
+              </label>
+              <input
+                type="text"
+                placeholder="ABC123"
+                value={formData.payrollNumber}
+                onChange={(e) => handleInputChange("payrollNumber", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bank details */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">
+            Bank Details
+          </h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Name on account
+              </label>
+              <input
+                type="text"
+                placeholder="Account name"
+                value={formData.accountName}
+                onChange={(e) => handleInputChange("accountName", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Name of bank
+              </label>
+              <input
+                type="text"
+                placeholder="Bank name"
+                value={formData.bankName}
+                onChange={(e) => handleInputChange("bankName", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Account number
+              </label>
+              <input
+                type="text"
+                placeholder="8 digit number"
+                value={formData.accountNumber}
+                onChange={(e) => handleInputChange("accountNumber", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sort code
+              </label>
+              <input
+                type="text"
+                placeholder="00-00-00"
+                value={formData.sortCode}
+                onChange={(e) => handleInputChange("sortCode", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSensitiveDetails = () => {
+    return (
+      <div className="space-y-6">
+        {/* Tax and NI */}
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-6">
+            Tax & NI Information
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tax code
+              </label>
+              <input
+                type="text"
+                placeholder="Tax code"
+                value={formData.taxCode}
+                onChange={(e) => handleInputChange("taxCode", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                NI number
+              </label>
+              <input
+                type="text"
+                placeholder="NI number"
+                value={formData.niNumber}
+                onChange={(e) => handleInputChange("niNumber", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Passport */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">Passport</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Passport number
+              </label>
+              <input
+                type="text"
+                placeholder="Passport number"
+                value={formData.passportNumber}
+                onChange={(e) => handleInputChange("passportNumber", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country of issue
+              </label>
+              <select
+                value={formData.passportCountry}
+                onChange={(e) => handleInputChange("passportCountry", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Country of issue</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="United States">United States</option>
+                <option value="India">India</option>
+                <option value="Pakistan">Pakistan</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Passport expiry date
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.passportExpiryDate}
+                onChange={(e) => handleInputChange("passportExpiryDate", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Driving licence */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">
+            Driving Licence
+          </h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Licence number
+              </label>
+              <input
+                type="text"
+                placeholder="Licence number"
+                value={formData.licenceNumber}
+                onChange={(e) => handleInputChange("licenceNumber", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country of issue
+              </label>
+              <select
+                value={formData.licenceCountry}
+                onChange={(e) => handleInputChange("licenceCountry", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Country of issue</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="United States">United States</option>
+                <option value="India">India</option>
+                <option value="Pakistan">Pakistan</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date of expiry
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.licenceExpiryDate}
+                onChange={(e) => handleInputChange("licenceExpiryDate", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Visa */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">Visa</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visa number
+              </label>
+              <input
+                type="text"
+                placeholder="Visa number"
+                value={formData.visaNumber}
+                onChange={(e) => handleInputChange("visaNumber", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Visa expiry date
+              </label>
+              <input
+                type="text"
+                placeholder="dd/mm/yyyy"
+                value={formData.visaExpiryDate}
+                onChange={(e) => handleInputChange("visaExpiryDate", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Employee Creation</h1>
-        <p className="text-gray-600">Add a new employee to the system</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Add Employee</h1>
+        <p className="text-gray-600">Follow the simple 5 steps to complete your employee creation</p>
       </div>
 
       {/* Form Container */}
-      <div className="max-w-5xl mx-auto bg-white rounded-lg border border-gray-200 p-8">
-        {/* Employee Details Form */}
-        {renderEmployeeDetails()}
+      <div className="max-w-6xl mx-auto bg-white rounded-lg border border-gray-200 p-8">
+        {/* Step Indicator */}
+        {renderStepIndicator()}
 
-        {/* Form Actions */}
-        <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200">
+        {/* Step Content */}
+        <div className="mb-8">
+          {renderStepContent()}
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between items-center pt-6 border-t border-gray-200">
           <button
-            onClick={handleCancel}
-            className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-colors"
-            disabled={loading}
+            onClick={prevStep}
+            disabled={currentStep === 1}
+            className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${
+              currentStep === 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
           >
-            Cancel
+            Prev
           </button>
-          <button
-            onClick={handleSaveEmployee}
-            disabled={loading}
-            className="px-8 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
-          >
-            {loading ? 'Saving...' : 'Save Employee'}
-          </button>
+
+          <div className="flex gap-4">
+            <button
+              onClick={handleCancel}
+              className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-colors"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            
+            {currentStep === totalSteps ? (
+              <button
+                onClick={handleSaveEmployee}
+                disabled={loading}
+                className="px-8 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+              >
+                {loading ? 'Saving...' : 'Save Employee'}
+              </button>
+            ) : (
+              <button
+                onClick={nextStep}
+                className="px-8 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Next
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
