@@ -27,6 +27,7 @@ export default function EmployeeHub() {
 
   // Teams data from API
   const [teams, setTeams] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
 
   // Fetch employees from EmployeesHub schema
   const fetchAllEmployees = async () => {
@@ -43,10 +44,26 @@ export default function EmployeeHub() {
     }
   };
 
-  // Load employees on component mount
+  // Load employees and teams on component mount
   useEffect(() => {
     fetchAllEmployees();
+    fetchTeams();
   }, []);
+
+  // Fetch teams from API
+  const fetchTeams = async () => {
+    setTeamsLoading(true);
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/teams`);
+      if (response.data.success) {
+        setTeams(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
 
   const toggleTeam = (teamName) => {
     setExpandedTeams((prev) => ({
@@ -73,9 +90,8 @@ export default function EmployeeHub() {
   });
 
   const getTeamEmployees = (teamName) => {
-    const team = teams.find((t) => t.name === teamName);
-    if (!team) return [];
-    return filteredEmployees.filter((emp) => team.employees.includes(emp.id));
+    // Filter employees by team name from their team field
+    return allEmployees.filter((emp) => emp.team === teamName);
   };
 
   return (
@@ -88,20 +104,11 @@ export default function EmployeeHub() {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => navigate("/add-employee")}
-            className="bg-green-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
           >
             Add employees
           </button>
 
-          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-2.5">
-            <span className="text-sm text-gray-700">
-              <span className="font-semibold">1 employee</span> not registered
-              for BrightHR
-            </span>
-            <button className="text-pink-600 hover:text-pink-700 border border-pink-600 hover:border-pink-700 px-4 py-1 rounded text-sm font-medium transition-colors">
-              View
-            </button>
-          </div>
         </div>
 
         {/* Search and Filters */}
@@ -267,80 +274,117 @@ export default function EmployeeHub() {
           Your teams
         </h2>
 
-        {teams.map((team) => (
-          <div key={team.name} className="mb-6">
-            {/* Team Header */}
-            <button
-              onClick={() => toggleTeam(team.name)}
-              className="flex items-center justify-between w-full text-left mb-4 group"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-medium text-gray-900">
-                  {team.name} ({team.count})
-                </span>
-              </div>
-              {expandedTeams[team.name] ? (
-                <ChevronUpIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700" />
-              ) : (
-                <ChevronDownIcon className="h-5 w-5 text-gray-500 group-hover:text-gray-700" />
-              )}
-            </button>
-
-            {/* Employee Cards */}
-            {expandedTeams[team.name] && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {getTeamEmployees(team.name).map((employee) => (
-                  <div
-                    key={employee.id}
-                    className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
-                  >
-                    {/* Employee Header */}
-                    <div className="flex items-start gap-4 mb-4">
-                      {/* Avatar */}
-                      <div
-                        className="h-16 w-16 rounded-full flex items-center justify-center text-white font-semibold text-xl flex-shrink-0"
-                        style={{ backgroundColor: employee.color }}
-                      >
-                        {employee.initials}
-                      </div>
-
-                      {/* Employee Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
-                          {employee.firstName} {employee.lastName}
-                        </h3>
-                        <p className="text-sm text-gray-600 truncate">
-                          {employee.jobTitle}
-                        </p>
-                        <button
-                          onClick={() => handleViewProfile(employee.id)}
-                          className="text-sm text-pink-600 hover:text-pink-700 font-medium mt-1"
-                        >
-                          View full profile
-                        </button>
-                      </div>
-
-                      {/* Quick View Button */}
-                      <button
-                        onClick={() => handleQuickView(employee)}
-                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 hover:border-gray-400 px-3 py-1.5 rounded transition-colors"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                        <span className="hidden lg:inline">Quick view</span>
-                      </button>
-                    </div>
-
-                    {/* Office Location */}
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <BuildingOfficeIcon className="h-4 w-4" />
-                      <span>{employee.office}</span>
+        {teamsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="h-14 w-14 bg-gray-200 rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            )}
+            ))}
           </div>
-        ))}
+        ) : teams.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No teams found
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Teams will appear here once they are created
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {teams.map((team) => (
+              <div
+                key={team._id}
+                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300"
+              >
+                {/* Team Header */}
+                <div className="flex items-center gap-4 mb-4">
+                  {/* Team Avatar */}
+                  <div
+                    className="h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                    style={{ backgroundColor: team.color || '#3B82F6' }}
+                  >
+                    {team.initials || team.name.substring(0, 2).toUpperCase()}
+                  </div>
+
+                  {/* Team Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold text-gray-900 truncate">
+                      {team.name}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {team.memberCount || 0} member{(team.memberCount || 0) !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Team Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleTeam(team.name)}
+                    className="flex-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-2 rounded transition-colors font-medium"
+                  >
+                    {expandedTeams[team.name] ? 'Hide Members' : 'View Members'}
+                  </button>
+                  <button
+                    onClick={() => handleQuickView(team)}
+                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
+                    title="Team details"
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Team Members - Expandable */}
+                {expandedTeams[team.name] && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="space-y-2">
+                      {getTeamEmployees(team.name).length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-2">
+                          No members assigned
+                        </p>
+                      ) : (
+                        getTeamEmployees(team.name).slice(0, 3).map((employee) => (
+                          <div key={employee.id} className="flex items-center gap-3">
+                            <div
+                              className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
+                              style={{ backgroundColor: employee.color || '#3B82F6' }}
+                            >
+                              {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {employee.firstName} {employee.lastName}
+                              </div>
+                              <div className="text-xs text-gray-500 truncate">
+                                {employee.jobTitle || '-'}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      {getTeamEmployees(team.name).length > 3 && (
+                        <div className="text-xs text-gray-500 text-center pt-2">
+                          +{getTeamEmployees(team.name).length - 3} more members
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

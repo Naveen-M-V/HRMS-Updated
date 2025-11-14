@@ -57,10 +57,8 @@ const ComplianceDashboard = () => {
            longitude: position.coords.longitude
          });
          setLocationAccuracy(position.coords.accuracy);
-         console.log('📍 Compliance dashboard GPS captured:', position.coords);
        },
        (error) => {
-         console.warn('⚠️ GPS capture failed for compliance dashboard:', error);
          // Don't show error to user, just leave map empty
        },
        {

@@ -51,11 +51,6 @@ const PureProtomapsComponent = ({
 
         if (position) {
           const { latitude, longitude, accuracy } = position;
-          console.log('🎯 Initial location detected:', { 
-            latitude: latitude.toFixed(6), 
-            longitude: longitude.toFixed(6), 
-            accuracy: Math.round(accuracy) + 'm' 
-          });
           
           setMapCenter({ lat: latitude, lng: longitude });
           setCurrentLocation({ latitude, longitude, accuracy });
@@ -67,7 +62,6 @@ const PureProtomapsComponent = ({
           await drawMap(ctx, canvas.width, canvas.height);
         }
       } catch (error) {
-        console.warn('Could not get initial location:', error);
         
         // Fallback to provided coordinates or ask for permission
         if (latitude && longitude) {
@@ -105,7 +99,7 @@ const PureProtomapsComponent = ({
       
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      drawMap(ctx, canvas.width, canvas.height).catch(console.error);
+      drawMap(ctx, canvas.width, canvas.height).catch(() => {});
 
       if (onLocationUpdate) {
         onLocationUpdate({ latitude, longitude, accuracy });
@@ -151,7 +145,6 @@ const PureProtomapsComponent = ({
       
       // Don't load tiles if we don't have a valid location
       if (!lat || !lng) {
-        console.warn('No valid location for tile loading');
         drawBaseMap(ctx, width, height);
         return;
       }
@@ -202,13 +195,9 @@ const PureProtomapsComponent = ({
 
       // If no tiles loaded, show fallback
       if (tilesLoaded === 0) {
-        console.warn('No tiles loaded, showing fallback map');
         drawBaseMap(ctx, width, height);
-      } else {
-        console.log(`✅ Loaded ${tilesLoaded} map tiles successfully`);
       }
     } catch (error) {
-      console.error('Failed to load Protomaps tiles:', error);
       // Fallback to basic map
       drawBaseMap(ctx, width, height);
     }
@@ -248,20 +237,17 @@ const PureProtomapsComponent = ({
               resolve(false); // Outside canvas bounds
             }
           } catch (drawError) {
-            console.warn('Error drawing tile:', drawError);
             resolve(false);
           }
         };
         
         img.onerror = () => {
-          console.warn(`Failed to load tile: ${tileUrl}`);
           resolve(false); // Failed to load
         };
         
         // Add timeout for tile loading
         setTimeout(() => {
           if (!img.complete) {
-            console.warn(`Tile loading timeout: ${tileUrl}`);
             resolve(false);
           }
         }, 5000);
@@ -269,7 +255,6 @@ const PureProtomapsComponent = ({
         img.src = tileUrl;
       });
     } catch (error) {
-      console.warn('Tile loading error:', error);
       return false;
     }
   };
@@ -459,7 +444,6 @@ const PureProtomapsComponent = ({
   // Start live tracking with high accuracy
   const startLiveTracking = async () => {
     try {
-      console.log('🔴 Starting high-accuracy GPS tracking...');
       
       // First get current position with maximum accuracy settings
       const currentPos = await getCurrentPosition({
@@ -470,11 +454,6 @@ const PureProtomapsComponent = ({
 
       if (currentPos) {
         const { latitude, longitude, accuracy } = currentPos;
-        console.log('📍 Initial GPS position (high-accuracy):', { 
-          latitude: latitude.toFixed(6), 
-          longitude: longitude.toFixed(6), 
-          accuracy: Math.round(accuracy) + 'm' 
-        });
         
         setMapCenter({ lat: latitude, lng: longitude });
         setCurrentLocation({ latitude, longitude, accuracy });
@@ -494,12 +473,6 @@ const PureProtomapsComponent = ({
       const watchId = watchPosition(
         async (position) => {
           const { latitude, longitude, accuracy } = position;
-          console.log('🔴 Live GPS update:', { 
-            latitude: latitude.toFixed(6), 
-            longitude: longitude.toFixed(6), 
-            accuracy: Math.round(accuracy) + 'm',
-            timestamp: new Date().toLocaleTimeString()
-          });
 
           setMapCenter({ lat: latitude, lng: longitude });
           setCurrentLocation({ latitude, longitude, accuracy });
@@ -515,7 +488,6 @@ const PureProtomapsComponent = ({
           }
         },
         (error) => {
-          console.error('GPS tracking error:', error);
           setError(`GPS tracking failed: ${error.message}`);
         },
         {
@@ -527,7 +499,6 @@ const PureProtomapsComponent = ({
 
       watchIdRef.current = watchId;
     } catch (error) {
-      console.error('Failed to start live tracking:', error);
       setError(`Failed to start live tracking: ${error.message}`);
     }
   };
@@ -535,7 +506,6 @@ const PureProtomapsComponent = ({
   // Handle canvas click - only zoom, don't change location
   const handleCanvasClick = async (event) => {
     // Only zoom on click, don't change the actual GPS location
-    console.log('🖱️ Map clicked - zooming in (GPS location unchanged)');
     
     setMapZoom(prev => Math.min(prev + 1, 18));
     
@@ -614,7 +584,6 @@ const PureProtomapsComponent = ({
       <div className="absolute top-4 right-4 flex flex-col gap-2">
         <button
           onClick={async () => {
-            console.log('🎯 Requesting high-accuracy location...');
             try {
               const position = await getCurrentPosition({
                 enableHighAccuracy: true,
@@ -624,11 +593,6 @@ const PureProtomapsComponent = ({
               
               if (position) {
                 const { latitude, longitude, accuracy } = position;
-                console.log('📍 High-accuracy location obtained:', { 
-                  latitude: latitude.toFixed(6), 
-                  longitude: longitude.toFixed(6), 
-                  accuracy: Math.round(accuracy) + 'm' 
-                });
                 
                 setMapCenter({ lat: latitude, lng: longitude });
                 setCurrentLocation({ latitude, longitude, accuracy });
@@ -644,7 +608,6 @@ const PureProtomapsComponent = ({
                 }
               }
             } catch (error) {
-              console.error('Failed to get high-accuracy location:', error);
               setError('Failed to get precise location');
             }
           }}

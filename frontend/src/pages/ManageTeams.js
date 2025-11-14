@@ -206,7 +206,7 @@ export default function ManageTeams() {
       <div className="mb-6">
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-green-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors mb-6"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors mb-6"
         >
           Add a new team
         </button>
@@ -221,7 +221,7 @@ export default function ManageTeams() {
             placeholder="Team name"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="max-w-md w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -263,7 +263,7 @@ export default function ManageTeams() {
                 </button>
                 <button
                   onClick={() => handleDeleteTeam(team.id)}
-                  className="p-2 text-blue-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                   title="Delete team"
                 >
                   <TrashIcon className="h-5 w-5" />
@@ -316,7 +316,7 @@ export default function ManageTeams() {
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
                   placeholder="Please enter a team name..."
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   autoFocus
                 />
               </div>
