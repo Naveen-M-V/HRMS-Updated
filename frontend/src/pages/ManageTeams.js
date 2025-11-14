@@ -363,11 +363,6 @@ export default function ManageTeams() {
                 </div>
               ) : (
                 <>
-                  {/* Debug info */}
-                  <div className="mb-4 p-2 bg-gray-100 rounded text-sm text-gray-600">
-                    Debug: Found {allEmployees.length} employees, {teams.length} teams
-                  </div>
-                  
                   {/* Group by existing teams */}
               {teams.map((team) => {
                 const teamEmployees = allEmployees.filter((emp) => emp.currentTeam === team.name);
@@ -582,7 +577,7 @@ export default function ManageTeams() {
               </button>
               <button
                 onClick={handleCreateTeam}
-                className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded font-medium transition-colors"
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium transition-colors"
               >
                 Save ({selectedEmployees.length})
               </button>

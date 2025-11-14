@@ -19,6 +19,8 @@ export default function EmployeeHub() {
   const [status, setStatus] = useState("All");
   const [expandedTeams, setExpandedTeams] = useState({});
   const [showEmployeeList, setShowEmployeeList] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   // Employees data from API
   const [employees, setEmployees] = useState([]);
@@ -73,7 +75,31 @@ export default function EmployeeHub() {
   };
 
   const handleViewProfile = (employeeId) => {
-    navigate(`/profiles/${employeeId}`);
+    const employee = allEmployees.find(emp => emp._id === employeeId);
+    if (employee) {
+      setSelectedEmployee(employee);
+      setShowProfileModal(true);
+    }
+  };
+
+  const handleCloseProfileModal = () => {
+    setShowProfileModal(false);
+    setSelectedEmployee(null);
+  };
+
+  // Format date helper function
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return "-";
+    }
   };
 
   const handleQuickView = (employee) => {
@@ -227,7 +253,11 @@ export default function EmployeeHub() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {allEmployees.map((employee, index) => (
-                      <tr key={employee._id} className="hover:bg-gray-50">
+                      <tr 
+                        key={employee._id} 
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleViewProfile(employee._id)}
+                      >
                         <td className="px-6 py-4 text-sm text-gray-900">{index + 1}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -250,9 +280,12 @@ export default function EmployeeHub() {
                         <td className="px-6 py-4 text-sm text-gray-900">{employee.department || '-'}</td>
                         <td className="px-6 py-4">
                           <button
-                            onClick={() => handleViewProfile(employee._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewProfile(employee._id);
+                            }}
                             className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
-                            title="View Documents"
+                            title="View Profile"
                           >
                             <DocumentTextIcon className="h-4 w-4" />
                             View
@@ -386,6 +419,204 @@ export default function EmployeeHub() {
           </div>
         )}
       </div>
+
+      {/* Employee Profile Modal */}
+      {showProfileModal && selectedEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                  style={{ backgroundColor: selectedEmployee.color || '#3B82F6' }}
+                >
+                  {selectedEmployee.initials || `${selectedEmployee.firstName?.charAt(0) || ''}${selectedEmployee.lastName?.charAt(0) || ''}`}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Personal Details</h2>
+                  <p className="text-sm text-gray-600">{selectedEmployee.firstName} {selectedEmployee.lastName}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Details
+                </button>
+                <button
+                  onClick={handleCloseProfileModal}
+                  className="text-gray-400 hover:text-gray-600 p-2"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {/* Personal Information */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="h-16 w-16 rounded-lg flex items-center justify-center text-white font-bold text-xl flex-shrink-0"
+                      style={{ backgroundColor: selectedEmployee.color || '#3B82F6' }}
+                    >
+                      {selectedEmployee.initials || `${selectedEmployee.firstName?.charAt(0) || ''}${selectedEmployee.lastName?.charAt(0) || ''}`}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</label>
+                          <p className="text-sm font-medium text-gray-900">{selectedEmployee.firstName || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.email || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.employeeId || selectedEmployee._id?.slice(-6) || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Name</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.middleName || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.phone || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hire Date</label>
+                      <p className="text-sm text-gray-900">{formatDate(selectedEmployee.startDate)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.lastName || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Position</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.jobTitle || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.gender || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address Line 1</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.address1 || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address Line 2</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.address2 || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">ZIP Code</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.postcode || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">City</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.townCity || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">State</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.county || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Human Resource Information */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Human Resource Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.employeeId || selectedEmployee._id?.slice(-6) || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Department</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.department || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hire Date</label>
+                    <p className="text-sm text-gray-900">{formatDate(selectedEmployee.startDate)}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Team</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.team || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Office Location</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.office || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employment Type</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.employmentType || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</label>
+                    <p className="text-sm text-gray-900">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        selectedEmployee.status === 'Active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {selectedEmployee.status || 'Active'}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Work Location</label>
+                    <p className="text-sm text-gray-900">{selectedEmployee.workLocation || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact Information */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Emergency Contact Information</h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Name</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.emergencyContactName || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Relationship</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.emergencyContactRelation || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Emergency Contact Email</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.emergencyContactEmail || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
