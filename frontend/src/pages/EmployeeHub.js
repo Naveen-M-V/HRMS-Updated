@@ -620,9 +620,14 @@ export default function EmployeeHub() {
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {/* Personal Information */}
+              {/* Basic Details */}
               <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Basic Details
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="flex items-start gap-4">
                     <div className="h-16 w-16 rounded-lg flex-shrink-0 overflow-hidden">
@@ -644,16 +649,20 @@ export default function EmployeeHub() {
                     <div className="flex-1 min-w-0">
                       <div className="space-y-3">
                         <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Title</label>
+                          <p className="text-sm font-medium text-gray-900">{selectedEmployee.title || '-'}</p>
+                        </div>
+                        <div>
                           <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</label>
                           <p className="text-sm font-medium text-gray-900">{selectedEmployee.firstName || '-'}</p>
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address</label>
-                          <p className="text-sm text-gray-900">{selectedEmployee.email || '-'}</p>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Name</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.middleName || '-'}</p>
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</label>
-                          <p className="text-sm text-gray-900">{selectedEmployee.employeeId || selectedEmployee._id?.slice(-6) || '-'}</p>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.lastName || '-'}</p>
                         </div>
                       </div>
                     </div>
@@ -661,31 +670,89 @@ export default function EmployeeHub() {
 
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Middle Name</label>
-                      <p className="text-sm text-gray-900">{selectedEmployee.middleName || '-'}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.gender || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</label>
-                      <p className="text-sm text-gray-900">{selectedEmployee.phone || '-'}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Ethnicity</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.ethnicity || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hire Date</label>
-                      <p className="text-sm text-gray-900">{formatDate(selectedEmployee.startDate)}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</label>
+                      <p className="text-sm text-gray-900">{formatDate(selectedEmployee.dateOfBirth) || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.email || '-'}</p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</label>
-                      <p className="text-sm text-gray-900">{selectedEmployee.lastName || '-'}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile Number</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.phone || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Position</label>
-                      <p className="text-sm text-gray-900">{selectedEmployee.jobTitle || '-'}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Work Phone</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.workPhone || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</label>
-                      <p className="text-sm text-gray-900">{selectedEmployee.gender || '-'}</p>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.employeeId || selectedEmployee._id?.slice(-6) || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employment Start Date</label>
+                      <p className="text-sm text-gray-900">{formatDate(selectedEmployee.startDate) || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Job Details */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m-8 0V6a2 2 0 00-2 2v6" />
+                  </svg>
+                  Job Details
+                </h3>
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</label>
+                      <p className="text-sm font-medium text-gray-900">{selectedEmployee.jobTitle || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Department</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.department || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Team</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.team || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Office</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.office || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employment Type</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.employmentType || 'Full-time'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</label>
+                      <p className="text-sm text-gray-900">
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                          selectedEmployee.status === 'Active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {selectedEmployee.status || 'Active'}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Probation End Date</label>
+                      <p className="text-sm text-gray-900">{formatDate(selectedEmployee.probationEndDate) || '-'}</p>
                     </div>
                   </div>
                 </div>
@@ -693,83 +760,54 @@ export default function EmployeeHub() {
 
               {/* Address Information */}
               <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address Line 1</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.address1 || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address Line 2</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.address2 || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">ZIP Code</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.postcode || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">City</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.townCity || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">State</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.county || '-'}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Address Information
+                </h3>
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address Line 1</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.address1 || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address Line 2</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.address2 || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Address Line 3</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.address3 || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Town/City</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.townCity || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">County</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.county || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Postcode</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.postcode || '-'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Human Resource Information */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Human Resource Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.employeeId || selectedEmployee._id?.slice(-6) || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Department</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.department || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hire Date</label>
-                    <p className="text-sm text-gray-900">{formatDate(selectedEmployee.startDate)}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Team</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.team || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Office Location</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.office || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Employment Type</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.employmentType || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</label>
-                    <p className="text-sm text-gray-900">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        selectedEmployee.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {selectedEmployee.status || 'Active'}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Work Location</label>
-                    <p className="text-sm text-gray-900">{selectedEmployee.workLocation || '-'}</p>
-                  </div>
-                </div>
-              </div>
 
               {/* Emergency Contact Information */}
               <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Emergency Contact Information</h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Emergency Contact Information
+                </h3>
+                <div className="bg-red-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
                       <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Name</label>
                       <p className="text-sm text-gray-900">{selectedEmployee.emergencyContactName || '-'}</p>
@@ -779,8 +817,176 @@ export default function EmployeeHub() {
                       <p className="text-sm text-gray-900">{selectedEmployee.emergencyContactRelation || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Emergency Contact Email</label>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.emergencyContactPhone || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address</label>
                       <p className="text-sm text-gray-900">{selectedEmployee.emergencyContactEmail || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Salary & Payment Details */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                  Salary & Payment Details
+                </h3>
+                <div className="bg-yellow-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</label>
+                      <p className="text-sm font-medium text-gray-900">£{selectedEmployee.salary || '0'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.rate || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Frequency</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.paymentFrequency || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Effective From</label>
+                      <p className="text-sm text-gray-900">{formatDate(selectedEmployee.effectiveFrom) || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.reason || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Payroll Number</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.payrollNumber || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bank Details */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Bank Details
+                </h3>
+                <div className="bg-indigo-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Account Name</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.accountName || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Bank Name</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.bankName || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Bank Branch</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.bankBranch || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Account Number</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.accountNumber ? '****' + selectedEmployee.accountNumber.slice(-4) : '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Sort Code</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.sortCode || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tax & National Insurance */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Tax & National Insurance
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tax Code</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.taxCode || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">National Insurance Number</label>
+                      <p className="text-sm text-gray-900">{selectedEmployee.niNumber ? selectedEmployee.niNumber.substring(0, 2) + '****' + selectedEmployee.niNumber.slice(-2) : '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Information */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg className="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Document Information
+                </h3>
+                <div className="bg-teal-50 rounded-lg p-4">
+                  <div className="space-y-6">
+                    {/* Passport */}
+                    <div>
+                      <h4 className="text-md font-medium text-gray-900 mb-3">Passport</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Passport Number</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.passportNumber || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Country</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.passportCountry || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</label>
+                          <p className="text-sm text-gray-900">{formatDate(selectedEmployee.passportExpiryDate) || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Driving Licence */}
+                    <div>
+                      <h4 className="text-md font-medium text-gray-900 mb-3">Driving Licence</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Licence Number</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.licenceNumber || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Country</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.licenceCountry || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Class</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.licenceClass || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</label>
+                          <p className="text-sm text-gray-900">{formatDate(selectedEmployee.licenceExpiryDate) || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Visa */}
+                    <div>
+                      <h4 className="text-md font-medium text-gray-900 mb-3">Visa</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Visa Number</label>
+                          <p className="text-sm text-gray-900">{selectedEmployee.visaNumber || '-'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</label>
+                          <p className="text-sm text-gray-900">{formatDate(selectedEmployee.visaExpiryDate) || '-'}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
