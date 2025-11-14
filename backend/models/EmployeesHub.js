@@ -7,15 +7,35 @@ const mongoose = require('mongoose');
  */
 const employeeHubSchema = new mongoose.Schema({
   // Personal Information
+  title: {
+    type: String,
+    trim: true
+  },
   firstName: {
     type: String,
     required: [true, 'First name is required'],
+    trim: true
+  },
+  middleName: {
+    type: String,
     trim: true
   },
   lastName: {
     type: String,
     required: [true, 'Last name is required'],
     trim: true
+  },
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other', 'Unspecified'],
+    default: 'Unspecified'
+  },
+  ethnicity: {
+    type: String,
+    default: 'Unspecified'
+  },
+  dateOfBirth: {
+    type: Date
   },
   email: {
     type: String,
@@ -25,6 +45,10 @@ const employeeHubSchema = new mongoose.Schema({
     match: [/^\S+@\S+\.\S+$/, 'Invalid email format']
   },
   phone: {
+    type: String,
+    trim: true
+  },
+  workPhone: {
     type: String,
     trim: true
   },
@@ -88,6 +112,9 @@ const employeeHubSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'Start date is required']
   },
+  probationEndDate: {
+    type: Date
+  },
   endDate: {
     type: Date,
     default: null
@@ -126,6 +153,146 @@ const employeeHubSchema = new mongoose.Schema({
     default: null
   },
   
+  // Address Information
+  address1: {
+    type: String,
+    trim: true
+  },
+  address2: {
+    type: String,
+    trim: true
+  },
+  address3: {
+    type: String,
+    trim: true
+  },
+  townCity: {
+    type: String,
+    trim: true
+  },
+  county: {
+    type: String,
+    trim: true
+  },
+  postcode: {
+    type: String,
+    trim: true
+  },
+
+  // Emergency Contact Information
+  emergencyContactName: {
+    type: String,
+    trim: true
+  },
+  emergencyContactRelation: {
+    type: String,
+    trim: true
+  },
+  emergencyContactPhone: {
+    type: String,
+    trim: true
+  },
+  emergencyContactEmail: {
+    type: String,
+    trim: true
+  },
+
+  // Salary Details
+  salary: {
+    type: String,
+    default: '0'
+  },
+  rate: {
+    type: String,
+    trim: true
+  },
+  paymentFrequency: {
+    type: String,
+    trim: true
+  },
+  effectiveFrom: {
+    type: Date
+  },
+  reason: {
+    type: String,
+    trim: true
+  },
+  payrollNumber: {
+    type: String,
+    trim: true
+  },
+
+  // Bank Details
+  accountName: {
+    type: String,
+    trim: true
+  },
+  bankName: {
+    type: String,
+    trim: true
+  },
+  bankBranch: {
+    type: String,
+    trim: true
+  },
+  accountNumber: {
+    type: String,
+    trim: true
+  },
+  sortCode: {
+    type: String,
+    trim: true
+  },
+
+  // Tax & National Insurance
+  taxCode: {
+    type: String,
+    trim: true
+  },
+  niNumber: {
+    type: String,
+    trim: true
+  },
+
+  // Passport Information
+  passportNumber: {
+    type: String,
+    trim: true
+  },
+  passportCountry: {
+    type: String,
+    trim: true
+  },
+  passportExpiryDate: {
+    type: Date
+  },
+
+  // Driving Licence Information
+  licenceNumber: {
+    type: String,
+    trim: true
+  },
+  licenceCountry: {
+    type: String,
+    trim: true
+  },
+  licenceClass: {
+    type: String,
+    trim: true
+  },
+  licenceExpiryDate: {
+    type: Date
+  },
+
+  // Visa Information
+  visaNumber: {
+    type: String,
+    trim: true
+  },
+  visaExpiryDate: {
+    type: Date
+  },
+
   // Additional Information
   notes: {
     type: String,

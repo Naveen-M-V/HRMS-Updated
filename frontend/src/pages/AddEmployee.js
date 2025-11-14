@@ -289,19 +289,77 @@ export default function AddEmployee() {
       formattedStartDate = parsedDate.format("YYYY-MM-DD");
 
       const employeeData = {
+        // Basic details
+        title: formData.title,
         firstName: formData.firstName,
+        middleName: formData.middleName,
         lastName: formData.lastName,
+        gender: formData.gender,
+        ethnicity: formData.ethnicity,
+        dateOfBirth: formData.dateOfBirth,
         email: formData.emailAddress,
         phone: formData.mobileNumber,
+        workPhone: formData.workPhone,
         profilePhoto: formData.profilePhoto,
+        
+        // Job details
         jobTitle: formData.jobTitle,
         department: formData.department,
         team: formData.team || "",
         office: formData.office,
         startDate: formattedStartDate,
+        probationEndDate: formData.probationEndDate,
         employmentType: "Full-time",
         status: "Active",
         isActive: true,
+        
+        // Address details
+        address1: formData.address1,
+        address2: formData.address2,
+        address3: formData.address3,
+        townCity: formData.townCity,
+        county: formData.county,
+        postcode: formData.postcode,
+        
+        // Emergency contact
+        emergencyContactName: formData.emergencyContactName,
+        emergencyContactRelation: formData.emergencyContactRelation,
+        emergencyContactPhone: formData.emergencyContactPhone,
+        emergencyContactEmail: formData.emergencyContactEmail,
+        
+        // Salary details
+        salary: formData.salary,
+        rate: formData.rate,
+        paymentFrequency: formData.paymentFrequency,
+        effectiveFrom: formData.effectiveFrom,
+        reason: formData.reason,
+        payrollNumber: formData.payrollNumber,
+        
+        // Bank details
+        accountName: formData.accountName,
+        bankName: formData.bankName,
+        bankBranch: formData.bankBranch,
+        accountNumber: formData.accountNumber,
+        sortCode: formData.sortCode,
+        
+        // Tax & National Insurance
+        taxCode: formData.taxCode,
+        niNumber: formData.niNumber,
+        
+        // Passport
+        passportNumber: formData.passportNumber,
+        passportCountry: formData.passportCountry,
+        passportExpiryDate: formData.passportExpiryDate,
+        
+        // Driving licence
+        licenceNumber: formData.licenceNumber,
+        licenceCountry: formData.licenceCountry,
+        licenceClass: formData.licenceClass,
+        licenceExpiryDate: formData.licenceExpiryDate,
+        
+        // Visa
+        visaNumber: formData.visaNumber,
+        visaExpiryDate: formData.visaExpiryDate,
       };
 
       // Debug: Check if profile photo is being sent
