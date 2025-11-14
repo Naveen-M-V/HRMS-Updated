@@ -28,6 +28,11 @@ const employeeHubSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  profilePhoto: {
+    type: String,
+    required: false,
+    trim: true
+  },
   
   // Job Information
   jobTitle: {

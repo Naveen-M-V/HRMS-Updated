@@ -493,11 +493,21 @@ export default function EmployeeHub() {
                       ) : (
                         getTeamEmployees(team.name).slice(0, 3).map((employee) => (
                           <div key={employee.id} className="flex items-center gap-3">
-                            <div
-                              className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
-                              style={{ backgroundColor: employee.color || '#3B82F6' }}
-                            >
-                              {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                            <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                              {employee.profilePhoto ? (
+                                <img
+                                  src={employee.profilePhoto}
+                                  alt={`${employee.firstName} ${employee.lastName}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div
+                                  className="h-full w-full flex items-center justify-center text-white font-medium text-sm"
+                                  style={{ backgroundColor: employee.color || '#3B82F6' }}
+                                >
+                                  {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-medium text-gray-900 truncate">
@@ -553,7 +563,10 @@ export default function EmployeeHub() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium">
+                <button 
+                  onClick={() => navigate(`/add-employee?edit=${selectedEmployee._id}`)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>

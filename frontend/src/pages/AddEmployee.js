@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
@@ -9,6 +9,11 @@ dayjs.extend(customParseFormat);
 
 export default function AddEmployee() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Edit mode management
+  const editEmployeeId = searchParams.get('edit');
+  const isEditMode = Boolean(editEmployeeId);
 
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
@@ -107,6 +112,101 @@ export default function AddEmployee() {
     }
   };
 
+  // Fetch employee data for edit mode
+  const fetchEmployeeData = async (employeeId) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees/${employeeId}`);
+      
+      if (response.data.success) {
+        const employee = response.data.data;
+        
+        // Format the start date for display (YYYY-MM-DD → DD/MM/YYYY)
+        let formattedStartDate = "";
+        if (employee.startDate) {
+          const date = dayjs(employee.startDate);
+          if (date.isValid()) {
+            formattedStartDate = date.format("DD/MM/YYYY");
+          }
+        }
+        
+        // Update form data with employee information
+        setFormData({
+          title: employee.title || "",
+          firstName: employee.firstName || "",
+          middleName: employee.middleName || "",
+          lastName: employee.lastName || "",
+          gender: employee.gender || "Unspecified",
+          ethnicity: employee.ethnicity || "Unspecified",
+          dateOfBirth: employee.dateOfBirth || "",
+          emailAddress: employee.email || "",
+          mobileNumber: employee.phone || "",
+          workPhone: employee.workPhone || "",
+          profilePhoto: employee.profilePhoto || "",
+          jobTitle: employee.jobTitle || "",
+          department: employee.department || "",
+          team: employee.team || "",
+          office: employee.office || "",
+          employmentStartDate: formattedStartDate,
+          probationEndDate: employee.probationEndDate || "",
+          // Address details
+          address1: employee.address1 || "",
+          address2: employee.address2 || "",
+          address3: employee.address3 || "",
+          townCity: employee.townCity || "",
+          county: employee.county || "",
+          postcode: employee.postcode || "",
+          // Emergency contact
+          emergencyContactName: employee.emergencyContactName || "",
+          emergencyContactRelation: employee.emergencyContactRelation || "",
+          emergencyContactPhone: employee.emergencyContactPhone || "",
+          emergencyContactEmail: employee.emergencyContactEmail || "",
+          // Salary details
+          salary: employee.salary || "0",
+          rate: employee.rate || "",
+          paymentFrequency: employee.paymentFrequency || "",
+          effectiveFrom: employee.effectiveFrom || "",
+          reason: employee.reason || "",
+          payrollNumber: employee.payrollNumber || "",
+          // Bank details
+          accountName: employee.accountName || "",
+          bankName: employee.bankName || "",
+          bankBranch: employee.bankBranch || "",
+          accountNumber: employee.accountNumber || "",
+          sortCode: employee.sortCode || "",
+          // Sensitive details
+          taxCode: employee.taxCode || "",
+          niNumber: employee.niNumber || "",
+          // Passport
+          passportNumber: employee.passportNumber || "",
+          passportCountry: employee.passportCountry || "",
+          passportExpiryDate: employee.passportExpiryDate || "",
+          // Driving licence
+          licenceNumber: employee.licenceNumber || "",
+          licenceCountry: employee.licenceCountry || "",
+          licenceClass: employee.licenceClass || "",
+          licenceExpiryDate: employee.licenceExpiryDate || "",
+          // Visa
+          visaNumber: employee.visaNumber || "",
+          visaExpiryDate: employee.visaExpiryDate || "",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching employee data:', error);
+      alert('Failed to load employee data. Please try again.');
+      navigate('/employee-hub');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load employee data when in edit mode
+  useEffect(() => {
+    if (isEditMode && editEmployeeId) {
+      fetchEmployeeData(editEmployeeId);
+    }
+  }, [isEditMode, editEmployeeId]);
+
   // Step navigation functions
   const goToStep = (stepNumber) => {
     if (stepNumber >= 1 && stepNumber <= totalSteps) {
@@ -193,6 +293,7 @@ export default function AddEmployee() {
         lastName: formData.lastName,
         email: formData.emailAddress,
         phone: formData.mobileNumber,
+        profilePhoto: formData.profilePhoto,
         jobTitle: formData.jobTitle,
         department: formData.department,
         team: formData.team || "",
@@ -203,13 +304,23 @@ export default function AddEmployee() {
         isActive: true,
       };
 
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/employees`,
-        employeeData
-      );
+      let response;
+      if (isEditMode) {
+        // Update existing employee
+        response = await axios.put(
+          `${process.env.REACT_APP_API_BASE_URL}/employees/${editEmployeeId}`,
+          employeeData
+        );
+      } else {
+        // Create new employee
+        response = await axios.post(
+          `${process.env.REACT_APP_API_BASE_URL}/employees`,
+          employeeData
+        );
+      }
 
       if (response.data.success) {
-        alert("Employee created successfully!");
+        alert(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
         navigate("/employee-hub");
       }
     } catch (error) {
@@ -1227,8 +1338,15 @@ export default function AddEmployee() {
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Add Employee</h1>
-        <p className="text-gray-600">Follow the simple 5 steps to complete your employee creation</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {isEditMode ? 'Edit Employee' : 'Add Employee'}
+        </h1>
+        <p className="text-gray-600">
+          {isEditMode 
+            ? 'Update employee information using the 5-step form below' 
+            : 'Follow the simple 5 steps to complete your employee creation'
+          }
+        </p>
       </div>
 
       {/* Form Container */}
@@ -1270,7 +1388,7 @@ export default function AddEmployee() {
                 disabled={loading}
                 className="px-8 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
               >
-                {loading ? 'Saving...' : 'Save Employee'}
+                {loading ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Save Employee')}
               </button>
             ) : (
               <button
