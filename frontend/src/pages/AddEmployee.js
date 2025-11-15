@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
-import { CheckIcon } from "@heroicons/react/24/solid";
+import { CheckIcon, ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { DatePicker } from "../components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
@@ -428,6 +428,16 @@ export default function AddEmployee() {
     navigate("/employee-hub");
   };
 
+  const handleBack = () => {
+    if (isEditMode) {
+      // For edit mode, redirect to employee hub with a flag to open the profile modal
+      navigate(`/employee-hub?viewProfile=${editEmployeeId}`);
+    } else {
+      // For add mode, simply go back to employee hub
+      navigate("/employee-hub");
+    }
+  };
+
   // Render step indicator
   const renderStepIndicator = () => {
     return (
@@ -663,7 +673,7 @@ export default function AddEmployee() {
                 Title
               </label>
               <Select value={formData.title} onValueChange={(value) => handleInputChange("title", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Select Title" />
                 </SelectTrigger>
                 <SelectContent>
@@ -686,7 +696,7 @@ export default function AddEmployee() {
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange("firstName", e.target.value)}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.firstName ? "border-red-500" : "border-gray-300"
                 }`}
               />
@@ -702,7 +712,7 @@ export default function AddEmployee() {
                 placeholder="Middle name"
                 value={formData.middleName}
                 onChange={(e) => handleInputChange("middleName", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -716,7 +726,7 @@ export default function AddEmployee() {
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange("lastName", e.target.value)}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.lastName ? "border-red-500" : "border-gray-300"
                 }`}
               />
@@ -728,7 +738,7 @@ export default function AddEmployee() {
                 Gender
               </label>
               <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Select Gender" />
                 </SelectTrigger>
                 <SelectContent>
@@ -746,7 +756,7 @@ export default function AddEmployee() {
                 Ethnicity
               </label>
               <Select value={formData.ethnicity} onValueChange={(value) => handleInputChange("ethnicity", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Select Ethnicity" />
                 </SelectTrigger>
                 <SelectContent>
@@ -768,7 +778,7 @@ export default function AddEmployee() {
                 onChange={(date) => handleInputChange("dateOfBirth", date ? date.format("DD/MM/YYYY") : "")}
                 placeholder="dd/mm/yyyy"
                 format="DD/MM/YYYY"
-                className="w-full"
+                className="w-full h-[42px]"
               />
             </div>
 
@@ -785,7 +795,7 @@ export default function AddEmployee() {
                 onChange={(e) =>
                   handleInputChange("emailAddress", e.target.value)
                 }
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.emailAddress ? "border-red-500" : "border-gray-300"
                 }`}
               />
@@ -806,7 +816,7 @@ export default function AddEmployee() {
                 onChange={(e) =>
                   handleInputChange("mobileNumber", e.target.value)
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -820,7 +830,7 @@ export default function AddEmployee() {
                 placeholder="Work phone"
                 value={formData.workPhone}
                 onChange={(e) => handleInputChange("workPhone", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -835,7 +845,7 @@ export default function AddEmployee() {
                 placeholder="Job title"
                 value={formData.jobTitle}
                 onChange={(e) => handleInputChange("jobTitle", e.target.value)}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.jobTitle ? "border-red-500" : "border-gray-300"
                 }`}
               />
@@ -852,7 +862,7 @@ export default function AddEmployee() {
                 placeholder="Department"
                 value={formData.department}
                 onChange={(e) => handleInputChange("department", e.target.value)}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.department ? "border-red-500" : "border-gray-300"
                 }`}
               />
@@ -868,7 +878,7 @@ export default function AddEmployee() {
                 placeholder="Team (optional)"
                 value={formData.team}
                 onChange={(e) => handleInputChange("team", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -883,7 +893,7 @@ export default function AddEmployee() {
                 placeholder="Office location"
                 value={formData.office}
                 onChange={(e) => handleInputChange("office", e.target.value)}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.office ? "border-red-500" : "border-gray-300"
                 }`}
               />
@@ -949,7 +959,7 @@ export default function AddEmployee() {
                 placeholder="Address 1"
                 value={formData.address1}
                 onChange={(e) => handleInputChange("address1", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -962,7 +972,7 @@ export default function AddEmployee() {
                 placeholder="Address 2"
                 value={formData.address2}
                 onChange={(e) => handleInputChange("address2", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -975,7 +985,7 @@ export default function AddEmployee() {
                 placeholder="Address 3"
                 value={formData.address3}
                 onChange={(e) => handleInputChange("address3", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -988,7 +998,7 @@ export default function AddEmployee() {
                 placeholder="Town/City"
                 value={formData.townCity}
                 onChange={(e) => handleInputChange("townCity", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1001,7 +1011,7 @@ export default function AddEmployee() {
                 placeholder="County"
                 value={formData.county}
                 onChange={(e) => handleInputChange("county", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1014,7 +1024,7 @@ export default function AddEmployee() {
                 placeholder="Postcode"
                 value={formData.postcode}
                 onChange={(e) => handleInputChange("postcode", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -1051,7 +1061,7 @@ export default function AddEmployee() {
                 placeholder="Full name"
                 value={formData.emergencyContactName}
                 onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
             
@@ -1060,7 +1070,7 @@ export default function AddEmployee() {
                 Relationship
               </label>
               <Select value={formData.emergencyContactRelation} onValueChange={(value) => handleInputChange("emergencyContactRelation", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Select relationship" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1083,7 +1093,7 @@ export default function AddEmployee() {
                 placeholder="Phone number"
                 value={formData.emergencyContactPhone}
                 onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
             
@@ -1096,7 +1106,7 @@ export default function AddEmployee() {
                 placeholder="Email address"
                 value={formData.emergencyContactEmail}
                 onChange={(e) => handleInputChange("emergencyContactEmail", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -1122,7 +1132,7 @@ export default function AddEmployee() {
                 type="number"
                 value={formData.salary}
                 onChange={(e) => handleInputChange("salary", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1131,7 +1141,7 @@ export default function AddEmployee() {
                 Rate
               </label>
               <Select value={formData.rate} onValueChange={(value) => handleInputChange("rate", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Select rate" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1149,7 +1159,7 @@ export default function AddEmployee() {
                 Payment frequency
               </label>
               <Select value={formData.paymentFrequency} onValueChange={(value) => handleInputChange("paymentFrequency", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Select frequency" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1169,7 +1179,7 @@ export default function AddEmployee() {
                 placeholder="ABC123"
                 value={formData.payrollNumber}
                 onChange={(e) => handleInputChange("payrollNumber", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -1190,7 +1200,7 @@ export default function AddEmployee() {
                 placeholder="Account name"
                 value={formData.accountName}
                 onChange={(e) => handleInputChange("accountName", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1203,7 +1213,7 @@ export default function AddEmployee() {
                 placeholder="Bank name"
                 value={formData.bankName}
                 onChange={(e) => handleInputChange("bankName", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1216,7 +1226,7 @@ export default function AddEmployee() {
                 placeholder="8 digit number"
                 value={formData.accountNumber}
                 onChange={(e) => handleInputChange("accountNumber", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1229,7 +1239,7 @@ export default function AddEmployee() {
                 placeholder="00-00-00"
                 value={formData.sortCode}
                 onChange={(e) => handleInputChange("sortCode", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -1256,7 +1266,7 @@ export default function AddEmployee() {
                 placeholder="Tax code"
                 value={formData.taxCode}
                 onChange={(e) => handleInputChange("taxCode", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1269,7 +1279,7 @@ export default function AddEmployee() {
                 placeholder="NI number"
                 value={formData.niNumber}
                 onChange={(e) => handleInputChange("niNumber", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -1288,7 +1298,7 @@ export default function AddEmployee() {
                 placeholder="Passport number"
                 value={formData.passportNumber}
                 onChange={(e) => handleInputChange("passportNumber", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1297,7 +1307,7 @@ export default function AddEmployee() {
                 Country of issue
               </label>
               <Select value={formData.passportCountry} onValueChange={(value) => handleInputChange("passportCountry", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Country of issue" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1317,7 +1327,7 @@ export default function AddEmployee() {
                 onChange={(date) => handleInputChange("passportExpiryDate", date ? date.format("DD/MM/YYYY") : "")}
                 placeholder="dd/mm/yyyy"
                 format="DD/MM/YYYY"
-                className="w-full"
+                className="w-full h-[42px]"
               />
             </div>
           </div>
@@ -1338,7 +1348,7 @@ export default function AddEmployee() {
                 placeholder="Licence number"
                 value={formData.licenceNumber}
                 onChange={(e) => handleInputChange("licenceNumber", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1347,7 +1357,7 @@ export default function AddEmployee() {
                 Country of issue
               </label>
               <Select value={formData.licenceCountry} onValueChange={(value) => handleInputChange("licenceCountry", value)}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-[42px]">
                   <SelectValue placeholder="Country of issue" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1386,7 +1396,7 @@ export default function AddEmployee() {
                 placeholder="Visa number"
                 value={formData.visaNumber}
                 onChange={(e) => handleInputChange("visaNumber", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -1410,6 +1420,18 @@ export default function AddEmployee() {
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Page Header */}
       <div className="mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            title={isEditMode ? 'Back to Employee Profile' : 'Back to Employee Hub'}
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+            <span className="font-medium">
+              {isEditMode ? 'Back to Profile' : 'Back to Hub'}
+            </span>
+          </button>
+        </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           {isEditMode ? 'Edit Employee' : 'Add Employee'}
         </h1>

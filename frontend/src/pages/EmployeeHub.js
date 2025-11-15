@@ -19,6 +19,8 @@ export default function EmployeeHub() {
   const [filterBy, setFilterBy] = useState("All");
   const [sortBy, setSortBy] = useState("First name (A - Z)");
   const [status, setStatus] = useState("All");
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
   const [expandedTeams, setExpandedTeams] = useState({});
   const [showEmployeeList, setShowEmployeeList] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -66,9 +68,19 @@ export default function EmployeeHub() {
   // Listen for refresh parameter to reload data after edits
   useEffect(() => {
     const refreshParam = searchParams.get('refresh');
+    const viewProfileParam = searchParams.get('viewProfile');
+    
     if (refreshParam) {
       console.log('Refreshing employee data after edit/create');
       fetchAllEmployees();
+      // Clean up the URL parameter
+      navigate('/employee-hub', { replace: true });
+    }
+    
+    if (viewProfileParam) {
+      console.log('Opening profile modal for employee:', viewProfileParam);
+      // Open the profile modal for the specified employee
+      handleViewProfile(viewProfileParam);
       // Clean up the URL parameter
       navigate('/employee-hub', { replace: true });
     }
@@ -154,13 +166,73 @@ export default function EmployeeHub() {
     console.log("Quick view for:", employee);
   };
 
-  const filteredEmployees = employees.filter((emp) => {
-    const matchesSearch =
-      emp.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.jobTitle.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  // Enhanced filtering and sorting logic
+  const getFilteredAndSortedData = () => {
+    let filteredData = [];
+    
+    // Apply filter by type
+    if (filterBy === "Employees" || filterBy === "All") {
+      let employeeData = allEmployees.filter((emp) => {
+        const matchesSearch = searchTerm === "" ||
+          emp.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          emp.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          emp.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          emp.department.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = status === "All" || emp.status === status;
+        
+        return matchesSearch && matchesStatus;
+      });
+      
+      filteredData = [...employeeData.map(emp => ({ ...emp, type: 'employee' }))];
+    }
+    
+    if (filterBy === "Teams" || filterBy === "All") {
+      let teamData = teams.filter((team) => {
+        const matchesSearch = searchTerm === "" ||
+          team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          team.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          team.department?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        return matchesSearch;
+      });
+      
+      filteredData = [...filteredData, ...teamData.map(team => ({ ...team, type: 'team' }))];
+    }
+    
+    // Apply sorting
+    filteredData.sort((a, b) => {
+      switch (sortBy) {
+        case "First name (A - Z)":
+          const aFirstName = a.type === 'employee' ? a.firstName : a.name;
+          const bFirstName = b.type === 'employee' ? b.firstName : b.name;
+          return aFirstName.localeCompare(bFirstName);
+        case "First name (Z - A)":
+          const aFirstNameDesc = a.type === 'employee' ? a.firstName : a.name;
+          const bFirstNameDesc = b.type === 'employee' ? b.firstName : b.name;
+          return bFirstNameDesc.localeCompare(aFirstNameDesc);
+        case "Last name (A - Z)":
+          if (a.type === 'employee' && b.type === 'employee') {
+            return a.lastName.localeCompare(b.lastName);
+          }
+          return 0;
+        case "Last name (Z - A)":
+          if (a.type === 'employee' && b.type === 'employee') {
+            return b.lastName.localeCompare(a.lastName);
+          }
+          return 0;
+        default:
+          return 0;
+      }
+    });
+    
+    return filteredData;
+  };
+  
+  const filteredAndSortedData = getFilteredAndSortedData();
+  const filteredEmployees = filteredAndSortedData.filter(item => item.type === 'employee');
+  const filteredTeams = filteredAndSortedData.filter(item => item.type === 'team');
 
   const getTeamEmployees = (teamName) => {
     // Filter employees by team name from their team field
@@ -192,13 +264,101 @@ export default function EmployeeHub() {
               Find
             </label>
             <div className="relative">
-              <input
-                type="text"
-                placeholder="Name, job title"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-4 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder={filterBy === "Teams" ? "Search teams..." : filterBy === "Employees" ? "Search employees..." : "Search employees and teams..."}
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setShowSearchDropdown(e.target.value.length > 0);
+                  }}
+                  onFocus={() => setShowSearchDropdown(searchTerm.length > 0)}
+                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                />
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                
+                {/* Search Dropdown */}
+                {showSearchDropdown && searchTerm && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredAndSortedData.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-500 text-center">
+                        No results found
+                      </div>
+                    ) : (
+                      filteredAndSortedData.slice(0, 10).map((item) => (
+                        <div
+                          key={`${item.type}-${item._id}`}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          onClick={() => {
+                            if (item.type === 'employee') {
+                              handleViewProfile(item._id);
+                            } else {
+                              toggleTeam(item.name);
+                            }
+                            setShowSearchDropdown(false);
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            {item.type === 'employee' ? (
+                              <>
+                                <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                                  {item.profilePhoto ? (
+                                    <img
+                                      src={item.profilePhoto}
+                                      alt={`${item.firstName} ${item.lastName}`}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div
+                                      className="h-full w-full flex items-center justify-center text-white font-medium text-sm"
+                                      style={{ backgroundColor: item.color || '#3B82F6' }}
+                                    >
+                                      {item.initials || `${item.firstName?.charAt(0) || ''}${item.lastName?.charAt(0) || ''}`}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {item.firstName} {item.lastName}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {item.jobTitle} • {item.department}
+                                  </div>
+                                </div>
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                  Employee
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div
+                                  className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
+                                  style={{ backgroundColor: item.color || '#3B82F6' }}
+                                >
+                                  {item.initials || item.name.substring(0, 2).toUpperCase()}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {item.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {getTeamEmployees(item.name).length} members
+                                  </div>
+                                </div>
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                  Team
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -208,14 +368,13 @@ export default function EmployeeHub() {
               Filter by
             </label>
             <Select value={filterBy} onValueChange={setFilterBy}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-[42px]">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All</SelectItem>
-                <SelectItem value="Team">Team</SelectItem>
-                <SelectItem value="Department">Department</SelectItem>
-                <SelectItem value="Location">Location</SelectItem>
+                <SelectItem value="Employees">Employees</SelectItem>
+                <SelectItem value="Teams">Teams</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -226,7 +385,7 @@ export default function EmployeeHub() {
               Sort by
             </label>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-[42px]">
                 <SelectValue placeholder="First name (A - Z)" />
               </SelectTrigger>
               <SelectContent>
@@ -244,13 +403,14 @@ export default function EmployeeHub() {
               Status
             </label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-[42px]">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="Terminated">Terminated</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -266,7 +426,9 @@ export default function EmployeeHub() {
           <div className="flex items-center gap-3">
             <UserGroupIcon className="h-6 w-6 text-blue-600" />
             <span className="text-lg font-semibold text-gray-900">
-              List of Employees ({allEmployees.length})
+              {filterBy === "Teams" ? `List of Teams (${filteredTeams.length})` : 
+               filterBy === "Employees" ? `List of Employees (${filteredEmployees.length})` :
+               `List of Employees (${filteredEmployees.length})`}
             </span>
           </div>
           {showEmployeeList ? (
@@ -336,7 +498,7 @@ export default function EmployeeHub() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {allEmployees.map((employee, index) => (
+                    {filteredEmployees.map((employee, index) => (
                       <tr 
                         key={employee._id} 
                         className="hover:bg-gray-50 cursor-pointer"
@@ -393,7 +555,7 @@ export default function EmployeeHub() {
             ) : (
               /* Grid View */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
-                {allEmployees.map((employee) => (
+                {filteredEmployees.map((employee) => (
                   <div
                     key={employee._id}
                     onClick={() => handleViewProfile(employee._id)}
@@ -476,7 +638,7 @@ export default function EmployeeHub() {
               </div>
             ))}
           </div>
-        ) : teams.length === 0 ? (
+        ) : (filterBy === "Employees" ? null : teams.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
             <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -488,7 +650,7 @@ export default function EmployeeHub() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {teams.map((team) => (
+            {(filterBy === "Employees" ? [] : filteredTeams.length > 0 ? filteredTeams : teams).map((team) => (
               <div
                 key={team._id}
                 className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300"
@@ -580,7 +742,7 @@ export default function EmployeeHub() {
               </div>
             ))}
           </div>
-        )}
+        ))}
       </div>
 
       {/* Employee Profile Modal */}
