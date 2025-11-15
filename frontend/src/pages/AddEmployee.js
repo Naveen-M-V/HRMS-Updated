@@ -4,6 +4,8 @@ import axios from "axios";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import { CheckIcon } from "@heroicons/react/24/solid";
+import { DatePicker } from "../components/ui/date-picker";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 dayjs.extend(customParseFormat); 
 
@@ -121,14 +123,12 @@ export default function AddEmployee() {
       if (response.data.success) {
         const employee = response.data.data;
         
-        // Format the start date for display (YYYY-MM-DD → DD/MM/YYYY)
-        let formattedStartDate = "";
-        if (employee.startDate) {
-          const date = dayjs(employee.startDate);
-          if (date.isValid()) {
-            formattedStartDate = date.format("DD/MM/YYYY");
-          }
-        }
+        // Helper function to format dates for display (YYYY-MM-DD → DD/MM/YYYY)
+        const formatDateForDisplay = (dateStr) => {
+          if (!dateStr) return "";
+          const date = dayjs(dateStr);
+          return date.isValid() ? date.format("DD/MM/YYYY") : "";
+        };
         
         // Update form data with employee information
         setFormData({
@@ -138,7 +138,7 @@ export default function AddEmployee() {
           lastName: employee.lastName || "",
           gender: employee.gender || "Unspecified",
           ethnicity: employee.ethnicity || "Unspecified",
-          dateOfBirth: employee.dateOfBirth || "",
+          dateOfBirth: formatDateForDisplay(employee.dateOfBirth),
           emailAddress: employee.email || "",
           mobileNumber: employee.phone || "",
           workPhone: employee.workPhone || "",
@@ -147,8 +147,8 @@ export default function AddEmployee() {
           department: employee.department || "",
           team: employee.team || "",
           office: employee.office || "",
-          employmentStartDate: formattedStartDate,
-          probationEndDate: employee.probationEndDate || "",
+          employmentStartDate: formatDateForDisplay(employee.startDate),
+          probationEndDate: formatDateForDisplay(employee.probationEndDate),
           // Address details
           address1: employee.address1 || "",
           address2: employee.address2 || "",
@@ -165,7 +165,7 @@ export default function AddEmployee() {
           salary: employee.salary || "0",
           rate: employee.rate || "",
           paymentFrequency: employee.paymentFrequency || "",
-          effectiveFrom: employee.effectiveFrom || "",
+          effectiveFrom: formatDateForDisplay(employee.effectiveFrom),
           reason: employee.reason || "",
           payrollNumber: employee.payrollNumber || "",
           // Bank details
@@ -180,15 +180,15 @@ export default function AddEmployee() {
           // Passport
           passportNumber: employee.passportNumber || "",
           passportCountry: employee.passportCountry || "",
-          passportExpiryDate: employee.passportExpiryDate || "",
+          passportExpiryDate: formatDateForDisplay(employee.passportExpiryDate),
           // Driving licence
           licenceNumber: employee.licenceNumber || "",
           licenceCountry: employee.licenceCountry || "",
           licenceClass: employee.licenceClass || "",
-          licenceExpiryDate: employee.licenceExpiryDate || "",
+          licenceExpiryDate: formatDateForDisplay(employee.licenceExpiryDate),
           // Visa
           visaNumber: employee.visaNumber || "",
-          visaExpiryDate: employee.visaExpiryDate || "",
+          visaExpiryDate: formatDateForDisplay(employee.visaExpiryDate),
         });
       }
     } catch (error) {
@@ -288,6 +288,30 @@ export default function AddEmployee() {
       
       formattedStartDate = parsedDate.format("YYYY-MM-DD");
 
+      // Helper function to format dates from DD/MM/YYYY to YYYY-MM-DD
+      const formatDateField = (dateStr) => {
+        if (!dateStr) return null;
+        
+        // If already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+          return dateStr;
+        }
+        
+        // Try to parse DD/MM/YYYY format
+        const parsed = dayjs(dateStr, "DD/MM/YYYY", true);
+        if (parsed.isValid()) {
+          return parsed.format("YYYY-MM-DD");
+        }
+        
+        // Try standard date parsing as fallback
+        const standardParsed = dayjs(dateStr);
+        if (standardParsed.isValid()) {
+          return standardParsed.format("YYYY-MM-DD");
+        }
+        
+        return null;
+      };
+
       const employeeData = {
         // Basic details
         title: formData.title,
@@ -296,7 +320,7 @@ export default function AddEmployee() {
         lastName: formData.lastName,
         gender: formData.gender,
         ethnicity: formData.ethnicity,
-        dateOfBirth: formData.dateOfBirth,
+        dateOfBirth: formatDateField(formData.dateOfBirth),
         email: formData.emailAddress,
         phone: formData.mobileNumber,
         workPhone: formData.workPhone,
@@ -308,7 +332,7 @@ export default function AddEmployee() {
         team: formData.team || "",
         office: formData.office,
         startDate: formattedStartDate,
-        probationEndDate: formData.probationEndDate,
+        probationEndDate: formatDateField(formData.probationEndDate),
         employmentType: "Full-time",
         status: "Active",
         isActive: true,
@@ -331,7 +355,7 @@ export default function AddEmployee() {
         salary: formData.salary,
         rate: formData.rate,
         paymentFrequency: formData.paymentFrequency,
-        effectiveFrom: formData.effectiveFrom,
+        effectiveFrom: formatDateField(formData.effectiveFrom),
         reason: formData.reason,
         payrollNumber: formData.payrollNumber,
         
@@ -349,17 +373,17 @@ export default function AddEmployee() {
         // Passport
         passportNumber: formData.passportNumber,
         passportCountry: formData.passportCountry,
-        passportExpiryDate: formData.passportExpiryDate,
+        passportExpiryDate: formatDateField(formData.passportExpiryDate),
         
         // Driving licence
         licenceNumber: formData.licenceNumber,
         licenceCountry: formData.licenceCountry,
         licenceClass: formData.licenceClass,
-        licenceExpiryDate: formData.licenceExpiryDate,
+        licenceExpiryDate: formatDateField(formData.licenceExpiryDate),
         
         // Visa
         visaNumber: formData.visaNumber,
-        visaExpiryDate: formData.visaExpiryDate,
+        visaExpiryDate: formatDateField(formData.visaExpiryDate),
       };
 
       // Debug: Check if profile photo is being sent
@@ -638,18 +662,18 @@ export default function AddEmployee() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Title
               </label>
-              <select
-                value={formData.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select Title</option>
-                <option value="Mr">Mr</option>
-                <option value="Mrs">Mrs</option>
-                <option value="Miss">Miss</option>
-                <option value="Ms">Ms</option>
-                <option value="Dr">Dr</option>
-              </select>
+              <Select value={formData.title} onValueChange={(value) => handleInputChange("title", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Title" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mr">Mr</SelectItem>
+                  <SelectItem value="Mrs">Mrs</SelectItem>
+                  <SelectItem value="Miss">Miss</SelectItem>
+                  <SelectItem value="Ms">Ms</SelectItem>
+                  <SelectItem value="Dr">Dr</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* First name */}
@@ -703,16 +727,17 @@ export default function AddEmployee() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Gender
               </label>
-              <select
-                value={formData.gender}
-                onChange={(e) => handleInputChange("gender", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="Unspecified">Unspecified</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+              <Select value={formData.gender} onValueChange={(value) => handleInputChange("gender", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Unspecified">Unspecified</SelectItem>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Ethnicity */}
@@ -720,31 +745,30 @@ export default function AddEmployee() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Ethnicity
               </label>
-              <select
-                value={formData.ethnicity}
-                onChange={(e) => handleInputChange("ethnicity", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="Unspecified">Unspecified</option>
-                <option value="Asian">Asian</option>
-                <option value="Black">Black</option>
-                <option value="White">White</option>
-                <option value="Mixed">Mixed</option>
-                <option value="Other">Other</option>
-              </select>
+              <Select value={formData.ethnicity} onValueChange={(value) => handleInputChange("ethnicity", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Ethnicity" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Unspecified">Unspecified</SelectItem>
+                  <SelectItem value="Asian">Asian</SelectItem>
+                  <SelectItem value="Black">Black</SelectItem>
+                  <SelectItem value="White">White</SelectItem>
+                  <SelectItem value="Mixed">Mixed</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Date of birth */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date of birth
-              </label>
-              <input
-                type="text"
-                placeholder="dd/mm/yyyy"
+              <DatePicker
+                label="Date of birth"
                 value={formData.dateOfBirth}
-                onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(date) => handleInputChange("dateOfBirth", date ? date.format("DD/MM/YYYY") : "")}
+                placeholder="dd/mm/yyyy"
+                format="DD/MM/YYYY"
+                className="w-full"
               />
             </div>
 
@@ -867,22 +891,14 @@ export default function AddEmployee() {
 
             {/* Employment start date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Employment start date{" "}
-                <span className="text-pink-600 text-xs">Required</span>
-              </label>
-              <input
-                type="text"
-                placeholder="dd/mm/yyyy"
+              <DatePicker
+                label="Employment start date"
+                required
                 value={formData.employmentStartDate}
-                onChange={(e) =>
-                  handleInputChange("employmentStartDate", e.target.value)
-                }
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.employmentStartDate
-                    ? "border-red-500"
-                    : "border-gray-300"
-                }`}
+                onChange={(date) => handleInputChange("employmentStartDate", date ? date.format("DD/MM/YYYY") : "")}
+                placeholder="dd/mm/yyyy"
+                format="DD/MM/YYYY"
+                className="w-full"
               />
               {errors.employmentStartDate && (
                 <p className="text-red-500 text-xs mt-1">
@@ -900,17 +916,13 @@ export default function AddEmployee() {
           </h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Probation end date
-              </label>
-              <input
-                type="text"
-                placeholder="dd/mm/yyyy"
+              <DatePicker
+                label="Probation end date"
                 value={formData.probationEndDate}
-                onChange={(e) =>
-                  handleInputChange("probationEndDate", e.target.value)
-                }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                onChange={(date) => handleInputChange("probationEndDate", date ? date.format("DD/MM/YYYY") : "")}
+                placeholder="dd/mm/yyyy"
+                format="DD/MM/YYYY"
+                className="w-full"
               />
             </div>
           </div>
@@ -1047,19 +1059,19 @@ export default function AddEmployee() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Relationship
               </label>
-              <select
-                value={formData.emergencyContactRelation}
-                onChange={(e) => handleInputChange("emergencyContactRelation", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">Select relationship</option>
-                <option value="Spouse">Spouse</option>
-                <option value="Parent">Parent</option>
-                <option value="Sibling">Sibling</option>
-                <option value="Child">Child</option>
-                <option value="Friend">Friend</option>
-                <option value="Other">Other</option>
-              </select>
+              <Select value={formData.emergencyContactRelation} onValueChange={(value) => handleInputChange("emergencyContactRelation", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Spouse">Spouse</SelectItem>
+                  <SelectItem value="Parent">Parent</SelectItem>
+                  <SelectItem value="Sibling">Sibling</SelectItem>
+                  <SelectItem value="Child">Child</SelectItem>
+                  <SelectItem value="Friend">Friend</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div>
@@ -1118,34 +1130,34 @@ export default function AddEmployee() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Rate
               </label>
-              <select
-                value={formData.rate}
-                onChange={(e) => handleInputChange("rate", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">Select rate</option>
-                <option value="Hourly">Hourly</option>
-                <option value="Daily">Daily</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-                <option value="Annually">Annually</option>
-              </select>
+              <Select value={formData.rate} onValueChange={(value) => handleInputChange("rate", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Hourly">Hourly</SelectItem>
+                  <SelectItem value="Daily">Daily</SelectItem>
+                  <SelectItem value="Weekly">Weekly</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                  <SelectItem value="Annually">Annually</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Payment frequency
               </label>
-              <select
-                value={formData.paymentFrequency}
-                onChange={(e) => handleInputChange("paymentFrequency", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">Select frequency</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Bi-weekly">Bi-weekly</option>
-                <option value="Monthly">Monthly</option>
-              </select>
+              <Select value={formData.paymentFrequency} onValueChange={(value) => handleInputChange("paymentFrequency", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Weekly">Weekly</SelectItem>
+                  <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -1284,30 +1296,28 @@ export default function AddEmployee() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Country of issue
               </label>
-              <select
-                value={formData.passportCountry}
-                onChange={(e) => handleInputChange("passportCountry", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">Country of issue</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="United States">United States</option>
-                <option value="India">India</option>
-                <option value="Pakistan">Pakistan</option>
-                <option value="Other">Other</option>
-              </select>
+              <Select value={formData.passportCountry} onValueChange={(value) => handleInputChange("passportCountry", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Country of issue" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="India">India</SelectItem>
+                  <SelectItem value="Pakistan">Pakistan</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Passport expiry date
-              </label>
-              <input
-                type="text"
-                placeholder="dd/mm/yyyy"
+              <DatePicker
+                label="Passport expiry date"
                 value={formData.passportExpiryDate}
-                onChange={(e) => handleInputChange("passportExpiryDate", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                onChange={(date) => handleInputChange("passportExpiryDate", date ? date.format("DD/MM/YYYY") : "")}
+                placeholder="dd/mm/yyyy"
+                format="DD/MM/YYYY"
+                className="w-full"
               />
             </div>
           </div>
@@ -1336,30 +1346,28 @@ export default function AddEmployee() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Country of issue
               </label>
-              <select
-                value={formData.licenceCountry}
-                onChange={(e) => handleInputChange("licenceCountry", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">Country of issue</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="United States">United States</option>
-                <option value="India">India</option>
-                <option value="Pakistan">Pakistan</option>
-                <option value="Other">Other</option>
-              </select>
+              <Select value={formData.licenceCountry} onValueChange={(value) => handleInputChange("licenceCountry", value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Country of issue" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="India">India</SelectItem>
+                  <SelectItem value="Pakistan">Pakistan</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date of expiry
-              </label>
-              <input
-                type="text"
-                placeholder="dd/mm/yyyy"
+              <DatePicker
+                label="Date of expiry"
                 value={formData.licenceExpiryDate}
-                onChange={(e) => handleInputChange("licenceExpiryDate", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                onChange={(date) => handleInputChange("licenceExpiryDate", date ? date.format("DD/MM/YYYY") : "")}
+                placeholder="dd/mm/yyyy"
+                format="DD/MM/YYYY"
+                className="w-full"
               />
             </div>
           </div>
@@ -1383,15 +1391,13 @@ export default function AddEmployee() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Visa expiry date
-              </label>
-              <input
-                type="text"
-                placeholder="dd/mm/yyyy"
+              <DatePicker
+                label="Visa expiry date"
                 value={formData.visaExpiryDate}
-                onChange={(e) => handleInputChange("visaExpiryDate", e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                onChange={(date) => handleInputChange("visaExpiryDate", date ? date.format("DD/MM/YYYY") : "")}
+                placeholder="dd/mm/yyyy"
+                format="DD/MM/YYYY"
+                className="w-full"
               />
             </div>
           </div>

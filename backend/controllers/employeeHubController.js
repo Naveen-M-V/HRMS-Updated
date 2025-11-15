@@ -1,5 +1,6 @@
 const EmployeeHub = require('../models/EmployeesHub');
 const Team = require('../models/Team');
+const mongoose = require('mongoose');
 
 /**
  * Get all employees
@@ -48,21 +49,50 @@ exports.getAllEmployees = async (req, res) => {
  */
 exports.getEmployeeById = async (req, res) => {
   try {
+    console.log('getEmployeeById called with ID:', req.params.id);
+    console.log('ID type:', typeof req.params.id);
+    console.log('ID length:', req.params.id?.length);
+    
+    // Validate ObjectId format
+    if (!req.params.id || !mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.error('Invalid ObjectId format:', req.params.id);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee ID format',
+        receivedId: req.params.id
+      });
+    }
+
     const employee = await EmployeeHub.findById(req.params.id)
       .populate('managerId', 'firstName lastName email');
     
     if (!employee) {
+      console.log('Employee not found with ID:', req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Employee not found'
       });
     }
     
+    console.log('Employee found:', employee.firstName, employee.lastName);
     res.status(200).json({
       success: true,
       data: employee
     });
   } catch (error) {
+    console.error('Error fetching employee:', error);
+    console.error('Error name:', error.name);
+    console.error('Error stack:', error.stack);
+    
+    // Handle CastError specifically (invalid ObjectId format)
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee ID format',
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error fetching employee',

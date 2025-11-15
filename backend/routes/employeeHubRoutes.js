@@ -3,13 +3,16 @@ const router = express.Router();
 const employeeHubController = require('../controllers/employeeHubController');
 
 // Employee CRUD operations
+// NOTE: Specific routes MUST come before parameterized routes to avoid conflicts
 router.get('/', employeeHubController.getAllEmployees);
 router.get('/unregistered-brighthr', employeeHubController.getUnregisteredBrightHR);
 router.get('/without-team', employeeHubController.getEmployeesWithoutTeam);
 router.get('/team/:teamName', employeeHubController.getEmployeesByTeam);
-router.get('/:id', employeeHubController.getEmployeeById);
+// POST, PUT, DELETE before GET /:id to ensure they're matched first
 router.post('/', employeeHubController.createEmployee);
 router.put('/:id', employeeHubController.updateEmployee);
 router.delete('/:id', employeeHubController.deleteEmployee);
+// GET /:id should be LAST to avoid matching specific routes
+router.get('/:id', employeeHubController.getEmployeeById);
 
 module.exports = router;

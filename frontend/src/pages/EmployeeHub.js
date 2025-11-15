@@ -10,6 +10,7 @@ import {
   UserGroupIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 export default function EmployeeHub() {
   const navigate = useNavigate();
@@ -97,24 +98,34 @@ export default function EmployeeHub() {
   };
 
   const handleViewProfile = async (employeeId) => {
+    console.log('handleViewProfile called with ID:', employeeId);
+    
     // First try to find employee in current data
     let employee = allEmployees.find(emp => emp._id === employeeId);
     
     if (employee) {
+      console.log('Found employee in local data:', employee);
       setSelectedEmployee(employee);
       setShowProfileModal(true);
       
       // Fetch fresh employee data in the background to ensure we have latest info
       try {
-        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees/${employeeId}`);
+        const url = `${process.env.REACT_APP_API_BASE_URL}/employees/${employeeId}`;
+        console.log('Fetching fresh employee data from:', url);
+        const response = await axios.get(url);
         if (response.data.success) {
           const freshEmployee = response.data.data;
-          console.log('Fresh employee data:', freshEmployee);
+          console.log('Fresh employee data received:', freshEmployee);
           setSelectedEmployee(freshEmployee);
         }
       } catch (error) {
         console.error('Error fetching fresh employee data:', error);
+        console.error('Error response:', error.response?.data);
+        console.error('Employee ID that caused error:', employeeId);
+        // Keep showing the cached employee data even if API call fails
       }
+    } else {
+      console.error('Employee not found in local data for ID:', employeeId);
     }
   };
 
@@ -196,16 +207,17 @@ export default function EmployeeHub() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Filter by
             </label>
-            <select
-              value={filterBy}
-              onChange={(e) => setFilterBy(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="All">All</option>
-              <option value="Team">Team</option>
-              <option value="Department">Department</option>
-              <option value="Location">Location</option>
-            </select>
+            <Select value={filterBy} onValueChange={setFilterBy}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="Team">Team</SelectItem>
+                <SelectItem value="Department">Department</SelectItem>
+                <SelectItem value="Location">Location</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Sort By */}
@@ -213,16 +225,17 @@ export default function EmployeeHub() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Sort by
             </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="First name (A - Z)">First name (A - Z)</option>
-              <option value="First name (Z - A)">First name (Z - A)</option>
-              <option value="Last name (A - Z)">Last name (A - Z)</option>
-              <option value="Last name (Z - A)">Last name (Z - A)</option>
-            </select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="First name (A - Z)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="First name (A - Z)">First name (A - Z)</SelectItem>
+                <SelectItem value="First name (Z - A)">First name (Z - A)</SelectItem>
+                <SelectItem value="Last name (A - Z)">Last name (A - Z)</SelectItem>
+                <SelectItem value="Last name (Z - A)">Last name (Z - A)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status */}
@@ -230,15 +243,16 @@ export default function EmployeeHub() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Status
             </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="All">All</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

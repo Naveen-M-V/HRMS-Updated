@@ -145,7 +145,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <ClipboardDocumentIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
               <>
-                <span className="text-sm font-medium flex-1 text-left">Reporting</span>
+                <span className="text-sm font-medium flex-1 text-left">Home</span>
                 {openReporting ? (
                   <ChevronDownIcon className="h-4 w-4" />
                 ) : (
