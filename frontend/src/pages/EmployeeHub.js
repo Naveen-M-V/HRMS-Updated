@@ -162,6 +162,8 @@ export default function EmployeeHub() {
       );
 
       if (response.data?.success) {
+        setAllEmployees((prev) => prev.filter((emp) => emp._id !== selectedEmployee._id));
+        setEmployees((prev) => prev.filter((emp) => emp._id !== selectedEmployee._id));
         await fetchAllEmployees();
         await fetchTeams();
         handleCloseProfileModal();

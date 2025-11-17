@@ -14,6 +14,11 @@ export default function ManageTeams() {
   const [newTeamName, setNewTeamName] = useState("");
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTeamName, setEditTeamName] = useState("");
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [editingTeamMembers, setEditingTeamMembers] = useState([]);
+  const [editTeamLoading, setEditTeamLoading] = useState(false);
 
   // Employees data from API
   const [allEmployees, setAllEmployees] = useState([]);
@@ -102,6 +107,56 @@ export default function ManageTeams() {
     }));
   };
 
+  const renderEmployeeCard = (employee) => {
+    const isSelectable = !employee.currentTeam;
+    const isSelected = selectedEmployees.includes(employee.id);
+
+    const baseClasses = "relative p-4 rounded-lg border-2 text-left transition-all";
+    const selectableClasses = isSelected
+      ? "border-blue-500 bg-blue-50"
+      : "border-gray-200 hover:border-gray-300";
+    const disabledClasses = "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed";
+
+    return (
+      <button
+        key={employee.id}
+        onClick={() => {
+          if (!isSelectable) return;
+          toggleEmployeeSelection(employee.id);
+        }}
+        disabled={!isSelectable}
+        className={`${baseClasses} ${isSelectable ? selectableClasses : disabledClasses}`}
+      >
+        <div className="space-y-1">
+          <div className="font-semibold text-gray-900">
+            {employee.firstName} {employee.lastName}
+          </div>
+          <div className="text-sm text-gray-600">
+            {employee.department || "-"}
+          </div>
+          <div className="text-sm text-gray-600">
+            {employee.jobTitle || "-"}
+          </div>
+          <div className="text-sm text-gray-600">
+            {formatDateOfBirth(employee.dateOfBirth)}
+          </div>
+          {!isSelectable && (
+            <div className="text-xs text-gray-500 pt-1">
+              Already in {employee.currentTeam}
+            </div>
+          )}
+        </div>
+        {isSelectable && isSelected && (
+          <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        )}
+      </button>
+    );
+  };
+
 
   const handleCreateTeam = async () => {
     if (newTeamName.trim()) {
@@ -160,9 +215,113 @@ export default function ManageTeams() {
     }
   };
 
-  const handleEditTeam = (teamId) => {
-    // Implement edit logic
-    console.log("Edit team:", teamId);
+  const loadEditingTeam = async (teamId) => {
+    setEditTeamLoading(true);
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/teams/${teamId}`);
+      if (response.data.success) {
+        const teamData = response.data.data;
+        setEditingTeam({
+          id: teamData._id,
+          name: teamData.name,
+          initials: teamData.initials,
+          color: teamData.color,
+          memberCount: teamData.members?.length || 0,
+          createdAt: teamData.createdAt,
+        });
+        setEditTeamName(teamData.name || "");
+        setEditingTeamMembers(teamData.members || []);
+      }
+    } catch (error) {
+      console.error('Error loading team details:', error);
+      alert('Unable to load team details. Please try again.');
+      setShowEditModal(false);
+    } finally {
+      setEditTeamLoading(false);
+    }
+  };
+
+  const handleEditTeam = async (teamId) => {
+    setShowEditModal(true);
+    await loadEditingTeam(teamId);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingTeam(null);
+    setEditingTeamMembers([]);
+    setEditTeamName("");
+  };
+
+  const handleSaveEditedTeam = async () => {
+    if (!editingTeam?.id) return;
+    if (!editTeamName.trim()) {
+      alert('Team name cannot be empty.');
+      return;
+    }
+
+    try {
+      await axios.put(`${process.env.REACT_APP_API_BASE_URL}/teams/${editingTeam.id}`, {
+        name: editTeamName.trim(),
+      });
+      await fetchTeams();
+      await loadEditingTeam(editingTeam.id);
+      alert('Team updated successfully.');
+    } catch (error) {
+      console.error('Error saving team:', error);
+      alert('Failed to save changes. Please try again.');
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    if (!editingTeam?.id) return;
+    const confirmDelete = window.confirm('Remove this member from the team?');
+    if (!confirmDelete) return;
+    try {
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${editingTeam.id}/members/remove`, {
+        employeeId: memberId,
+      });
+      await fetchEmployees();
+      await fetchTeams();
+      await loadEditingTeam(editingTeam.id);
+    } catch (error) {
+      console.error('Error removing member:', error);
+      alert('Unable to remove member.');
+    }
+  };
+
+  const handleSwitchMember = async (member) => {
+    if (!editingTeam?.id) return;
+    const otherTeams = teams.filter((team) => team.id !== editingTeam.id);
+    if (otherTeams.length === 0) {
+      alert('No other teams available to switch the member to.');
+      return;
+    }
+
+    const choices = otherTeams.map((team) => team.name).join(', ');
+    const targetName = window.prompt(`Enter target team name (${choices}):`, otherTeams[0].name);
+    if (!targetName) return;
+    const targetTeam = otherTeams.find((team) => team.name.toLowerCase() === targetName.trim().toLowerCase());
+    if (!targetTeam) {
+      alert('Team not found. Please enter a valid team name.');
+      return;
+    }
+
+    try {
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${editingTeam.id}/members/remove`, {
+        employeeId: member._id,
+      });
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${targetTeam.id}/members/add`, {
+        employeeId: member._id,
+      });
+      await fetchEmployees();
+      await fetchTeams();
+      await loadEditingTeam(editingTeam.id);
+      alert(`${member.firstName} ${member.lastName} moved to ${targetTeam.name}.`);
+    } catch (error) {
+      console.error('Error switching member:', error);
+      alert('Unable to switch member. Please try again.');
+    }
   };
 
   // Helper function to format date of birth
@@ -400,39 +559,7 @@ export default function ManageTeams() {
 
                     {expandedGroups[team.name] && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {teamEmployees.map((employee) => (
-                          <button
-                            key={employee.id}
-                            onClick={() => toggleEmployeeSelection(employee.id)}
-                            className={`relative p-4 rounded-lg border-2 text-left transition-all ${
-                              selectedEmployees.includes(employee.id)
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
-                          >
-                            <div className="space-y-1">
-                              <div className="font-semibold text-gray-900">
-                                {employee.firstName} {employee.lastName}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {employee.department || "-"}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {employee.jobTitle || "-"}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {formatDateOfBirth(employee.dateOfBirth)}
-                              </div>
-                            </div>
-                            {selectedEmployees.includes(employee.id) && (
-                              <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            )}
-                          </button>
-                        ))}
+                        {teamEmployees.map((employee) => renderEmployeeCard(employee))}
                       </div>
                     )}
                   </div>
@@ -480,39 +607,7 @@ export default function ManageTeams() {
 
                     {expandedGroups["No group"] && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {noGroupEmployees.map((employee) => (
-                          <button
-                            key={employee.id}
-                            onClick={() => toggleEmployeeSelection(employee.id)}
-                            className={`relative p-4 rounded-lg border-2 text-left transition-all ${
-                              selectedEmployees.includes(employee.id)
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200 hover:border-gray-300"
-                            }`}
-                          >
-                            <div className="space-y-1">
-                              <div className="font-semibold text-gray-900">
-                                {employee.firstName} {employee.lastName}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {employee.department || "-"}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {employee.jobTitle || "-"}
-                              </div>
-                              <div className="text-sm text-gray-600">
-                                {formatDateOfBirth(employee.dateOfBirth)}
-                              </div>
-                            </div>
-                            {selectedEmployees.includes(employee.id) && (
-                              <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </div>
-                            )}
-                          </button>
-                        ))}
+                        {noGroupEmployees.map((employee) => renderEmployeeCard(employee))}
                       </div>
                     )}
                   </div>
@@ -524,39 +619,7 @@ export default function ManageTeams() {
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">All Employees</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {allEmployees.map((employee) => (
-                      <button
-                        key={employee.id}
-                        onClick={() => toggleEmployeeSelection(employee.id)}
-                        className={`relative p-4 rounded-lg border-2 text-left transition-all ${
-                          selectedEmployees.includes(employee.id)
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <div className="font-semibold text-gray-900">
-                            {employee.firstName} {employee.lastName}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {employee.department || "-"}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {employee.jobTitle || "-"}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {formatDateOfBirth(employee.dateOfBirth)}
-                          </div>
-                        </div>
-                        {selectedEmployees.includes(employee.id) && (
-                          <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        )}
-                      </button>
-                    ))}
+                    {allEmployees.map((employee) => renderEmployeeCard(employee))}
                   </div>
                 </div>
               )}
@@ -581,6 +644,156 @@ export default function ManageTeams() {
               >
                 Save ({selectedEmployees.length})
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Team Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full">
+            <div className="flex items-start gap-4 p-6 border-b border-gray-200">
+              <div className="relative">
+                <div
+                  className="h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-semibold"
+                  style={{ backgroundColor: editingTeam?.color || '#3B82F6' }}
+                >
+                  {editingTeam?.initials || editingTeam?.name?.substring(0, 2)?.toUpperCase() || 'TM'}
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">{editingTeam?.name || 'Team'}</h2>
+                    <p className="text-sm text-gray-500">{editingTeam?.memberCount || 0} member{(editingTeam?.memberCount || 0) === 1 ? '' : 's'}</p>
+                  </div>
+                  <button
+                    onClick={handleCloseEditModal}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Close edit team modal"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                {editingTeam?.createdAt && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Created on {new Date(editingTeam.createdAt).toLocaleDateString('en-GB')}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Team name</label>
+                <input
+                  type="text"
+                  value={editTeamName}
+                  onChange={(e) => setEditTeamName(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter team name"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Team members</p>
+                    <p className="text-xs text-gray-500">Manage existing members and move them between teams.</p>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="max-h-72 overflow-y-auto">
+                    <table className="w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="text-left px-4 py-2 font-medium text-gray-500 uppercase tracking-wider text-xs">Name</th>
+                          <th className="text-left px-4 py-2 font-medium text-gray-500 uppercase tracking-wider text-xs">Department</th>
+                          <th className="text-left px-4 py-2 font-medium text-gray-500 uppercase tracking-wider text-xs">Email</th>
+                          <th className="text-right px-4 py-2 font-medium text-gray-500 uppercase tracking-wider text-xs">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {editTeamLoading ? (
+                          <tr>
+                            <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
+                              Loading team details...
+                            </td>
+                          </tr>
+                        ) : editingTeamMembers.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
+                              No members in this team yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          editingTeamMembers.map((member) => (
+                            <tr key={member._id}>
+                              <td className="px-4 py-3 text-gray-900 font-medium">
+                                {member.firstName} {member.lastName}
+                              </td>
+                              <td className="px-4 py-3 text-gray-600">
+                                {member.jobTitle || member.department || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-500">
+                                {member.email || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-right space-x-2">
+                                <button
+                                  onClick={() => handleSwitchMember(member)}
+                                  className="px-3 py-1 text-xs font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-100"
+                                >
+                                  Switch
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveMember(member._id)}
+                                  className="px-3 py-1 text-xs font-medium rounded-full border border-red-200 text-red-600 hover:bg-red-50"
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+              <button
+                onClick={() => {
+                  if (editingTeam?.id) {
+                    handleDeleteTeam(editingTeam.id);
+                    handleCloseEditModal();
+                  }
+                }}
+                className="text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+              >
+                <TrashIcon className="h-4 w-4" />
+                Delete team
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleCloseEditModal}
+                  className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEditedTeam}
+                  disabled={editTeamLoading || !editingTeam}
+                  className="px-5 py-2 rounded-lg bg-gray-900 text-white hover:bg-black text-sm font-semibold disabled:opacity-60"
+                >
+                  {editTeamLoading ? 'Saving...' : 'Save changes'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
