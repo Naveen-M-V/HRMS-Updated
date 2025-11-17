@@ -11,6 +11,7 @@ import {
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { formatDateDDMMYY } from "../utils/dateFormatter";
 
 export default function EmployeeHub() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function EmployeeHub() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
+  const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
 
   // Employees data from API
   const [employees, setEmployees] = useState([]);
@@ -146,24 +148,38 @@ export default function EmployeeHub() {
     setSelectedEmployee(null);
   };
 
-  // Format date helper function
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
+  const handleDeleteEmployee = async () => {
+    if (!selectedEmployee?._id) return;
+    const confirmed = window.confirm(
+      `Delete ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
+      setIsDeletingEmployee(true);
+      const response = await axios.delete(
+        `${process.env.REACT_APP_API_BASE_URL}/employees/${selectedEmployee._id}`
+      );
+
+      if (response.data?.success) {
+        await fetchAllEmployees();
+        await fetchTeams();
+        handleCloseProfileModal();
+      } else {
+        alert(response.data?.message || 'Failed to delete employee.');
+      }
     } catch (error) {
-      return "-";
+      console.error('Error deleting employee:', error);
+      alert('Unable to delete employee. Please try again.');
+    } finally {
+      setIsDeletingEmployee(false);
     }
   };
 
-  const handleQuickView = (employee) => {
-    // Implement quick view modal logic
-    console.log("Quick view for:", employee);
+  // Format date helper function
+  const formatDate = (dateString) => {
+    const formatted = formatDateDDMMYY(dateString);
+    return formatted || "-";
   };
 
   // Enhanced filtering and sorting logic
@@ -649,8 +665,10 @@ export default function EmployeeHub() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {(filterBy === "Employees" ? [] : filteredTeams.length > 0 ? filteredTeams : teams).map((team) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+            {(filterBy === "Employees" ? [] : filteredTeams.length > 0 ? filteredTeams : teams).map((team) => {
+              const teamMembers = getTeamEmployees(team.name);
+              return (
               <div
                 key={team._id}
                 className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300"
@@ -685,9 +703,9 @@ export default function EmployeeHub() {
                     {expandedTeams[team.name] ? 'Hide Members' : 'View Members'}
                   </button>
                   <button
-                    onClick={() => handleQuickView(team)}
+                    onClick={() => toggleTeam(team.name)}
                     className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-                    title="Team details"
+                    title={expandedTeams[team.name] ? "Hide Members" : "View Members"}
                   >
                     <EyeIcon className="h-4 w-4" />
                   </button>
@@ -695,15 +713,15 @@ export default function EmployeeHub() {
 
                 {/* Team Members - Expandable */}
                 {expandedTeams[team.name] && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="mt-4 pt-4 border-t border-gray-200 max-h-48 overflow-y-auto pr-1">
                     <div className="space-y-2">
-                      {getTeamEmployees(team.name).length === 0 ? (
+                      {teamMembers.length === 0 ? (
                         <p className="text-sm text-gray-500 text-center py-2">
                           No members assigned
                         </p>
                       ) : (
-                        getTeamEmployees(team.name).slice(0, 3).map((employee) => (
-                          <div key={employee.id} className="flex items-center gap-3">
+                        teamMembers.map((employee) => (
+                          <div key={employee._id || employee.id} className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
                               {employee.profilePhoto ? (
                                 <img
@@ -731,16 +749,11 @@ export default function EmployeeHub() {
                           </div>
                         ))
                       )}
-                      {getTeamEmployees(team.name).length > 3 && (
-                        <div className="text-xs text-gray-500 text-center pt-2">
-                          +{getTeamEmployees(team.name).length - 3} more members
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
               </div>
-            ))}
+            );})}
           </div>
         ))}
       </div>
@@ -782,6 +795,16 @@ export default function EmployeeHub() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                   Edit Details
+                </button>
+                <button
+                  onClick={handleDeleteEmployee}
+                  disabled={isDeletingEmployee}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-red-200 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {isDeletingEmployee ? 'Deleting...' : 'Delete'}
                 </button>
                 <button
                   onClick={handleCloseProfileModal}

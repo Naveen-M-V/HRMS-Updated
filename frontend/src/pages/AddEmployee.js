@@ -7,6 +7,71 @@ import { CheckIcon, ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { DatePicker } from "../components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
+const TEXT_ONLY_FIELDS = new Set([
+  "firstName",
+  "middleName",
+  "lastName",
+  "jobTitle",
+  "department",
+  "team",
+  "office",
+  "townCity",
+  "county",
+  "emergencyContactName",
+  "emergencyContactRelation",
+  "bankName",
+  "bankBranch",
+  "passportCountry",
+  "licenceCountry"
+]);
+
+const NUMBER_ONLY_FIELDS = new Set([
+  "mobileNumber",
+  "workPhone",
+  "salary",
+  "accountNumber",
+  "sortCode",
+  "emergencyContactPhone",
+  "payrollNumber"
+]);
+
+const TEXT_ONLY_REGEX = /^[A-Za-z\s'-]+$/;
+const NUMBER_ONLY_REGEX = /^[0-9]+$/;
+
+const validateFieldCharacters = (field, value) => {
+  if (!value) return "";
+
+  if (TEXT_ONLY_FIELDS.has(field) && !TEXT_ONLY_REGEX.test(value)) {
+    return "Please use letters only.";
+  }
+
+  if (NUMBER_ONLY_FIELDS.has(field) && !NUMBER_ONLY_REGEX.test(value)) {
+    return "Please use numbers only.";
+  }
+
+  return "";
+};
+
+const collectCharacterErrors = (data) => {
+  const errors = {};
+
+  TEXT_ONLY_FIELDS.forEach((field) => {
+    const message = validateFieldCharacters(field, data?.[field]);
+    if (message) {
+      errors[field] = message;
+    }
+  });
+
+  NUMBER_ONLY_FIELDS.forEach((field) => {
+    const message = validateFieldCharacters(field, data?.[field]);
+    if (message) {
+      errors[field] = message;
+    }
+  });
+
+  return errors;
+};
+
 dayjs.extend(customParseFormat); 
 
 export default function AddEmployee() {
@@ -104,11 +169,15 @@ export default function AddEmployee() {
   ];
 
   const handleInputChange = (field, value) => {
+    const validationMessage = validateFieldCharacters(field, value);
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
+
+    if (validationMessage) {
+      setErrors((prev) => ({ ...prev, [field]: validationMessage }));
+    } else if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
+
     if (field === "emailAddress" && emailError) {
       setEmailError("");
     }
@@ -253,6 +322,13 @@ export default function AddEmployee() {
     }
     // Steps 2, 3, 4, 5 have no required fields, so they can be skipped
     
+    const characterErrors = collectCharacterErrors(formData);
+    Object.entries(characterErrors).forEach(([field, message]) => {
+      if (!newErrors[field]) {
+        newErrors[field] = message;
+      }
+    });
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return false;
@@ -1499,7 +1575,7 @@ export default function AddEmployee() {
       {/* Image Editor Modal */}
       {showImageEditor && selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">Edit Image</h2>
@@ -1514,7 +1590,7 @@ export default function AddEmployee() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1">
               {/* Image Preview */}
               <div className="relative bg-gray-100 rounded-lg overflow-hidden mb-6" style={{ height: '400px' }}>
                 <div className="absolute inset-0 flex items-center justify-center">
