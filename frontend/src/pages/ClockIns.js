@@ -118,8 +118,8 @@ const ClockIns = () => {
       setStatsLoading(true);
       
       // Fetch profiles, clock status, and stats in parallel
-      const [profilesRes, clockStatusRes, statsRes] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL || 'https://talentshield.co.uk'}/api/profiles`, {
+      const [employeesRes, clockStatusRes, statsRes] = await Promise.all([
+        fetch(`${process.env.REACT_APP_API_URL || 'https://talentshield.co.uk'}/api/employees/with-clock-status`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
@@ -130,111 +130,28 @@ const ClockIns = () => {
         getDashboardStats()
       ]);
       
-      console.log('👥 Profiles Response:', profilesRes);
+      console.log('👥 Employees Response:', employeesRes);
       console.log('⏰ Clock Status Response:', clockStatusRes);
       console.log('📊 Stats Response:', statsRes);
-      
-      // Merge profile data with clock status
-      if (Array.isArray(profilesRes) && clockStatusRes.success) {
-        const clockStatusMap = new Map();
-        const clockStatusByEmail = new Map();
-        
-        (clockStatusRes.data || []).forEach(emp => {
-          const userId = emp.id || emp._id;
-          clockStatusMap.set(userId, emp);
-          
-          // Also index by email for fallback matching
-          if (emp.email) {
-            clockStatusByEmail.set(emp.email, emp);
-          }
-        });
-        
-        // Merge profiles with their clock status
-        const mergedData = profilesRes.map((profile, index) => {
-          // Try multiple ways to get the user ID - CRITICAL for clock operations
-          const userId = profile.userId?._id || profile.userId || profile._id;
-          const email = profile.email || profile.userId?.email;
-          
-          // Try to find clock status by userId first, then by email as fallback
-          let clockStatus = clockStatusMap.get(userId);
-          
-          // If no clock status found by userId, try to find by email
-          if (!clockStatus && email) {
-            clockStatus = clockStatusByEmail.get(email);
-          }
-          
-          // Default to empty object if still not found
-          clockStatus = clockStatus || {};
-          
-          // Debug logging for first few employees
-          if (index < 5) {
-            console.log(`🔍 Employee ${index} - Merged Data:`, {
-              firstName: profile.firstName,
-              lastName: profile.lastName,
-              userId: profile.userId,
-              profileId: profile._id,
-              extractedUserId: userId,
-              email: email,
-              clockStatus: clockStatus.status,
-              timeEntryId: clockStatus.timeEntryId,
-              hasClockStatus: !!clockStatus.status
-            });
-          }
-          
-          if (!userId) {
-            console.warn(`⚠️ Missing userId for profile:`, profile);
-          }
-          
-          return {
-            id: userId, // CRITICAL: This is the user account ID used for clock operations
-            _id: userId, // Duplicate for compatibility
-            profileId: profile._id, // Keep the original profile ID
-            firstName: profile.firstName,
-            lastName: profile.lastName,
-            name: `${profile.firstName} ${profile.lastName}`,
-            email: email,
-            department: profile.department || '-',
-            vtid: profile.vtid || '-',
-            mobile: profile.mobile || null, // Mobile number for timesheet modal
-            jobTitle: profile.jobTitle || profile.role || '-',
-            jobRole: profile.jobTitle || profile.role || '-',
-            profilePicture: profile.profilePicture || null,
-            role: profile.userId?.role || 'employee',
-            company: profile.company || '-',
-            staffType: profile.staffType || '-',
-            poc: profile.poc || '-',
-            // Clock status data - CRITICAL for button functionality
-            status: clockStatus.status || null,
-            clockIn: clockStatus.clockIn || null,
-            clockOut: clockStatus.clockOut || null,
-            location: clockStatus.location || null,
-            workType: clockStatus.workType || null,
-            timeEntryId: clockStatus.timeEntryId || null, // CRITICAL: Required for edit/delete operations
-            leaveType: clockStatus.leaveType || null,
-            leaveReason: clockStatus.leaveReason || null
-          };
-        });
-        
-        console.log(`✅ Merged ${mergedData.length} profiles with clock status`);
-        setEmployees(mergedData);
-        
-        // Calculate stats from merged data if dashboard API fails
+
+      if (employeesRes?.success) {
+        setEmployees(employeesRes.data || []);
         if (!statsRes.success) {
-          calculateStatsFromEmployees(mergedData);
+          calculateStatsFromEmployees(employeesRes.data || []);
         }
       } else {
-        console.warn('⚠️ Profile or clock status fetch failed');
+        console.warn('⚠️ EmployeeHub clock status fetch failed');
         setEmployees([]);
         setStats({ clockedIn: 0, onBreak: 0, clockedOut: 0, total: 0 });
       }
-      
+
       if (statsRes.success && statsRes.data) {
         console.log('✅ Stats loaded from API:', statsRes.data);
         setStats(statsRes.data);
         setStatsLoading(false);
       } else {
         console.warn('⚠️ Stats fetch failed, calculating from employee list');
-        calculateStatsFromEmployees(employees);
+        calculateStatsFromEmployees(employeesRes?.data || employees);
       }
     } catch (error) {
       console.error('❌ Fetch data error:', error);

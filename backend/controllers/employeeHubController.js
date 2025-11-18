@@ -1,6 +1,9 @@
 const EmployeeHub = require('../models/EmployeesHub');
 const Team = require('../models/Team');
 const User = require('../models/User');
+const TimeEntry = require('../models/TimeEntry');
+const ShiftAssignment = require('../models/ShiftAssignment');
+const LeaveRecord = require('../models/LeaveRecord');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 
@@ -42,6 +45,153 @@ exports.getAllEmployees = async (req, res) => {
       success: false,
       message: 'Error fetching employees',
       error: error.message
+    });
+  }
+};
+
+/**
+ * Get EmployeeHub records merged with live clock status.
+ */
+exports.getEmployeesWithClockStatus = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const employees = await EmployeeHub.find({
+      userId: { $exists: true, $ne: null },
+      isActive: { $ne: false }
+    })
+      .populate('userId', 'firstName lastName email role userType isActive deleted')
+      .lean();
+
+    const validEmployees = employees.filter(emp =>
+      emp.userId &&
+      emp.userId._id &&
+      emp.userId.userType === 'employee' &&
+      emp.userId.isActive !== false &&
+      emp.userId.deleted !== true
+    );
+
+    const userIds = validEmployees.map(emp => emp.userId._id);
+
+    const timeEntries = await TimeEntry.find({
+      date: { $gte: today },
+      employee: { $in: userIds }
+    })
+      .sort({ date: -1, clockIn: -1 })
+      .lean();
+
+    const shiftAssignments = await ShiftAssignment.find({
+      date: { $gte: today, $lt: tomorrow },
+      employeeId: { $in: userIds }
+    }).lean();
+
+    const leaveRecords = await LeaveRecord.find({
+      status: 'approved',
+      startDate: { $lte: tomorrow },
+      endDate: { $gte: today },
+      user: { $in: userIds }
+    }).lean();
+
+    const statusMap = {};
+    timeEntries.forEach(entry => {
+      const empId = entry.employee?.toString();
+      if (!empId) return;
+
+      const existing = statusMap[empId];
+      const shouldUpdate = !existing ||
+        (entry.status === 'clocked_in' && existing.status !== 'clocked_in') ||
+        (entry.status === 'on_break' && existing.status === 'clocked_out');
+
+      if (shouldUpdate) {
+        statusMap[empId] = {
+          status: entry.status,
+          clockIn: entry.clockIn,
+          clockOut: entry.clockOut,
+          location: entry.location,
+          workType: entry.workType,
+          timeEntryId: entry._id
+        };
+      }
+    });
+
+    const leaveMap = {};
+    leaveRecords.forEach(record => {
+      if (!record.user) return;
+      leaveMap[record.user.toString()] = {
+        type: record.type,
+        reason: record.reason
+      };
+    });
+
+    const shiftMap = new Map();
+    shiftAssignments.forEach(shift => {
+      if (shift.employeeId) {
+        shiftMap.set(shift.employeeId.toString(), shift);
+      }
+    });
+
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    const data = validEmployees.map(emp => {
+      const empId = emp.userId._id.toString();
+      const statusEntry = statusMap[empId];
+      const leave = leaveMap[empId];
+      let employeeStatus = statusEntry?.status || null;
+
+      if (leave) {
+        employeeStatus = 'on_leave';
+      } else if (!employeeStatus && shiftMap.has(empId)) {
+        const shift = shiftMap.get(empId);
+        if (currentTime > shift.startTime) {
+          employeeStatus = 'absent';
+        }
+      }
+
+      return {
+        id: emp.userId._id,
+        _id: emp.userId._id,
+        employeeHubId: emp._id,
+        firstName: emp.userId.firstName || emp.firstName,
+        lastName: emp.userId.lastName || emp.lastName,
+        name: `${emp.userId.firstName || emp.firstName || ''} ${emp.userId.lastName || emp.lastName || ''}`.trim(),
+        email: emp.userId.email,
+        department: emp.department || '-',
+        jobTitle: emp.jobTitle || emp.role || '-',
+        jobRole: emp.jobTitle || emp.role || '-',
+        team: emp.team || '-',
+        company: emp.company || '-',
+        staffType: emp.staffType || '-',
+        profilePicture: emp.profilePhoto || null,
+        role: emp.userId.role || 'employee',
+        status: employeeStatus,
+        clockIn: statusEntry?.clockIn || null,
+        clockOut: statusEntry?.clockOut || null,
+        location: statusEntry?.location || null,
+        workType: statusEntry?.workType || null,
+        timeEntryId: statusEntry?.timeEntryId || null,
+        leaveType: leave?.type || null,
+        leaveReason: leave?.reason || null,
+        vtid: emp.employeeId || '-',
+        mobile: emp.workPhone || emp.phone || emp.mobile || null,
+        profilePhoto: emp.profilePhoto || null,
+        salary: emp.salary || null
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+  } catch (error) {
+    console.error('Error fetching employees with clock status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching employees with clock status'
     });
   }
 };
