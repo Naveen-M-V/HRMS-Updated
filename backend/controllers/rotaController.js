@@ -2,6 +2,7 @@ const Rota = require('../models/Rota');
 const Shift = require('../models/Shift');
 const ShiftAssignment = require('../models/ShiftAssignment');
 const User = require('../models/User');
+const EmployeesHub = require('../models/EmployeesHub');
 const TimeEntry = require('../models/TimeEntry');
 const mongoose = require('mongoose');
 
@@ -84,105 +85,34 @@ exports.assignShiftToEmployee = async (req, res) => {
       });
     }
 
-    // Check if employee exists in User collection OR Profile collection
+    // Check if employee exists in User collection OR EmployeeHub collection
     console.log('Looking up employee with ID:', employeeId);
     let employee = await User.findById(employeeId);
     let actualEmployeeId = employeeId;
     
     if (!employee) {
-      console.log('Not found in User collection, checking Profile collection...');
-      // Check if this is a Profile ID instead
-      const Profile = mongoose.model('Profile');
-      const profile = await Profile.findById(employeeId);
-      console.log('Profile lookup result:', profile ? 'Found' : 'Not found');
+      console.log('Not found in User collection, checking EmployeeHub collection...');
+      const employeeHub = await EmployeesHub.findById(employeeId);
+      console.log('EmployeeHub lookup result:', employeeHub ? 'Found' : 'Not found');
       
-      if (profile) {
-        if (profile.userId) {
-          // Use the profile's userId
-          console.log('Found profile, looking up user with userId:', profile.userId);
-          employee = await User.findById(profile.userId);
-          actualEmployeeId = profile.userId;
+      if (employeeHub) {
+        if (employeeHub.userId) {
+          console.log('Found employee, looking up user with userId:', employeeHub.userId);
+          employee = await User.findById(employeeHub.userId);
+          actualEmployeeId = employeeHub.userId;
           console.log('User lookup result:', employee ? 'Found' : 'Not found');
         } else {
-          // Profile exists but no userId - try to find existing user by email first
-          console.log('Profile found but no userId. Looking for existing user by email...');
-          const existingUser = await User.findOne({ email: profile.email });
-          
-          if (existingUser) {
-            // User exists, link it to the profile
-            console.log('✅ Found existing user by email:', existingUser._id);
-            profile.userId = existingUser._id;
-            await profile.save();
-            employee = existingUser;
-            actualEmployeeId = existingUser._id;
-            console.log('✅ Linked profile to existing user');
-          } else {
-            // No user exists, create one
-            console.log('No existing user found. Creating new user...');
-            try {
-              const newUser = new User({
-                email: profile.email,
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                role: 'user',
-                password: Math.random().toString(36).slice(-8)
-              });
-              await newUser.save();
-              
-              profile.userId = newUser._id;
-              await profile.save();
-              
-              employee = newUser;
-              actualEmployeeId = newUser._id;
-              console.log('✅ Created new user:', newUser._id);
-            } catch (createError) {
-              console.error('❌ Error creating user for profile:', createError);
-              // If user creation fails, just use the profile ID
-              actualEmployeeId = employeeId;
-              employee = { _id: employeeId, email: profile.email, firstName: profile.firstName, lastName: profile.lastName };
-            }
-          }
-        }
-      } else {
-        // Not found in Profile, check EmployeesHub collection
-        console.log('Not found in Profile collection, checking EmployeesHub collection...');
-        const EmployeeHub = mongoose.model('EmployeeHub');
-        const employeeHub = await EmployeeHub.findById(employeeId);
-        console.log('EmployeeHub lookup result:', employeeHub ? 'Found' : 'Not found');
-        
-        if (employeeHub) {
-          // Try to find existing user by email first
-          console.log('EmployeeHub found. Looking for existing user by email...');
+          // EmployeeHub exists but no userId - should not happen with new system
+          console.log('EmployeeHub found but no userId. Looking for existing user by email...');
           const existingUser = await User.findOne({ email: employeeHub.email });
           
           if (existingUser) {
-            // User exists, use it
             console.log('✅ Found existing user by email:', existingUser._id);
+            employeeHub.userId = existingUser._id;
+            await employeeHub.save();
             employee = existingUser;
             actualEmployeeId = existingUser._id;
-            console.log('✅ Using existing user for EmployeeHub record');
-          } else {
-            // No user exists, create one
-            console.log('No existing user found. Creating new user for EmployeeHub record...');
-            try {
-              const newUser = new User({
-                email: employeeHub.email,
-                firstName: employeeHub.firstName,
-                lastName: employeeHub.lastName,
-                role: 'user',
-                password: Math.random().toString(36).slice(-8)
-              });
-              await newUser.save();
-              
-              employee = newUser;
-              actualEmployeeId = newUser._id;
-              console.log('✅ Created new user for EmployeeHub:', newUser._id);
-            } catch (createError) {
-              console.error('❌ Error creating user for EmployeeHub:', createError);
-              // If user creation fails, just use the EmployeeHub ID
-              actualEmployeeId = employeeId;
-              employee = { _id: employeeId, email: employeeHub.email, firstName: employeeHub.firstName, lastName: employeeHub.lastName };
-            }
+            console.log('✅ Linked employee to existing user');
           }
         }
       }
@@ -191,14 +121,13 @@ exports.assignShiftToEmployee = async (req, res) => {
     }
     
     if (!employee) {
-      console.error('Employee not found in User, Profile, or EmployeesHub:', employeeId);
+      console.error('Employee not found in User or EmployeesHub:', employeeId);
       return res.status(404).json({
         success: false,
         message: 'Employee not found in system',
         debug: {
           searchedId: employeeId,
           checkedUser: true,
-          checkedProfile: true,
           checkedEmployeesHub: true
         }
       });

@@ -15,13 +15,16 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
+  // Check if user is an employee (has full features) or profile (certificate-only)
+  const isEmployeeUser = user?.userType === 'employee';
+
   const navigationItems = [
-    { id: 'overview', name: 'Overview', icon: HomeIcon },
-    { id: 'profile', name: 'My Profile', icon: UserCircleIcon },
-    { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon },
-    { id: 'certificates', name: 'Certificates', icon: DocumentTextIcon },
-    { id: 'notifications', name: 'Notifications', icon: BellIcon, badge: notifications?.length || 0 },
-  ];
+    { id: 'overview', name: 'Overview', icon: HomeIcon, showForProfile: false },
+    { id: 'profile', name: 'My Profile', icon: UserCircleIcon, showForProfile: true },
+    { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon, showForProfile: false },
+    { id: 'certificates', name: 'Certificates', icon: DocumentTextIcon, showForProfile: true },
+    { id: 'notifications', name: 'Notifications', icon: BellIcon, badge: notifications?.length || 0, showForProfile: true },
+  ].filter(item => isEmployeeUser || item.showForProfile);
 
   return (
     <nav className="bg-white shadow-sm border-b sticky top-0 z-40">

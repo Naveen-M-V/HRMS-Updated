@@ -35,8 +35,12 @@ const UserDashboard = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Get initial tab from URL or default to 'overview'
-  const initialTab = searchParams.get('tab') || 'overview';
+  // Check if user is an employee (full features) or profile (certificate-only)
+  const isEmployeeUser = user?.userType === 'employee';
+  
+  // Default tab based on user type
+  const defaultTab = isEmployeeUser ? 'overview' : 'certificates';
+  const initialTab = searchParams.get('tab') || defaultTab;
   
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
@@ -730,7 +734,8 @@ const UserDashboard = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Overview Tab */}
-        {activeTab === 'overview' && (
+        {/* Overview Tab - Only for Employee Users */}
+        {activeTab === 'overview' && isEmployeeUser && (
           <div className="space-y-6">
             {/* Clock In/Out Widget */}
             <div className="bg-white shadow-md rounded-lg p-8">
@@ -1190,7 +1195,8 @@ const UserDashboard = () => {
         )}
 
         {/* Clock-ins Tab */}
-        {activeTab === 'clock-ins' && (
+        {/* Clock-ins Tab - Only for Employee Users */}
+        {activeTab === 'clock-ins' && isEmployeeUser && (
           <div style={{ margin: '-32px', padding: '0' }}>
             <UserClockIns />
           </div>

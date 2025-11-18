@@ -42,7 +42,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import UserDashboard from "./pages/UserDashboard";
-import CreateUser from "./pages/CreateUser";
+// import CreateUser from "./pages/CreateUser"; // Removed - employees should be created via Employee Hub
 import UserCertificateCreate from "./pages/UserCertificateCreate";
 import UserCertificateView from "./pages/UserCertificateView";
 import AdminDetailsModal from "./pages/AdminDetailsModal";
@@ -262,10 +262,11 @@ function App() {
                                     path="/dashboard/profilescreate"
                                     element={<ProfilesCreate />}
                                   />
-                                  <Route
+                                  {/* <Route
                                     path="/create-user"
                                     element={<CreateUser />}
-                                  />
+                                  /> */}
+                                  {/* Removed - employees should be created via Employee Hub */}
                                   <Route
                                     path="/profiles/:id"
                                     element={<ProfileDetailView />}

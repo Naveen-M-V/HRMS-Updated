@@ -15,6 +15,22 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'user'], 
     default: 'user' 
   },
+  userType: {
+    type: String,
+    enum: ['profile', 'employee'],
+    default: 'profile',
+    required: true
+  },
+  employeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'EmployeesHub',
+    default: null
+  },
+  profileId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Profile',
+    default: null
+  },
   isActive: { type: Boolean, default: true },
   isEmailVerified: { type: Boolean, default: false },
   verificationToken: String,

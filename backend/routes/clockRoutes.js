@@ -3,6 +3,7 @@ const router = express.Router();
 const moment = require('moment-timezone');
 const TimeEntry = require('../models/TimeEntry');
 const User = require('../models/User');
+const EmployeesHub = require('../models/EmployeesHub');
 const LeaveRecord = require('../models/LeaveRecord');
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
 const {
@@ -388,38 +389,38 @@ router.get('/dashboard', async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get Profile model to count total active employees
-    const Profile = require('mongoose').model('Profile');
+    // Get EmployeeHub model to count total active employees with userType='employee'
     const ShiftAssignment = require('../models/ShiftAssignment');
     
-    // Get only ACTIVE profiles with valid user accounts
-    const profiles = await Profile.find({
-      isActive: { $ne: false },
+    // Get only ACTIVE employees with valid user accounts (userType='employee')
+    const employees = await EmployeesHub.find({
       userId: { $exists: true, $ne: null }
     })
-      .populate('userId', 'role')
+      .populate({
+        path: 'userId',
+        match: { userType: 'employee', isActive: { $ne: false }, deleted: { $ne: true } }
+      })
       .lean();
 
-    // Include ALL users (employees + admins) in dashboard stats
-    const validProfiles = profiles.filter(profile => 
-      profile.userId && 
-      profile.userId._id &&
-      profile.userId.deleted !== true &&
-      profile.userId.isActive !== false
+    // Filter out employees without valid userId
+    const validEmployees = employees.filter(emp => 
+      emp.userId && 
+      emp.userId._id &&
+      emp.userId.userType === 'employee'
     );
 
-    // Also include admin users who don't have profiles
-    const profileUserIds = profiles.map(p => p.userId?._id?.toString()).filter(Boolean);
+    // Also include admin users for clock-in tracking
+    const employeeUserIds = validEmployees.map(e => e.userId._id.toString()).filter(Boolean);
     const adminUsers = await User.find({
       role: 'admin',
-      _id: { $nin: profileUserIds },
+      _id: { $nin: employeeUserIds },
       isActive: { $ne: false },
       deleted: { $ne: true }
     }).select('_id').lean();
 
-    const totalEmployees = validProfiles.length + adminUsers.length;
+    const totalEmployees = validEmployees.length + adminUsers.length;
     const allUserIds = [
-      ...validProfiles.map(p => p.userId._id),
+      ...validEmployees.map(e => e.userId._id),
       ...adminUsers.map(a => a._id)
     ];
 

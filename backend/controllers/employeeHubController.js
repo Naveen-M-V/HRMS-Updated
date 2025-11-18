@@ -1,5 +1,7 @@
 const EmployeeHub = require('../models/EmployeesHub');
 const Team = require('../models/Team');
+const User = require('../models/User');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 
 /**
@@ -117,8 +119,38 @@ exports.createEmployee = async (req, res) => {
       });
     }
     
+    // Check if user with same email already exists
+    const existingUser = await User.findOne({ email: employeeData.email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User account with this email already exists'
+      });
+    }
+    
     // Create new employee
     const employee = await EmployeeHub.create(employeeData);
+    
+    // Generate random password for user account
+    const temporaryPassword = crypto.randomBytes(8).toString('hex');
+    
+    // Create User account with userType='employee'
+    const user = await User.create({
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      password: temporaryPassword, // Will be hashed by pre-save hook
+      userType: 'employee', // Employee users have full features
+      employeeId: employee._id,
+      role: 'user',
+      isActive: true,
+      isEmailVerified: true,
+      isAdminApproved: true
+    });
+    
+    // Link user back to employee
+    employee.userId = user._id;
+    await employee.save();
     
     // If team is specified, add employee to team
     if (employeeData.team) {
@@ -128,10 +160,16 @@ exports.createEmployee = async (req, res) => {
       }
     }
     
+    // Return credentials in response (should be emailed in production)
     res.status(201).json({
       success: true,
-      message: 'Employee created successfully',
-      data: employee
+      message: 'Employee and user account created successfully',
+      data: employee,
+      credentials: {
+        email: employee.email,
+        temporaryPassword,
+        message: 'IMPORTANT: Save these credentials and share with employee'
+      }
     });
   } catch (error) {
     if (error.name === 'ValidationError') {

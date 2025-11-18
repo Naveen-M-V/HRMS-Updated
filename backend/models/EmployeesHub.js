@@ -132,6 +132,13 @@ const employeeHubSchema = new mongoose.Schema({
     default: null
   },
   
+  // User Account Link
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  
   // Status
   status: {
     type: String,

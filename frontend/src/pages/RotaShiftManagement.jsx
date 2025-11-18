@@ -106,9 +106,9 @@ const RotaShiftManagement = () => {
     try {
       console.log('🔄 Fetching rota data...');
       
-      // Fetch profiles instead of clock status for employee list
-      const profilesResponse = await axios.get(
-        buildApiUrl('/profiles'),
+      // Fetch employees from EmployeeHub (userType='employee') for shift assignment
+      const employeesResponse = await axios.get(
+        buildApiUrl('/employees'),
         { withCredentials: true }
       );
       
@@ -125,7 +125,7 @@ const RotaShiftManagement = () => {
         getShiftStatistics(filters.startDate, filters.endDate)
       ]);
       
-      console.log('📋 Profiles Response:', profilesResponse.data);
+      console.log('📋 Employees Response:', employeesResponse.data);
       console.log('👥 Teams Response:', teamsResponse.data);
       console.log('📅 Shifts Response:', shiftsRes);
       console.log('📊 Total shifts received:', shiftsRes.data?.length || 0);
@@ -157,25 +157,25 @@ const RotaShiftManagement = () => {
       }
       if (statsRes.success) setStatistics(statsRes.data);
       
-      // Build comprehensive employee list from profiles AND shifts
+      // Build comprehensive employee list from EmployeeHub AND shifts
       const employeeList = [];
       const employeeIds = new Set();
       
-      // First, add all employees from profiles
-      if (profilesResponse.data) {
-        profilesResponse.data.forEach(profile => {
-          const userId = profile.userId?._id || profile.userId || profile._id;
+      // First, add all employees from EmployeeHub (userType='employee')
+      if (employeesResponse.data) {
+        employeesResponse.data.forEach(employee => {
+          const userId = employee.userId?._id || employee.userId || employee._id;
           const idString = typeof userId === 'object' ? userId.toString() : userId;
           
           if (!employeeIds.has(idString)) {
             employeeList.push({
               id: idString,
               _id: idString,
-              firstName: profile.firstName,
-              lastName: profile.lastName,
-              email: profile.email,
-              role: profile.userId?.role || profile.role || 'employee',
-              name: `${profile.firstName} ${profile.lastName}`
+              firstName: employee.firstName,
+              lastName: employee.lastName,
+              email: employee.email,
+              role: employee.userId?.role || 'employee',
+              name: `${employee.firstName} ${employee.lastName}`
             });
             employeeIds.add(idString);
           }

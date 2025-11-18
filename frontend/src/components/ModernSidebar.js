@@ -275,17 +275,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                 <span>Profiles</span>
               </button>
 
-              <button
-                onClick={() => handleNavigation("/create-user")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/create-user")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                }`}
-              >
-                <UserPlusIcon className="h-4 w-4" />
-                <span>Create User</span>
-              </button>
+              {/* Create User button removed - employees should be created via Employee Hub */}
 
               <button
                 onClick={() => handleNavigation("/certificates")}

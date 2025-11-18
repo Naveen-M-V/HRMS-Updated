@@ -913,6 +913,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
           password: generatedPassword, // Password will be hashed by pre-save hook
           vtid: savedProfile.vtid.toString(), // Store VTID in User for VTID-based login
           role: 'user',
+          userType: 'profile', // Profile users: certificate management only
           isActive: true,
           emailVerified: true, // Auto-verify user accounts created by admin
           profileId: savedProfile._id
@@ -2662,7 +2663,9 @@ app.post('/api/auth/login', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         vtid: user.vtid,
-        profileId: user.profileId
+        userType: user.userType || 'profile',
+        employeeId: user.employeeId || null,
+        profileId: user.profileId || null
       };
 
       // Generate JWT token
@@ -2759,7 +2762,10 @@ app.get('/api/auth/validate-session', (req, res) => {
         firstName: req.session.user.firstName,
         lastName: req.session.user.lastName,
         email: req.session.user.email,
-        role: req.session.user.role
+        role: req.session.user.role,
+        userType: req.session.user.userType || 'profile',
+        employeeId: req.session.user.employeeId || null,
+        profileId: req.session.user.profileId || null
       }
     });
   }
