@@ -638,7 +638,7 @@ router.get('/status', async (req, res) => {
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
     // Build response with valid employees only
-    const employeeStatus = validProfiles.map(profile => {
+    const employeeStatus = validEmployees.map(profile => {
         const empId = profile.userId._id.toString();
         const status = statusMap[empId];
         const leave = leaveMap[empId];
@@ -653,10 +653,10 @@ router.get('/status', async (req, res) => {
           lastName: profile.userId.lastName,
           email: profile.userId.email,
           department: profile.department || '-',
-          vtid: profile.vtid || '-',
+          vtid: profile.employeeId || '-',
           jobTitle: profile.jobTitle || '-',
           jobRole: profile.jobTitle || '-',
-          profilePicture: profile.profilePicture || null,
+          profilePicture: profile.profilePhoto || null,
           role: profile.userId.role || 'employee',
           status: 'on_leave',
           clockIn: null,
@@ -689,10 +689,10 @@ router.get('/status', async (req, res) => {
         lastName: profile.userId.lastName,
         email: profile.userId.email,
         department: profile.department || '-',
-        vtid: profile.vtid || '-',
+        vtid: profile.employeeId || '-',
         jobTitle: profile.jobTitle || '-',
         jobRole: profile.jobTitle || '-',
-        profilePicture: profile.profilePicture || null,
+        profilePicture: profile.profilePhoto || null,
         role: profile.userId.role || 'employee',
         status: employeeStatus,
         clockIn: status?.clockIn || null,
