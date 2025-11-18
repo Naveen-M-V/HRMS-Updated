@@ -519,63 +519,52 @@ router.get('/status', async (req, res) => {
     // Check if admins should be included
     const includeAdmins = req.query.includeAdmins === 'true';
 
-    // Get Profile model from server.js (since it's defined there)
-    const Profile = require('mongoose').model('Profile');
     const ShiftAssignment = require('../models/ShiftAssignment');
+    const EmployeeHub = require('../models/EmployeesHub');
 
-    // Get only ACTIVE profiles with valid user accounts
-    const profiles = await Profile.find({
-      isActive: { $ne: false },  // Only active profiles
-      userId: { $exists: true, $ne: null }  // Must have a userId
+    const employeeHubRows = await EmployeeHub.find({
+      userId: { $exists: true, $ne: null },
+      isActive: { $ne: false }
     })
-      .populate('userId', 'firstName lastName email _id role')
-      .select('userId firstName lastName email department jobTitle vtid profilePicture')
+      .populate('userId', 'firstName lastName email _id role userType isActive deleted')
+      .select('userId firstName lastName email department jobTitle profilePhoto employeeId team company staffType workPhone phone mobile')
       .lean();
 
-    // Filter profiles based on includeAdmins parameter and user account status
-    let validProfiles = profiles.filter(profile => {
-      if (!profile.userId || !profile.userId._id) return false;
-      
-      // Exclude deleted or inactive user accounts
-      if (profile.userId.deleted === true || profile.userId.isActive === false) return false;
-      
-      // If includeAdmins is true, include all profiles
-      if (includeAdmins) return true;
-      
-      // Otherwise, exclude admins
-      return profile.userId.role !== 'admin';
+    let validEmployees = employeeHubRows.filter(emp => {
+      if (!emp.userId || !emp.userId._id) return false;
+      if (emp.userId.deleted === true || emp.userId.isActive === false) return false;
+      if (emp.userId.userType !== 'employee') return false;
+      if (!includeAdmins && emp.userId.role === 'admin') return false;
+      return true;
     });
 
-    // If includeAdmins is true, also fetch admin users who don't have profiles
     if (includeAdmins) {
-      const profileUserIds = profiles.map(p => p.userId?._id?.toString()).filter(Boolean);
-      
-      // Find admin users without profiles (exclude deleted/inactive)
+      const employeeUserIds = validEmployees.map(e => e.userId._id.toString()).filter(Boolean);
       const adminUsers = await User.find({
         role: 'admin',
-        _id: { $nin: profileUserIds },
+        _id: { $nin: employeeUserIds },
         isActive: { $ne: false },
         deleted: { $ne: true }
       }).select('firstName lastName email _id role').lean();
 
-      // Add admin users as "virtual profiles"
       adminUsers.forEach(admin => {
-        validProfiles.push({
+        validEmployees.push({
           userId: admin,
           firstName: admin.firstName,
           lastName: admin.lastName,
           email: admin.email,
           department: 'Administration',
           jobTitle: 'Administrator',
-          vtid: '-',
-          profilePicture: null
+          profilePhoto: null,
+          employeeId: '-',
+          team: '-',
+          company: '-',
+          staffType: '-'
         });
       });
     }
 
-    // Get all valid user IDs
-    const allUserIds = validProfiles.map(p => p.userId._id);
-    const employeeIdSet = new Set(allUserIds.map(id => id.toString()));
+    const allUserIds = validEmployees.map(emp => emp.userId._id);
 
     // Get today's time entries for all employees
     // Sort by date and clockIn descending to get the most recent entry first

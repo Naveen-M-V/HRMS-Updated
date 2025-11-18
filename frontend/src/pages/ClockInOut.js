@@ -32,22 +32,30 @@ const ClockInOut = () => {
 
   const fetchClockStatus = async () => {
     try {
-      const [statusRes, statsRes] = await Promise.all([
+      const [statusRes, statsRes, employeesRes] = await Promise.all([
         getClockStatus({ includeAdmins: true }),
-        getDashboardStats()
+        getDashboardStats(),
+        fetch(`${process.env.REACT_APP_API_URL || 'https://talentshield.co.uk'}/api/employees/with-clock-status`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            'Accept': 'application/json'
+          }
+        }).then(res => res.json())
       ]);
       
-      if (statusRes.success) {
+      if (employeesRes?.success) {
+        setClockData(employeesRes.data || []);
+      } else if (statusRes.success) {
         setClockData(statusRes.data || []);
       } else {
         setClockData([]);
       }
       
-      // Use API stats if available, otherwise calculate from data
       if (statsRes.success && statsRes.data) {
         setStats(statsRes.data);
       } else {
-        calculateStats(statusRes.data || []);
+        calculateStats(statusRes.data || clockData);
       }
     } catch (error) {
       console.error('Clock status error:', error);
