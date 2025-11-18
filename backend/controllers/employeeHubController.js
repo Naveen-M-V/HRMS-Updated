@@ -69,7 +69,7 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
     const validEmployees = employees.filter(emp =>
       emp.userId &&
       emp.userId._id &&
-      emp.userId.userType === 'employee' &&
+      (emp.userId.userType === 'employee' || !emp.userId.userType) &&
       emp.userId.isActive !== false &&
       emp.userId.deleted !== true
     );
