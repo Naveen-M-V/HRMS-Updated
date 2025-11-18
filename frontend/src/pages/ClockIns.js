@@ -1089,7 +1089,7 @@ const ClockIns = () => {
             <div style={{ fontSize: '24px', fontWeight: '700', color: '#6b7280' }}>
               {statsLoading ? '...' : (stats?.total ?? employees.length)}
             </div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>All Profiles</div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>All Employees</div>
           </div>
           <div 
             onClick={() => setStatusFilter(statusFilter === 'clocked_in' ? null : 'clocked_in')}

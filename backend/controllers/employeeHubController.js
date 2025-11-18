@@ -60,13 +60,12 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const employees = await EmployeeHub.find({
-      userId: { $exists: true, $ne: null },
       isActive: { $ne: false }
     })
       .populate('userId', 'firstName lastName email role userType isActive deleted')
       .lean();
 
-    const validEmployees = employees.filter(emp =>
+    const employeesWithUser = employees.filter(emp =>
       emp.userId &&
       emp.userId._id &&
       (emp.userId.userType === 'employee' || !emp.userId.userType) &&
@@ -74,7 +73,7 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
       emp.userId.deleted !== true
     );
 
-    const userIds = validEmployees.map(emp => emp.userId._id);
+    const userIds = employeesWithUser.map(emp => emp.userId._id);
 
     const timeEntries = await TimeEntry.find({
       date: { $gte: today },
@@ -136,29 +135,31 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-    const data = validEmployees.map(emp => {
-      const empId = emp.userId._id.toString();
-      const statusEntry = statusMap[empId];
-      const leave = leaveMap[empId];
+    const data = employees.map(emp => {
+      const userId = emp.userId?._id?.toString();
+      const empId = userId || (emp._id && emp._id.toString());
+      const statusEntry = userId ? statusMap[userId] : null;
+      const leave = userId ? leaveMap[userId] : null;
       let employeeStatus = statusEntry?.status || null;
 
       if (leave) {
         employeeStatus = 'on_leave';
-      } else if (!employeeStatus && shiftMap.has(empId)) {
-        const shift = shiftMap.get(empId);
+      } else if (!employeeStatus && shiftMap.has(userId || emp._id?.toString())) {
+        const shift = shiftMap.get(userId || emp._id?.toString());
         if (currentTime > shift.startTime) {
           employeeStatus = 'absent';
         }
       }
 
       return {
-        id: emp.userId._id,
-        _id: emp.userId._id,
+        id: userId || empId,
+        _id: userId || empId,
         employeeHubId: emp._id,
-        firstName: emp.userId.firstName || emp.firstName,
-        lastName: emp.userId.lastName || emp.lastName,
-        name: `${emp.userId.firstName || emp.firstName || ''} ${emp.userId.lastName || emp.lastName || ''}`.trim(),
-        email: emp.userId.email,
+        userId: userId || null,
+        firstName: emp.userId?.firstName || emp.firstName,
+        lastName: emp.userId?.lastName || emp.lastName,
+        name: `${emp.userId?.firstName || emp.firstName || ''} ${emp.userId?.lastName || emp.lastName || ''}`.trim(),
+        email: emp.userId?.email || emp.email,
         department: emp.department || '-',
         jobTitle: emp.jobTitle || emp.role || '-',
         jobRole: emp.jobTitle || emp.role || '-',
@@ -166,7 +167,7 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
         company: emp.company || '-',
         staffType: emp.staffType || '-',
         profilePicture: emp.profilePhoto || null,
-        role: emp.userId.role || 'employee',
+        role: emp.userId?.role || 'employee',
         status: employeeStatus,
         clockIn: statusEntry?.clockIn || null,
         clockOut: statusEntry?.clockOut || null,
