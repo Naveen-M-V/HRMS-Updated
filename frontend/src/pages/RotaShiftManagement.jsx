@@ -162,8 +162,8 @@ const RotaShiftManagement = () => {
       const employeeIds = new Set();
       
       // First, add all employees from EmployeeHub (userType='employee')
-      if (employeesResponse.data) {
-        employeesResponse.data.forEach(employee => {
+      if (employeesResponse.data && employeesResponse.data.success && employeesResponse.data.data) {
+        employeesResponse.data.data.forEach(employee => {
           const userId = employee.userId?._id || employee.userId || employee._id;
           const idString = typeof userId === 'object' ? userId.toString() : userId;
           
@@ -237,7 +237,7 @@ const RotaShiftManagement = () => {
         console.log('\n=== Employee extraction complete ===');
       }
       
-      console.log(`✅ Loaded ${employeeList.length} total employees (${employeesResponse.data?.length || 0} from EmployeeHub + ${employeeList.length - (employeesResponse.data?.length || 0)} from shifts)`);
+      console.log(`✅ Loaded ${employeeList.length} total employees (${employeesResponse.data?.data?.length || 0} from EmployeeHub + ${employeeList.length - (employeesResponse.data?.data?.length || 0)} from shifts)`);
       console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, role: e.role })));
       setEmployees(employeeList);
     } catch (error) {
