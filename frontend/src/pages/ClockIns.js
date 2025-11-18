@@ -739,7 +739,7 @@ const ClockIns = () => {
     .filter(employee => {
     const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                         employee.vtid?.toString().includes(searchTerm) ||
+                         employee.employeeId?.toString().includes(searchTerm) ||
                          employee.email?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
@@ -1070,7 +1070,10 @@ const ClockIns = () => {
         }}>
           {/* All Profiles Card */}
           <div 
-            onClick={() => setStatusFilter(null)}
+            onClick={() => {
+              setStatusFilter(null);
+              setSearchTerm('');
+            }}
             style={{
               background: statusFilter === null ? '#f3f4f6' : '#ffffff',
               borderRadius: '8px',
@@ -1249,7 +1252,7 @@ const ClockIns = () => {
             }}>
               <tr>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb', width: '60px' }}>SI No.</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>VTID</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>EMPID</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>First Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Last Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Email</th>
@@ -1298,7 +1301,7 @@ const ClockIns = () => {
                       {startIndex + index + 1}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {employee.vtid || '-'}
+                      {employee.employeeId || '-'}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
