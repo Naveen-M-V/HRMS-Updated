@@ -13,6 +13,7 @@ const {
   calculateScheduledHours,
   updateShiftStatus
 } = require('../utils/shiftTimeLinker');
+const crypto = require('crypto');
 
 /**
  * Clock Routes
@@ -90,6 +91,8 @@ router.post('/in', async (req, res) => {
     let employee = await User.findById(employeeId);
     console.log('User lookup result:', employee ? `Found: ${employee.firstName} ${employee.lastName}` : 'Not found');
     
+    let employeeHubRecord = null;
+
     if (!employee) {
       // Check if this is a Profile ID instead
       const Profile = require('mongoose').model('Profile');
@@ -102,9 +105,47 @@ router.post('/in', async (req, res) => {
         console.log('Found profile, looking up user:', profile.userId);
       }
     }
+
+    if (!employee) {
+      employeeHubRecord = await EmployeesHub.findById(employeeId);
+      console.log('EmployeeHub lookup result:', employeeHubRecord ? `Found: ${employeeHubRecord.firstName} ${employeeHubRecord.lastName}` : 'Not found');
+
+      if (employeeHubRecord) {
+        if (employeeHubRecord.userId) {
+          employee = await User.findById(employeeHubRecord.userId);
+          console.log('Linked EmployeeHub record, looking up user:', employeeHubRecord.userId);
+        } else {
+          const existingUser = await User.findOne({ email: employeeHubRecord.email });
+          if (existingUser) {
+            employee = existingUser;
+            employeeHubRecord.userId = existingUser._id;
+            await employeeHubRecord.save();
+            console.log('Linked EmployeeHub to existing user by email:', existingUser._id);
+          } else if (employeeHubRecord.email) {
+            const generatedPassword = crypto.randomBytes(8).toString('hex');
+            const newUser = await User.create({
+              firstName: employeeHubRecord.firstName || 'Employee',
+              lastName: employeeHubRecord.lastName || 'User',
+              email: employeeHubRecord.email,
+              password: generatedPassword,
+              userType: 'employee',
+              role: 'user',
+              isActive: true,
+              isEmailVerified: true,
+              isAdminApproved: true,
+              employeeId: employeeHubRecord._id
+            });
+            employeeHubRecord.userId = newUser._id;
+            await employeeHubRecord.save();
+            employee = newUser;
+            console.log('Auto-created user from EmployeeHub record:', newUser._id);
+          }
+        }
+      }
+    }
     
     if (!employee) {
-      console.error('Employee not found in User or Profile:', employeeId);
+      console.error('Employee not found in User/Profile/EmployeeHub:', employeeId);
       return res.status(404).json({
         success: false,
         message: 'Employee not found in system. Please ensure user account exists.'

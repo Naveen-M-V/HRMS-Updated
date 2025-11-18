@@ -181,62 +181,7 @@ const RotaShiftManagement = () => {
         });
       }
       
-      // Second, add any employees from shifts that aren't in profiles (e.g., admins without profiles)
-      if (shiftsRes.success && shiftsRes.data) {
-        console.log('🔍 Checking shifts for missing employees...');
-        console.log('Total shifts to check:', shiftsRes.data.length);
-        
-        shiftsRes.data.forEach((shift, idx) => {
-          console.log(`\n--- Checking shift ${idx + 1} ---`);
-          console.log('shift.employeeId:', shift.employeeId);
-          console.log('typeof:', typeof shift.employeeId);
-          console.log('has firstName:', !!shift.employeeId?.firstName);
-          
-          if (shift.employeeId && typeof shift.employeeId === 'object' && shift.employeeId.firstName) {
-            console.log('✓ Has employeeId object with firstName');
-            
-            // Extract the user ID - try multiple possible locations
-            let userId;
-            if (shift.employeeId._id) {
-              userId = typeof shift.employeeId._id === 'object' ? shift.employeeId._id.toString() : shift.employeeId._id;
-              console.log('✓ Found _id:', userId);
-            } else if (shift.employeeId.id) {
-              userId = typeof shift.employeeId.id === 'object' ? shift.employeeId.id.toString() : shift.employeeId.id;
-              console.log('✓ Found id:', userId);
-            } else {
-              // If no _id or id field, the object itself might be the ID with firstName added
-              console.warn(`⚠️ Shift ${idx} has employeeId object with firstName but no _id field:`, shift.employeeId);
-              console.warn('Available keys:', Object.keys(shift.employeeId));
-              return; // Skip this one
-            }
-            
-            console.log('Checking if already in list:', employeeIds.has(userId));
-            
-            if (!employeeIds.has(userId)) {
-              const newEmployee = {
-                id: userId,
-                _id: userId,
-                firstName: shift.employeeId.firstName,
-                lastName: shift.employeeId.lastName,
-                email: shift.employeeId.email || '',
-                role: shift.employeeId.role || 'employee',
-                name: `${shift.employeeId.firstName} ${shift.employeeId.lastName}`
-              };
-              employeeList.push(newEmployee);
-              employeeIds.add(userId);
-              console.log('➕ Added employee from shift data:', newEmployee);
-            } else {
-              console.log(`ℹ️ Employee ${shift.employeeId.firstName} ${shift.employeeId.lastName} already in list (ID: ${userId})`);
-            }
-          } else {
-            console.log('✗ Skipping - no valid employeeId object');
-          }
-        });
-        
-        console.log('\n=== Employee extraction complete ===');
-      }
-      
-      console.log(`✅ Loaded ${employeeList.length} total employees (${employeesResponse.data?.data?.length || 0} from EmployeeHub + ${employeeList.length - (employeesResponse.data?.data?.length || 0)} from shifts)`);
+      console.log(`✅ Loaded ${employeeList.length} total employees (from EmployeeHub roster)`);
       console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, role: e.role })));
       setEmployees(employeeList);
     } catch (error) {

@@ -239,7 +239,7 @@ const ClockInOut = () => {
                 color: '#6b7280',
                 fontWeight: '500'
               }}>
-                All Profiles
+                All Employees
               </span>
               <div style={{
                 width: '8px',

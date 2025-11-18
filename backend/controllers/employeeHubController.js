@@ -19,7 +19,7 @@ exports.getAllEmployees = async (req, res) => {
     
     if (team) query.team = team;
     if (department) query.department = department;
-    if (status) query.status = status;
+    if (status && status !== 'All') query.status = status;
     
     // Search functionality
     if (search) {
@@ -29,6 +29,11 @@ exports.getAllEmployees = async (req, res) => {
         { email: { $regex: search, $options: 'i' } },
         { jobTitle: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    const showOnlyActive = !status || status === 'All';
+    if (showOnlyActive) {
+      query.isActive = { $ne: false };
     }
     
     const employees = await EmployeeHub.find(query)

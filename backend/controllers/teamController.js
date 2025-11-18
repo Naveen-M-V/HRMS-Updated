@@ -99,10 +99,16 @@ exports.createTeam = async (req, res) => {
       data: populatedTeam
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Team with this name already exists'
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Error creating team',
-      error: error.message
+      error: error.message || 'Unknown error'
     });
   }
 };
