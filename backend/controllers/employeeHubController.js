@@ -265,9 +265,17 @@ exports.getEmployeeById = async (req, res) => {
 exports.createEmployee = async (req, res) => {
   try {
     const employeeData = req.body;
+    const normalizedEmail = employeeData.email?.toString().trim().toLowerCase();
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    employeeData.email = normalizedEmail;
     
     // Check if employee with same email already exists
-    const existingEmployee = await EmployeeHub.findOne({ email: employeeData.email });
+    const existingEmployee = await EmployeeHub.findOne({ email: normalizedEmail });
     if (existingEmployee) {
       return res.status(400).json({
         success: false,
@@ -276,7 +284,7 @@ exports.createEmployee = async (req, res) => {
     }
     
     // Check if user with same email already exists
-    const existingUser = await User.findOne({ email: employeeData.email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -328,6 +336,12 @@ exports.createEmployee = async (req, res) => {
       }
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee or user with this email already exists'
+      });
+    }
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
