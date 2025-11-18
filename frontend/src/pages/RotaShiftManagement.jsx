@@ -237,7 +237,7 @@ const RotaShiftManagement = () => {
         console.log('\n=== Employee extraction complete ===');
       }
       
-      console.log(`✅ Loaded ${employeeList.length} total employees (${profilesResponse.data?.length || 0} from profiles + ${employeeList.length - (profilesResponse.data?.length || 0)} from shifts)`);
+      console.log(`✅ Loaded ${employeeList.length} total employees (${employeesResponse.data?.length || 0} from EmployeeHub + ${employeeList.length - (employeesResponse.data?.length || 0)} from shifts)`);
       console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, role: e.role })));
       setEmployees(employeeList);
     } catch (error) {
