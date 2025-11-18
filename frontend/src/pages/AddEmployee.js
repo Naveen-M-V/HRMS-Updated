@@ -168,6 +168,25 @@ export default function AddEmployee() {
     { id: 5, name: "Sensitive Details", description: "Tax and document info" }
   ];
 
+  const fieldId = (field) => `add-employee-field-${field}`;
+  const focusFirstErrorField = (fields) => {
+    if (!fields || fields.length === 0 || typeof document === 'undefined') return;
+    const target = document.getElementById(fieldId(fields[0]));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.focus({ preventScroll: true });
+    }
+  };
+
+  const getInputClass = (field) => {
+    const baseClass = "w-full h-[42px] px-4 py-2.5 border rounded-lg transition-colors focus:outline-none";
+    const hasError = Boolean(errors[field]);
+    const errorClass = hasError
+      ? "border-pink-500 focus:ring-pink-300 ring-1 ring-pink-200"
+      : "border-gray-300 focus:ring-2 focus:ring-blue-500";
+    return `${baseClass} ${errorClass}`;
+  };
+
   const handleInputChange = (field, value) => {
     const validationMessage = validateFieldCharacters(field, value);
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -218,44 +237,36 @@ export default function AddEmployee() {
           office: employee.office || "",
           employmentStartDate: formatDateForDisplay(employee.startDate),
           probationEndDate: formatDateForDisplay(employee.probationEndDate),
-          // Address details
           address1: employee.address1 || "",
           address2: employee.address2 || "",
           address3: employee.address3 || "",
           townCity: employee.townCity || "",
           county: employee.county || "",
           postcode: employee.postcode || "",
-          // Emergency contact
           emergencyContactName: employee.emergencyContactName || "",
           emergencyContactRelation: employee.emergencyContactRelation || "",
           emergencyContactPhone: employee.emergencyContactPhone || "",
           emergencyContactEmail: employee.emergencyContactEmail || "",
-          // Salary details
           salary: employee.salary || "0",
           rate: employee.rate || "",
           paymentFrequency: employee.paymentFrequency || "",
           effectiveFrom: formatDateForDisplay(employee.effectiveFrom),
           reason: employee.reason || "",
           payrollNumber: employee.payrollNumber || "",
-          // Bank details
           accountName: employee.accountName || "",
           bankName: employee.bankName || "",
           bankBranch: employee.bankBranch || "",
           accountNumber: employee.accountNumber || "",
           sortCode: employee.sortCode || "",
-          // Sensitive details
           taxCode: employee.taxCode || "",
           niNumber: employee.niNumber || "",
-          // Passport
           passportNumber: employee.passportNumber || "",
           passportCountry: employee.passportCountry || "",
           passportExpiryDate: formatDateForDisplay(employee.passportExpiryDate),
-          // Driving licence
           licenceNumber: employee.licenceNumber || "",
           licenceCountry: employee.licenceCountry || "",
           licenceClass: employee.licenceClass || "",
           licenceExpiryDate: formatDateForDisplay(employee.licenceExpiryDate),
-          // Visa
           visaNumber: employee.visaNumber || "",
           visaExpiryDate: formatDateForDisplay(employee.visaExpiryDate),
         });
@@ -331,6 +342,7 @@ export default function AddEmployee() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      focusFirstErrorField(Object.keys(newErrors));
       return false;
     }
     
@@ -483,17 +495,17 @@ export default function AddEmployee() {
         );
       }
 
-      if (response.data.success) {
+      const succeeded = response?.data?.success ?? (response?.status >= 200 && response?.status < 300);
+      if (succeeded) {
         alert(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
-        // Add a timestamp to force refresh of employee data
         navigate("/employee-hub?refresh=" + Date.now());
+      } else {
+        throw new Error(response?.data?.message || 'Employee creation was rejected by the server.');
       }
     } catch (error) {
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      } else {
-        alert("Failed to save employee. Please try again.");
-      }
+      const message = error.response?.data?.message || error.message || "Failed to save employee. Please try again.";
+      console.error('Employee save failed:', error);
+      alert(message);
     } finally {
       setLoading(false);
     }
