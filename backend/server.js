@@ -629,76 +629,7 @@ app.get('/api/profiles', async (req, res) => {
       .populate('userId', 'email role firstName lastName') // Add populate like certificates do
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
-    // Get all user IDs that have profiles
-    const profileUserIds = profiles
-      .map(p => p.userId?._id?.toString())
-      .filter(Boolean);
-    
-    // Find users WITHOUT profiles (typically admins/super admins)
-    const usersWithoutProfiles = await User.find({
-      _id: { $nin: profileUserIds },
-      isActive: { $ne: false },
-      deleted: { $ne: true }
-    })
-      .select('_id email role firstName lastName createdAt')
-      .lean();
-    
-    // Auto-create Profile documents for users without profiles
-    if (usersWithoutProfiles.length > 0) {
-      console.log(`🔧 Auto-creating ${usersWithoutProfiles.length} missing profiles for users...`);
-      
-      // Get the highest existing VTID to generate new ones
-      const allProfiles = await Profile.find().select('vtid').lean();
-      let maxVTID = 0;
-      allProfiles.forEach(p => {
-        if (p.vtid && typeof p.vtid === 'number') {
-          maxVTID = Math.max(maxVTID, p.vtid);
-        } else if (p.vtid && typeof p.vtid === 'string') {
-          const numericPart = parseInt(p.vtid.replace(/\D/g, ''));
-          if (!isNaN(numericPart)) {
-            maxVTID = Math.max(maxVTID, numericPart);
-          }
-        }
-      });
-      
-      const newProfiles = [];
-      for (const user of usersWithoutProfiles) {
-        maxVTID++; // Increment for each new profile
-        
-        const newProfile = new Profile({
-          userId: user._id,
-          firstName: user.firstName || 'N/A',
-          lastName: user.lastName || 'N/A',
-          email: user.email,
-          role: user.role,
-          jobTitle: user.role === 'admin' ? 'Administrator' : user.role === 'super_admin' ? 'Super Administrator' : 'Employee',
-          department: 'Administration',
-          company: 'Talent Shield',
-          staffType: user.role === 'admin' || user.role === 'super_admin' ? 'Admin' : 'Employee',
-          vtid: maxVTID, // Auto-generated VTID
-          mobileNumber: '',
-          address: '',
-          postcode: '',
-          nationality: '',
-          dateOfBirth: null,
-          createdOn: user.createdAt || new Date(),
-          autoCreated: true // Flag to track auto-created profiles
-        });
-        
-        await newProfile.save();
-        console.log(`✅ Created profile for ${user.email} with VTID: ${maxVTID}`);
-        newProfiles.push(newProfile);
-      }
-      
-      // Re-fetch all profiles including the newly created ones
-      profiles = await Profile.find()
-        .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
-        .sort({ createdOn: -1 })
-        .populate('userId', 'email role firstName lastName')
-        .lean();
-    }
-    
-    console.log(`Fetched ${profiles.length} total profiles (including auto-created)`);
+    console.log(`Fetched ${profiles.length} total profiles`);
     res.json(profiles);
   } catch (error) {
     console.error('Error fetching profiles:', error);

@@ -5,6 +5,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { useAlert } from "../components/AlertNotification";
 
 export default function ManageTeams() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function ManageTeams() {
   // Employees data from API
   const [allEmployees, setAllEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { success: showSuccess, error: showError } = useAlert();
 
   // Teams data from API
   const [teams, setTeams] = useState([]);
@@ -188,7 +190,7 @@ export default function ManageTeams() {
         }
       } catch (error) {
         console.error('Error creating team:', error);
-        alert('Failed to create team. Please try again.');
+        showError('Failed to create team. Please try again.');
       }
     }
   };
@@ -210,7 +212,7 @@ export default function ManageTeams() {
         }
       } catch (error) {
         console.error('Error deleting team:', error);
-        alert('Failed to delete team. Please try again.');
+        showError('Failed to delete team. Please try again.');
       }
     }
   };
@@ -234,7 +236,7 @@ export default function ManageTeams() {
       }
     } catch (error) {
       console.error('Error loading team details:', error);
-      alert('Unable to load team details. Please try again.');
+      showError('Unable to load team details. Please try again.');
       setShowEditModal(false);
     } finally {
       setEditTeamLoading(false);
@@ -256,7 +258,7 @@ export default function ManageTeams() {
   const handleSaveEditedTeam = async () => {
     if (!editingTeam?.id) return;
     if (!editTeamName.trim()) {
-      alert('Team name cannot be empty.');
+      showError('Team name cannot be empty.');
       return;
     }
 
@@ -266,10 +268,10 @@ export default function ManageTeams() {
       });
       await fetchTeams();
       await loadEditingTeam(editingTeam.id);
-      alert('Team updated successfully.');
+      showSuccess('Team updated successfully.');
     } catch (error) {
       console.error('Error saving team:', error);
-      alert('Failed to save changes. Please try again.');
+      showError('Failed to save changes. Please try again.');
     }
   };
 
@@ -286,7 +288,7 @@ export default function ManageTeams() {
       await loadEditingTeam(editingTeam.id);
     } catch (error) {
       console.error('Error removing member:', error);
-      alert('Unable to remove member.');
+      showError('Unable to remove member.');
     }
   };
 
@@ -294,7 +296,7 @@ export default function ManageTeams() {
     if (!editingTeam?.id) return;
     const otherTeams = teams.filter((team) => team.id !== editingTeam.id);
     if (otherTeams.length === 0) {
-      alert('No other teams available to switch the member to.');
+      showError('No other teams available to switch the member to.');
       return;
     }
 
@@ -303,7 +305,7 @@ export default function ManageTeams() {
     if (!targetName) return;
     const targetTeam = otherTeams.find((team) => team.name.toLowerCase() === targetName.trim().toLowerCase());
     if (!targetTeam) {
-      alert('Team not found. Please enter a valid team name.');
+      showError('Team not found. Please enter a valid team name.');
       return;
     }
 
@@ -317,10 +319,10 @@ export default function ManageTeams() {
       await fetchEmployees();
       await fetchTeams();
       await loadEditingTeam(editingTeam.id);
-      alert(`${member.firstName} ${member.lastName} moved to ${targetTeam.name}.`);
+      showSuccess(`${member.firstName} ${member.lastName} moved to ${targetTeam.name}.`);
     } catch (error) {
       console.error('Error switching member:', error);
-      alert('Unable to switch member. Please try again.');
+      showError('Unable to switch member. Please try again.');
     }
   };
 

@@ -6,6 +6,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import { CheckIcon, ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { DatePicker } from "../components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { useAlert } from "../components/AlertNotification";
 
 const TEXT_ONLY_FIELDS = new Set([
   "firstName",
@@ -152,6 +153,7 @@ export default function AddEmployee() {
   const [errors, setErrors] = useState({});
   const [emailError, setEmailError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { success: showSuccess, error: showError } = useAlert();
 
   // Image editing states
   const [showImageEditor, setShowImageEditor] = useState(false);
@@ -273,7 +275,7 @@ export default function AddEmployee() {
       }
     } catch (error) {
       console.error('Error fetching employee data:', error);
-      alert('Failed to load employee data. Please try again.');
+      showError('Failed to load employee data. Please try again.');
       navigate('/employee-hub');
     } finally {
       setLoading(false);
