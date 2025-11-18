@@ -108,7 +108,7 @@ const RotaShiftManagement = () => {
       
       // Fetch employees from EmployeeHub (userType='employee') for shift assignment
       const employeesResponse = await axios.get(
-        buildApiUrl('/employees'),
+        buildApiUrl('/employees/with-clock-status'),
         { withCredentials: true }
       );
       
@@ -162,23 +162,22 @@ const RotaShiftManagement = () => {
       const employeeIds = new Set();
       
       // First, add all employees from EmployeeHub (userType='employee')
-      if (employeesResponse.data && employeesResponse.data.success && employeesResponse.data.data) {
+      if (employeesResponse.data?.success && employeesResponse.data.data) {
         employeesResponse.data.data.forEach(employee => {
-          const userId = employee.userId?._id || employee.userId || employee._id;
-          const idString = typeof userId === 'object' ? userId.toString() : userId;
-          
-          if (!employeeIds.has(idString)) {
-            employeeList.push({
-              id: idString,
-              _id: idString,
-              firstName: employee.firstName,
-              lastName: employee.lastName,
-              email: employee.email,
-              role: employee.userId?.role || 'employee',
-              name: `${employee.firstName} ${employee.lastName}`
-            });
-            employeeIds.add(idString);
-          }
+          const idString = employee.id || employee._id;
+          if (!idString) return;
+          if (employeeIds.has(idString)) return;
+          employeeList.push({
+            id: idString,
+            _id: idString,
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            email: employee.email,
+            role: employee.role || 'employee',
+            vtid: employee.vtid,
+            name: `${employee.firstName} ${employee.lastName}`
+          });
+          employeeIds.add(idString);
         });
       }
       

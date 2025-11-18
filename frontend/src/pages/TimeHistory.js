@@ -61,31 +61,25 @@ const TimeHistory = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get(buildApiUrl('/profiles'), { withCredentials: true });
-      console.log('📋 Raw profiles response:', response.data);
+      const response = await axios.get(
+        buildApiUrl('/employees/with-clock-status'),
+        { withCredentials: true }
+      );
+      console.log('📋 Raw employees response:', response.data);
       
-      if (response.data) {
-        // Map profiles to employee format (same as RotaShiftManagement)
-        const employeeList = response.data
-          .filter(profile => profile.firstName && profile.lastName) // Only include profiles with names
-          .map(profile => {
-            // Ensure we get a string ID, not an object
-            const userId = profile.userId?._id || profile.userId || profile._id;
-            const idString = typeof userId === 'object' ? userId.toString() : userId;
-            
-            return {
-              id: idString,
-              _id: idString,
-              firstName: profile.firstName,
-              lastName: profile.lastName,
-              email: profile.email,
-              vtid: profile.vtid,
-              name: `${profile.firstName} ${profile.lastName}`
-            };
-          });
-        
-        console.log(`✅ Loaded ${employeeList.length} employees from profiles`);
-        console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, type: typeof e.id })));
+      if (response.data?.success) {
+        const employeeList = (response.data.data || [])
+          .map(emp => ({
+            id: emp.id,
+            _id: emp._id,
+            firstName: emp.firstName,
+            lastName: emp.lastName,
+            email: emp.email,
+            vtid: emp.vtid,
+            name: `${emp.firstName} ${emp.lastName}`
+          }));
+
+        console.log(`✅ Loaded ${employeeList.length} employees from EmployeeHub`);
         setEmployees(employeeList);
       }
     } catch (error) {
