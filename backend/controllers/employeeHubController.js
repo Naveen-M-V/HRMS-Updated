@@ -298,19 +298,24 @@ exports.createEmployee = async (req, res) => {
     // Generate random password for user account
     const temporaryPassword = crypto.randomBytes(8).toString('hex');
     
-    // Create User account with userType='employee'
-    const user = await User.create({
-      firstName: employee.firstName,
-      lastName: employee.lastName,
-      email: employee.email,
-      password: temporaryPassword, // Will be hashed by pre-save hook
-      userType: 'employee', // Employee users have full features
-      employeeId: employee._id,
-      role: 'user',
-      isActive: true,
-      isEmailVerified: true,
-      isAdminApproved: true
-    });
+    let user;
+    try {
+      user = await User.create({
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        password: temporaryPassword, // Will be hashed by pre-save hook
+        userType: 'employee', // Employee users have full features
+        employeeId: employee._id,
+        role: 'user',
+        isActive: true,
+        isEmailVerified: true,
+        isAdminApproved: true
+      });
+    } catch (userCreationError) {
+      await EmployeeHub.findByIdAndDelete(employee._id);
+      throw userCreationError;
+    }
     
     // Link user back to employee
     employee.userId = user._id;
