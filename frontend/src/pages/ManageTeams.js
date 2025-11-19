@@ -245,6 +245,10 @@ export default function ManageTeams() {
     });
   };
 
+  const closeConfirmDialog = () => {
+    setConfirmDialog((prev) => ({ ...prev, open: false }));
+  };
+
   const loadEditingTeam = async (teamId) => {
     setEditTeamLoading(true);
     try {
@@ -446,7 +450,7 @@ export default function ManageTeams() {
                   <PencilIcon className="h-5 w-5" />
                 </button>
                 <button
-                  onClick={() => handleDeleteTeam(team.id)}
+                  onClick={() => promptDeleteTeam(team.id, team.name)}
                   className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                   title="Delete team"
                 >
@@ -808,8 +812,7 @@ export default function ManageTeams() {
               <button
                 onClick={() => {
                   if (editingTeam?.id) {
-                    handleDeleteTeam(editingTeam.id);
-                    handleCloseEditModal();
+                    promptDeleteTeam(editingTeam.id, editingTeam.name || 'team', handleCloseEditModal);
                   }
                 }}
                 className="text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
@@ -836,6 +839,22 @@ export default function ManageTeams() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) closeConfirmDialog();
+        }}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+        variant={confirmDialog.variant}
+        onConfirm={async () => {
+          await confirmDialog.onConfirm?.();
+          closeConfirmDialog();
+        }}
+        onCancel={closeConfirmDialog}
+      />
     </div>
   );
 }
