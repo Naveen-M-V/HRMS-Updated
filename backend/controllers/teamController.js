@@ -185,12 +185,12 @@ exports.updateTeam = async (req, res) => {
 };
 
 /**
- * Delete a team (soft delete)
+ * Delete a team (hard delete)
  */
 exports.deleteTeam = async (req, res) => {
   try {
     const team = await Team.findById(req.params.id);
-    
+
     if (!team) {
       return res.status(404).json({
         success: false,
@@ -204,9 +204,8 @@ exports.deleteTeam = async (req, res) => {
       { $set: { team: '' } }
     );
     
-    // Soft delete
-    team.isActive = false;
-    await team.save();
+    // Hard delete the team so name can be reused
+    await Team.deleteOne({ _id: team._id });
     
     res.status(200).json({
       success: true,
