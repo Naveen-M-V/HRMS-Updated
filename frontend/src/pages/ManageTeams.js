@@ -6,6 +6,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { useAlert } from "../components/AlertNotification";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 export default function ManageTeams() {
   const navigate = useNavigate();
@@ -28,6 +29,15 @@ export default function ManageTeams() {
 
   // Teams data from API
   const [teams, setTeams] = useState([]);
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: '',
+    description: '',
+    confirmText: 'Continue',
+    cancelText: 'Cancel',
+    variant: 'default',
+    onConfirm: null,
+  });
 
   // Fetch employees and teams from API
   useEffect(() => {
@@ -161,17 +171,18 @@ export default function ManageTeams() {
 
 
   const handleCreateTeam = async () => {
-    if (newTeamName.trim()) {
+    const trimmedName = newTeamName.trim();
+    if (trimmedName) {
       try {
         // Generate initials from team name
-        const words = newTeamName.trim().split(" ");
+        const words = trimmedName.split(" ");
         const initials = words.length > 1 
           ? words.map(w => w[0]).join("").toUpperCase()
-          : newTeamName.substring(0, 2).toUpperCase();
+          : trimmedName.substring(0, 2).toUpperCase();
         
         const teamData = {
-          name: newTeamName,
-          initials: initials,
+          name: trimmedName,
+          initials,
           members: selectedEmployees,
           color: "#3B82F6",
         };
@@ -187,10 +198,12 @@ export default function ManageTeams() {
           setNewTeamName("");
           setSelectedEmployees([]);
           setShowAssignModal(false);
+          showSuccess('Team created successfully.');
         }
       } catch (error) {
         console.error('Error creating team:', error);
-        showError('Failed to create team. Please try again.');
+        const message = error.response?.data?.message || 'Failed to create team. Please try again.';
+        showError(message);
       }
     }
   };
@@ -202,19 +215,34 @@ export default function ManageTeams() {
     setSelectedEmployees([]);
   };
 
-  const handleDeleteTeam = async (teamId) => {
-    if (window.confirm("Are you sure you want to delete this team?")) {
-      try {
-        const response = await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/teams/${teamId}`);
-        if (response.data.success) {
-          await fetchTeams();
-          await fetchEmployees();
-        }
-      } catch (error) {
-        console.error('Error deleting team:', error);
-        showError('Failed to delete team. Please try again.');
+  const deleteTeamById = async (teamId) => {
+    try {
+      const response = await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/teams/${teamId}`);
+      if (response.data.success) {
+        await fetchTeams();
+        await fetchEmployees();
+        showSuccess('Team deleted successfully.');
       }
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      showError('Failed to delete team. Please try again.');
     }
+  };
+
+  const promptDeleteTeam = (teamId, teamName, onAfterDelete) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Delete team',
+      description: `Delete ${teamName} and remove its member assignments? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      onConfirm: async () => {
+        await deleteTeamById(teamId);
+        onAfterDelete?.();
+        setConfirmDialog((prev) => ({ ...prev, open: false }));
+      }
+    });
   };
 
   const loadEditingTeam = async (teamId) => {
@@ -277,19 +305,27 @@ export default function ManageTeams() {
 
   const handleRemoveMember = async (memberId) => {
     if (!editingTeam?.id) return;
-    const confirmDelete = window.confirm('Remove this member from the team?');
-    if (!confirmDelete) return;
-    try {
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${editingTeam.id}/members/remove`, {
-        employeeId: memberId,
-      });
-      await fetchEmployees();
-      await fetchTeams();
-      await loadEditingTeam(editingTeam.id);
-    } catch (error) {
-      console.error('Error removing member:', error);
-      showError('Unable to remove member.');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Remove member',
+      description: 'Remove this employee from the team? They can be added to another team later.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${editingTeam.id}/members/remove`, {
+            employeeId: memberId,
+          });
+          await fetchEmployees();
+          await fetchTeams();
+          await loadEditingTeam(editingTeam.id);
+        } catch (error) {
+          console.error('Error removing member:', error);
+          showError('Unable to remove member.');
+        }
+      }
+    });
   };
 
   const handleSwitchMember = async (member) => {

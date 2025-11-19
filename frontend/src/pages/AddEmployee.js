@@ -499,7 +499,7 @@ export default function AddEmployee() {
 
       const succeeded = response?.data?.success ?? (response?.status >= 200 && response?.status < 300);
       if (succeeded) {
-        alert(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
+        showSuccess(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
         navigate("/employee-hub?refresh=" + Date.now());
       } else {
         throw new Error(response?.data?.message || 'Employee creation was rejected by the server.');
@@ -507,7 +507,7 @@ export default function AddEmployee() {
     } catch (error) {
       const message = error.response?.data?.message || error.message || "Failed to save employee. Please try again.";
       console.error('Employee save failed:', error);
-      alert(message);
+      showError(message);
     } finally {
       setLoading(false);
     }
