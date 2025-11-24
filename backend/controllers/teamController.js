@@ -64,10 +64,14 @@ exports.createTeam = async (req, res) => {
     // Check if team with same name already exists
     const existingTeam = await Team.findOne({ name });
     if (existingTeam) {
-      return res.status(400).json({
-        success: false,
-        message: 'Team with this name already exists'
-      });
+      if (existingTeam.isActive) {
+        return res.status(400).json({
+          success: false,
+          message: 'Team with this name already exists'
+        });
+      }
+      // Remove the stale inactive record to free up the name
+      await Team.deleteOne({ _id: existingTeam._id });
     }
     
     // Create new team

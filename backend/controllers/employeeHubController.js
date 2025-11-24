@@ -274,21 +274,12 @@ exports.createEmployee = async (req, res) => {
     }
     employeeData.email = normalizedEmail;
     
-    // Check if employee with same email already exists
+    // Check if employee with same email already exists in EmployeeHub only
     const existingEmployee = await EmployeeHub.findOne({ email: normalizedEmail });
     if (existingEmployee) {
       return res.status(400).json({
         success: false,
         message: 'Employee with this email already exists'
-      });
-    }
-    
-    // Check if user with same email already exists
-    const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User account with this email already exists'
       });
     }
     
