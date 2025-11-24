@@ -70,6 +70,8 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
       .populate('userId', 'firstName lastName email role userType isActive deleted')
       .lean();
 
+    console.log(`🔍 Found ${employees.length} active employees in EmployeeHub`);
+
     const employeesWithUser = employees.filter(emp =>
       emp.userId &&
       emp.userId._id &&
@@ -77,6 +79,29 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
       emp.userId.isActive !== false &&
       emp.userId.deleted !== true
     );
+
+    console.log(`🔍 Filtered to ${employeesWithUser.length} employees with valid User accounts`);
+    
+    // Log employees without User accounts for debugging
+    const employeesWithoutUser = employees.filter(emp => 
+      !emp.userId || 
+      !emp.userId._id || 
+      emp.userId.isActive === false || 
+      emp.userId.deleted === true
+    );
+    
+    if (employeesWithoutUser.length > 0) {
+      console.log('❌ Employees excluded from clock-ins (no valid User account):');
+      employeesWithoutUser.forEach(emp => {
+        console.log(`  - ${emp.firstName} ${emp.lastName} (${emp.email}) - Reason: ${
+          !emp.userId ? 'No userId' : 
+          !emp.userId._id ? 'Invalid userId' :
+          emp.userId.isActive === false ? 'User inactive' :
+          emp.userId.deleted === true ? 'User deleted' :
+          'Unknown'
+        }`);
+      });
+    }
 
     const userIds = employeesWithUser.map(emp => emp.userId._id);
 
