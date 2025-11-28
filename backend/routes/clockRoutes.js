@@ -18,6 +18,9 @@ const crypto = require('crypto');
 // Import asyncHandler from server.js
 const { asyncHandler } = require('../server');
 
+// Import authentication middleware
+const { authenticateSession } = require('../server');
+
 /**
  * Clock Routes
  * Handles time tracking and attendance functionality
@@ -1139,8 +1142,17 @@ router.get('/export', async (req, res) => {
 // @route   GET /api/clock/user/status
 // @desc    Get current user's clock status
 // @access  Private (User)
-router.get('/user/status', async (req, res) => {
+router.get('/user/status', authenticateSession, async (req, res) => {
   try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/status. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const userId = req.user.id || req.user._id || req.user.userId;
     
     // Use UK timezone for date comparison
@@ -1205,10 +1217,20 @@ router.get('/user/status', async (req, res) => {
 // @route   POST /api/clock/user/in
 // @desc    Clock in current user (employee or admin)
 // @access  Private (User)
-router.post('/user/in', async (req, res) => {
+router.post('/user/in', authenticateSession, async (req, res) => {
   try {
     console.log('🔵 Clock-in request received');
     console.log('req.user:', req.user);
+    console.log('AUTH HEADER (user/in):', req.headers.authorization);
+    
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/in. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
     
     const userId = req.user._id || req.user.userId || req.user.id;
     // Extract GPS coordinates from request body
@@ -1405,8 +1427,17 @@ router.post('/user/in', async (req, res) => {
 // @route   POST /api/clock/user/out
 // @desc    Clock out current user (employee or admin)
 // @access  Private (User)
-router.post('/user/out', async (req, res) => {
+router.post('/user/out', authenticateSession, async (req, res) => {
   try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/out. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const userId = req.user._id || req.user.userId || req.user.id;
     // Extract GPS coordinates from request body for clock-out
     const { latitude, longitude, accuracy } = req.body;
@@ -1532,8 +1563,17 @@ router.post('/user/out', async (req, res) => {
 // @route   POST /api/clock/user/break
 // @desc    Add break for current user
 // @access  Private (User)
-router.post('/user/break', async (req, res) => {
+router.post('/user/break', authenticateSession, async (req, res) => {
   try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/break. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const userId = req.user._id || req.user.userId || req.user.id;
     const { duration = 30, type = 'other' } = req.body;
 
@@ -1599,8 +1639,17 @@ router.post('/user/break', async (req, res) => {
 // @route   POST /api/clock/user/start-break
 // @desc    Start break for current user
 // @access  Private (User)
-router.post('/user/start-break', async (req, res) => {
+router.post('/user/start-break', authenticateSession, async (req, res) => {
   try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/start-break. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const userId = req.user._id || req.user.userId || req.user.id;
 
     if (!userId) {
@@ -1666,8 +1715,17 @@ router.post('/user/start-break', async (req, res) => {
 // @route   POST /api/clock/user/resume-work
 // @desc    Resume work from break for current user
 // @access  Private (User)
-router.post('/user/resume-work', async (req, res) => {
+router.post('/user/resume-work', authenticateSession, async (req, res) => {
   try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/resume-work. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const userId = req.user._id || req.user.userId || req.user.id;
 
     if (!userId) {
@@ -1750,8 +1808,17 @@ router.post('/user/resume-work', async (req, res) => {
 // @route   GET /api/clock/user/entries
 // @desc    Get current user's time entries
 // @access  Private (User)
-router.get('/user/entries', async (req, res) => {
+router.get('/user/entries', authenticateSession, async (req, res) => {
   try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/entries. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const userId = req.user._id || req.user.userId || req.user.id;
     const { startDate, endDate } = req.query;
     
