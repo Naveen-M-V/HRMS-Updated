@@ -2987,6 +2987,9 @@ const authenticateSession = async (req, res, next) => {
 // Legacy JWT middleware for backward compatibility
 const authenticateToken = authenticateSession;
 
+// Export authenticateSession for use in routes
+module.exports.authenticateSession = authenticateSession;
+
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);
 
