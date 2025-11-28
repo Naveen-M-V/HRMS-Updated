@@ -81,19 +81,19 @@ app.use(session({
 // CORS configuration
 console.log('🔧 CORS Configuration:', {
   NODE_ENV: process.env.NODE_ENV,
-  CORS_ORIGIN: process.env.CORS_ORIGIN,
+  CORS_ORIGIN: process.env.CORS_ORIGINS,
   'All environment vars': {
     PORT: process.env.PORT,
     NODE_ENV: process.env.NODE_ENV,
-    CORS_ORIGIN: process.env.CORS_ORIGIN
+    CORS_ORIGIN: process.env.CORS_ORIGINS
   }
 });
 
 // Always allow localhost in development regardless of NODE_ENV
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.PORT === '5004';
 const allowedOrigins = isDevelopment
-  ? [process.env.CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:5003', 'http://localhost:1222'].filter(Boolean)
-  : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk'];
+  ? [process.env.CORS_ORIGINS, 'http://localhost:3000', 'http://localhost:5003', 'http://localhost:1222'].filter(Boolean)
+  : process.env.CORS_ORIGINSS?.split(',') || ['https://talentshield.co.uk'];
 
 console.log('🔧 Final allowed origins:', allowedOrigins);
 
