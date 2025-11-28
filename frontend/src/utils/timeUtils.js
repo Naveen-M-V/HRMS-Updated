@@ -3,6 +3,8 @@
  * Provides consistent UK time formatting across the application
  */
 
+import { formatInTimeZone } from 'date-fns-tz';
+
 /**
  * Formats a date/time to UK timezone
  * @param {Date|string} date - Date object or ISO string
@@ -18,12 +20,8 @@ export const formatUKTime = (date, options = {}) => {
     return 'Invalid Date';
   }
   
-  const defaultOptions = {
-    timeZone: 'Europe/London',
-    ...options
-  };
-  
-  return dateObj.toLocaleString('en-GB', defaultOptions);
+  // Use date-fns-tz for consistent UK timezone formatting
+  return formatInTimeZone(dateObj, 'Europe/London', 'dd/MM/yyyy HH:mm');
 };
 
 /**
@@ -32,11 +30,15 @@ export const formatUKTime = (date, options = {}) => {
  * @returns {string} - Time in HH:mm format
  */
 export const formatUKTimeOnly = (date) => {
-  return formatUKTime(date, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
+  if (!date) return 'N/A';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid Date';
+  }
+  
+  return formatInTimeZone(dateObj, 'Europe/London', 'HH:mm');
 };
 
 /**
@@ -45,11 +47,15 @@ export const formatUKTimeOnly = (date) => {
  * @returns {string} - Date in DD/MM/YYYY format
  */
 export const formatUKDateOnly = (date) => {
-  return formatUKTime(date, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+  if (!date) return 'N/A';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid Date';
+  }
+  
+  return formatInTimeZone(dateObj, 'Europe/London', 'dd/MM/yyyy');
 };
 
 /**
@@ -58,14 +64,15 @@ export const formatUKDateOnly = (date) => {
  * @returns {string} - Date and time in UK format
  */
 export const formatUKDateTime = (date) => {
-  return formatUKTime(date, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
+  if (!date) return 'N/A';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid Date';
+  }
+  
+  return formatInTimeZone(dateObj, 'Europe/London', 'dd/MM/yyyy HH:mm');
 };
 
 /**
@@ -74,11 +81,15 @@ export const formatUKDateTime = (date) => {
  * @returns {string} - Date with month name
  */
 export const formatUKDateWithMonth = (date) => {
-  return formatUKTime(date, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
+  if (!date) return 'N/A';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid Date';
+  }
+  
+  return formatInTimeZone(dateObj, 'Europe/London', 'dd MMM yyyy');
 };
 
 /**

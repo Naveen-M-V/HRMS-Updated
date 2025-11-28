@@ -1,10 +1,17 @@
 const mongoose = require('mongoose');
 
+/**
+ * Shift Assignment Schema for Employees Only
+ * Assigns employees to specific shifts on specific dates
+ * Employees ONLY - Profiles CANNOT have shift assignments
+ */
 const shiftAssignmentSchema = new mongoose.Schema({
+  // Employee Reference (EmployeesHub only)
   employeeId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Employee ID is required']
+    ref: 'EmployeeHub',
+    required: [true, 'Employee ID is required'],
+    index: true
   },
   rotaId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -113,4 +120,7 @@ shiftAssignmentSchema.index({ location: 1 });
 shiftAssignmentSchema.index({ workType: 1 });
 shiftAssignmentSchema.index({ status: 1 });
 
-module.exports = mongoose.model('ShiftAssignment', shiftAssignmentSchema);
+// Prevent model re-compilation
+const ShiftAssignment = mongoose.models.ShiftAssignment || mongoose.model('ShiftAssignment', shiftAssignmentSchema);
+
+module.exports = ShiftAssignment;

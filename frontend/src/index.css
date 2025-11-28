@@ -48,6 +48,17 @@
   }
 }
 
+/* Archived Employees Styles */
+.archived-row {
+  background-color: #f2f2f2 !important;
+  color: #888 !important;
+}
+
+.archived-row:hover {
+  cursor: not-allowed !important;
+  background-color: #f2f2f2 !important;
+}
+
 /* Animation classes */
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out;

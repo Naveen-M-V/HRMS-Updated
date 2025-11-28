@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ComplianceInsights from './ComplianceInsights';
 import AdminClockInModal from './AdminClockInModal';
 import AdminClockOutModal from './AdminClockOutModal';
-import LocationMap from './LocationMap';
+import EmployeeMap from './employeeLiveMap';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import { getUserClockStatus, userClockOut, userStartBreak, userResumeWork } from '../utils/clockApi';
 import { toast } from 'react-toastify';
@@ -265,14 +265,23 @@ const ComplianceDashboard = () => {
       {/* Compliance Insights Section */}
       <ComplianceInsights />
 
-      {/* Persistent Location Map - Always Visible */}
-      <div style={{ marginBottom: '24px', marginTop: '24px' }}>
-        <LocationMap 
-          latitude={gpsCoordinates?.latitude || null}
-          longitude={gpsCoordinates?.longitude || null}
-          accuracy={locationAccuracy}
-        />
-      </div>
+      {/* Live Location Map */}
+      {gpsCoordinates?.latitude && gpsCoordinates?.longitude && (
+        <div style={{ marginTop: '32px', marginBottom: '32px' }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#111827',
+            marginBottom: '16px'
+          }}>
+            📍 Your Live Location
+          </h3>
+          <EmployeeMap 
+            latitude={gpsCoordinates.latitude} 
+            longitude={gpsCoordinates.longitude} 
+          />
+        </div>
+      )}
 
       {/* My Summary and E-Learning sections */}
       <div style={{

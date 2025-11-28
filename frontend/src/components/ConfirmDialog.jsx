@@ -23,6 +23,10 @@ import {
  *   confirmText="Delete"
  *   cancelText="Cancel"
  *   variant="destructive" // or "default"
+ *   showNoteInput={true}
+ *   noteValue={note}
+ *   onNoteChange={setNote}
+ *   notePlaceholder="Enter reason..."
  * />
  */
 const ConfirmDialog = ({
@@ -35,15 +39,19 @@ const ConfirmDialog = ({
   confirmText = "Continue",
   cancelText = "Cancel",
   variant = "default", // "default" or "destructive"
+  showNoteInput = false,
+  noteValue = "",
+  onNoteChange,
+  notePlaceholder = "Enter reason...",
 }) => {
   const handleConfirm = () => {
     onConfirm?.();
-    onOpenChange?.(false);
+    // Don't auto-close - let the parent control the dialog state
   };
 
   const handleCancel = () => {
     onCancel?.();
-    onOpenChange?.(false);
+    // Don't auto-close - let the parent control the dialog state
   };
 
   const confirmButtonClass = variant === "destructive"
@@ -57,6 +65,26 @@ const ConfirmDialog = ({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        
+        {showNoteInput && (
+          <div className="my-4">
+            <label htmlFor="termination-note" className="block text-sm font-medium text-gray-700 mb-2">
+              Termination Reason (Optional)
+            </label>
+            <textarea
+              id="termination-note"
+              value={noteValue}
+              onChange={(e) => onNoteChange?.(e.target.value)}
+              placeholder={notePlaceholder}
+              className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {noteValue.length}/500 characters
+            </p>
+          </div>
+        )}
+        
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleCancel}>
             {cancelText}

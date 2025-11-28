@@ -164,10 +164,15 @@ const calculateScheduledHours = (shift) => {
  * @param {String} shiftId - Shift assignment ID
  * @param {String} status - New status
  * @param {Object} additionalData - Additional fields to update
- * @returns {Object} Updated shift
+ * @returns {Object} Updated shift or null if error
  */
 const updateShiftStatus = async (shiftId, status, additionalData = {}) => {
   try {
+    if (!shiftId) {
+      console.warn('updateShiftStatus: No shiftId provided');
+      return null;
+    }
+    
     const updateData = { status, ...additionalData };
     
     const shift = await ShiftAssignment.findByIdAndUpdate(
@@ -176,10 +181,16 @@ const updateShiftStatus = async (shiftId, status, additionalData = {}) => {
       { new: true }
     );
     
+    if (!shift) {
+      console.warn('updateShiftStatus: Shift not found for ID:', shiftId);
+      return null;
+    }
+    
     return shift;
   } catch (error) {
-    console.error('Update shift status error:', error);
-    throw error;
+    console.error('Update shift status error:', error.message);
+    // Return null instead of throwing - don't block clock operations
+    return null;
   }
 };
 

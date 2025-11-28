@@ -8,10 +8,8 @@ import Cookies from 'js-cookie';
 import UserClockIns from './UserClockIns';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
-import LocationMap from '../components/LocationMap';
-import LiveLocationMap from '../components/LiveLocationMap';
-import PureProtomapsComponent from '../components/PureProtomapsComponent';
 import UserNavigation from '../components/UserNavigation';
+import EmployeeMap from '../components/employeeLiveMap';
 import { jobRoleCertificateMapping } from '../data/new';
 import { 
   PencilIcon, 
@@ -750,33 +748,6 @@ const UserDashboard = () => {
                 </div>
               )}
               
-              {/* Pure Protomaps Location Map */}
-              <div className="mb-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
-                  <p className="text-sm text-green-800 font-medium">
-                    🗺️ Now loading real map tiles with high-accuracy GPS tracking!
-                  </p>
-                </div>
-                <PureProtomapsComponent 
-                  latitude={gpsCoordinates?.latitude}
-                  longitude={gpsCoordinates?.longitude}
-                  accuracy={locationAccuracy}
-                  height="400px"
-                  zoom={15}
-                  showAccuracyCircle={true}
-                  enableLiveTracking={true}
-                  onLocationUpdate={(location) => {
-                    setGpsCoordinates({
-                      latitude: location.latitude,
-                      longitude: location.longitude
-                    });
-                    setLocationAccuracy(location.accuracy);
-                  }}
-                  style="light"
-                  className="shadow-lg"
-                />
-              </div>
-              
               {/* GPS Location Accuracy Display */}
               {locationAccuracy && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
@@ -787,6 +758,17 @@ const UserDashboard = () => {
                     </svg>
                     <strong>Location accuracy:</strong>&nbsp;{locationAccuracy} meters
                   </p>
+                </div>
+              )}
+
+              {/* Live Location Map */}
+              {gpsCoordinates?.latitude && gpsCoordinates?.longitude && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">📍 Your Live Location</h3>
+                  <EmployeeMap 
+                    latitude={gpsCoordinates.latitude} 
+                    longitude={gpsCoordinates.longitude} 
+                  />
                 </div>
               )}
               

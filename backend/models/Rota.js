@@ -1,15 +1,18 @@
 const mongoose = require('mongoose');
 
 /**
- * Rota Model
+ * Rota Model for Employees Only
  * Stores individual shift assignments for employees
  * Each rota entry represents one employee's shift on a specific date
+ * Employees ONLY - Profiles CANNOT have rota assignments
  */
 const rotaSchema = new mongoose.Schema({
+  // Employee Reference (EmployeesHub only)
   employee: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: [true, 'Employee reference is required']
+    ref: 'EmployeeHub',
+    required: [true, 'Employee reference is required'],
+    index: true
   },
   shift: {
     type: mongoose.Schema.Types.ObjectId,

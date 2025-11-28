@@ -53,6 +53,7 @@ import TimeHistory from "./pages/TimeHistory";
 import EmployeeHub from "./pages/EmployeeHub";
 import ManageTeams from "./pages/ManageTeams";
 import AddEmployee from "./pages/AddEmployee";
+import ArchiveEmployees from "./pages/ArchiveEmployees";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -346,6 +347,10 @@ function App() {
                                   <Route
                                     path="/employee-hub"
                                     element={<EmployeeHub />}
+                                  />
+                                  <Route
+                                    path="/employees/archived"
+                                    element={<ArchiveEmployees />}
                                   />
                                   <Route
                                     path="/manage-teams"

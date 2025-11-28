@@ -21,6 +21,9 @@ export default function ManageTeams() {
   const [editingTeam, setEditingTeam] = useState(null);
   const [editingTeamMembers, setEditingTeamMembers] = useState([]);
   const [editTeamLoading, setEditTeamLoading] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState([]);
+  const [selectedNewMembers, setSelectedNewMembers] = useState([]);
 
   // Employees data from API
   const [allEmployees, setAllEmployees] = useState([]);
@@ -363,6 +366,82 @@ export default function ManageTeams() {
     } catch (error) {
       console.error('Error switching member:', error);
       showError('Unable to switch member. Please try again.');
+    }
+  };
+
+  const handleOpenAddMemberModal = async () => {
+    try {
+      // Get all employees and categorize them
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
+      if (response.data.success) {
+        const employees = response.data.data;
+        
+        // Categorize employees by their team status
+        const categorizedEmployees = employees.map(emp => {
+          const isInOtherTeam = emp.team && emp.team !== editingTeam.name;
+          const isInCurrentTeam = emp.team === editingTeam.name;
+          const isAvailable = !emp.team || emp.team === '';
+          
+          return {
+            id: emp._id,
+            firstName: emp.firstName,
+            lastName: emp.lastName,
+            email: emp.email,
+            department: emp.department,
+            jobTitle: emp.jobTitle,
+            currentTeam: emp.team || null,
+            isAvailable: isAvailable,
+            isInCurrentTeam: isInCurrentTeam,
+            isInOtherTeam: isInOtherTeam,
+            status: isAvailable ? 'available' : (isInCurrentTeam ? 'current' : 'other-team')
+          };
+        });
+        
+        setAvailableEmployees(categorizedEmployees);
+        setSelectedNewMembers([]);
+        setShowAddMemberModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching employees for add member:', error);
+      showError('Unable to load employees. Please try again.');
+    }
+  };
+
+  const toggleNewMemberSelection = (employeeId) => {
+    setSelectedNewMembers(prev => 
+      prev.includes(employeeId) 
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
+    );
+  };
+
+  const handleAddMembers = async () => {
+    if (selectedNewMembers.length === 0) {
+      showError('Please select at least one employee to add.');
+      return;
+    }
+
+    try {
+      // Add each selected member to the team
+      const addPromises = selectedNewMembers.map(employeeId => 
+        axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${editingTeam.id}/members/add`, {
+          employeeId: employeeId,
+        })
+      );
+      
+      await Promise.all(addPromises);
+      
+      // Refresh data
+      await fetchEmployees();
+      await fetchTeams();
+      await loadEditingTeam(editingTeam.id);
+      
+      setShowAddMemberModal(false);
+      setSelectedNewMembers([]);
+      showSuccess(`Added ${selectedNewMembers.length} member(s) to the team.`);
+    } catch (error) {
+      console.error('Error adding members:', error);
+      showError('Unable to add members. Please try again.');
     }
   };
 
@@ -809,17 +888,28 @@ export default function ManageTeams() {
             </div>
 
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-              <button
-                onClick={() => {
-                  if (editingTeam?.id) {
-                    promptDeleteTeam(editingTeam.id, editingTeam.name || 'team', handleCloseEditModal);
-                  }
-                }}
-                className="text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
-              >
-                <TrashIcon className="h-4 w-4" />
-                Delete team
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleOpenAddMemberModal}
+                  className="text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add member
+                </button>
+                <button
+                  onClick={() => {
+                    if (editingTeam?.id) {
+                      promptDeleteTeam(editingTeam.id, editingTeam.name || 'team', handleCloseEditModal);
+                    }
+                  }}
+                  className="text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  Delete team
+                </button>
+              </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleCloseEditModal}
@@ -833,6 +923,184 @@ export default function ManageTeams() {
                   className="px-5 py-2 rounded-lg bg-gray-900 text-white hover:bg-black text-sm font-semibold disabled:opacity-60"
                 >
                   {editTeamLoading ? 'Saving...' : 'Save changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMemberModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Add Members to {editingTeam?.name}</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Select employees to add to this team. Employees already in teams are greyed out.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAddMemberModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+                aria-label="Close add member modal"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 p-6 overflow-y-auto">
+              {availableEmployees.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-500">Loading employees...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Available Employees Section */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Available Employees</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableEmployees
+                        .filter(emp => emp.status === 'available')
+                        .map(employee => {
+                          const isSelected = selectedNewMembers.includes(employee.id);
+                          return (
+                            <div
+                              key={employee.id}
+                              onClick={() => toggleNewMemberSelection(employee.id)}
+                              className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'border-blue-500 bg-blue-50'
+                                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                              }`}
+                            >
+                              <div className="space-y-2">
+                                <div className="font-semibold text-gray-900">
+                                  {employee.firstName} {employee.lastName}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {employee.department || "-"}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {employee.jobTitle || "-"}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {employee.email || "-"}
+                                </div>
+                                <div className="text-xs text-green-600 font-medium">
+                                  Available
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Employees in Other Teams Section */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Employees in Other Teams (Greyed Out)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableEmployees
+                        .filter(emp => emp.status === 'other-team')
+                        .map(employee => (
+                          <div
+                            key={employee.id}
+                            className="relative p-4 rounded-lg border-2 border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
+                          >
+                            <div className="space-y-2">
+                              <div className="font-semibold text-gray-700">
+                                {employee.firstName} {employee.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {employee.department || "-"}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {employee.jobTitle || "-"}
+                              </div>
+                              <div className="text-sm text-gray-400">
+                                {employee.email || "-"}
+                              </div>
+                              <div className="text-xs text-orange-600 font-medium">
+                                In {employee.currentTeam}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Current Team Members Section */}
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Current Team Members</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableEmployees
+                        .filter(emp => emp.status === 'current')
+                        .map(employee => (
+                          <div
+                            key={employee.id}
+                            className="relative p-4 rounded-lg border-2 border-blue-200 bg-blue-50 cursor-not-allowed"
+                          >
+                            <div className="space-y-2">
+                              <div className="font-semibold text-blue-900">
+                                {employee.firstName} {employee.lastName}
+                              </div>
+                              <div className="text-sm text-blue-600">
+                                {employee.department || "-"}
+                              </div>
+                              <div className="text-sm text-blue-600">
+                                {employee.jobTitle || "-"}
+                              </div>
+                              <div className="text-sm text-blue-500">
+                                {employee.email || "-"}
+                              </div>
+                              <div className="text-xs text-blue-600 font-medium">
+                                Already in team
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between bg-gray-50 rounded-b-2xl">
+              <div className="text-sm text-gray-500">
+                {selectedNewMembers.length} employee(s) selected
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowAddMemberModal(false)}
+                  className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddMembers}
+                  disabled={selectedNewMembers.length === 0}
+                  className={`px-5 py-2 rounded-lg text-sm font-semibold ${
+                    selectedNewMembers.length > 0
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  Add {selectedNewMembers.length} member(s)
                 </button>
               </div>
             </div>

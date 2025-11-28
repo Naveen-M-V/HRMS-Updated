@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const EmployeeHub = require('../models/EmployeesHub');
 const Team = require('../models/Team');
 const User = require('../models/User');
@@ -5,7 +6,7 @@ const TimeEntry = require('../models/TimeEntry');
 const ShiftAssignment = require('../models/ShiftAssignment');
 const LeaveRecord = require('../models/LeaveRecord');
 const crypto = require('crypto');
-const mongoose = require('mongoose');
+const { sendUserCredentialsEmail } = require('../utils/emailService');
 
 /**
  * Get all employees
@@ -19,7 +20,14 @@ exports.getAllEmployees = async (req, res) => {
     
     if (team) query.team = team;
     if (department) query.department = department;
-    if (status && status !== 'All') query.status = status;
+    // Include terminated employees in "All" view, but filter them out when specific status is selected
+    if (status && status !== 'All') {
+      query.status = status;
+      // For specific status filters (except "Terminated"), only show active employees
+      if (status !== 'Terminated') {
+        query.isActive = true;
+      }
+    }
     
     // Search functionality
     if (search) {
@@ -29,11 +37,6 @@ exports.getAllEmployees = async (req, res) => {
         { email: { $regex: search, $options: 'i' } },
         { jobTitle: { $regex: search, $options: 'i' } }
       ];
-    }
-
-    const showOnlyActive = !status || status === 'All';
-    if (showOnlyActive) {
-      query.isActive = { $ne: false };
     }
     
     const employees = await EmployeeHub.find(query)
@@ -59,170 +62,39 @@ exports.getAllEmployees = async (req, res) => {
  */
 exports.getEmployeesWithClockStatus = async (req, res) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const employees = await EmployeeHub.find({
-      isActive: { $ne: false }
-    })
-      .populate('userId', 'firstName lastName email role userType isActive deleted')
-      .lean();
-
-    console.log(`🔍 Found ${employees.length} active employees in EmployeeHub`);
-
-    const employeesWithUser = employees.filter(emp =>
-      emp.userId &&
-      emp.userId._id &&
-      (emp.userId.userType === 'employee' || !emp.userId.userType) &&
-      emp.userId.isActive !== false &&
-      emp.userId.deleted !== true
-    );
-
-    console.log(`🔍 Filtered to ${employeesWithUser.length} employees with valid User accounts`);
+    console.log('🔍 Fetching employees for Rota...');
     
-    // Log employees without User accounts for debugging
-    const employeesWithoutUser = employees.filter(emp => 
-      !emp.userId || 
-      !emp.userId._id || 
-      emp.userId.isActive === false || 
-      emp.userId.deleted === true
-    );
-    
-    if (employeesWithoutUser.length > 0) {
-      console.log('❌ Employees excluded from clock-ins (no valid User account):');
-      employeesWithoutUser.forEach(emp => {
-        console.log(`  - ${emp.firstName} ${emp.lastName} (${emp.email}) - Reason: ${
-          !emp.userId ? 'No userId' : 
-          !emp.userId._id ? 'Invalid userId' :
-          emp.userId.isActive === false ? 'User inactive' :
-          emp.userId.deleted === true ? 'User deleted' :
-          'Unknown'
-        }`);
-      });
-    }
+    // Simple query without populate first
+    const employees = await EmployeeHub.find({}).lean();
+    console.log(`🔍 Found ${employees.length} employees in EmployeeHub`);
 
-    const userIds = employeesWithUser.map(emp => emp.userId._id);
-
-    const timeEntries = await TimeEntry.find({
-      date: { $gte: today },
-      employee: { $in: userIds }
-    })
-      .sort({ date: -1, clockIn: -1 })
-      .lean();
-
-    const shiftAssignments = await ShiftAssignment.find({
-      date: { $gte: today, $lt: tomorrow },
-      employeeId: { $in: userIds }
-    }).lean();
-
-    const leaveRecords = await LeaveRecord.find({
-      status: 'approved',
-      startDate: { $lte: tomorrow },
-      endDate: { $gte: today },
-      user: { $in: userIds }
-    }).lean();
-
-    const statusMap = {};
-    timeEntries.forEach(entry => {
-      const empId = entry.employee?.toString();
-      if (!empId) return;
-
-      const existing = statusMap[empId];
-      const shouldUpdate = !existing ||
-        (entry.status === 'clocked_in' && existing.status !== 'clocked_in') ||
-        (entry.status === 'on_break' && existing.status === 'clocked_out');
-
-      if (shouldUpdate) {
-        statusMap[empId] = {
-          status: entry.status,
-          clockIn: entry.clockIn,
-          clockOut: entry.clockOut,
-          location: entry.location,
-          workType: entry.workType,
-          timeEntryId: entry._id
-        };
-      }
-    });
-
-    const leaveMap = {};
-    leaveRecords.forEach(record => {
-      if (!record.user) return;
-      leaveMap[record.user.toString()] = {
-        type: record.type,
-        reason: record.reason
-      };
-    });
-
-    const shiftMap = new Map();
-    shiftAssignments.forEach(shift => {
-      if (shift.employeeId) {
-        shiftMap.set(shift.employeeId.toString(), shift);
-      }
-    });
-
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-    const data = employees.map(emp => {
-      const userId = emp.userId?._id?.toString();
-      const empId = userId || (emp._id && emp._id.toString());
-      const statusEntry = userId ? statusMap[userId] : null;
-      const leave = userId ? leaveMap[userId] : null;
-      let employeeStatus = statusEntry?.status || null;
-
-      if (leave) {
-        employeeStatus = 'on_leave';
-      } else if (!employeeStatus && shiftMap.has(userId || emp._id?.toString())) {
-        const shift = shiftMap.get(userId || emp._id?.toString());
-        if (currentTime > shift.startTime) {
-          employeeStatus = 'absent';
-        }
-      }
-
+    // Map employees to expected format
+    const result = employees.map(emp => {
       return {
-        id: userId || empId,
-        _id: userId || empId,
-        employeeHubId: emp._id,
-        userId: userId || null,
-        firstName: emp.userId?.firstName || emp.firstName,
-        lastName: emp.userId?.lastName || emp.lastName,
-        name: `${emp.userId?.firstName || emp.firstName || ''} ${emp.userId?.lastName || emp.lastName || ''}`.trim(),
-        email: emp.userId?.email || emp.email,
-        department: emp.department || '-',
-        jobTitle: emp.jobTitle || emp.role || '-',
-        jobRole: emp.jobTitle || emp.role || '-',
-        team: emp.team || '-',
-        company: emp.company || '-',
-        staffType: emp.staffType || '-',
-        profilePicture: emp.profilePhoto || null,
-        role: emp.userId?.role || 'employee',
-        status: employeeStatus,
-        clockIn: statusEntry?.clockIn || null,
-        clockOut: statusEntry?.clockOut || null,
-        location: statusEntry?.location || null,
-        workType: statusEntry?.workType || null,
-        timeEntryId: statusEntry?.timeEntryId || null,
-        leaveType: leave?.type || null,
-        leaveReason: leave?.reason || null,
-        vtid: emp.employeeId || '-',
-        mobile: emp.workPhone || emp.phone || emp.mobile || null,
-        profilePhoto: emp.profilePhoto || null,
-        salary: emp.salary || null
+        id: emp._id,
+        _id: emp._id,
+        firstName: emp.firstName || 'Unknown',
+        lastName: emp.lastName || 'Unknown',
+        email: emp.email || '',
+        role: emp.role || 'employee',
+        name: `${emp.firstName || 'Unknown'} ${emp.lastName || 'Unknown'}`
       };
     });
+
+    console.log(`✅ Returning ${result.length} employees for Rota system`);
 
     res.status(200).json({
       success: true,
-      count: data.length,
-      data
+      data: result
     });
+
   } catch (error) {
-    console.error('Error fetching employees with clock status:', error);
+    console.error('❌ Error fetching employees:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Error fetching employees with clock status'
+      message: 'Error fetching employees',
+      error: error.message
     });
   }
 };
@@ -285,13 +157,17 @@ exports.getEmployeeById = async (req, res) => {
 };
 
 /**
- * Create a new employee
+ * Create a new employee with automatic credentials
+ * Updated for new architecture: EmployeesHub only with built-in authentication
  */
 exports.createEmployee = async (req, res) => {
   try {
     const employeeData = req.body;
+    console.log('🔍 Incoming employee data:', JSON.stringify(employeeData, null, 2));
+    
     const normalizedEmail = employeeData.email?.toString().trim().toLowerCase();
     if (!normalizedEmail) {
+      console.log('❌ Email validation failed - missing email');
       return res.status(400).json({
         success: false,
         message: 'Email is required'
@@ -302,40 +178,125 @@ exports.createEmployee = async (req, res) => {
     // Check if employee with same email already exists in EmployeeHub only
     const existingEmployee = await EmployeeHub.findOne({ email: normalizedEmail });
     if (existingEmployee) {
+      console.log('❌ Employee already exists with email:', normalizedEmail);
       return res.status(400).json({
         success: false,
         message: 'Employee with this email already exists'
       });
     }
     
-    // Create new employee
-    const employee = await EmployeeHub.create(employeeData);
-    
-    // Generate random password for user account
+    // Generate unique 4-digit employee ID
+    const generateEmployeeId = () => {
+      const min = 1000;
+      const max = 9999;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    // Ensure unique employee ID
+    let employeeId;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (!isUnique && attempts < maxAttempts) {
+      employeeId = `EMP${generateEmployeeId()}`;
+      const existing = await EmployeeHub.findOne({ employeeId });
+      if (!existing) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique) {
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to generate unique employee ID'
+      });
+    }
+
+    // Generate secure temporary password
     const temporaryPassword = crypto.randomBytes(8).toString('hex');
     
-    let user;
-    try {
-      user = await User.create({
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        password: temporaryPassword, // Will be hashed by pre-save hook
-        userType: 'employee', // Employee users have full features
-        employeeId: employee._id,
-        role: 'user',
-        isActive: true,
-        isEmailVerified: true,
-        isAdminApproved: true
-      });
-    } catch (userCreationError) {
-      await EmployeeHub.findByIdAndDelete(employee._id);
-      throw userCreationError;
+    // Add employee ID, password, and default values
+    employeeData.employeeId = employeeId;
+    employeeData.password = temporaryPassword; // Will be hashed by pre-save hook
+    employeeData.role = employeeData.role || 'employee'; // Default to employee
+    employeeData.isActive = true;
+    employeeData.isEmailVerified = true;
+    
+    if (!employeeData.startDate) {
+      employeeData.startDate = new Date(); // Set current date as default
     }
     
-    // Link user back to employee
-    employee.userId = user._id;
-    await employee.save();
+    // Transform flat address fields to nested address object
+    if (employeeData.address1 || employeeData.address2 || employeeData.townCity || employeeData.postcode || employeeData.county) {
+      employeeData.address = {
+        line1: employeeData.address1 || '',
+        line2: employeeData.address2 || '',
+        city: employeeData.townCity || '',
+        postCode: employeeData.postcode || '',
+        country: employeeData.county || 'United Kingdom'
+      };
+    } else {
+      // Provide default address if none provided
+      employeeData.address = {
+        line1: 'Office Address',
+        line2: '',
+        city: 'London',
+        postCode: 'SW1A 0AA',
+        country: 'United Kingdom'
+      };
+    }
+    
+    // Transform emergency contact fields
+    if (employeeData.emergencyContactName || employeeData.emergencyContactPhone || employeeData.emergencyContactEmail) {
+      employeeData.emergencyContact = {
+        name: employeeData.emergencyContactName || '',
+        relationship: employeeData.emergencyContactRelation || 'Emergency Contact',
+        phone: employeeData.emergencyContactPhone || '',
+        email: employeeData.emergencyContactEmail || ''
+      };
+    } else {
+      // Provide default emergency contact
+      employeeData.emergencyContact = {
+        name: 'Emergency Contact',
+        relationship: 'Emergency',
+        phone: '0000000000',
+        email: ''
+      };
+    }
+    
+    // Remove flat address fields to avoid conflicts
+    delete employeeData.address1;
+    delete employeeData.address2;
+    delete employeeData.townCity;
+    delete employeeData.postcode;
+    delete employeeData.county;
+    delete employeeData.emergencyContactName;
+    delete employeeData.emergencyContactPhone;
+    delete employeeData.emergencyContactEmail;
+    delete employeeData.emergencyContactRelation;
+    
+    console.log('🔍 Final employee data before save:', JSON.stringify(employeeData, null, 2));
+    
+    // Create new employee with built-in authentication
+    const employee = await EmployeeHub.create(employeeData);
+    console.log('✅ Employee created successfully:', employee.employeeId);
+    
+    // Send credentials via email
+    try {
+      const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
+      await sendUserCredentialsEmail(
+        employee.email,
+        `${employee.firstName} ${employee.lastName}`,
+        temporaryPassword,
+        loginUrl
+      );
+      console.log('✅ Credentials email sent to:', employee.email);
+    } catch (emailError) {
+      console.error('⚠️ Failed to send credentials email:', emailError);
+      // Continue with response even if email fails
+    }
     
     // If team is specified, add employee to team
     if (employeeData.team) {
@@ -345,26 +306,37 @@ exports.createEmployee = async (req, res) => {
       }
     }
     
-    // Return credentials in response (should be emailed in production)
+    // Return success response (no credentials in response for security)
     res.status(201).json({
       success: true,
-      message: 'Employee and user account created successfully',
-      data: employee,
-      credentials: {
+      message: 'Employee created successfully. Login credentials have been sent to their email.',
+      data: {
+        id: employee._id,
+        employeeId: employee.employeeId,
         email: employee.email,
-        temporaryPassword,
-        message: 'IMPORTANT: Save these credentials and share with employee'
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        role: employee.role,
+        department: employee.department,
+        jobTitle: employee.jobTitle,
+        isActive: employee.isActive,
+        credentialsSent: true
       }
     });
   } catch (error) {
+    console.error('❌ Employee creation error:', error);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error message:', error.message);
+    
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'Employee or user with this email already exists'
+        message: 'Employee with this email already exists'
       });
     }
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
+      console.error('❌ Validation errors:', errors);
       return res.status(400).json({
         success: false,
         message: 'Validation error',
@@ -444,11 +416,20 @@ exports.updateEmployee = async (req, res) => {
 };
 
 /**
- * Delete an employee (soft delete)
+ * Rehire an employee (restore access)
  */
-exports.deleteEmployee = async (req, res) => {
+exports.rehireEmployee = async (req, res) => {
   try {
-    const employee = await EmployeeHub.findById(req.params.id);
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee ID'
+      });
+    }
+
+    const employee = await EmployeeHub.findById(id);
     
     if (!employee) {
       return res.status(404).json({
@@ -456,28 +437,356 @@ exports.deleteEmployee = async (req, res) => {
         message: 'Employee not found'
       });
     }
+
+    console.log('🔍 Rehire request:', { id, employeeName: `${employee.firstName} ${employee.lastName}` });
+
+    // Update employee status to active
+    employee.status = 'Active';
+    employee.isActive = true;
+    employee.terminatedDate = null;
+    employee.endDate = null;
+    employee.terminationNote = null;
     
-    // Remove from team if assigned
-    if (employee.team) {
-      const team = await Team.findOne({ name: employee.team });
-      if (team) {
-        await team.removeMember(employee._id);
-      }
-    }
-    
-    // Soft delete
-    employee.isActive = false;
-    employee.status = 'Terminated';
+    console.log('🔍 Saving rehired employee...');
     await employee.save();
+    console.log('🔍 Employee rehired successfully:', {
+      id: employee._id,
+      name: `${employee.firstName} ${employee.lastName}`
+    });
     
     res.status(200).json({
       success: true,
-      message: 'Employee deleted successfully'
+      message: 'Employee rehired successfully',
+      data: employee
     });
   } catch (error) {
+    console.error('❌ Error rehiring employee:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error rehiring employee',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Hard delete an employee (permanent removal)
+ */
+exports.deleteEmployee = async (req, res) => {
+  try {
+    console.log('🔍 Starting delete employee process...');
+    console.log('🔍 Request params:', req.params);
+    console.log('🔍 Request body:', req.body);
+    
+    const { id } = req.params;
+    
+    // Validate ID
+    if (!id) {
+      console.log('❌ No ID provided in request');
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID is required'
+      });
+    }
+    
+    console.log('🔍 Employee ID to delete:', id);
+    
+    // Check database connection
+    const dbState = mongoose.connection.readyState;
+    console.log('🔍 Database connection state:', dbState);
+    
+    if (dbState !== 1) {
+      console.log('❌ Database not connected');
+      return res.status(500).json({
+        success: false,
+        message: 'Database not connected'
+      });
+    }
+    
+    console.log('✅ Database connected, proceeding with deletion...');
+    
+    // Find the employee first
+    const employee = await EmployeeHub.findById(id);
+    console.log('🔍 Employee found:', employee ? 'YES' : 'NO');
+    
+    if (!employee) {
+      console.log('❌ Employee not found with ID:', id);
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+    
+    console.log('✅ Employee found:', employee.firstName, employee.lastName);
+    console.log('🔍 Employee status:', employee.status);
+    console.log('🔍 Employee details:', {
+      _id: employee._id,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      status: employee.status,
+      department: employee.department,
+      jobTitle: employee.jobTitle
+    });
+    
+    // Only allow deletion of terminated employees
+    if (employee.status?.toLowerCase() !== 'terminated') {
+      console.log('❌ Employee is not terminated, current status:', employee.status);
+      return res.status(400).json({
+        success: false,
+        message: 'Only terminated employees can be permanently deleted'
+      });
+    }
+
+    console.log('🔍 Hard delete request:', { 
+      id: employee._id, 
+      employeeName: `${employee.firstName} ${employee.lastName}` 
+    });
+
+    // STEP 1: Create ArchiveEmployee record
+    try {
+      console.log('🔍 Creating archive record...');
+      const ArchiveEmployee = require('../models/ArchiveEmployee');
+      console.log('✅ ArchiveEmployee model loaded successfully');
+      
+      // Check if the model is properly formed
+      console.log('🔍 ArchiveEmployee model check:', {
+        modelName: ArchiveEmployee.modelName,
+        collectionName: ArchiveEmployee.collection.name,
+        hasFindMethod: typeof ArchiveEmployee.find === 'function'
+      });
+      
+      const archiveData = {
+        employeeId: employee._id.toString(),
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        fullName: `${employee.firstName} ${employee.lastName}`,
+        email: employee.email,
+        department: employee.department || null,
+        jobTitle: employee.jobTitle || null,
+        status: employee.status,
+        terminatedDate: employee.terminatedDate || null,
+        deletedDate: new Date(),
+        snapshot: {}
+      };
+
+      console.log('🔍 Archive data prepared:', {
+        employeeId: archiveData.employeeId,
+        fullName: archiveData.fullName,
+        status: archiveData.status,
+        deletedDate: archiveData.deletedDate
+      });
+
+      // Create snapshot without sensitive data
+      const employeeObj = employee.toObject();
+      delete employeeObj.password; // Remove password from snapshot
+      archiveData.snapshot = employeeObj;
+
+      console.log('🔍 Creating ArchiveEmployee instance...');
+      const archivedEmployee = new ArchiveEmployee(archiveData);
+      
+      console.log('🔍 Saving archived employee...');
+      const savedEmployee = await archivedEmployee.save();
+      console.log('✅ Employee archived successfully:', savedEmployee.fullName);
+      console.log('✅ Archived employee ID:', savedEmployee._id);
+      console.log('✅ Archived employee saved to collection:', savedEmployee.constructor.modelName);
+    } catch (archiveError) {
+      console.error('❌ Archive creation failed:', archiveError);
+      console.error('❌ Archive error details:', archiveError.message);
+      console.error('❌ Archive error stack:', archiveError.stack);
+      // Continue with deletion even if archiving fails
+    }
+
+    // STEP 2: Delete all associated data
+    try {
+      console.log('🔍 Testing Document model import...');
+      const Document = require('../models/Document');
+      console.log('✅ Document model imported successfully');
+      
+      console.log('🔍 Deleting documents...');
+      await Document.deleteMany({ employee: employee._id });
+      console.log('✅ Documents deleted successfully');
+    } catch (docError) {
+      console.error('❌ Error deleting documents:', docError);
+      // Continue with other deletions
+    }
+    
+    try {
+      console.log('🔍 Testing Certificate model import...');
+      const Certificate = require('../models/Certificate');
+      console.log('✅ Certificate model imported successfully');
+      
+      console.log('🔍 Deleting certificates...');
+      await Certificate.deleteMany({ employeeRef: employee._id });
+      console.log('✅ Certificates deleted successfully');
+    } catch (certError) {
+      console.error('❌ Error deleting certificates:', certError);
+      // Continue with other deletions
+    }
+    
+    try {
+      console.log('🔍 Testing TimeEntry model import...');
+      const TimeEntry = require('../models/TimeEntry');
+      console.log('✅ TimeEntry model imported successfully');
+      
+      // Check if TimeEntry has the deleteMany method (model might be empty)
+      if (typeof TimeEntry.deleteMany === 'function') {
+        console.log('🔍 Deleting time entries...');
+        await TimeEntry.deleteMany({ employeeRef: employee._id });
+        console.log('✅ Time entries deleted successfully');
+      } else {
+        console.log('⚠️ TimeEntry model is empty, skipping time entry deletion');
+      }
+    } catch (timeError) {
+      console.error('❌ Error deleting time entries:', timeError);
+      // Continue with other deletions
+    }
+    
+    try {
+      console.log('🔍 Testing ShiftAssignment model import...');
+      const ShiftAssignment = require('../models/ShiftAssignment');
+      console.log('✅ ShiftAssignment model imported successfully');
+      
+      console.log('🔍 Deleting shift assignments...');
+      await ShiftAssignment.deleteMany({ employeeRef: employee._id });
+      console.log('✅ Shift assignments deleted successfully');
+    } catch (shiftError) {
+      console.error('❌ Error deleting shift assignments:', shiftError);
+      // Continue with other deletions
+    }
+    
+    try {
+      console.log('🔍 Testing Notification model import...');
+      const Notification = require('../models/Notification');
+      console.log('✅ Notification model imported successfully');
+      
+      console.log('🔍 Deleting notifications...');
+      await Notification.deleteMany({ userEmployeeRef: employee._id });
+      console.log('✅ Notifications deleted successfully');
+    } catch (notifError) {
+      console.error('❌ Error deleting notifications:', notifError);
+      // Continue with other deletions
+    }
+    
+    try {
+      console.log('🔍 Testing Team model import...');
+      const Team = require('../models/Team');
+      console.log('✅ Team model imported successfully');
+      
+      console.log('🔍 Removing from teams...');
+      await Team.updateMany({}, { $pull: { members: employee._id } });
+      console.log('✅ Removed from teams successfully');
+    } catch (teamError) {
+      console.error('❌ Error removing from teams:', teamError);
+      // Continue with employee deletion
+    }
+    
+    // STEP 3: Delete the employee record
+    console.log('🔍 Deleting employee record...');
+    await EmployeeHub.findByIdAndDelete(employee._id);
+    console.log('✅ Employee record deleted successfully');
+    
+    console.log('✅ Employee permanently deleted and archived:', {
+      id: employee._id,
+      name: `${employee.firstName} ${employee.lastName}`
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Employee permanently deleted and archived successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error deleting employee:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error deleting employee',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get all archived employees
+ */
+exports.getArchivedEmployees = async (req, res) => {
+  try {
+    console.log('🔍 Fetching archived employees...');
+    
+    // Try to import ArchiveEmployee model
+    let ArchiveEmployee;
+    try {
+      ArchiveEmployee = require('../models/ArchiveEmployee');
+      console.log('✅ ArchiveEmployee model loaded successfully');
+    } catch (modelError) {
+      console.log('⚠️ ArchiveEmployee model not available, returning empty array');
+      console.error('Model error:', modelError);
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+    
+    console.log('🔍 Checking if ArchiveEmployee is a proper Mongoose model...');
+    console.log('🔍 ArchiveEmployee constructor:', ArchiveEmployee.name);
+    console.log('🔍 ArchiveEmployee find method:', typeof ArchiveEmployee.find);
+    
+    console.log('🔍 Querying ArchiveEmployee collection...');
+    const archivedEmployees = await ArchiveEmployee.find({})
+      .sort({ deletedDate: -1 }); // Newest first
+    
+    console.log('✅ Found archived employees:', archivedEmployees.length);
+    console.log('🔍 Archived employees data:', archivedEmployees);
+    
+    // Also try a direct MongoDB query as backup to see all records
+    console.log('🔍 Trying direct MongoDB query for verification...');
+    const db = mongoose.connection.db;
+    const collections = await db.listCollections().toArray();
+    console.log('🔍 Available collections:', collections.map(c => c.name));
+    
+    if (collections.some(c => c.name === 'archiveemployees')) {
+      const directResult = await db.collection('archiveemployees').find({}).toArray();
+      console.log('🔍 Direct MongoDB query result:', directResult.length, 'records');
+      console.log('🔍 Direct query data:', directResult);
+      
+      // Show details of each archived employee
+      directResult.forEach((emp, index) => {
+        console.log(`🔍 Archived Employee ${index + 1}:`, {
+          _id: emp._id,
+          fullName: emp.fullName,
+          employeeId: emp.employeeId,
+          deletedDate: emp.deletedDate,
+          status: emp.status
+        });
+      });
+    } else {
+      console.log('⚠️ archiveemployees collection not found in database');
+    }
+    
+    res.status(200).json({
+      success: true,
+      count: archivedEmployees.length,
+      data: archivedEmployees
+    });
+  } catch (error) {
+    console.error('❌ Error fetching archived employees:', error);
+    console.error('❌ Error details:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    
+    // If the collection doesn't exist, return empty array
+    if (error.message.includes('Collection') || error.message.includes('ns not found')) {
+      console.log('⚠️ ArchiveEmployee collection not found, returning empty array');
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching archived employees',
       error: error.message
     });
   }
@@ -553,6 +862,75 @@ exports.getEmployeesWithoutTeam = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching employees without team',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Terminate an employee
+ */
+exports.terminateEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { terminationNote } = req.body;
+    
+    console.log('🔍 Termination request:', { id, terminationNote });
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee ID'
+      });
+    }
+
+    const employee = await EmployeeHub.findById(id);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    console.log('🔍 Employee found:', employee.firstName, employee.lastName);
+
+    // Update employee status to terminated
+    employee.status = 'Terminated';  // Use 'Terminated' (capital T) to match schema enum
+    employee.isActive = false;
+    employee.terminatedDate = new Date();
+    employee.endDate = new Date();  // Set endDate to current date as per requirements
+    
+    // Add termination note if provided - use set() to handle schema changes gracefully
+    if (terminationNote) {
+      console.log('🔍 Adding termination note:', terminationNote);
+      employee.set('terminationNote', terminationNote);
+    }
+    
+    console.log('🔍 Saving employee...');
+    await employee.save();
+    console.log('🔍 Employee saved successfully');
+
+    console.log('✅ Employee terminated successfully:', {
+      id: employee._id,
+      name: `${employee.firstName} ${employee.lastName}`,
+      terminationNote: terminationNote || 'No reason provided'
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Employee terminated successfully',
+      data: employee
+    });
+  } catch (error) {
+    console.error('❌ Error terminating employee:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error terminating employee',
       error: error.message
     });
   }

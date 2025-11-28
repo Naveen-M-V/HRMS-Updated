@@ -9,6 +9,7 @@ import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
+import { formatUKTimeOnly } from '../utils/timeUtils';
 import {
   Pagination,
   PaginationContent,
@@ -117,9 +118,9 @@ const ClockIns = () => {
       console.log('🔄 Fetching clock-ins data...');
       setStatsLoading(true);
       
-      // Fetch profiles, clock status, and stats in parallel
+      // Fetch EmployeeHub data, clock status, and stats in parallel
       const [employeesRes, clockStatusRes, statsRes] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL || 'https://talentshield.co.uk'}/api/employees/with-clock-status`, {
+        fetch(`${process.env.REACT_APP_API_BASE_URL}/employees`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
@@ -134,24 +135,75 @@ const ClockIns = () => {
       console.log('⏰ Clock Status Response:', clockStatusRes);
       console.log('📊 Stats Response:', statsRes);
 
-      if (employeesRes?.success) {
-        setEmployees(employeesRes.data || []);
-        if (!statsRes.success) {
-          calculateStatsFromEmployees(employeesRes.data || []);
+      // Handle the new clock status response structure
+      let clockStatusData = [];
+      if (clockStatusRes.success && clockStatusRes.data) {
+        // Use the main employee list from the new structure
+        clockStatusData = Array.isArray(clockStatusRes.data) ? clockStatusRes.data : [];
+      } else if (clockStatusRes.allEmployees) {
+        // Fallback to allEmployees if available
+        clockStatusData = clockStatusRes.allEmployees;
+      }
+      
+      console.log('📍 Processed clock status data:', clockStatusData.length, 'employees');
+
+      if (employeesRes?.success && employeesRes.data) {
+        // Transform EmployeeHub data to include clock status
+        const employeesWithClockStatus = employeesRes.data.map(emp => ({
+          ...emp,
+          name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+          status: 'clocked_out', // Default status - will be updated by clock status API
+          clockStatus: 'clocked_out',
+          clockIn: null,
+          clockOut: null
+        }));
+        
+        // Update with actual clock status from the new API response
+        if (clockStatusData.length > 0) {
+          const clockStatusMap = {};
+          clockStatusData.forEach(clockEmp => {
+            // Use email or ID to match employees
+            const key = clockEmp.email || clockEmp.id || clockEmp._id;
+            if (key) {
+              clockStatusMap[key] = clockEmp;
+              console.log('🔍 Backend clock status for', key, ':', clockEmp.status);
+            }
+          });
+          
+          employeesWithClockStatus.forEach(emp => {
+            // Try to match by email first, then by ID
+            const matchByEmail = clockStatusMap[emp.email];
+            const matchById = clockStatusMap[emp.id] || clockStatusMap[emp._id];
+            const clockData = matchByEmail || matchById;
+            
+            if (clockData) {
+              emp.status = clockData.status || 'clocked_out';
+              emp.clockStatus = clockData.status || 'clocked_out';
+              emp.clockIn = clockData.clockIn;
+              emp.clockOut = clockData.clockOut;
+              emp.breakIn = clockData.breakIn;
+              emp.breakOut = clockData.breakOut;
+              console.log('🔍 Updated employee status:', emp.email, '→', emp.status);
+            }
+          });
+        }
+        
+        setEmployees(employeesWithClockStatus);
+        
+        // Always calculate stats from the full employee list for accuracy
+        calculateStatsFromEmployees(employeesWithClockStatus);
+        
+        // Also use backend stats if available for comparison
+        if (statsRes.success) {
+          console.log('📊 Backend stats:', statsRes.data);
+        } else {
+          console.log('⚠️ Backend stats failed, using frontend calculation');
         }
       } else {
         console.warn('⚠️ EmployeeHub clock status fetch failed');
         setEmployees([]);
         setStats({ clockedIn: 0, onBreak: 0, clockedOut: 0, total: 0 });
-      }
-
-      if (statsRes.success && statsRes.data) {
-        console.log('✅ Stats loaded from API:', statsRes.data);
-        setStats(statsRes.data);
         setStatsLoading(false);
-      } else {
-        console.warn('⚠️ Stats fetch failed, calculating from employee list');
-        calculateStatsFromEmployees(employeesRes?.data || employees);
       }
     } catch (error) {
       console.error('❌ Fetch data error:', error);
@@ -165,6 +217,7 @@ const ClockIns = () => {
   };
 
   const calculateStatsFromEmployees = (employeeList) => {
+    console.log('📊 Calculating stats from employees:', employeeList.length, 'employees');
     // Count based on current status, not just today's clock-ins
     // This ensures accurate counts for multiple clock-ins per day
     const calculated = {
@@ -309,6 +362,15 @@ const ClockIns = () => {
         setTimeout(async () => {
           await fetchData();
           await fetchMyStatus(); // Refresh admin's own status
+          
+          // Debug: Check what status we actually got back
+          const updatedEmployee = employees.find(emp => emp.id === employeeId || emp._id === employeeId);
+          console.log('🔍 Employee status after clock-in:', {
+            employeeId,
+            status: updatedEmployee?.status,
+            clockStatus: updatedEmployee?.clockStatus,
+            fullEmployee: updatedEmployee
+          });
         }, 1000);
       } else {
         toast.error(response.message || 'Failed to clock in');
@@ -1252,11 +1314,16 @@ const ClockIns = () => {
             }}>
               <tr>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb', width: '60px' }}>SI No.</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>EMPID</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>First Name</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Last Name</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Employee ID</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Email</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Job Title</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Department</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Team</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Office</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Clock In</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Clock Out</th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Break</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Status</th>
                 <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Actions</th>
               </tr>
@@ -1305,7 +1372,7 @@ const ClockIns = () => {
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {employee.firstName || '-'}
+                        {`${employee.firstName || ''} ${employee.lastName || ''}`.trim() || '-'}
                         {currentUser?.email === employee.email && (
                           <span style={{
                             background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
@@ -1322,13 +1389,31 @@ const ClockIns = () => {
                       </div>
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {employee.lastName || '-'}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.email || '-'}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.jobTitle || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.department || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.team || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.office || '-'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {formatUKTimeOnly(employee.clockIn)}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {formatUKTimeOnly(employee.clockOut)}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                      {employee.breakIn && employee.breakOut ? 
+                        `${formatUKTimeOnly(employee.breakIn)} - ${formatUKTimeOnly(employee.breakOut)}` : 
+                        employee.breakIn ? `${formatUKTimeOnly(employee.breakIn)} (on break)` : '-'
+                      }
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                       {getStatusBadge(employee.status || 'absent', employee)}

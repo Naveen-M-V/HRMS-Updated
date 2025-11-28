@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { 
-  getAllShiftAssignments, 
-  assignShift, 
-  bulkCreateShifts, 
-  updateShiftAssignment, 
+import {
+  generateRota,
+  getAllRota,
+  getEmployeeRota,
+  updateRota,
+  deleteRota,
+  initializeShifts,
+  assignShift,
+  assignShiftToTeam,
+  bulkCreateShifts,
+  getAllShiftAssignments,
+  getEmployeeShifts,
+  getShiftsByLocation,
+  getShiftStatistics,
+  updateShiftAssignment,
   deleteShiftAssignment,
   requestShiftSwap, 
-  approveShiftSwap, 
-  getShiftStatistics 
+  approveShiftSwap
 } from '../utils/rotaApi';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import { buildApiUrl } from '../utils/apiConfig';
 import LoadingScreen from '../components/LoadingScreen';
@@ -261,10 +270,16 @@ const RotaShiftManagement = () => {
       console.error('❌ Assign shift error:', error);
       console.error('Error message:', error.message);
       
-      // The error thrown from rotaApi is already error.response.data
-      // So 'error' here is the actual error data from the backend
+      // Handle specific error messages from backend
       const errorMsg = error.message || 'Failed to assign shift';
       
+      if (errorMsg === 'Employee is inactive or not found') {
+        toast.error('Employee is inactive or not found in the system. Please select an active employee.', { autoClose: 5000 });
+        return;
+      }
+      
+      // The error thrown from rotaApi is already error.response.data
+      // So 'error' here is the actual error data from the backend
       console.log('📋 Error data:', error);
       console.log('📋 Has conflicts?', !!error.conflicts);
       console.log('📋 Conflicts array:', error.conflicts);
@@ -417,80 +432,129 @@ const RotaShiftManagement = () => {
         userId: m.userId
       })));
       
-      // Assign shift to each team member
-      const assignments = teamMembers.map(member => ({
-        employeeId: member._id, // Use EmployeesHub ID - backend will handle User lookup/creation
+      // Use the new team assignment API
+      const teamAssignmentData = {
+        teamId: selectedTeam._id,
         date: formData.date,
         startTime: formData.startTime,
         endTime: formData.endTime,
         location: formData.location,
         workType: formData.workType,
         breakDuration: formData.breakDuration,
-        notes: `${formData.notes} (Team: ${selectedTeam.name})`
-      }));
+        notes: formData.notes
+      };
       
-      console.log('📤 Assignment payloads:', assignments.map(a => ({
-        employeeId: a.employeeId,
-        date: a.date,
-        startTime: a.startTime,
-        endTime: a.endTime
-      })));
-
-      let successCount = 0;
-      let errorCount = 0;
-      const errors = [];
-
-      // Process assignments one by one to handle conflicts individually
-      for (const assignment of assignments) {
-        try {
-          const response = await assignShift(assignment);
-          if (response.success) {
-            successCount++;
-          }
-        } catch (error) {
-          errorCount++;
-          const memberName = teamMembers.find(m => (m._id || m.userId) === assignment.employeeId);
-          errors.push({
-            member: memberName ? `${memberName.firstName} ${memberName.lastName}` : 'Unknown',
-            error: error.message
-          });
+      console.log('📤 Team assignment data:', teamAssignmentData);
+      
+      const response = await assignShiftToTeam(teamAssignmentData);
+      console.log('📥 Team assignment response:', response);
+      
+      if (response.success) {
+        const results = response.data;
+        const successful = results.successful || [];
+        const failed = results.failed || [];
+        
+        if (successful.length > 0) {
+          toast.success(`Shift assigned to ${successful.length} team member${successful.length > 1 ? 's' : ''} successfully`);
         }
-      }
-
-      // Show results
-      if (successCount > 0) {
-        toast.success(`Successfully assigned shifts to ${successCount} team members`);
-      }
-      
-      if (errorCount > 0) {
-        toast.error(
-          <div>
-            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-              Failed to assign shifts to {errorCount} members:
-            </div>
-            {errors.slice(0, 3).map((err, i) => (
-              <div key={i} style={{ fontSize: '12px', marginTop: '4px' }}>
-                • {err.member}: {err.error}
-              </div>
-            ))}
-            {errors.length > 3 && (
-              <div style={{ fontSize: '12px', marginTop: '4px', fontStyle: 'italic' }}>
-                ...and {errors.length - 3} more
-              </div>
-            )}
-          </div>,
-          { autoClose: 10000 }
-        );
-      }
-
-      if (successCount > 0) {
+        
+        if (failed.length > 0) {
+          toast.warning(`${failed.length} team member${failed.length > 1 ? 's' : ''} could not be assigned (conflicts or errors)`);
+        }
+        
+        // Check if the assigned date is within current filter range
+        const assignedDate = new Date(formData.date);
+        const filterStart = new Date(filters.startDate);
+        const filterEnd = new Date(filters.endDate);
+        
+        console.log('📅 Checking date range:', {
+          assignedDate: assignedDate.toISOString().split('T')[0],
+          filterStart: filterStart.toISOString().split('T')[0],
+          filterEnd: filterEnd.toISOString().split('T')[0],
+          isWithinRange: assignedDate >= filterStart && assignedDate <= filterEnd
+        });
+        
         setShowModal(false);
         resetModalState();
-        await fetchData();
+        
+        // If assigned date is outside current filter range, expand the range
+        if (assignedDate < filterStart || assignedDate > filterEnd) {
+          console.log('⚠️ Assigned date is outside filter range, expanding...');
+          const newStartDate = assignedDate < filterStart ? assignedDate : filterStart;
+          const newEndDate = assignedDate > filterEnd ? assignedDate : filterEnd;
+          
+          // Update filters - this will trigger useEffect to fetch data
+          const newFilters = {
+            ...filters,
+            startDate: newStartDate.toISOString().split('T')[0],
+            endDate: newEndDate.toISOString().split('T')[0]
+          };
+          setFilters(newFilters);
+          
+          // Save to localStorage
+          try {
+            localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
+            console.log('💾 Saved expanded filters to localStorage:', newFilters);
+          } catch (error) {
+            console.error('Error saving filters to localStorage:', error);
+          }
+          
+          toast.info('Date range expanded to show the new shifts', { autoClose: 3000 });
+        } else {
+          // Date is within range, just refresh data
+          console.log('✅ Assigned date is within filter range, refreshing...');
+          await fetchData();
+        }
       }
     } catch (error) {
-      console.error('❌ Team shift assignment error:', error);
-      toast.error('Failed to assign team shifts');
+      console.error('❌ Team assign shift error:', error);
+      console.error('Error message:', error.message);
+      
+      const errorMsg = error.message || 'Failed to assign shifts to team';
+      
+      if (errorMsg.includes('No active members found')) {
+        toast.error('No active members found in this team. Please select a team with active members.', { autoClose: 5000 });
+        return;
+      }
+      
+      if (errorMsg.includes('Team not found')) {
+        toast.error('Team not found. Please select a valid team.', { autoClose: 5000 });
+        return;
+      }
+      
+      toast.error(errorMsg, { autoClose: 5000 });
+      
+      // If it's a conflict error, try to expand to show the assigned date
+      if (errorMsg.includes('conflict') || errorMsg.includes('already has')) {
+        console.log('⚠️ Conflict detected in team assignment, expanding to include assigned date');
+        const assignedDate = new Date(formData.date);
+        const currentStart = new Date(filters.startDate);
+        const currentEnd = new Date(filters.endDate);
+        const newStartDate = assignedDate < currentStart ? assignedDate : currentStart;
+        const newEndDate = assignedDate > currentEnd ? assignedDate : currentEnd;
+        
+        const newFilters = {
+          ...filters,
+          startDate: newStartDate.toISOString().split('T')[0],
+          endDate: newEndDate.toISOString().split('T')[0]
+        };
+        
+        setFilters(newFilters);
+        
+        try {
+          localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
+          console.log('💾 Expanded filters to show conflict date:', newFilters);
+        } catch (err) {
+          console.error('Error saving filters:', err);
+        }
+        
+        toast.info('Date range expanded to show the conflict', { autoClose: 3000 });
+      }
+      
+      // Show detailed error in console for debugging
+      if (error.details) {
+        console.error('Backend stack trace:', error.details);
+      }
     } finally {
       setLoading(false);
     }
@@ -993,7 +1057,9 @@ const RotaShiftManagement = () => {
                   padding: '12px 24px',
                   borderBottom: assignmentType === 'employee' ? '2px solid #3b82f6' : '2px solid transparent',
                   background: 'none',
-                  border: 'none',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRight: 'none',
                   fontSize: '16px',
                   fontWeight: assignmentType === 'employee' ? '600' : '500',
                   color: assignmentType === 'employee' ? '#3b82f6' : '#6b7280',
@@ -1010,7 +1076,9 @@ const RotaShiftManagement = () => {
                   padding: '12px 24px',
                   borderBottom: assignmentType === 'team' ? '2px solid #3b82f6' : '2px solid transparent',
                   background: 'none',
-                  border: 'none',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  borderRight: 'none',
                   fontSize: '16px',
                   fontWeight: assignmentType === 'team' ? '600' : '500',
                   color: assignmentType === 'team' ? '#3b82f6' : '#6b7280',

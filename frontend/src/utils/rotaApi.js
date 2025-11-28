@@ -94,14 +94,38 @@ export const initializeShifts = async () => {
 
 export const assignShift = async (data) => {
   try {
+    // Use the new direct assign-shift endpoint
     const response = await axios.post(
-      buildApiUrl(`${ROTA_BASE}/shift-assignments`),
+      buildApiUrl(`${ROTA_BASE}/assign-shift`),
       data,
       { withCredentials: true }
     );
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Failed to assign shift' };
+    console.error('Assign shift error:', error);
+    
+    // Handle specific error messages from backend
+    const errorData = error.response?.data;
+    if (errorData?.message === 'Employee is inactive or not found') {
+      throw errorData; // Pass through the specific error message
+    }
+    
+    throw errorData || { message: 'Failed to assign shift' };
+  }
+};
+
+export const assignShiftToTeam = async (data) => {
+  try {
+    // Use the new team assignment endpoint
+    const response = await axios.post(
+      buildApiUrl(`${ROTA_BASE}/assign-shift/team`),
+      data,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Assign shift to team error:', error);
+    throw error.response?.data || { message: 'Failed to assign shift to team' };
   }
 };
 

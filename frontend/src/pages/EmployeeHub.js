@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import {
@@ -6,12 +6,12 @@ import {
   EyeIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  BuildingOfficeIcon,
   UserGroupIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { formatDateDDMMYY } from "../utils/dateFormatter";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 export default function EmployeeHub() {
   const navigate = useNavigate();
@@ -21,7 +21,6 @@ export default function EmployeeHub() {
   const [sortBy, setSortBy] = useState("First name (A - Z)");
   const [status, setStatus] = useState("All");
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
   const [expandedTeams, setExpandedTeams] = useState({});
   const [showEmployeeList, setShowEmployeeList] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -29,8 +28,20 @@ export default function EmployeeHub() {
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false);
 
+  // Confirm dialog state for termination
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: '',
+    description: '',
+    confirmText: 'Continue',
+    cancelText: 'Cancel',
+    variant: 'default',
+    onConfirm: null,
+    showNoteInput: false,
+    terminationNote: '',
+  });
+
   // Employees data from API
-  const [employees, setEmployees] = useState([]);
   const [allEmployees, setAllEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -45,14 +56,7 @@ export default function EmployeeHub() {
       const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
       if (response.data.success) {
         const employees = response.data.data;
-        
-        // Debug: Check if profile photos are being loaded
-        console.log('Fetched employees:', employees);
-        const employeesWithPhotos = employees.filter(emp => emp.profilePhoto);
-        console.log(`${employeesWithPhotos.length} employees have profile photos out of ${employees.length} total`);
-        
         setAllEmployees(employees);
-        setEmployees(employees);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -67,51 +71,7 @@ export default function EmployeeHub() {
     fetchTeams();
   }, []);
 
-  // Listen for refresh parameter to reload data after edits
-  useEffect(() => {
-    const refreshParam = searchParams.get('refresh');
-    const viewProfileParam = searchParams.get('viewProfile');
-    
-    if (refreshParam) {
-      console.log('Refreshing employee data after edit/create');
-      fetchAllEmployees();
-      // Clean up the URL parameter
-      navigate('/employee-hub', { replace: true });
-    }
-    
-    if (viewProfileParam) {
-      console.log('Opening profile modal for employee:', viewProfileParam);
-      // Open the profile modal for the specified employee
-      handleViewProfile(viewProfileParam);
-      // Clean up the URL parameter
-      navigate('/employee-hub', { replace: true });
-    }
-  }, [searchParams, navigate]);
-
-
-  // Fetch teams from API
-  const fetchTeams = async () => {
-    setTeamsLoading(true);
-    try {
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/teams`);
-      if (response.data.success) {
-        setTeams(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-    } finally {
-      setTeamsLoading(false);
-    }
-  };
-
-  const toggleTeam = (teamName) => {
-    setExpandedTeams((prev) => ({
-      ...prev,
-      [teamName]: !prev[teamName],
-    }));
-  };
-
-  const handleViewProfile = async (employeeId) => {
+  const handleViewProfile = useCallback(async (employeeId) => {
     console.log('handleViewProfile called with ID:', employeeId);
     
     // First try to find employee in current data
@@ -141,6 +101,50 @@ export default function EmployeeHub() {
     } else {
       console.error('Employee not found in local data for ID:', employeeId);
     }
+  }, [allEmployees]);
+
+  // Listen for refresh parameter to reload data after edits
+  useEffect(() => {
+    const refreshParam = searchParams.get('refresh');
+    const viewProfileParam = searchParams.get('viewProfile');
+    
+    if (refreshParam) {
+      console.log('Refreshing employee data after edit/create');
+      fetchAllEmployees();
+      // Clean up the URL parameter
+      navigate('/employee-hub', { replace: true });
+    }
+    
+    if (viewProfileParam) {
+      console.log('Opening profile modal for employee:', viewProfileParam);
+      // Open the profile modal for the specified employee
+      handleViewProfile(viewProfileParam);
+      // Clean up the URL parameter
+      navigate('/employee-hub', { replace: true });
+    }
+  }, [searchParams, navigate, handleViewProfile]);
+
+
+  // Fetch teams from API
+  const fetchTeams = async () => {
+    setTeamsLoading(true);
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/teams`);
+      if (response.data.success) {
+        setTeams(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+
+  const toggleTeam = (teamName) => {
+    setExpandedTeams((prev) => ({
+      ...prev,
+      [teamName]: !prev[teamName],
+    }));
   };
 
   const handleCloseProfileModal = () => {
@@ -148,34 +152,182 @@ export default function EmployeeHub() {
     setSelectedEmployee(null);
   };
 
-  const handleDeleteEmployee = async () => {
+  const handleTerminateEmployee = async () => {
     if (!selectedEmployee?._id) return;
-    const confirmed = window.confirm(
-      `Delete ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}? This action cannot be undone.`
-    );
-    if (!confirmed) return;
+    
+    // Show first dialog with note input
+    setConfirmDialog({
+      open: true,
+      title: 'Terminate Employee',
+      description: `Are you sure you want to terminate ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}? This will mark them as terminated and cannot be undone.`,
+      confirmText: 'Next',
+      cancelText: 'Skip',
+      variant: 'destructive',
+      showNoteInput: true,
+      terminationNote: '',
+      onConfirm: () => {
+        // Get the current note value and show confirmation
+        const currentNote = document.getElementById('termination-note')?.value || '';
+        handleTerminateWithNote(currentNote);
+      },
+      onCancel: () => handleTerminateWithoutNote(),
+    });
+  };
 
+  const handleTerminateWithNote = (note) => {
+    // Small delay to ensure the first dialog is fully closed
+    setTimeout(() => {
+      // Show final confirmation dialog with note
+      setConfirmDialog({
+        open: true,
+        title: 'Confirm Termination',
+        description: note 
+          ? `Terminate ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''} with note: "${note}"? This action cannot be undone.`
+          : `Terminate ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}? This will mark them as terminated and cannot be undone.`,
+        confirmText: 'Terminate',
+        cancelText: 'Cancel',
+        variant: 'destructive',
+        showNoteInput: false,
+        terminationNote: note,
+        onConfirm: () => executeTermination(note || 'No reason provided'),
+        onCancel: () => closeConfirmDialog(),
+      });
+    }, 100);
+  };
+
+  const handleTerminateWithoutNote = () => {
+    // Small delay to ensure the first dialog is fully closed
+    setTimeout(() => {
+      // Show final confirmation dialog without note
+      setConfirmDialog({
+        open: true,
+        title: 'Confirm Termination',
+        description: `Terminate ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}? This will mark them as terminated and cannot be undone.`,
+        confirmText: 'Terminate',
+        cancelText: 'Cancel',
+        variant: 'destructive',
+        showNoteInput: false,
+        terminationNote: '',
+        onConfirm: () => executeTermination('No reason provided'),
+        onCancel: () => closeConfirmDialog(),
+      });
+    }, 100);
+  };
+
+  const executeTermination = async (terminationNote) => {
     try {
       setIsDeletingEmployee(true);
-      const response = await axios.delete(
-        `${process.env.REACT_APP_API_BASE_URL}/employees/${selectedEmployee._id}`
+      
+      const response = await axios.patch(
+        `${process.env.REACT_APP_API_BASE_URL}/employees/${selectedEmployee._id}/terminate`,
+        {
+          terminationNote
+        }
       );
 
       if (response.data?.success) {
-        setAllEmployees((prev) => prev.filter((emp) => emp._id !== selectedEmployee._id));
-        setEmployees((prev) => prev.filter((emp) => emp._id !== selectedEmployee._id));
+        // Update the employee in the local state to show as terminated
+        const updatedEmployee = { ...selectedEmployee, status: 'Terminated' };
+        setAllEmployees((prev) => 
+          prev.map((emp) => emp._id === selectedEmployee._id ? updatedEmployee : emp)
+        );
         await fetchAllEmployees();
         await fetchTeams();
         handleCloseProfileModal();
+        closeConfirmDialog();
       } else {
-        alert(response.data?.message || 'Failed to delete employee.');
+        alert(response.data?.message || 'Failed to terminate employee.');
       }
     } catch (error) {
-      console.error('Error deleting employee:', error);
-      alert('Unable to delete employee. Please try again.');
+      console.error('Error terminating employee:', error);
+      alert(`Unable to terminate employee. Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsDeletingEmployee(false);
     }
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog((prev) => ({ ...prev, open: false }));
+  };
+
+  const handleRehireEmployee = async () => {
+    if (!selectedEmployee?._id) return;
+    
+    // Show confirmation dialog for rehire
+    setConfirmDialog({
+      open: true,
+      title: 'Rehire Employee',
+      description: `Are you sure you want to rehire ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}? This will restore their access and make them active again.`,
+      confirmText: 'Rehire',
+      cancelText: 'Cancel',
+      variant: 'default',
+      showNoteInput: false,
+      onConfirm: async () => {
+        try {
+          setIsDeletingEmployee(true);
+          const response = await axios.patch(
+            `${process.env.REACT_APP_API_BASE_URL}/employees/${selectedEmployee._id}/rehire`
+          );
+
+          if (response.data?.success) {
+            await fetchAllEmployees();
+            await fetchTeams();
+            handleCloseProfileModal();
+            closeConfirmDialog();
+          } else {
+            alert(response.data?.message || 'Failed to rehire employee.');
+          }
+        } catch (error) {
+          console.error('Error rehiring employee:', error);
+          alert('Unable to rehire employee. Please try again.');
+        } finally {
+          setIsDeletingEmployee(false);
+        }
+      },
+      onCancel: () => closeConfirmDialog(),
+    });
+  };
+
+  const handleDeleteEmployee = async () => {
+    if (!selectedEmployee?._id) return;
+    
+    // Show confirmation dialog for permanent deletion
+    setConfirmDialog({
+      open: true,
+      title: 'Permanently Delete Employee',
+      description: `Are you sure you want to permanently delete ${selectedEmployee.firstName || ''} ${selectedEmployee.lastName || ''}? This action cannot be undone and will remove all associated data including documents, certificates, and time entries.`,
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      showNoteInput: false,
+      onConfirm: async () => {
+        try {
+          setIsDeletingEmployee(true);
+          const response = await axios.delete(
+            `${process.env.REACT_APP_API_BASE_URL}/employees/${selectedEmployee._id}`
+          );
+
+          if (response.data?.success) {
+            await fetchAllEmployees();
+            await fetchTeams();
+            handleCloseProfileModal();
+            closeConfirmDialog();
+          } else {
+            alert(response.data?.message || 'Failed to delete employee.');
+          }
+        } catch (error) {
+          console.error('Error deleting employee:', error);
+          alert('Unable to delete employee. Please try again.');
+        } finally {
+          setIsDeletingEmployee(false);
+        }
+      },
+      onCancel: () => closeConfirmDialog(),
+    });
+  };
+
+  const handleTerminationNoteChange = (note) => {
+    setConfirmDialog((prev) => ({ ...prev, terminationNote: note }));
   };
 
   // Format date helper function
@@ -516,13 +668,19 @@ export default function EmployeeHub() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEmployees.map((employee, index) => (
+                    {filteredEmployees.map((employee, index) => {
+                      const isTerminated = (employee.status || '').toLowerCase() === 'terminated';
+                      return (
                       <tr 
                         key={employee._id} 
-                        className="hover:bg-gray-50 cursor-pointer"
+                        className={`hover:bg-gray-50 cursor-pointer ${
+                          isTerminated ? 'bg-red-50 border-red-200' : ''
+                        }`}
                         onClick={() => handleViewProfile(employee._id)}
                       >
-                        <td className="px-6 py-4 text-sm text-gray-900">{index + 1}</td>
+                        <td className={`px-6 py-4 text-sm ${
+                          isTerminated ? 'text-red-700 font-medium' : 'text-gray-900'
+                        }`}>{index + 1}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
@@ -534,31 +692,47 @@ export default function EmployeeHub() {
                                 />
                               ) : (
                                 <div
-                                  className="h-full w-full flex items-center justify-center text-white font-medium text-sm"
-                                  style={{ backgroundColor: employee.color || '#3B82F6' }}
+                                  className={`h-full w-full flex items-center justify-center text-white font-medium text-sm ${
+                                    isTerminated ? 'bg-red-600' : ''
+                                  }`}
+                                  style={{ backgroundColor: isTerminated ? '#DC2626' : (employee.color || '#3B82F6') }}
                                 >
                                   {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
                                 </div>
                               )}
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">
+                              <div className={`font-medium ${
+                                isTerminated ? 'text-red-700' : 'text-gray-900'
+                              }`}>
                                 {employee.firstName || '-'} {employee.lastName || '-'}
                               </div>
-                              <div className="text-xs text-gray-500">{employee.email || '-'}</div>
+                              <div className={`text-xs ${
+                                isTerminated ? 'text-red-600' : 'text-gray-500'
+                              }`}>{employee.email || '-'}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{employee.team || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{employee.jobTitle || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{employee.department || '-'}</td>
+                        <td className={`px-6 py-4 text-sm ${
+                          isTerminated ? 'text-red-700' : 'text-gray-900'
+                        }`}>{employee.team || '-'}</td>
+                        <td className={`px-6 py-4 text-sm ${
+                          isTerminated ? 'text-red-700' : 'text-gray-900'
+                        }`}>{employee.jobTitle || '-'}</td>
+                        <td className={`px-6 py-4 text-sm ${
+                          isTerminated ? 'text-red-700' : 'text-gray-900'
+                        }`}>{employee.department || '-'}</td>
                         <td className="px-6 py-4">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewProfile(employee._id);
                             }}
-                            className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                            className={`inline-flex items-center gap-1 px-3 py-1 text-sm rounded transition-colors font-medium ${
+                              isTerminated 
+                                ? 'bg-red-600 text-white hover:bg-red-700' 
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
                             title="View Profile"
                           >
                             <DocumentTextIcon className="h-4 w-4" />
@@ -566,18 +740,25 @@ export default function EmployeeHub() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             ) : (
               /* Grid View */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
-                {filteredEmployees.map((employee) => (
+                {filteredEmployees.map((employee) => {
+                  const isTerminated = (employee.status || '').toLowerCase() === 'terminated';
+                  return (
                   <div
                     key={employee._id}
                     onClick={() => handleViewProfile(employee._id)}
-                    className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all cursor-pointer hover:border-gray-300"
+                    className={`rounded-lg border p-4 hover:shadow-md transition-all cursor-pointer hover:border-gray-300 ${
+                      isTerminated 
+                        ? 'bg-red-50 border-red-200' 
+                        : 'bg-white border-gray-200'
+                    }`}
                   >
                     {/* Employee Avatar */}
                     <div className="flex flex-col items-center text-center">
@@ -591,7 +772,7 @@ export default function EmployeeHub() {
                         ) : (
                           <div
                             className="h-full w-full flex items-center justify-center text-white font-bold text-lg"
-                            style={{ backgroundColor: employee.color || '#3B82F6' }}
+                            style={{ backgroundColor: isTerminated ? '#DC2626' : (employee.color || '#3B82F6') }}
                           >
                             {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
                           </div>
@@ -600,16 +781,24 @@ export default function EmployeeHub() {
                       
                       {/* Employee Info */}
                       <div className="w-full">
-                        <h3 className="font-semibold text-gray-900 truncate">
+                        <h3 className={`font-semibold truncate ${
+                          isTerminated ? 'text-red-700' : 'text-gray-900'
+                        }`}>
                           {employee.firstName || '-'} {employee.lastName || '-'}
                         </h3>
-                        <p className="text-sm text-gray-600 truncate mt-1">
+                        <p className={`text-sm truncate mt-1 ${
+                          isTerminated ? 'text-red-600' : 'text-gray-600'
+                        }`}>
                           {employee.jobTitle || '-'}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className={`text-sm truncate ${
+                          isTerminated ? 'text-red-600' : 'text-gray-500'
+                        }`}>
                           {employee.department || '-'}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className={`text-sm truncate ${
+                          isTerminated ? 'text-red-600' : 'text-gray-500'
+                        }`}>
                           {employee.team || 'No team'}
                         </p>
                       </div>
@@ -620,14 +809,19 @@ export default function EmployeeHub() {
                           e.stopPropagation();
                           handleViewProfile(employee._id);
                         }}
-                        className="mt-3 w-full inline-flex items-center justify-center gap-1 px-3 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                        className={`mt-3 w-full inline-flex items-center justify-center gap-1 px-3 py-2 text-sm rounded transition-colors font-medium ${
+                          isTerminated 
+                            ? 'bg-red-600 text-white hover:bg-red-700' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
                       >
                         <DocumentTextIcon className="h-4 w-4" />
                         View Profile
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -789,25 +983,78 @@ export default function EmployeeHub() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => navigate(`/add-employee?edit=${selectedEmployee._id}`)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit Details
-                </button>
-                <button
-                  onClick={handleDeleteEmployee}
-                  disabled={isDeletingEmployee}
-                  className="flex items-center gap-2 px-4 py-2 text-sm border border-red-200 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                  {isDeletingEmployee ? 'Deleting...' : 'Delete'}
-                </button>
+                {/* Conditional buttons based on employee status */}
+                {(selectedEmployee.status?.toLowerCase() === 'active' || selectedEmployee.status?.toLowerCase() === 'inactive' || selectedEmployee.status?.toLowerCase() === 'on leave') && (
+                  <>
+                    <button 
+                      onClick={() => navigate(`/add-employee?edit=${selectedEmployee._id}`)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Details
+                    </button>
+                    <button
+                      onClick={handleTerminateEmployee}
+                      disabled={isDeletingEmployee}
+                      className="flex items-center gap-2 px-4 py-2 text-sm border border-red-200 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      {isDeletingEmployee ? 'Terminating...' : 'Terminate'}
+                    </button>
+                  </>
+                )}
+                
+                {selectedEmployee.status?.toLowerCase() === 'terminated' && (
+                  <>
+                    <button 
+                      onClick={() => navigate(`/add-employee?edit=${selectedEmployee._id}`)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Details
+                    </button>
+                    <button
+                      onClick={handleRehireEmployee}
+                      disabled={isDeletingEmployee}
+                      className="flex items-center gap-2 px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 rounded transition-colors disabled:opacity-50"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {isDeletingEmployee ? 'Rehiring...' : 'Rehire'}
+                    </button>
+                    <button
+                      onClick={handleDeleteEmployee}
+                      disabled={isDeletingEmployee}
+                      className="flex items-center gap-2 px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 rounded transition-colors disabled:opacity-50"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      {isDeletingEmployee ? 'Deleting...' : 'Delete Permanently'}
+                    </button>
+                  </>
+                )}
+                
+                {/* Fallback for any other status - show Edit Details at minimum */}
+                {!selectedEmployee.status || !['active', 'inactive', 'on leave', 'terminated'].includes(selectedEmployee.status?.toLowerCase()) && (
+                  <button 
+                    onClick={() => navigate(`/add-employee?edit=${selectedEmployee._id}`)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit Details
+                  </button>
+                )}
+                
                 <button
                   onClick={handleCloseProfileModal}
                   className="text-gray-400 hover:text-gray-600 p-2"
@@ -1196,6 +1443,30 @@ export default function EmployeeHub() {
           </div>
         </div>
       )}
+
+      {/* Termination Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          // Only close if user explicitly closes, don't interfere with programmatic changes
+          if (!open && confirmDialog.open) {
+            closeConfirmDialog();
+          }
+        }}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+        variant={confirmDialog.variant}
+        showNoteInput={confirmDialog.showNoteInput}
+        noteValue={confirmDialog.terminationNote}
+        onNoteChange={handleTerminationNoteChange}
+        notePlaceholder="Please provide the reason for termination..."
+        onConfirm={async () => {
+          await confirmDialog.onConfirm?.();
+        }}
+        onCancel={confirmDialog.onCancel || closeConfirmDialog}
+      />
     </div>
   );
 }

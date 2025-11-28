@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import PureProtomapsAdminDashboard from '../components/PureProtomapsAdminDashboard';
-import EnhancedTouristMap from '../components/EnhancedTouristMap';
 import ComplianceDashboard from '../components/ComplianceDashboard';
 import { 
-  MapPinIcon, 
   ChartBarIcon, 
   UserGroupIcon,
   ClockIcon,
@@ -74,7 +71,6 @@ const AdminDashboard = () => {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: ChartBarIcon },
-    { id: 'locations', name: 'Live Locations', icon: MapPinIcon },
     { id: 'compliance', name: 'Compliance', icon: DocumentTextIcon }
   ];
 
@@ -207,18 +203,7 @@ const AdminDashboard = () => {
             {/* Quick Actions */}
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button
-                  onClick={() => setActiveTab('locations')}
-                  className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <MapPinIcon className="w-6 h-6 text-blue-600" />
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900">View Live Locations</div>
-                    <div className="text-sm text-gray-500">Track employee locations in real-time</div>
-                  </div>
-                </button>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => setActiveTab('compliance')}
                   className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -268,16 +253,6 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
-        )}
-
-        {activeTab === 'locations' && (
-          <EnhancedTouristMap
-            height="600px"
-            style="light"
-            autoRefresh={true}
-            refreshInterval={30000}
-            onEmployeeClick={handleEmployeeClick}
-          />
         )}
 
         {activeTab === 'compliance' && (

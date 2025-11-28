@@ -26,12 +26,20 @@ exports.getAllTeams = async (req, res) => {
 };
 
 /**
- * Get a single team by ID
+ * Get a single team by ID with filtered active members
  */
 exports.getTeamById = async (req, res) => {
   try {
     const team = await Team.findById(req.params.id)
-      .populate('members', 'firstName lastName jobTitle email office')
+      .populate({
+        path: 'members',
+        select: 'firstName lastName jobTitle email office status isActive deleted',
+        match: { 
+          status: 'Active', 
+          isActive: true, 
+          deleted: { $ne: true } 
+        }
+      })
       .populate('teamLead', 'firstName lastName');
     
     if (!team) {
@@ -39,6 +47,17 @@ exports.getTeamById = async (req, res) => {
         success: false,
         message: 'Team not found'
       });
+    }
+    
+    // Auto-clean invalid member IDs (null, undefined, or non-existent)
+    const validMembers = team.members.filter(member => member != null);
+    if (validMembers.length !== team.members.length) {
+      console.log(`🧹 Cleaning ${team.members.length - validMembers.length} invalid member IDs from team ${team._id}`);
+      await Team.updateOne(
+        { _id: team._id },
+        { $pull: { members: null } }
+      );
+      team.members = validMembers;
     }
     
     res.status(200).json({

@@ -61,8 +61,29 @@ export const getClockStatus = async (options = {}) => {
     }
     
     const response = await axios.get(url, { withCredentials: true });
+    
+    // Handle the new response structure
+    if (response.data && response.data.data) {
+      const apiData = response.data.data;
+      
+      // Return the data in the expected format for backward compatibility
+      // but also provide the new structure
+      return {
+        success: response.data.success,
+        data: apiData.employees || apiData.allEmployees || [], // Main employee list
+        // New structure arrays
+        allEmployees: apiData.allEmployees || [],
+        clockedIn: apiData.clockedIn || [],
+        clockedOut: apiData.clockedOut || [],
+        break: apiData.break || [],
+        // Legacy support
+        employees: apiData.employees || apiData.allEmployees || []
+      };
+    }
+    
     return response.data;
   } catch (error) {
+    console.error('getClockStatus error:', error);
     throw error.response?.data || { message: 'Failed to fetch clock status' };
   }
 };

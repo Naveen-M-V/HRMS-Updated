@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 
 /**
- * Team Model
+ * Team Model for Employees Only
  * Stores team information for the Manage Teams section
  * Tracks team members and team metadata
+ * Employees ONLY - Profiles do NOT belong to teams
  */
 const teamSchema = new mongoose.Schema({
   name: {
@@ -27,9 +28,12 @@ const teamSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  
+  // Team Members (EmployeesHub only)
   members: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'EmployeeHub'
+    ref: 'EmployeeHub',
+    required: true
   }],
   memberCount: {
     type: Number,

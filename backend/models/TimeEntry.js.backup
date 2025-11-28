@@ -1,0 +1,560 @@
+const mongoose = require('mongoose');
+
+/**
+ * Time Entry Schema for Employees Only
+ * Tracks employee clock in/out times with multi-session support
+ * Employees ONLY - Profiles CANNOT clock-in
+ * Supports unlimited clock-in/out sessions per day
+ */
+const timeEntrySchema = new mongoose.Schema({
+  // Employee Reference (EmployeesHub only)
+  employee: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'EmployeeHub',
+    required: [true, 'Employee reference is required'],
+    index: true
+  },
+  
+  // Date Information
+  date: {
+    type: Date,
+    required: [true, 'Date is required'],
+    index: true
+  },
+  
+  // Overall Status for the day
+  status: {
+    type: String,
+    enum: ['not-started', 'clocked-in', 'break', 'clocked-out'],
+    default: 'not-started'
+  },
+  
+  // Multi-Session Support
+  sessions: [{
+    sessionNumber: {
+      type: Number,
+      required: true
+    },
+    clockIn: {
+      type: Date,
+      required: true
+    },
+    clockOut: {
+      type: Date,
+      default: null
+    },
+    breakIn: {
+      type: Date,
+      default: null
+    },
+    breakOut: {
+      type: Date,
+      default: null
+    },
+    location: {
+      type: String,
+      enum: ['Work From Office', 'Work From Home', 'Field', 'Client Side'],
+      default: 'Work From Office'
+    },
+    workType: {
+      type: String,
+      enum: ['Regular', 'Overtime', 'Weekend Overtime', 'Client-side Overtime'],
+      default: 'Regular'
+    },
+    notes: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Session notes cannot exceed 500 characters']
+    },
+    
+    // GPS Location Tracking
+    gpsLocation: {
+      clockIn: {
+        latitude: { type: Number, default: null },
+        longitude: { type: Number, default: null },
+        accuracy: { type: Number, default: null },
+        timestamp: { type: Date, default: null }
+      },
+      clockOut: {
+        latitude: { type: Number, default: null },
+        longitude: { type: Number, default: null },
+        accuracy: { type: Number, default: null },
+        timestamp: { type: Date, default: null }
+      },
+      breakIn: {
+        latitude: { type: Number, default: null },
+        longitude: { type: Number, default: null },
+        accuracy: { type: Number, default: null },
+        timestamp: { type: Date, default: null }
+      },
+      breakOut: {
+        latitude: { type: Number, default: null },
+        longitude: { type: Number, default: null },
+        accuracy: { type: Number, default: null },
+        timestamp: { type: Date, default: null }
+      }
+    }
+  }],
+  
+  // Shift Assignment Reference
+  shiftAssignment: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShiftAssignment',
+    default: null
+  },
+  
+  // Daily Totals
+  totalWorkTime: {
+    type: Number, // Total work time in minutes
+    default: 0
+  },
+  totalBreakTime: {
+    type: Number, // Total break time in minutes
+    default: 0
+  },
+  
+  // Approval Status
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'EmployeeHub',
+    default: null
+  },
+  approvedAt: {
+    type: Date,
+    default: null
+  },
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  approvalComments: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Approval comments cannot exceed 1000 characters']
+  },
+  
+  // Override Information (for admin corrections)
+  overriddenBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'EmployeeHub',
+    default: null
+  },
+  overriddenAt: {
+    type: Date,
+    default: null
+  },
+  overrideReason: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Override reason cannot exceed 500 characters']
+  },
+  
+  // Notes
+  notes: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Notes cannot exceed 1000 characters']
+  }
+}, {
+  timestamps: true
+});
+
+// Indexes for better query performance
+timeEntrySchema.index({ employee: 1, date: -1 });
+timeEntrySchema.index({ employee: 1, status: 1 });
+timeEntrySchema.index({ date: -1 });
+timeEntrySchema.index({ shiftAssignment: 1 });
+timeEntrySchema.index({ approvalStatus: 1 });
+timeEntrySchema.index({ createdAt: -1 });
+
+// Virtual for current active session
+timeEntrySchema.virtual('currentSession').get(function() {
+  return this.sessions.find(session => !session.clockOut);
+});
+
+// Virtual for total sessions today
+timeEntrySchema.virtual('totalSessions').get(function() {
+  return this.sessions.length;
+});
+
+// Virtual for completed sessions
+timeEntrySchema.virtual('completedSessions').get(function() {
+  return this.sessions.filter(session => session.clockOut).length;
+});
+
+// Virtual for formatted total work time
+timeEntrySchema.virtual('formattedTotalWorkTime').get(function() {
+  const hours = Math.floor(this.totalWorkTime / 60);
+  const minutes = this.totalWorkTime % 60;
+  return `${hours}h ${minutes}m`;
+});
+
+// Virtual for formatted total break time
+timeEntrySchema.virtual('formattedTotalBreakTime').get(function() {
+  const hours = Math.floor(this.totalBreakTime / 60);
+  const minutes = this.totalBreakTime % 60;
+  return `${hours}h ${minutes}m`;
+});
+
+// Pre-save middleware to calculate totals and update status
+timeEntrySchema.pre('save', function(next) {
+  // Calculate total work time and break time
+  let totalWorkTime = 0;
+  let totalBreakTime = 0;
+  let hasActiveSession = false;
+  let hasActiveBreak = false;
+
+  this.sessions.forEach(session => {
+    // Calculate work time for this session
+    if (session.clockIn) {
+      const workEndTime = session.clockOut || new Date();
+      totalWorkTime += Math.floor((workEndTime - session.clockIn) / (1000 * 60));
+    }
+
+    // Calculate break time for this session
+    if (session.breakIn && session.breakOut) {
+      totalBreakTime += Math.floor((session.breakOut - session.breakIn) / (1000 * 60));
+    } else if (session.breakIn && !session.breakOut) {
+      hasActiveBreak = true;
+    }
+
+    // Check for active session
+    if (session.clockIn && !session.clockOut) {
+      hasActiveSession = true;
+    }
+  });
+
+  this.totalWorkTime = totalWorkTime;
+  this.totalBreakTime = totalBreakTime;
+
+  // Update overall status
+  if (hasActiveBreak) {
+    this.status = 'break';
+  } else if (hasActiveSession) {
+    this.status = 'clocked-in';
+  } else if (this.sessions.length > 0) {
+    this.status = 'clocked-out';
+  } else {
+    this.status = 'not-started';
+  }
+
+  next();
+});
+
+// Static method to get time entry by employee and date
+timeEntrySchema.statics.getByEmployeeAndDate = function(employeeId, date) {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(0, 0, 0, 0);
+  
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  return this.findOne({
+    employee: employeeId,
+    date: {
+      $gte: startOfDay,
+      $lte: endOfDay
+    }
+  }).populate('employee', 'firstName lastName employeeId');
+};
+
+// Static method to get time entries for date range
+timeEntrySchema.statics.getByDateRange = function(employeeId, startDate, endDate) {
+  return this.find({
+    employee: employeeId,
+    date: {
+      $gte: startDate,
+      $lte: endDate
+    }
+  }).sort({ date: -1 });
+};
+
+// Static method to get pending approvals
+timeEntrySchema.statics.getPendingApprovals = function() {
+  return this.find({ approvalStatus: 'pending' })
+    .populate('employee', 'firstName lastName employeeId')
+    .sort({ date: -1 });
+};
+
+// Instance method to clock in
+timeEntrySchema.methods.clockIn = function(location = 'Work From Office', workType = 'Regular', gpsData = null) {
+  const sessionNumber = this.sessions.length + 1;
+  const newSession = {
+    sessionNumber,
+    clockIn: new Date(),
+    location,
+    workType,
+    notes: ''
+  };
+  
+  if (gpsData) {
+    newSession.gpsLocation.clockIn = {
+      latitude: gpsData.latitude,
+      longitude: gpsData.longitude,
+      accuracy: gpsData.accuracy,
+      timestamp: new Date()
+    };
+  }
+  
+  this.sessions.push(newSession);
+  return this.save();
+};
+
+// Instance method to clock-out
+timeEntrySchema.methods.clockOut = function(gpsData = null, notes = '') {
+  const activeSession = this.sessions.find(session => !session.clockOut);
+  
+  if (!activeSession) {
+    throw new Error('No active session found for clock-out');
+  }
+  
+  activeSession.clockOut = new Date();
+  if (notes) {
+    activeSession.notes = notes;
+  }
+  
+  if (gpsData) {
+    activeSession.gpsLocation.clockOut = {
+      latitude: gpsData.latitude,
+      longitude: gpsData.longitude,
+      accuracy: gpsData.accuracy,
+      timestamp: new Date()
+    };
+  }
+  
+  return this.save();
+};
+
+// Instance method to start break
+timeEntrySchema.methods.startBreak = function(gpsData = null) {
+  const activeSession = this.sessions.find(session => !session.clockOut);
+  
+  if (!activeSession) {
+    throw new Error('No active session found for break');
+  }
+  
+  if (activeSession.breakIn) {
+    throw new Error('Break already started for this session');
+  }
+  
+  activeSession.breakIn = new Date();
+  
+  if (gpsData) {
+    activeSession.gpsLocation.breakIn = {
+      latitude: gpsData.latitude,
+      longitude: gpsData.longitude,
+      accuracy: gpsData.accuracy,
+      timestamp: new Date()
+    };
+  }
+  
+  return this.save();
+};
+
+// Instance method to end break
+timeEntrySchema.methods.endBreak = function(gpsData = null) {
+  const activeSession = this.sessions.find(session => !session.clockOut && session.breakIn && !session.breakOut);
+  
+  if (!activeSession) {
+    throw new Error('No active break found to end');
+  }
+  
+  activeSession.breakOut = new Date();
+  
+  if (gpsData) {
+    activeSession.gpsLocation.breakOut = {
+      latitude: gpsData.latitude,
+      longitude: gpsData.longitude,
+      accuracy: gpsData.accuracy,
+      timestamp: new Date()
+    };
+  }
+  
+  return this.save();
+};
+
+// Instance method to approve time entry
+timeEntrySchema.methods.approve = function(approvedBy, comments = '') {
+  this.approvalStatus = 'approved';
+  this.approvedBy = approvedBy;
+  this.approvedAt = new Date();
+  this.approvalComments = comments;
+  return this.save();
+};
+
+// Instance method to reject time entry
+timeEntrySchema.methods.reject = function(approvedBy, comments = '') {
+  this.approvalStatus = 'rejected';
+  this.approvedBy = approvedBy;
+  this.approvedAt = new Date();
+  this.approvalComments = comments;
+  return this.save();
+};
+
+module.exports = mongoose.model('TimeEntry', timeEntrySchema);
+  },
+  // GPS location captured during clock-out
+  gpsLocationOut: {
+    latitude: {
+      type: Number,
+      default: null
+    },
+    longitude: {
+      type: Number,
+      default: null
+    },
+    accuracy: {
+      type: Number, // Accuracy in meters
+      default: null
+    },
+    address: {
+      type: String, // Reverse geocoded address
+      default: null
+    },
+    capturedAt: {
+      type: Date,
+      default: null
+    }
+  },
+  // ==========================================
+  
+  // ========== NEW: SHIFT LINKING ==========
+  shiftId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShiftAssignment',
+    default: null
+  },
+  attendanceStatus: {
+    type: String,
+    enum: ['On Time', 'Late', 'Early', 'Unscheduled', 'Overtime'],
+    default: 'On Time'
+  },
+  hoursWorked: {
+    type: Number, // Calculated hours (excluding breaks)
+    default: 0
+  },
+  scheduledHours: {
+    type: Number, // Expected hours from shift
+    default: 0
+  },
+  variance: {
+    type: Number, // Difference between scheduled and actual (in hours)
+    default: 0
+  },
+  // ========================================
+  
+  // ========== NEW: ON BREAK TRACKING ==========
+  onBreakStart: {
+    type: String, // Format: "HH:MM" - When current break started
+    default: null
+  },
+  onBreakEnd: {
+    type: String, // Format: "HH:MM" - When current break ended
+    default: null
+  },
+  // ============================================
+  
+  breaks: [{
+    startTime: {
+      type: String, // Format: "HH:MM"
+      required: true
+    },
+    endTime: {
+      type: String, // Format: "HH:MM"
+      required: true
+    },
+    duration: {
+      type: Number, // Duration in minutes
+      required: true
+    },
+    type: {
+      type: String,
+      enum: ['lunch', 'coffee', 'other'],
+      default: 'other'
+    }
+  }],
+  totalHours: {
+    type: Number, // Total hours worked (excluding breaks)
+    default: 0
+  },
+  status: {
+    type: String,
+    enum: ['clocked_in', 'clocked_out', 'on_break'],
+    default: 'clocked_in'
+  },
+  notes: {
+    type: String,
+    default: ''
+  },
+  isManualEntry: {
+    type: Boolean,
+    default: false
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
+}, {
+  timestamps: true
+});
+
+// Index for efficient queries
+timeEntrySchema.index({ employee: 1, date: -1 });
+timeEntrySchema.index({ date: -1 });
+timeEntrySchema.index({ status: 1 });
+timeEntrySchema.index({ shiftId: 1 });
+timeEntrySchema.index({ attendanceStatus: 1 });
+
+/**
+ * Calculate total hours worked (excluding breaks)
+ */
+timeEntrySchema.methods.calculateTotalHours = function() {
+  if (!this.clockIn || !this.clockOut) return 0;
+  
+  const clockInTime = new Date(`2000-01-01T${this.clockIn}`);
+  const clockOutTime = new Date(`2000-01-01T${this.clockOut}`);
+  
+  let totalMinutes = (clockOutTime - clockInTime) / (1000 * 60);
+  
+  // Subtract break time
+  this.breaks.forEach(breakItem => {
+    totalMinutes -= breakItem.duration;
+  });
+  
+  return Math.max(0, totalMinutes / 60); // Convert to hours
+};
+
+/**
+ * Calculate hours worked and variance from scheduled
+ */
+timeEntrySchema.methods.calculateHoursAndVariance = function() {
+  const hoursWorked = this.calculateTotalHours();
+  this.hoursWorked = hoursWorked;
+  
+  if (this.scheduledHours > 0) {
+    this.variance = hoursWorked - this.scheduledHours;
+  }
+  
+  return {
+    hoursWorked,
+    variance: this.variance
+  };
+};
+
+// Pre-save hook to calculate total hours
+timeEntrySchema.pre('save', function(next) {
+  if (this.clockOut) {
+    this.totalHours = this.calculateTotalHours();
+    this.status = 'clocked_out';
+    
+    // Calculate variance if we have scheduled hours
+    if (this.scheduledHours > 0) {
+      this.hoursWorked = this.totalHours;
+      this.variance = this.totalHours - this.scheduledHours;
+    }
+  }
+  next();
+});
+
+module.exports = mongoose.model('TimeEntry', timeEntrySchema);

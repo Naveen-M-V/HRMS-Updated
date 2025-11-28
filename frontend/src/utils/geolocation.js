@@ -1,13 +1,16 @@
 /**
- * Geolocation Utilities for Live Location Tracking
- * Provides functions for getting current location and watching position changes
+ * Geolocation Utilities – Accurate, No Cached GPS, Correct Filtering
+ * Fixed: Added default cases to all switch statements
  */
 
-/**
- * Get current position with high accuracy
- * @returns {Promise<{latitude: number, longitude: number, accuracy: number}>}
- */
-export const getCurrentPosition = () => {
+// Get current position (with option support)
+export const getCurrentPosition = (options = {}) => {
+  const {
+    enableHighAccuracy = true,
+    timeout = 10000,
+    maximumAge = 0  // ALWAYS get fresh, uncached GPS
+  } = options;
+
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by this browser'));
@@ -17,155 +20,135 @@ export const getCurrentPosition = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
+
+        // Reject inaccurate GPS (optional but recommended)
+        if (accuracy > 50) {
+          console.warn("Low GPS accuracy:", accuracy);
+        }
+
         resolve({ latitude, longitude, accuracy });
       },
       (error) => {
-        let errorMessage = 'Failed to get location';
+        let message = 'Failed to get location';
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied by user';
+            message = 'Location permission denied';
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable';
+            message = 'Location unavailable';
             break;
           case error.TIMEOUT:
-            errorMessage = 'Location request timed out';
+            message = 'Location request timed out';
             break;
+          default:
+            message = 'Unknown geolocation error';
         }
-        reject(new Error(errorMessage));
+        reject(new Error(message));
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000 // Cache for 1 minute
+        enableHighAccuracy,
+        timeout,
+        maximumAge
       }
     );
   });
 };
 
-/**
- * Watch position changes with callback
- * @param {Function} onLocationUpdate - Callback function for location updates
- * @param {Function} onError - Callback function for errors
- * @returns {number} Watch ID for clearing the watch
- */
+// Live tracking with accuracy filtering
 export const watchPosition = (onLocationUpdate, onError) => {
   if (!navigator.geolocation) {
-    onError(new Error('Geolocation is not supported by this browser'));
+    onError(new Error('Geolocation unsupported'));
     return null;
   }
 
-  const watchId = navigator.geolocation.watchPosition(
+  return navigator.geolocation.watchPosition(
     (position) => {
       const { latitude, longitude, accuracy, heading, speed } = position.coords;
-      const timestamp = position.timestamp;
-      
+
+      // Ignore inaccurate results > 50m
+      if (accuracy > 50) return;
+
       onLocationUpdate({
         latitude,
         longitude,
         accuracy,
         heading,
         speed,
-        timestamp
+        timestamp: position.timestamp
       });
     },
     (error) => {
-      let errorMessage = 'Failed to watch location';
+      let message = 'Failed to watch location';
       switch (error.code) {
         case error.PERMISSION_DENIED:
-          errorMessage = 'Location access denied by user';
+          message = 'Location permission denied';
           break;
         case error.POSITION_UNAVAILABLE:
-          errorMessage = 'Location information unavailable';
+          message = 'Position unavailable';
           break;
         case error.TIMEOUT:
-          errorMessage = 'Location request timed out';
+          message = 'Watching position timed out';
           break;
+        default:
+          message = 'Unknown watch position error';
       }
-      onError(new Error(errorMessage));
+      onError(new Error(message));
     },
     {
       enableHighAccuracy: true,
       timeout: 15000,
-      maximumAge: 0 // Always get fresh location for live tracking
+      maximumAge: 0 // No cached GPS
     }
   );
-
-  return watchId;
 };
 
-/**
- * Clear position watch
- * @param {number} watchId - Watch ID returned by watchPosition
- */
+// Clear watcher
 export const clearPositionWatch = (watchId) => {
   if (watchId && navigator.geolocation) {
     navigator.geolocation.clearWatch(watchId);
   }
 };
 
-/**
- * Check if geolocation is available
- * @returns {boolean}
- */
+// Check geolocation support
 export const isGeolocationAvailable = () => {
-  return 'geolocation' in navigator;
+  return "geolocation" in navigator;
 };
 
-/**
- * Request location permission
- * @returns {Promise<string>} Permission state: 'granted', 'denied', 'prompt'
- */
+// Permission helper
 export const requestLocationPermission = async () => {
   if (!navigator.permissions) {
-    // Fallback: try to get location to trigger permission prompt
     try {
       await getCurrentPosition();
       return 'granted';
-    } catch (error) {
+    } catch {
       return 'denied';
     }
   }
 
   try {
-    const permission = await navigator.permissions.query({ name: 'geolocation' });
-    return permission.state;
-  } catch (error) {
-    console.warn('Could not query geolocation permission:', error);
-    return 'prompt';
+    const permission = await navigator.permissions.query({ name: "geolocation" });
+    return permission.state; // granted / prompt / denied
+  } catch (e) {
+    return "prompt";
   }
 };
 
-/**
- * Calculate distance between two coordinates (Haversine formula)
- * @param {number} lat1 - First latitude
- * @param {number} lon1 - First longitude  
- * @param {number} lat2 - Second latitude
- * @param {number} lon2 - Second longitude
- * @returns {number} Distance in meters
- */
+// Haversine distance
 export const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3; // Earth's radius in meters
+  const R = 6371e3;
   const φ1 = lat1 * Math.PI / 180;
   const φ2 = lat2 * Math.PI / 180;
   const Δφ = (lat2 - lat1) * Math.PI / 180;
   const Δλ = (lon2 - lon1) * Math.PI / 180;
 
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) *
-    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const a = Math.sin(Δφ/2)**2 +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2)**2;
 
-  return R * c; // Distance in meters
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 };
 
-/**
- * Format coordinates for display
- * @param {number} latitude 
- * @param {number} longitude 
- * @param {number} precision - Decimal places (default: 6)
- * @returns {string} Formatted coordinates
- */
-export const formatCoordinates = (latitude, longitude, precision = 6) => {
-  return `${latitude.toFixed(precision)}, ${longitude.toFixed(precision)}`;
+// Format helper
+export const formatCoordinates = (lat, lon, precision = 6) => {
+  return `${lat.toFixed(precision)}, ${lon.toFixed(precision)}`;
 };

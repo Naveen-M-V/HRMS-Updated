@@ -1,225 +1,219 @@
 const mongoose = require('mongoose');
 
 /**
- * Time Entry Schema
- * Tracks employee clock in/out times and breaks
- * NOW LINKED TO SHIFT ASSIGNMENTS
+ * Time Entry Schema for Employees Only
+ * Tracks employee clock in/out times with multi-session support
  */
 const timeEntrySchema = new mongoose.Schema({
+  // Employee/User Reference (supports both EmployeeHub and User/Admin)
   employee: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    required: false,
+    index: true
+    // Note: Can reference either EmployeeHub or User model
   },
+  
+  // Date Information (YYYY-MM-DD format for consistency)
   date: {
-    type: Date,
-    required: true,
-    default: Date.now
+    type: String, // Change to String to store YYYY-MM-DD
+    required: [true, 'Date is required'],
+    index: true
   },
+  
+  // Overall Status for the day
+  status: {
+    type: String,
+    enum: ['not-started', 'clocked-in', 'clocked_in', 'break', 'on_break', 'clocked-out', 'clocked_out'],
+    default: 'not-started'
+  },
+  
+  // Multi-session support
+  sessions: [{
+    clockIn: {
+      type: Date,
+      required: true
+    },
+    clockOut: {
+      type: Date,
+      default: null
+    },
+    breakIn: {
+      type: Date,
+      default: null
+    },
+    breakOut: {
+      type: Date,
+      default: null
+    },
+    location: {
+      type: String,
+      default: 'Office'
+    },
+    workType: {
+      type: String,
+      default: 'Regular'
+    },
+    notes: {
+      type: String,
+      default: ''
+    },
+    gpsLocationIn: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null },
+      accuracy: { type: Number, default: null },
+      capturedAt: { type: Date, default: null }
+    },
+    gpsLocationOut: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null },
+      accuracy: { type: Number, default: null },
+      capturedAt: { type: Date, default: null }
+    }
+  }],
+  
+  // Legacy fields for backward compatibility
   clockIn: {
-    type: String, // Format: "HH:MM"
-    required: true
-  },
-  clockOut: {
-    type: String, // Format: "HH:MM"
+    type: Date,
     default: null
   },
+  clockOut: {
+    type: Date,
+    default: null
+  },
+  breakIn: {
+    type: Date,
+    default: null
+  },
+  breakOut: {
+    type: Date,
+    default: null
+  },
+  breakDuration: {
+    type: Number,
+    default: 0
+  },
+  totalHours: {
+    type: Number,
+    default: 0
+  },
+  
+  // Location and Work Type
   location: {
     type: String,
-    enum: ['Work From Office', 'Work From Home', 'Field', 'Client Side'],
-    default: 'Work From Office'
+    default: null
   },
   workType: {
     type: String,
-    enum: ['Regular', 'Overtime', 'Weekend Overtime', 'Client-side Overtime'],
-    default: 'Regular'
-  },
-  
-  // ========== GPS LOCATION TRACKING ==========
-  // Captures GPS coordinates during clock-in for attendance verification
-  gpsLocation: {
-    latitude: {
-      type: Number,
-      default: null
-    },
-    longitude: {
-      type: Number,
-      default: null
-    },
-    accuracy: {
-      type: Number, // Accuracy in meters
-      default: null
-    },
-    address: {
-      type: String, // Reverse geocoded address from OpenStreetMap
-      default: null
-    },
-    capturedAt: {
-      type: Date,
-      default: null
-    }
-  },
-  // GPS location captured during clock-out
-  gpsLocationOut: {
-    latitude: {
-      type: Number,
-      default: null
-    },
-    longitude: {
-      type: Number,
-      default: null
-    },
-    accuracy: {
-      type: Number, // Accuracy in meters
-      default: null
-    },
-    address: {
-      type: String, // Reverse geocoded address
-      default: null
-    },
-    capturedAt: {
-      type: Date,
-      default: null
-    }
-  },
-  // ==========================================
-  
-  // ========== NEW: SHIFT LINKING ==========
-  shiftId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ShiftAssignment',
-    default: null
-  },
-  attendanceStatus: {
-    type: String,
-    enum: ['On Time', 'Late', 'Early', 'Unscheduled', 'Overtime'],
-    default: 'On Time'
-  },
-  hoursWorked: {
-    type: Number, // Calculated hours (excluding breaks)
-    default: 0
-  },
-  scheduledHours: {
-    type: Number, // Expected hours from shift
-    default: 0
-  },
-  variance: {
-    type: Number, // Difference between scheduled and actual (in hours)
-    default: 0
-  },
-  // ========================================
-  
-  // ========== NEW: ON BREAK TRACKING ==========
-  onBreakStart: {
-    type: String, // Format: "HH:MM" - When current break started
-    default: null
-  },
-  onBreakEnd: {
-    type: String, // Format: "HH:MM" - When current break ended
-    default: null
-  },
-  // ============================================
-  
-  breaks: [{
-    startTime: {
-      type: String, // Format: "HH:MM"
-      required: true
-    },
-    endTime: {
-      type: String, // Format: "HH:MM"
-      required: true
-    },
-    duration: {
-      type: Number, // Duration in minutes
-      required: true
-    },
-    type: {
-      type: String,
-      enum: ['lunch', 'coffee', 'other'],
-      default: 'other'
-    }
-  }],
-  totalHours: {
-    type: Number, // Total hours worked (excluding breaks)
-    default: 0
-  },
-  status: {
-    type: String,
-    enum: ['clocked_in', 'clocked_out', 'on_break'],
-    default: 'clocked_in'
+    default: 'regular'
   },
   notes: {
     type: String,
     default: ''
   },
-  isManualEntry: {
-    type: Boolean,
-    default: false
+  
+  // GPS location tracking (legacy)
+  gpsLocationIn: {
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    accuracy: { type: Number, default: null },
+    timestamp: { type: Date, default: null }
   },
+  gpsLocationOut: {
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    accuracy: { type: Number, default: null },
+    timestamp: { type: Date, default: null }
+  },
+  
+  // Approval System
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  approvedAt: {
+    type: Date,
+    default: null
+  },
+  approvalComments: {
+    type: String,
+    default: ''
+  },
+  
+  // Additional fields for compatibility
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }
+    ref: 'User',
+    default: null
+  },
+  shiftId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShiftAssignment',
+    default: null
+  },
+  scheduledHours: {
+    type: Number,
+    default: 0
+  },
+  variance: {
+    type: Number,
+    default: 0
+  },
+  breaks: [{
+    breakIn: Date,
+    breakOut: Date,
+    duration: Number,
+    notes: String
+  }]
 }, {
   timestamps: true
 });
 
-// Index for efficient queries
+// Indexes for better performance
 timeEntrySchema.index({ employee: 1, date: -1 });
-timeEntrySchema.index({ date: -1 });
-timeEntrySchema.index({ status: 1 });
-timeEntrySchema.index({ shiftId: 1 });
-timeEntrySchema.index({ attendanceStatus: 1 });
+timeEntrySchema.index({ date: 1, status: 1 });
+timeEntrySchema.index({ employee: 1, clockIn: -1 });
 
-/**
- * Calculate total hours worked (excluding breaks)
- */
-timeEntrySchema.methods.calculateTotalHours = function() {
-  if (!this.clockIn || !this.clockOut) return 0;
-  
-  const clockInTime = new Date(`2000-01-01T${this.clockIn}`);
-  const clockOutTime = new Date(`2000-01-01T${this.clockOut}`);
-  
-  let totalMinutes = (clockOutTime - clockInTime) / (1000 * 60);
-  
-  // Subtract break time
-  this.breaks.forEach(breakItem => {
-    totalMinutes -= breakItem.duration;
-  });
-  
-  return Math.max(0, totalMinutes / 60); // Convert to hours
-};
-
-/**
- * Calculate hours worked and variance from scheduled
- */
-timeEntrySchema.methods.calculateHoursAndVariance = function() {
-  const hoursWorked = this.calculateTotalHours();
-  this.hoursWorked = hoursWorked;
-  
-  if (this.scheduledHours > 0) {
-    this.variance = hoursWorked - this.scheduledHours;
-  }
-  
-  return {
-    hoursWorked,
-    variance: this.variance
-  };
-};
-
-// Pre-save hook to calculate total hours
+// Pre-save middleware to update total hours and maintain backward compatibility
 timeEntrySchema.pre('save', function(next) {
-  if (this.clockOut) {
-    this.totalHours = this.calculateTotalHours();
-    this.status = 'clocked_out';
+  // Update total hours based on sessions
+  if (this.isModified('sessions') && this.sessions && this.sessions.length > 0) {
+    let totalHours = 0;
+    this.sessions.forEach(session => {
+      if (session.clockIn && session.clockOut) {
+        const duration = (session.clockOut - session.clockIn) / (1000 * 60 * 60); // Convert to hours
+        totalHours += duration;
+      }
+    });
+    this.totalHours = Math.round(totalHours * 100) / 100;
     
-    // Calculate variance if we have scheduled hours
-    if (this.scheduledHours > 0) {
-      this.hoursWorked = this.totalHours;
-      this.variance = this.totalHours - this.scheduledHours;
+    // Update legacy fields for backward compatibility
+    if (this.sessions.length > 0) {
+      const firstSession = this.sessions[0];
+      const lastSession = this.sessions[this.sessions.length - 1];
+      
+      this.clockIn = firstSession.clockIn;
+      this.clockOut = lastSession.clockOut || null;
+      
+      // Find the last break
+      for (let i = this.sessions.length - 1; i >= 0; i--) {
+        if (this.sessions[i].breakIn) {
+          this.breakIn = this.sessions[i].breakIn;
+          this.breakOut = this.sessions[i].breakOut || null;
+          break;
+        }
+      }
     }
   }
   next();
 });
 
-module.exports = mongoose.model('TimeEntry', timeEntrySchema);
+// Compile the model
+const TimeEntry = mongoose.model('TimeEntry', timeEntrySchema);
+
+module.exports = TimeEntry;

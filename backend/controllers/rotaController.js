@@ -85,55 +85,52 @@ exports.assignShiftToEmployee = async (req, res) => {
       });
     }
 
-    // Check if employee exists in User collection OR EmployeeHub collection
+    // Check if employee exists in EmployeesHub collection
     console.log('Looking up employee with ID:', employeeId);
-    let employee = await User.findById(employeeId);
-    let actualEmployeeId = employeeId;
+    const employee = await EmployeesHub.findById(employeeId);
     
     if (!employee) {
-      console.log('Not found in User collection, checking EmployeeHub collection...');
-      const employeeHub = await EmployeesHub.findById(employeeId);
-      console.log('EmployeeHub lookup result:', employeeHub ? 'Found' : 'Not found');
-      
-      if (employeeHub) {
-        if (employeeHub.userId) {
-          console.log('Found employee, looking up user with userId:', employeeHub.userId);
-          employee = await User.findById(employeeHub.userId);
-          actualEmployeeId = employeeHub.userId;
-          console.log('User lookup result:', employee ? 'Found' : 'Not found');
-        } else {
-          // EmployeeHub exists but no userId - should not happen with new system
-          console.log('EmployeeHub found but no userId. Looking for existing user by email...');
-          const existingUser = await User.findOne({ email: employeeHub.email });
-          
-          if (existingUser) {
-            console.log('✅ Found existing user by email:', existingUser._id);
-            employeeHub.userId = existingUser._id;
-            await employeeHub.save();
-            employee = existingUser;
-            actualEmployeeId = existingUser._id;
-            console.log('✅ Linked employee to existing user');
-          }
-        }
-      }
-    } else {
-      console.log('Found employee in User collection');
-    }
-    
-    if (!employee) {
-      console.error('Employee not found in User or EmployeesHub:', employeeId);
+      console.error('Employee not found in EmployeesHub:', employeeId);
       return res.status(404).json({
         success: false,
-        message: 'Employee not found in system',
+        message: 'Employee is inactive or not found',
         debug: {
           searchedId: employeeId,
-          checkedUser: true,
           checkedEmployeesHub: true
         }
       });
     }
-    
-    // actualEmployeeId is already set above
+
+    // Validate employee status
+    if (employee.status !== 'Active' || employee.isActive !== true || employee.deleted === true) {
+      console.error('Employee is inactive or deleted:', {
+        employeeId,
+        status: employee.status,
+        isActive: employee.isActive,
+        deleted: employee.deleted
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Employee is inactive or not found',
+        debug: {
+          employeeId,
+          status: employee.status,
+          isActive: employee.isActive,
+          deleted: employee.deleted
+        }
+      });
+    }
+
+    console.log('✅ Employee validated:', {
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      status: employee.status,
+      isActive: employee.isActive
+    });
+
+    // Use the EmployeesHub _id for shift assignment
+    const actualEmployeeId = employee._id;
     console.log('Using employee ID for shift assignment:', actualEmployeeId);
 
     const conflicts = await exports.detectShiftConflicts(actualEmployeeId, startTime, endTime, date);
@@ -179,6 +176,7 @@ exports.assignShiftToEmployee = async (req, res) => {
     await shiftAssignment.save();
     console.log('✅ Shift saved with employeeId:', shiftAssignment.employeeId);
 
+    // Populate with EmployeesHub data instead of User data
     const populatedShift = await ShiftAssignment.findById(shiftAssignment._id)
       .populate('employeeId', 'firstName lastName email role')
       .populate('assignedBy', 'firstName lastName role');
@@ -191,15 +189,18 @@ exports.assignShiftToEmployee = async (req, res) => {
       employeeName: populatedShift.employeeId?.firstName ? `${populatedShift.employeeId.firstName} ${populatedShift.employeeId.lastName}` : 'NOT POPULATED'
     });
 
-    // Create notification for shift assignment
+    // Create notification for shift assignment (if user has linked User account)
     try {
       const Notification = require('../models/Notification');
       const assignedByName = populatedShift.assignedBy 
         ? `${populatedShift.assignedBy.firstName} ${populatedShift.assignedBy.lastName}`
         : 'Admin';
       
+      // Use the User ID if linked, otherwise use EmployeesHub ID
+      const notificationUserId = employee.userId || actualEmployeeId;
+      
       await Notification.create({
-        userId: actualEmployeeId,
+        userId: notificationUserId,
         type: 'system',
         title: 'Shift Assigned',
         message: `New shift assigned by ${assignedByName} on ${new Date(date).toLocaleDateString()} from ${startTime} to ${endTime} at ${location}`,
@@ -214,7 +215,7 @@ exports.assignShiftToEmployee = async (req, res) => {
           assignedAt: new Date().toISOString()
         }
       });
-      console.log('Shift assignment notification created for user:', actualEmployeeId);
+      console.log('Shift assignment notification created for user:', notificationUserId);
     } catch (notifError) {
       console.error('Failed to create shift assignment notification:', notifError);
     }
@@ -242,52 +243,89 @@ exports.assignShiftToEmployee = async (req, res) => {
   }
 };
 
-exports.bulkCreateShifts = async (req, res) => {
+exports.assignShiftToTeam = async (req, res) => {
   try {
-    const { shifts } = req.body;
+    console.log('=== Assign Shift to Team Request ===');
+    const { teamId, date, startTime, endTime, location, workType, breakDuration, notes } = req.body;
 
-    if (!shifts || !Array.isArray(shifts) || shifts.length === 0) {
+    if (!teamId || !date || !startTime || !endTime || !location || !workType) {
       return res.status(400).json({
         success: false,
-        message: 'Shifts array is required'
+        message: 'Missing required fields: teamId, date, startTime, endTime, location, workType'
       });
     }
 
-    const assignedByUserId = req.user._id || req.user.userId;
-    if (!assignedByUserId) {
+    const assignedByUserId = req.user?._id || req.user?.userId || req.user?.id;
+    
+    if (!req.user || !assignedByUserId) {
+      console.error('Authentication failed - req.user:', req.user);
       return res.status(401).json({
         success: false,
-        message: 'Authentication required'
+        message: 'Authentication required. User not found in session.'
       });
     }
+
+    // Fetch team with filtered active members
+    const Team = require('../models/Team');
+    const team = await Team.findById(teamId)
+      .populate({
+        path: 'members',
+        select: 'firstName lastName email status isActive deleted',
+        match: { 
+          status: 'Active', 
+          isActive: true, 
+          deleted: { $ne: true } 
+        }
+      });
+
+    if (!team) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team not found'
+      });
+    }
+
+    // Auto-clean invalid member IDs (null, undefined, or non-existent)
+    const validMembers = team.members.filter(member => member != null);
+    if (validMembers.length !== team.members.length) {
+      console.log(`🧹 Cleaning ${team.members.length - validMembers.length} invalid member IDs from team ${team._id}`);
+      await Team.updateOne(
+        { _id: team._id },
+        { $pull: { members: null } }
+      );
+      team.members = validMembers;
+    }
+
+    if (team.members.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No active members found in this team'
+      });
+    }
+
+    console.log(`👥 Assigning shift to ${team.members.length} active members in team: ${team.name}`);
 
     const results = {
       successful: [],
       failed: []
     };
 
-    for (const shift of shifts) {
+    // Assign shift to each active team member
+    for (const member of team.members) {
       try {
-        const { employeeId, date, startTime, endTime, location, workType, breakDuration, notes } = shift;
-
-        const employee = await User.findById(employeeId);
-        if (!employee) {
-          results.failed.push({
-            shift,
-            reason: 'Employee not found'
-          });
-          continue;
-        }
-
+        const employeeId = member._id;
+        
+        // Check for conflicts
         const conflicts = await exports.detectShiftConflicts(employeeId, startTime, endTime, date);
         if (conflicts.length > 0) {
           results.failed.push({
-            shift,
+            employee: member,
             reason: 'Shift conflict detected'
           });
           continue;
         }
 
+        // Create shift assignment
         const shiftAssignment = new ShiftAssignment({
           employeeId,
           date: new Date(date),
@@ -302,27 +340,35 @@ exports.bulkCreateShifts = async (req, res) => {
         });
 
         await shiftAssignment.save();
-        results.successful.push(shiftAssignment._id);
+        results.successful.push({
+          employee: member,
+          shiftId: shiftAssignment._id
+        });
+
+        console.log(`✅ Shift assigned to ${member.firstName} ${member.lastName}`);
 
       } catch (error) {
+        console.error(`❌ Failed to assign shift to ${member.firstName} ${member.lastName}:`, error);
         results.failed.push({
-          shift,
+          employee: member,
           reason: error.message
         });
       }
     }
 
+    console.log(`📊 Team shift assignment completed: ${results.successful.length} successful, ${results.failed.length} failed`);
+
     res.status(201).json({
       success: true,
-      message: `Bulk creation completed. ${results.successful.length} successful, ${results.failed.length} failed`,
+      message: `Shift assignment to team completed. ${results.successful.length} successful, ${results.failed.length} failed`,
       data: results
     });
 
   } catch (error) {
-    console.error('Bulk create shifts error:', error);
+    console.error('Assign shift to team error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to bulk create shifts',
+      message: 'Failed to assign shift to team',
       error: error.message
     });
   }

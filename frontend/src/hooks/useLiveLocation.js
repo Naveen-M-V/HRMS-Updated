@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getCurrentPosition, watchPosition, clearPositionWatch, requestLocationPermission } from '../utils/geolocation';
+import { 
+  getCurrentPosition, 
+  watchPosition, 
+  clearPositionWatch, 
+  requestLocationPermission 
+} from '../utils/geolocation';
 
-/**
- * Custom hook for live location tracking
- * Provides current location, live tracking, and permission management
- */
 export const useLiveLocation = (options = {}) => {
   const {
     enableHighAccuracy = true,
     timeout = 10000,
-    maximumAge = 60000,
+    maximumAge = 0,              // ALWAYS fresh GPS
     autoStart = false,
     onLocationUpdate = null,
     onError = null
@@ -20,124 +21,106 @@ export const useLiveLocation = (options = {}) => {
   const [error, setError] = useState(null);
   const [permission, setPermission] = useState('prompt');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const watchIdRef = useRef(null);
 
-  // Check permission status on mount
+  // Check permission on mount
   useEffect(() => {
     const checkPermission = async () => {
       try {
-        const permissionState = await requestLocationPermission();
-        setPermission(permissionState);
+        const state = await requestLocationPermission();
+        setPermission(state);
       } catch (err) {
-        console.warn('Could not check location permission:', err);
+        console.warn('Permission check failed:', err);
       }
     };
-
     checkPermission();
   }, []);
 
-  // Auto-start tracking if enabled
+  // Auto-start tracking
   useEffect(() => {
-    if (autoStart && permission === 'granted') {
-      startTracking();
-    }
+    if (autoStart && permission === 'granted') startTracking();
   }, [autoStart, permission]);
 
-  // Get current position once
+  // Get current location once
   const getCurrentLocation = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const position = await getCurrentPosition();
+      const position = await getCurrentPosition({
+        enableHighAccuracy,
+        timeout,
+        maximumAge
+      });
+
       setLocation(position);
       setPermission('granted');
-      
-      if (onLocationUpdate) {
-        onLocationUpdate(position);
-      }
-      
+
+      if (onLocationUpdate) onLocationUpdate(position);
       return position;
+
     } catch (err) {
       setError(err.message);
-      setPermission('denied');
-      
-      if (onError) {
-        onError(err);
-      }
-      
+      if (onError) onError(err);
       throw err;
     } finally {
       setIsLoading(false);
     }
-  }, [onLocationUpdate, onError]);
+  }, [enableHighAccuracy, timeout, maximumAge, onLocationUpdate, onError]);
 
-  // Start live tracking
+  // Start tracking
   const startTracking = useCallback(() => {
     if (isTracking) return;
-    
+
     setError(null);
     setIsTracking(true);
 
-    const handleLocationUpdate = (position) => {
-      setLocation(position);
+    const handleLocation = (pos) => {
+      setLocation(pos);
       setPermission('granted');
-      
-      if (onLocationUpdate) {
-        onLocationUpdate(position);
-      }
+      if (onLocationUpdate) onLocationUpdate(pos);
     };
 
     const handleError = (err) => {
       setError(err.message);
       setIsTracking(false);
-      setPermission('denied');
-      
-      if (onError) {
-        onError(err);
-      }
+      if (onError) onError(err);
     };
 
-    const watchId = watchPosition(handleLocationUpdate, handleError);
-    watchIdRef.current = watchId;
+    const id = watchPosition(handleLocation, handleError);
+    watchIdRef.current = id;
 
-    if (!watchId) {
+    if (!id) {
       setIsTracking(false);
-      setError('Failed to start location tracking');
+      setError('Unable to start GPS tracking');
     }
   }, [isTracking, onLocationUpdate, onError]);
 
-  // Stop live tracking
+  // Stop tracking
   const stopTracking = useCallback(() => {
     if (!isTracking) return;
-    
     if (watchIdRef.current) {
       clearPositionWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
-    
     setIsTracking(false);
   }, [isTracking]);
 
-  // Toggle tracking
+  // Toggle
   const toggleTracking = useCallback(() => {
-    if (isTracking) {
-      stopTracking();
-    } else {
-      startTracking();
-    }
+    if (isTracking) stopTracking();
+    else startTracking();
   }, [isTracking, startTracking, stopTracking]);
 
-  // Request permission
+  // Request manual permission
   const requestPermission = useCallback(async () => {
     try {
-      const permissionState = await requestLocationPermission();
-      setPermission(permissionState);
-      return permissionState;
+      const state = await requestLocationPermission();
+      setPermission(state);
+      return state;
     } catch (err) {
-      setError('Failed to request location permission');
-      setPermission('denied');
+      setError('Permission request failed');
       throw err;
     }
   }, []);
@@ -145,34 +128,30 @@ export const useLiveLocation = (options = {}) => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (watchIdRef.current) {
-        clearPositionWatch(watchIdRef.current);
-      }
+      if (watchIdRef.current) clearPositionWatch(watchIdRef.current);
     };
   }, []);
 
   return {
-    // State
     location,
     isTracking,
     error,
     permission,
     isLoading,
-    
-    // Actions
+
     getCurrentLocation,
     startTracking,
     stopTracking,
     toggleTracking,
     requestPermission,
-    
-    // Computed values
+
     hasLocation: !!location,
     isPermissionGranted: permission === 'granted',
     isPermissionDenied: permission === 'denied',
-    coordinates: location ? [location.longitude, location.latitude] : null,
-    
-    // Helper methods
+
+    // FIXED: Correct order → [lat, lng]
+    coordinates: location ? [location.latitude, location.longitude] : null,
+
     clearError: () => setError(null),
     refreshLocation: getCurrentLocation
   };

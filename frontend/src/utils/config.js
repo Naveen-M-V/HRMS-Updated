@@ -2,7 +2,7 @@
 const getApiBaseUrl = () => {
   // Force localhost in development mode
   if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
-    return 'http://localhost:5003/api';
+    return 'http://localhost:5004/api';
   }
   return process.env.REACT_APP_API_BASE_URL || 
          process.env.REACT_APP_API_URL || 
@@ -12,7 +12,7 @@ const getApiBaseUrl = () => {
 const getServerBaseUrl = () => {
   // Force localhost in development mode
   if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
-    return 'http://localhost:5003';
+    return 'http://localhost:5004';
   }
   return process.env.REACT_APP_SERVER_BASE_URL || 
          process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 

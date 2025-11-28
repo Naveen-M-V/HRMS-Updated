@@ -35,7 +35,7 @@ const ClockInOut = () => {
       const [statusRes, statsRes, employeesRes] = await Promise.all([
         getClockStatus({ includeAdmins: true }),
         getDashboardStats(),
-        fetch(`${process.env.REACT_APP_API_URL || 'https://talentshield.co.uk'}/api/employees/with-clock-status`, {
+        fetch(`${process.env.REACT_APP_API_BASE_URL}/employees`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
@@ -44,18 +44,81 @@ const ClockInOut = () => {
         }).then(res => res.json())
       ]);
       
-      if (employeesRes?.success) {
-        setClockData(employeesRes.data || []);
-      } else if (statusRes.success) {
-        setClockData(statusRes.data || []);
-      } else {
-        setClockData([]);
+      console.log('👥 Employees Response:', employeesRes);
+      console.log('⏰ Clock Status Response:', statusRes);
+      console.log('📊 Stats Response:', statsRes);
+      
+      // Handle the new clock status response structure
+      let clockStatusData = [];
+      if (statusRes.success && statusRes.data) {
+        // Use the main employee list from the new structure
+        clockStatusData = Array.isArray(statusRes.data) ? statusRes.data : [];
+      } else if (statusRes.allEmployees) {
+        // Fallback to allEmployees if available
+        clockStatusData = statusRes.allEmployees;
       }
       
-      if (statsRes.success && statsRes.data) {
-        setStats(statsRes.data);
+      console.log('📍 Processed clock status data:', clockStatusData.length, 'employees');
+      
+      if (employeesRes?.success && employeesRes.data) {
+        // Transform EmployeeHub data to include clock status
+        const employeesWithClockStatus = employeesRes.data.map(emp => ({
+          ...emp,
+          name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+          status: 'clocked_out', // Default status - will be updated by clock status API
+          clockStatus: 'clocked_out',
+          clockIn: null,
+          clockOut: null
+        }));
+        
+        // Update with actual clock status from the new API response
+        if (clockStatusData.length > 0) {
+          const clockStatusMap = {};
+          clockStatusData.forEach(clockEmp => {
+            // Use email or ID to match employees
+            const key = clockEmp.email || clockEmp.id || clockEmp._id;
+            if (key) {
+              clockStatusMap[key] = clockEmp;
+            }
+          });
+          
+          employeesWithClockStatus.forEach(emp => {
+            // Try to match by email first, then by ID
+            const matchByEmail = clockStatusMap[emp.email];
+            const matchById = clockStatusMap[emp.id] || clockStatusMap[emp._id];
+            const clockData = matchByEmail || matchById;
+            
+            if (clockData) {
+              emp.status = clockData.status || 'clocked_out';
+              emp.clockStatus = clockData.status || 'clocked_out';
+              emp.clockIn = clockData.clockIn;
+              emp.clockOut = clockData.clockOut;
+              emp.breakIn = clockData.breakIn;
+              emp.breakOut = clockData.breakOut;
+            }
+          });
+        }
+        
+        console.log('👥 Employees with clock status:', employeesWithClockStatus.length, employeesWithClockStatus);
+        
+        setClockData(employeesWithClockStatus);
+        
+        // Always calculate stats from the full employee list for accuracy
+        if (statsRes.success && statsRes.data) {
+          console.log('📊 Backend stats available:', statsRes.data);
+          // Always use frontend calculation for consistency
+          calculateStats(employeesWithClockStatus);
+        } else {
+          console.log('⚠️ Backend stats failed, using frontend calculation');
+          calculateStats(employeesWithClockStatus);
+        }
+      } else if (statusRes.success) {
+        // Fallback to using clock status data directly if employee data fails
+        setClockData(clockStatusData);
+        calculateStats(clockStatusData);
       } else {
-        calculateStats(statusRes.data || clockData);
+        setClockData([]);
+        calculateStats([]);
       }
     } catch (error) {
       console.error('Clock status error:', error);
@@ -112,6 +175,7 @@ const ClockInOut = () => {
   }, []);
 
   const calculateStats = (data) => {
+    console.log('📊 Calculating stats from data:', data.length, 'employees');
     const stats = {
       total: data.length,
       clockedIn: 0,
@@ -143,6 +207,7 @@ const ClockInOut = () => {
     // Ensure absent count is never negative
     stats.absent = Math.max(0, stats.absent);
 
+    console.log('📊 Final calculated stats:', stats);
     setStats(stats);
   };
 
@@ -528,9 +593,30 @@ const ClockInOut = () => {
                     </div>
                     <div style={{
                       fontSize: '12px',
-                      color: '#6b7280'
+                      color: '#6b7280',
+                      marginBottom: '2px'
+                    }}>
+                      {employee.jobTitle || 'No Job Title'}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '2px'
                     }}>
                       {employee.department || 'No Department'}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      marginBottom: '2px'
+                    }}>
+                      {employee.team || 'No Team'}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6b7280'
+                    }}>
+                      {employee.office || 'No Office'}
                     </div>
                   </div>
                   <div style={{

@@ -105,10 +105,15 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       const errorMessage = error.message || error.response?.data?.message || 'Failed to clock in';
       toast.error(errorMessage);
       
-      // If already clocked in, update state
+      // If already clocked in, update state and notify parent
       if (errorMessage.includes('already clocked in')) {
         setAlreadyClockedIn(true);
         await checkClockStatus();
+        
+        // Notify parent component to refresh UI
+        if (onClockIn && error.currentStatus) {
+          await onClockIn(error.currentStatus);
+        }
       }
     } finally {
       setLoading(false);

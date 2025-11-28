@@ -12,6 +12,15 @@ const crypto = require('crypto');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
+
+// Global Async Error Handler Wrapper
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// Export asyncHandler for use in routes
+module.exports.asyncHandler = asyncHandler;
+
 // Load environment configuration
 const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
@@ -70,10 +79,26 @@ app.use(session({
 }));
 
 // CORS configuration
+console.log('🔧 CORS Configuration:', {
+  NODE_ENV: process.env.NODE_ENV,
+  CORS_ORIGIN: process.env.CORS_ORIGIN,
+  'All environment vars': {
+    PORT: process.env.PORT,
+    NODE_ENV: process.env.NODE_ENV,
+    CORS_ORIGIN: process.env.CORS_ORIGIN
+  }
+});
+
+// Always allow localhost in development regardless of NODE_ENV
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.PORT === '5004';
+const allowedOrigins = isDevelopment
+  ? [process.env.CORS_ORIGIN, 'http://localhost:3000', 'http://localhost:5003', 'http://localhost:1222'].filter(Boolean)
+  : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk'];
+
+console.log('🔧 Final allowed origins:', allowedOrigins);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'development'
-    ? ['http://localhost:3000', 'http://localhost:5003']
-    : process.env.CORS_ORIGINS?.split(',') || ['https://talentshield.co.uk'],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Accept'],
@@ -135,6 +160,11 @@ mongoose.connect(MONGODB_URI).then(() => {
 // Connection event handlers
 mongoose.connection.on('connected', () => {
   console.log('Connected to MongoDB');
+  
+  // Create default admin if none exists
+  User.ensureAdminExists().catch(err => {
+    console.error('Error ensuring admin exists:', err);
+  });
   
   // Start certificate expiry monitoring schedulers
   console.log('Starting email notification schedulers...');
@@ -619,86 +649,23 @@ const parseExpiryDate = (dateString) => {
 // Routes
 
 // Get all profiles (optimized - excludes large binary data)
-// AUTO-CREATES profiles for users without them (admins/super admins)
+// EXCLUDES admin and super_admin profiles
 app.get('/api/profiles', async (req, res) => {
   try {
     // Exclude large binary fields to optimize performance
-    let profiles = await Profile.find()
+    // Also exclude admin and super_admin profiles
+    let profiles = await Profile.find({
+      $and: [
+        { role: { $nin: ['admin', 'super_admin'] } },
+        { staffType: { $ne: 'Admin' } }
+      ]
+    })
       .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
       .sort({ createdOn: -1 })
       .populate('userId', 'email role firstName lastName') // Add populate like certificates do
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
     
-    // Get all user IDs that have profiles
-    const profileUserIds = profiles
-      .map(p => p.userId?._id?.toString())
-      .filter(Boolean);
-    
-    // Find users WITHOUT profiles (typically admins/super admins)
-    const usersWithoutProfiles = await User.find({
-      _id: { $nin: profileUserIds },
-      isActive: { $ne: false },
-      deleted: { $ne: true }
-    })
-      .select('_id email role firstName lastName createdAt')
-      .lean();
-    
-    // Auto-create Profile documents for users without profiles
-    if (usersWithoutProfiles.length > 0) {
-      console.log(`🔧 Auto-creating ${usersWithoutProfiles.length} missing profiles for users...`);
-      
-      // Get the highest existing VTID to generate new ones
-      const allProfiles = await Profile.find().select('vtid').lean();
-      let maxVTID = 0;
-      allProfiles.forEach(p => {
-        if (p.vtid && typeof p.vtid === 'number') {
-          maxVTID = Math.max(maxVTID, p.vtid);
-        } else if (p.vtid && typeof p.vtid === 'string') {
-          const numericPart = parseInt(p.vtid.replace(/\D/g, ''));
-          if (!isNaN(numericPart)) {
-            maxVTID = Math.max(maxVTID, numericPart);
-          }
-        }
-      });
-      
-      const newProfiles = [];
-      for (const user of usersWithoutProfiles) {
-        maxVTID++; // Increment for each new profile
-        
-        const newProfile = new Profile({
-          userId: user._id,
-          firstName: user.firstName || 'N/A',
-          lastName: user.lastName || 'N/A',
-          email: user.email,
-          role: user.role,
-          jobTitle: user.role === 'admin' ? 'Administrator' : user.role === 'super_admin' ? 'Super Administrator' : 'Employee',
-          department: 'Administration',
-          company: 'Talent Shield',
-          staffType: user.role === 'admin' || user.role === 'super_admin' ? 'Admin' : 'Employee',
-          vtid: maxVTID, // Auto-generated VTID
-          mobileNumber: '',
-          address: '',
-          postcode: '',
-          nationality: '',
-          dateOfBirth: null,
-          createdOn: user.createdAt || new Date(),
-          autoCreated: true // Flag to track auto-created profiles
-        });
-        
-        await newProfile.save();
-        console.log(`✅ Created profile for ${user.email} with VTID: ${maxVTID}`);
-        newProfiles.push(newProfile);
-      }
-      
-      // Re-fetch all profiles including the newly created ones
-      profiles = await Profile.find()
-        .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
-        .sort({ createdOn: -1 })
-        .populate('userId', 'email role firstName lastName')
-        .lean();
-    }
-    
-    console.log(`Fetched ${profiles.length} total profiles (including auto-created)`);
+    console.log(`Fetched ${profiles.length} profiles (admins excluded)`);
     res.json(profiles);
   } catch (error) {
     console.error('Error fetching profiles:', error);
@@ -723,20 +690,29 @@ app.get('/api/profiles/complete', async (req, res) => {
 });
 
 // Get profiles with pagination (for large datasets)
+// EXCLUDES admin and super_admin profiles
 app.get('/api/profiles/paginated', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
     
-    const profiles = await Profile.find()
+    // Exclude admin and super_admin profiles
+    const query = {
+      $and: [
+        { role: { $nin: ['admin', 'super_admin'] } },
+        { staffType: { $ne: 'Admin' } }
+      ]
+    };
+    
+    const profiles = await Profile.find(query)
       .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
       .sort({ createdOn: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
     
-    const total = await Profile.countDocuments();
+    const total = await Profile.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
     
     res.json({
@@ -2600,10 +2576,12 @@ const employeeHubRoutes = require('./routes/employeeHubRoutes');
 
 app.post('/api/auth/login', async (req, res) => {
   try {
-    console.log('Login request received:', {
+    console.log('🔐 Login request received:', {
       hasIdentifier: !!req.body.identifier,
       hasEmail: !!req.body.email,
       hasPassword: !!req.body.password,
+      identifier: req.body.identifier,
+      email: req.body.email,
       body: { ...req.body, password: req.body.password ? '[REDACTED]' : undefined }
     });
     
@@ -2611,9 +2589,11 @@ app.post('/api/auth/login', async (req, res) => {
     const loginIdentifier = (identifier || email || '').trim().toLowerCase();
 
     if (!loginIdentifier || !password) {
-      console.log('Login validation failed: missing credentials');
+      console.log('❌ Login validation failed: missing credentials', { loginIdentifier, hasPassword: !!password });
       return res.status(400).json({ message: 'Email/username and password are required' });
     }
+
+    console.log('🔍 Searching for user with identifier:', loginIdentifier);
 
     // Check for admin or user account - support email, username, or VTID login
     const user = await User.findOne({ 
@@ -2624,64 +2604,89 @@ app.post('/api/auth/login', async (req, res) => {
       ]
     });
     
-    if (user) {
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return res.status(400).json({ message: 'Invalid credentials' });
-      }
-
-      // Check if account is active
-      if (!user.isActive) {
-        return res.status(400).json({ message: 'Account is deactivated' });
-      }
-
-      // For admin accounts, enforce approval
-      if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
-        return res.status(403).json({ 
-          message: 'Your admin account is pending approval. Please wait for the super admin to approve your account.',
-          requiresApproval: true
-        });
-      }
-
-      // For admin accounts, enforce email verification
-      if (user.role === 'admin' && !user.emailVerified) {
-        return res.status(403).json({ 
-          message: 'Email not verified. Please check your email and click the verification link to continue.',
-          requiresVerification: true
-        });
-      }
-
-      // Update last login time
-      user.lastLoginAt = Date.now();
-      await user.save();
-
-      // Create session data
-      const sessionUser = {
-        userId: user._id,
-        email: user.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        vtid: user.vtid,
-        userType: user.userType || 'profile',
-        employeeId: user.employeeId || null,
-        profileId: user.profileId || null
-      };
-
-      // Generate JWT token
-      const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
-
-      // Store in session
-      req.session.user = sessionUser;
-      
-      if (rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
-      }
-
-      // Login success email notifications disabled
-      
-      return res.json({ user: sessionUser, token });
+    console.log('👤 User search result:', { 
+      found: !!user, 
+      email: user?.email, 
+      role: user?.role,
+      isActive: user?.isActive 
+    });
+    
+    if (!user) {
+      console.log('❌ User not found in database');
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
+
+    // Check password
+    console.log('🔐 Comparing passwords...');
+    console.log('   Input password length:', password.length);
+    console.log('   Stored password length:', user.password.length);
+    console.log('   Stored password starts with:', user.password.substring(0, 10));
+    
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('🔐 Password comparison result:', isValidPassword);
+    
+    if (!isValidPassword) {
+      console.log('❌ Invalid password for user:', user.email);
+      
+      // Debug: Try to create a fresh hash and compare
+      const testHash = await bcrypt.hash(password, 10);
+      const testComparison = await bcrypt.compare(password, testHash);
+      console.log('🔧 Fresh hash test:', testComparison);
+      
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if account is active
+    if (!user.isActive) {
+      return res.status(400).json({ message: 'Account is deactivated' });
+    }
+
+    // For admin accounts, enforce approval
+    if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
+      return res.status(403).json({ 
+        message: 'Your admin account is pending approval. Please wait for the super admin to approve your account.',
+        requiresApproval: true
+      });
+    }
+
+    // For admin accounts, enforce email verification
+    if (user.role === 'admin' && !user.emailVerified) {
+      return res.status(403).json({ 
+        message: 'Email not verified. Please check your email and click the verification link to continue.',
+        requiresVerification: true
+      });
+    }
+
+    console.log('✅ Login successful for user:', user.email);
+
+    // Update last login time
+    user.lastLoginAt = Date.now();
+    await user.save();
+
+    // Create session data
+    const sessionUser = {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      vtid: user.vtid,
+      userType: user.userType || 'profile',
+      employeeId: user.employeeId || null,
+      profileId: user.profileId || null
+    };
+
+    // Generate JWT token
+    const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
+
+    // Store in session
+    req.session.user = sessionUser;
+    
+    if (rememberMe) {
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+    }
+
+    return res.json({ user: sessionUser, token });
 
     // No user found with given credentials
     return res.status(400).json({ message: 'Invalid credentials' });
@@ -3466,6 +3471,29 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/employees', employeeHubRoutes);
 
 // Email service handled by utils/emailService.js
+
+// Global Error Handler Middleware (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error("🔥 Unhandled server error:", err);
+  if (res.headersSent) return next(err);
+  
+  res.status(500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit the process, just log it
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('🔥 Uncaught Exception:', error);
+  // Don't exit the process, just log it
+});
 
 // Function to calculate days until expiry
 const calculateDaysUntilExpiry = (expiryDate) => {

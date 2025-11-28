@@ -16,14 +16,14 @@ export const useAuth = () => {
 const getApiUrl = () => {
   // Force localhost in development mode
   if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
-    return 'http://localhost:5003';
+    return 'http://localhost:5004';
   }
   // In production, use environment variables
   if (process.env.REACT_APP_API_BASE_URL?.startsWith('/')) {
     return process.env.REACT_APP_API_BASE_URL;
   }
   // Fallback
-  return process.env.REACT_APP_API_URL || 'http://localhost:5003';
+  return process.env.REACT_APP_API_URL || 'http://localhost:5004';
 };
 
 const API_BASE_URL = `${getApiUrl()}`;

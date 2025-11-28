@@ -12,23 +12,9 @@ class EnvironmentConfig {
   }
 
   loadEnvironmentFile() {
-    const envFiles = {
-      development: '.env',
-      staging: '.env.deployment', 
-      production: '.env.production'
-    };
-
-    const envFile = envFiles[this.environment] || '.env';
-    const envPath = path.resolve(process.cwd(), envFile);
-
-    // Check if environment file exists
-    if (fs.existsSync(envPath)) {
-      require('dotenv').config({ path: envPath });
-      console.log(`✅ Loaded environment: ${this.environment} from ${envFile}`);
-    } else {
-      console.warn(`⚠️  Environment file not found: ${envFile}, falling back to .env`);
-      require('dotenv').config();
-    }
+    // Always use the main .env file
+    require('dotenv').config();
+    console.log(`✅ Loaded environment from .env file`);
 
     // Validate required environment variables
     this.validateRequiredVars();

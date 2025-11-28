@@ -33,7 +33,7 @@ export const getApiBaseUrl = () => {
   
   // If running on localhost, use local backend
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:5003';
+    return 'http://localhost:5004';
   }
   
   // If running on production domain, use production backend
@@ -42,7 +42,7 @@ export const getApiBaseUrl = () => {
   }
   
   // Default fallback to localhost for development
-  return 'http://localhost:5003';
+  return 'http://localhost:5004';
 };
 
 /**
@@ -107,7 +107,7 @@ export const logApiConfig = () => {
 if (process.env.NODE_ENV === 'development') {
   console.log('🔧 API Config loaded');
   console.log('   Hostname:', window.location.hostname);
-  console.log('   Will use API:', window.location.hostname === 'localhost' ? 'http://localhost:5003' : 'https://talentshield.co.uk');
+  console.log('   Will use API:', window.location.hostname === 'localhost' ? 'http://localhost:5004' : 'https://talentshield.co.uk');
 }
 
 // Export default object with all utilities

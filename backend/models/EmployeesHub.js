@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 /**
  * Employee Hub Model
  * Stores comprehensive employee information for the Employee Hub section
- * Includes personal details, job information, team assignments, and profile data
+ * Includes personal details, job information, team assignments, and authentication
+ * NOW INCLUDES LOGIN CREDENTIALS FOR EMPLOYEES AND ADMINS
  */
 const employeeHubSchema = new mongoose.Schema({
   // Personal Information
@@ -146,6 +148,46 @@ const employeeHubSchema = new mongoose.Schema({
     default: 'Active'
   },
   isActive: {
+    type: Boolean,
+    default: true
+  },
+  terminatedDate: {
+    type: Date,
+    default: null
+  },
+  terminationNote: {
+    type: String,
+    default: null
+  },
+  
+  // Authentication & Access Control
+  role: {
+    type: String,
+    enum: ['employee', 'admin'],
+    default: 'employee',
+    required: true
+  },
+  password: {
+    type: String,
+    required: [true, 'Password is required'],
+    minlength: [6, 'Password must be at least 6 characters long'],
+    select: false // Don't include password in queries by default
+  },
+  lastLogin: {
+    type: Date,
+    default: null
+  },
+  loginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date,
+    default: null
+  },
+  passwordResetToken: String,
+  passwordResetExpires: Date,
+  isEmailVerified: {
     type: Boolean,
     default: true
   },
@@ -352,6 +394,106 @@ employeeHubSchema.statics.getByTeam = function(teamName) {
 // Static method to get unregistered BrightHR employees
 employeeHubSchema.statics.getUnregisteredBrightHR = function() {
   return this.find({ brightHRRegistered: false, isActive: true });
+};
+
+// Password hashing middleware
+employeeHubSchema.pre('save', async function(next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) return next();
+  
+  try {
+    // Hash password with cost of 12
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Method to compare password for login
+employeeHubSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Method to check if account is locked
+employeeHubSchema.methods.isLocked = function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+};
+
+// Method to increment login attempts and lock account if needed
+employeeHubSchema.methods.incLoginAttempts = function() {
+  // If we have a previous lock that has expired, restart at 1
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return this.updateOne({
+      $unset: { lockUntil: 1 },
+      $set: { loginAttempts: 1 }
+    });
+  }
+  
+  const updates = { $inc: { loginAttempts: 1 } };
+  
+  // Lock account after 5 failed attempts for 2 hours
+  if (this.loginAttempts + 1 >= 5 && !this.isLocked()) {
+    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours
+  }
+  
+  return this.updateOne(updates);
+};
+
+// Method to reset login attempts
+employeeHubSchema.methods.resetLoginAttempts = function() {
+  return this.updateOne({
+    $unset: { loginAttempts: 1, lockUntil: 1 },
+    $set: { lastLogin: new Date() }
+  });
+};
+
+// Static method to authenticate employee
+employeeHubSchema.statics.authenticate = async function(email, password) {
+  try {
+    // Find employee with password field included
+    const employee = await this.findOne({ 
+      email: email.toLowerCase(), 
+      isActive: true 
+    }).select('+password');
+    
+    if (!employee) {
+      return null;
+    }
+    
+    // Check if employee is terminated - block login for terminated employees
+    if (employee.status === 'Terminated') {
+      throw new Error('Access denied: Employee account has been terminated');
+    }
+    
+    // Check if account is locked
+    if (employee.isLocked()) {
+      throw new Error('Account is temporarily locked due to too many failed login attempts');
+    }
+    
+    // Compare password
+    const isMatch = await employee.comparePassword(password);
+    
+    if (!isMatch) {
+      await employee.incLoginAttempts();
+      return null;
+    }
+    
+    // Reset login attempts on successful login
+    await employee.resetLoginAttempts();
+    
+    // Return employee without password
+    employee.password = undefined;
+    return employee;
+    
+  } catch (error) {
+    throw error;
+  }
 };
 
 module.exports = mongoose.model('EmployeeHub', employeeHubSchema);
