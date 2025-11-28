@@ -28,7 +28,7 @@ const config = envConfig.getConfig();
 const { generateSimplePassword } = require('./utils/passwordGenerator');
 const { 
   sendLoginSuccessEmail, 
-  sendCertificateExpiryEmail, 
+  sendCertificateExpiredEmail, 
   sendNotificationEmail, 
   testEmailConfiguration,
   sendTestEmail,
@@ -89,24 +89,46 @@ console.log('🔧 CORS Configuration:', {
   }
 });
 
-// Always allow localhost in development regardless of NODE_ENV
+// Define isDevelopment - THIS WAS MISSING
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.PORT === '5004';
+
+// Always allow localhost in development regardless of NODE_ENV
+const corsOriginStr = process.env.CORS_ORIGINS || '';
+const baseOrigins = corsOriginStr.split(',').map(o => o.trim()).filter(Boolean);
+
 const allowedOrigins = isDevelopment
-  ? [process.env.CORS_ORIGINS, 'http://localhost:3000', 'http://localhost:5003', 'http://localhost:1222'].filter(Boolean)
-  : process.env.CORS_ORIGINSS?.split(',') || ['https://talentshield.co.uk'];
+  ? [...baseOrigins, 'http://localhost:3000', 'http://localhost:5003', 'http://localhost:1222']
+  : baseOrigins;
 
 console.log('🔧 Final allowed origins:', allowedOrigins);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    console.log('🔍 CORS Debug - Incoming origin:', origin);
+    console.log('🔍 CORS Debug - Allowed origins:', allowedOrigins);
+    
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) {
+      console.log('✅ No origin header - allowing request');
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ Origin allowed:', origin);
+      callback(null, true);
+    } else {
+      console.log('❌ Origin rejected:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Accept'],
   exposedHeaders: ['Set-Cookie']
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
 // Input validation middleware
 const validateProfileInput = (req, res, next) => {
   const { firstName, lastName, email } = req.body;
