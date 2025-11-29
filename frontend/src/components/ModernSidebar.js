@@ -331,6 +331,26 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           )}
         </div>
 
+        {/* Calendar Section */}
+        <div className="pt-2 border-t border-sidebar-border">
+          <button
+            onClick={() => {
+              handleMenuClick();
+              handleNavigation("/calendar");
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              isActive("/calendar")
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <CalendarIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">Calendar</span>
+            )}
+          </button>
+        </div>
+
         {/* Employees Section */}
         <div className="pt-2 border-t border-sidebar-border">
           <button

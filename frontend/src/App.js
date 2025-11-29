@@ -54,6 +54,7 @@ import EmployeeHub from "./pages/EmployeeHub";
 import ManageTeams from "./pages/ManageTeams";
 import AddEmployee from "./pages/AddEmployee";
 import ArchiveEmployees from "./pages/ArchiveEmployees";
+import Calendar from "./pages/Calendar";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -360,6 +361,10 @@ function App() {
                                     path="/add-employee"
                                     element={<AddEmployee />}
                                   />
+                                  <Route
+                                    path="/calendar"
+                                    element={<Calendar />}
+                                  />
                                 </Routes>
                               </div>
                             </div>
@@ -371,12 +376,12 @@ function App() {
                 </AdminProtectedRoute>
               }
             />
-            </Routes>
-          </Router>
-        </AdminClockInWrapper>
-      </AlertProvider>
-    </AuthProvider>
-  );
+          </Routes>
+        </Router>
+      </AdminClockInWrapper>
+    </AlertProvider>
+  </AuthProvider>
+);
 }
 
 export default App;

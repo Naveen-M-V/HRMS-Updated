@@ -7,6 +7,7 @@ const DateRangePicker = ({ value, onChange, className = "" }) => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState(null);
   const [hoveredDate, setHoveredDate] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
   const calendarRef = useRef(null);
 
   const startDate = value?.[0] ? dayjs(value[0]) : null;
@@ -72,6 +73,10 @@ const DateRangePicker = ({ value, onChange, className = "" }) => {
     setHoveredDate(null);
   };
 
+  const handleInputClick = () => {
+    setIsOpen(!isOpen);
+  };
+
   const handlePrevMonth = () => {
     setCurrentMonth(currentMonth.subtract(1, 'month'));
   };
@@ -98,8 +103,19 @@ const DateRangePicker = ({ value, onChange, className = "" }) => {
       }
     };
 
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
     document.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isSelecting, selectionStart, hoveredDate]);
 
   return (
@@ -107,7 +123,7 @@ const DateRangePicker = ({ value, onChange, className = "" }) => {
       {/* Input display */}
       <div 
         className="min-h-[42px] px-3 py-2 border border-gray-300 rounded-lg cursor-pointer focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white flex items-center gap-2"
-        onClick={() => {}}
+        onClick={handleInputClick}
       >
         <Calendar size={18} className="text-gray-400" />
         <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
@@ -115,8 +131,9 @@ const DateRangePicker = ({ value, onChange, className = "" }) => {
         </span>
       </div>
 
-      {/* Calendar dropdown - always visible for this implementation */}
-      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+      {/* Calendar dropdown - show only when open */}
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4" ref={calendarRef}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <button
@@ -196,7 +213,8 @@ const DateRangePicker = ({ value, onChange, className = "" }) => {
             Click and drag to select a date range
           </p>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 };
