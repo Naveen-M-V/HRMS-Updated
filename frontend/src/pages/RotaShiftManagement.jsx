@@ -27,6 +27,8 @@ import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import MultiSelectDropdown from '../components/MultiSelectDropdown';
+import DateRangePicker from '../components/DateRangePicker';
 import { formatDateDDMMYY, getShortDayName } from '../utils/dateFormatter';
 import dayjs from 'dayjs';
 
@@ -80,9 +82,9 @@ const RotaShiftManagement = () => {
   
   const [filters, setFilters] = useState(getInitialFilters);
   const [formData, setFormData] = useState({
-    employeeId: '',
-    startDate: '',
-    endDate: '',
+    employeeIds: [], // Array for multiple employee selection
+    teamIds: [], // Array for multiple team selection
+    dateRange: [], // Array for date range [start, end]
     startTime: '09:00',
     endTime: '17:00',
     location: 'Office',
@@ -206,16 +208,16 @@ const RotaShiftManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.employeeId || !formData.startDate || !formData.endDate) {
-      toast.warning('Please fill in all required fields');
+    if (formData.employeeIds.length === 0 || formData.dateRange.length !== 2) {
+      toast.warning('Please select employees and date range');
       return;
     }
 
     setLoading(true);
     try {
       // Create individual shift assignments for each date in the range
-      const start = dayjs(formData.startDate);
-      const end = dayjs(formData.endDate);
+      const start = dayjs(formData.dateRange[0]);
+      const end = dayjs(formData.dateRange[1]);
       const dates = [];
       
       // Generate all dates in the range
@@ -225,34 +227,37 @@ const RotaShiftManagement = () => {
         currentDate = currentDate.add(1, 'day');
       }
 
-      console.log('📤 Assigning shifts for date range:', { startDate: formData.startDate, endDate: formData.endDate, totalDates: dates.length });
+      console.log('📤 Assigning shifts for date range:', { startDate: formData.dateRange[0], endDate: formData.dateRange[1], totalDates: dates.length, employees: formData.employeeIds.length });
       
-      // Create shift assignments for all dates
-      const shiftPromises = dates.map(date => {
-        const shiftData = {
-          ...formData,
-          date: date,
-          startDate: undefined,
-          endDate: undefined // Remove dateRange from individual shift data
-        };
-        return assignShift(shiftData);
-      });
-
-      const results = await Promise.allSettled(shiftPromises);
-      const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-      const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
-
-      if (successful > 0) {
-        toast.success(`Successfully assigned ${successful} shift${successful > 1 ? 's' : ''}`);
+      // Create shift assignments for all dates and all selected employees
+      const shiftPromises = [];
+      for (const employeeId of formData.employeeIds) {
+        for (const date of dates) {
+          const shiftData = {
+            employeeId,
+            date: date,
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            location: formData.location,
+            workType: formData.workType,
+            breakDuration: formData.breakDuration,
+            notes: formData.notes
+          };
+          shiftPromises.push(assignShift(shiftData));
+        }
       }
+
+      const results = await Promise.all(shiftPromises);
+      const successCount = results.filter(r => r.success).length;
       
-      if (failed > 0) {
-        toast.warning(`${failed} shift${failed > 1 ? 's' : ''} could not be assigned due to conflicts or errors`);
+      if (successCount > 0) {
+        toast.success(`Successfully assigned ${successCount} shifts to ${formData.employeeIds.length} employee(s)`);
+        setShowModal(false);
+        resetModalState();
+        await fetchData();
+      } else {
+        toast.error('Failed to assign any shifts');
       }
-      
-      setShowModal(false);
-      resetModalState();
-      await fetchData();
     } catch (error) {
       console.error('❌ Assign shift error:', error);
       toast.error(error.message || 'Failed to assign shifts');
@@ -294,145 +299,64 @@ const RotaShiftManagement = () => {
   const handleTeamSubmit = async (e) => {
     e.preventDefault();
     
-    if (!selectedTeam || teamMembers.length === 0 || !formData.date) {
-      toast.warning('Please select a team and fill in all required fields');
+    if (formData.teamIds.length === 0 || formData.dateRange.length !== 2) {
+      toast.warning('Please select teams and date range');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('📤 Assigning shifts to team:', selectedTeam.name);
-      console.log('📤 Team members:', teamMembers.length);
-      console.log('📤 Team members details:', teamMembers.map(m => ({
-        id: m._id,
-        name: `${m.firstName} ${m.lastName}`,
-        email: m.email,
-        userId: m.userId
-      })));
+      // Create individual shift assignments for each date in the range and each team
+      const start = dayjs(formData.dateRange[0]);
+      const end = dayjs(formData.dateRange[1]);
+      const dates = [];
       
-      // Use the new team assignment API
-      const teamAssignmentData = {
-        teamId: selectedTeam._id,
-        date: formData.date,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        location: formData.location,
-        workType: formData.workType,
-        breakDuration: formData.breakDuration,
-        notes: formData.notes
-      };
+      // Generate all dates in the range
+      let currentDate = start.startOf('day');
+      while (currentDate.isBefore(end) || currentDate.isSame(end)) {
+        dates.push(currentDate.format('YYYY-MM-DD'));
+        currentDate = currentDate.add(1, 'day');
+      }
+
+      console.log('📤 Assigning shifts for date range:', { startDate: formData.dateRange[0], endDate: formData.dateRange[1], totalDates: dates.length, teams: formData.teamIds.length });
       
-      console.log('📤 Team assignment data:', teamAssignmentData);
-      
-      const response = await assignShiftToTeam(teamAssignmentData);
-      console.log('📥 Team assignment response:', response);
-      
-      if (response.success) {
-        const results = response.data;
-        const successful = results.successful || [];
-        const failed = results.failed || [];
-        
-        if (successful.length > 0) {
-          toast.success(`Shift assigned to ${successful.length} team member${successful.length > 1 ? 's' : ''} successfully`);
+      // Create shift assignments for all dates and all selected teams
+      const shiftPromises = [];
+      for (const teamId of formData.teamIds) {
+        const team = teams.find(t => t._id === teamId);
+        if (team && team.members) {
+          for (const member of team.members) {
+            for (const date of dates) {
+              const shiftData = {
+                employeeId: member._id || member.id,
+                date: date,
+                startTime: formData.startTime,
+                endTime: formData.endTime,
+                location: formData.location,
+                workType: formData.workType,
+                breakDuration: formData.breakDuration,
+                notes: formData.notes
+              };
+              shiftPromises.push(assignShift(shiftData));
+            }
+          }
         }
-        
-        if (failed.length > 0) {
-          toast.warning(`${failed.length} team member${failed.length > 1 ? 's' : ''} could not be assigned (conflicts or errors)`);
-        }
-        
-        // Check if the assigned date is within current filter range
-        const assignedDate = new Date(formData.date);
-        const filterStart = new Date(filters.startDate);
-        const filterEnd = new Date(filters.endDate);
-        
-        console.log('📅 Checking date range:', {
-          assignedDate: assignedDate.toISOString().split('T')[0],
-          filterStart: filterStart.toISOString().split('T')[0],
-          filterEnd: filterEnd.toISOString().split('T')[0],
-          isWithinRange: assignedDate >= filterStart && assignedDate <= filterEnd
-        });
-        
+      }
+
+      const results = await Promise.all(shiftPromises);
+      const successCount = results.filter(r => r.success).length;
+      
+      if (successCount > 0) {
+        toast.success(`Successfully assigned ${successCount} shifts to ${formData.teamIds.length} team(s)`);
         setShowModal(false);
         resetModalState();
-        
-        // If assigned date is outside current filter range, expand the range
-        if (assignedDate < filterStart || assignedDate > filterEnd) {
-          console.log('⚠️ Assigned date is outside filter range, expanding...');
-          const newStartDate = assignedDate < filterStart ? assignedDate : filterStart;
-          const newEndDate = assignedDate > filterEnd ? assignedDate : filterEnd;
-          
-          // Update filters - this will trigger useEffect to fetch data
-          const newFilters = {
-            ...filters,
-            startDate: newStartDate.toISOString().split('T')[0],
-            endDate: newEndDate.toISOString().split('T')[0]
-          };
-          setFilters(newFilters);
-          
-          // Save to localStorage
-          try {
-            localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
-            console.log('💾 Saved expanded filters to localStorage:', newFilters);
-          } catch (error) {
-            console.error('Error saving filters to localStorage:', error);
-          }
-          
-          toast.info('Date range expanded to show the new shifts', { autoClose: 3000 });
-        } else {
-          // Date is within range, just refresh data
-          console.log('✅ Assigned date is within filter range, refreshing...');
-          await fetchData();
-        }
+        await fetchData();
+      } else {
+        toast.error('Failed to assign any shifts');
       }
     } catch (error) {
       console.error('❌ Team assign shift error:', error);
-      console.error('Error message:', error.message);
-      
-      const errorMsg = error.message || 'Failed to assign shifts to team';
-      
-      if (errorMsg.includes('No active members found')) {
-        toast.error('No active members found in this team. Please select a team with active members.', { autoClose: 5000 });
-        return;
-      }
-      
-      if (errorMsg.includes('Team not found')) {
-        toast.error('Team not found. Please select a valid team.', { autoClose: 5000 });
-        return;
-      }
-      
-      toast.error(errorMsg, { autoClose: 5000 });
-      
-      // If it's a conflict error, try to expand to show the assigned date
-      if (errorMsg.includes('conflict') || errorMsg.includes('already has')) {
-        console.log('⚠️ Conflict detected in team assignment, expanding to include assigned date');
-        const assignedDate = new Date(formData.date);
-        const currentStart = new Date(filters.startDate);
-        const currentEnd = new Date(filters.endDate);
-        const newStartDate = assignedDate < currentStart ? assignedDate : currentStart;
-        const newEndDate = assignedDate > currentEnd ? assignedDate : currentEnd;
-        
-        const newFilters = {
-          ...filters,
-          startDate: newStartDate.toISOString().split('T')[0],
-          endDate: newEndDate.toISOString().split('T')[0]
-        };
-        
-        setFilters(newFilters);
-        
-        try {
-          localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
-          console.log('💾 Expanded filters to show conflict date:', newFilters);
-        } catch (err) {
-          console.error('Error saving filters:', err);
-        }
-        
-        toast.info('Date range expanded to show the conflict', { autoClose: 3000 });
-      }
-      
-      // Show detailed error in console for debugging
-      if (error.details) {
-        console.error('Backend stack trace:', error.details);
-      }
+      toast.error(error.message || 'Failed to assign shifts to teams');
     } finally {
       setLoading(false);
     }
@@ -444,9 +368,9 @@ const RotaShiftManagement = () => {
     setSelectedTeam(null);
     setTeamMembers([]);
     setFormData({
-      employeeId: '',
-      startDate: '',
-      endDate: '',
+      employeeIds: [],
+      teamIds: [],
+      dateRange: [],
       startTime: '09:00',
       endTime: '17:00',
       location: 'Office',
@@ -975,46 +899,45 @@ const RotaShiftManagement = () => {
               {assignmentType === 'employee' ? (
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Employee <span style={{ color: '#dc2626' }}>*</span>
+                    Employees <span style={{ color: '#dc2626' }}>*</span>
                   </label>
-                  <Select
-                    value={formData.employeeId}
-                    onValueChange={(value) => setFormData({ ...formData, employeeId: value })}
-                    required
-                  >
-                    <SelectTrigger style={{ width: '100%', padding: '12px' }}>
-                      <SelectValue placeholder="Select Employee" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      {employees.map(emp => (
-                        <SelectItem key={emp.id || emp._id} value={emp.id || emp._id}>
-                          {emp.firstName} {emp.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSelectDropdown
+                    options={employees.map(emp => ({
+                      value: emp.id || emp._id,
+                      label: `${emp.firstName} ${emp.lastName}`,
+                      subLabel: emp.email
+                    }))}
+                    selectedValues={formData.employeeIds}
+                    onChange={(employeeIds) => setFormData({ ...formData, employeeIds })}
+                    placeholder="Select employees..."
+                  />
                 </div>
               ) : (
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Team <span style={{ color: '#dc2626' }}>*</span>
+                    Teams <span style={{ color: '#dc2626' }}>*</span>
                   </label>
-                  <Select
-                    value={selectedTeam?._id || ''}
-                    onValueChange={handleTeamSelect}
-                    required
-                  >
-                    <SelectTrigger style={{ width: '100%', padding: '12px' }}>
-                      <SelectValue placeholder="Select Team" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[100]">
-                      {teams.map(team => (
-                        <SelectItem key={team._id} value={team._id}>
-                          {team.name} ({team.members?.length || 0} members)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiSelectDropdown
+                    options={teams.map(team => ({
+                      value: team._id,
+                      label: team.name,
+                      subLabel: `${team.members?.length || 0} members`
+                    }))}
+                    selectedValues={formData.teamIds}
+                    onChange={(teamIds) => {
+                      setFormData({ ...formData, teamIds });
+                      // Update selectedTeam and teamMembers for display
+                      if (teamIds.length === 1) {
+                        const team = teams.find(t => t._id === teamIds[0]);
+                        setSelectedTeam(team);
+                        setTeamMembers(team?.members || []);
+                      } else {
+                        setSelectedTeam(null);
+                        setTeamMembers([]);
+                      }
+                    }}
+                    placeholder="Select teams..."
+                  />
                   
                   {/* Team Members Display */}
                   {selectedTeam && teamMembers.length > 0 && (
@@ -1050,25 +973,10 @@ const RotaShiftManagement = () => {
               {/* Date Range Selection */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Date Range <span style={{ color: '#dc2626' }}>*</span></label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <DatePicker
-                      label="Start Date"
-                      required
-                      value={formData.startDate ? dayjs(formData.startDate) : null}
-                      onChange={(date) => setFormData({ ...formData, startDate: date ? date.format('YYYY-MM-DD') : '' })}
-                    />
-                  </div>
-                  <div>
-                    <DatePicker
-                      label="End Date"
-                      required
-                      value={formData.endDate ? dayjs(formData.endDate) : null}
-                      onChange={(date) => setFormData({ ...formData, endDate: date ? date.format('YYYY-MM-DD') : '' })}
-                      minDate={formData.startDate ? dayjs(formData.startDate) : undefined}
-                    />
-                  </div>
-                </div>
+                <DateRangePicker
+                  value={formData.dateRange}
+                  onChange={(dateRange) => setFormData({ ...formData, dateRange })}
+                />
               </div>
 
               {/* Time Selection */}

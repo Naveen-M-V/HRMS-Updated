@@ -236,7 +236,7 @@ export default function AddEmployee() {
           jobTitle: employee.jobTitle || "",
           department: employee.department || "",
           team: employee.team || "",
-          office: employee.office || "",
+          OrganisationName: employee.OrganisationName || employee.office || "",
           employmentStartDate: formatDateForDisplay(employee.startDate),
           probationEndDate: formatDateForDisplay(employee.probationEndDate),
           address1: employee.address1 || "",
@@ -323,13 +323,21 @@ export default function AddEmployee() {
       }
       if (!formData.jobTitle) newErrors.jobTitle = "Required";
       if (!formData.department) newErrors.department = "Required";
-      if (!formData.office) newErrors.office = "Required";
+      if (!formData.OrganisationName) newErrors.OrganisationName = "Required";
       if (!formData.employmentStartDate) {
         newErrors.employmentStartDate = "Required";
       } else {
         const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
         if (!parsedDate.isValid()) {
           newErrors.employmentStartDate = "Invalid date format. Please use DD/MM/YYYY";
+        }
+      }
+      if (!formData.probationEndDate) {
+        newErrors.probationEndDate = "Required";
+      } else {
+        const parsedDate = dayjs(formData.probationEndDate, "DD/MM/YYYY", true);
+        if (!parsedDate.isValid()) {
+          newErrors.probationEndDate = "Invalid date format. Please use DD/MM/YYYY";
         }
       }
     }
@@ -420,7 +428,7 @@ export default function AddEmployee() {
         jobTitle: formData.jobTitle,
         department: formData.department,
         team: formData.team || "",
-        office: formData.office,
+        OrganisationName: formData.OrganisationName,
         startDate: formattedStartDate,
         probationEndDate: formatDateField(formData.probationEndDate),
         employmentType: "Full-time",
@@ -780,7 +788,7 @@ export default function AddEmployee() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 First name{" "}
-                <span className="text-pink-600 text-xs">Required</span>
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -810,7 +818,7 @@ export default function AddEmployee() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Last name{" "}
-                <span className="text-pink-600 text-xs">Required</span>
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -876,7 +884,7 @@ export default function AddEmployee() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email address{" "}
-                <span className="text-pink-600 text-xs">Required</span>
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -928,7 +936,7 @@ export default function AddEmployee() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Job title{" "}
-                <span className="text-pink-600 text-xs">Required</span>
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -945,7 +953,7 @@ export default function AddEmployee() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Department{" "}
-                <span className="text-pink-600 text-xs">Required</span>
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -972,21 +980,24 @@ export default function AddEmployee() {
               />
             </div>
 
-            {/* Office */}
+            {/* Organisation Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Office{" "}
-                <span className="text-pink-600 text-xs">Required</span>
+                Organisation Name{" "}
+                <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                placeholder="Office location"
-                value={formData.office}
-                onChange={(e) => handleInputChange("office", e.target.value)}
-                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.office ? "border-red-500" : "border-gray-300"
+                placeholder="Organisation location"
+                value={formData.OrganisationName}
+                onChange={(e) => handleInputChange("OrganisationName", e.target.value)}
+                className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                  errors.OrganisationName ? "border-red-500" : "border-gray-300"
                 }`}
               />
+              {errors.OrganisationName && (
+                <p className="mt-1 text-sm text-red-500">{errors.OrganisationName}</p>
+              )}
             </div>
 
             {/* Employment start date */}
@@ -1018,12 +1029,18 @@ export default function AddEmployee() {
             <div>
               <DatePicker
                 label="Probation end date"
+                required
                 value={formData.probationEndDate}
                 onChange={(date) => handleInputChange("probationEndDate", date ? date.format("DD/MM/YYYY") : "")}
                 placeholder="dd/mm/yyyy"
                 format="DD/MM/YYYY"
                 className="w-full"
               />
+              {errors.probationEndDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  Probation end date is required.
+                </p>
+              )}
             </div>
           </div>
         </div>
