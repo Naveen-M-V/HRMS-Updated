@@ -8,13 +8,24 @@ import {
   DocumentTextIcon,
   PlusIcon,
   ArrowPathIcon,
-  CalendarIcon as CalendarOutlineIcon
+  CalendarIcon as CalendarOutlineIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import dayjs from 'dayjs';
+import { DatePicker } from './ui/date-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState(dayjs());
+  const [showTimeOffModal, setShowTimeOffModal] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [startHalfDay, setStartHalfDay] = useState('full');
+  const [endHalfDay, setEndHalfDay] = useState('full');
+  const [weekendWarning, setWeekendWarning] = useState('');
 
   const getDaysInMonth = (date) => {
     const start = date.startOf('month').startOf('week');
@@ -79,80 +90,108 @@ const Calendar = () => {
     return events;
   };
 
+  // Load employees when modal opens
+  const loadEmployees = async () => {
+    try {
+      // Sample employees - in real app, fetch from API
+      const sampleEmployees = [
+        { id: '1', name: 'John Doe', email: 'john@example.com' },
+        { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
+        { id: '3', name: 'Mike Johnson', email: 'mike@example.com' },
+        { id: '4', name: 'Sarah Wilson', email: 'sarah@example.com' }
+      ];
+      setEmployees(sampleEmployees);
+    } catch (error) {
+      console.error('Error loading employees:', error);
+    }
+  };
+
+  // Check if selected dates include weekends
+  const checkWeekendDays = (start, end) => {
+    if (!start || !end) {
+      setWeekendWarning('');
+      return;
+    }
+
+    let hasWeekend = false;
+    let current = dayjs(start);
+    const endDay = dayjs(end);
+
+    while (current.isSameOrBefore(endDay)) {
+      if (current.day() === 0 || current.day() === 6) { // Sunday or Saturday
+        hasWeekend = true;
+        break;
+      }
+      current = current.add(1, 'day');
+    }
+
+    if (hasWeekend) {
+      setWeekendWarning('Saturday is not a working day');
+    } else {
+      setWeekendWarning('');
+    }
+  };
+
+  // Calculate working days between dates
+  const calculateWorkingDays = (start, end) => {
+    if (!start || !end) return 0;
+    
+    let workingDays = 0;
+    let current = dayjs(start);
+    const endDay = dayjs(end);
+
+    while (current.isSameOrBefore(endDay)) {
+      if (current.day() !== 0 && current.day() !== 6) { // Not Sunday or Saturday
+        workingDays++;
+      }
+      current = current.add(1, 'day');
+    }
+
+    // Adjust for half days
+    if (startHalfDay !== 'full') workingDays -= 0.5;
+    if (endHalfDay !== 'full' && !dayjs(start).isSame(dayjs(end))) workingDays -= 0.5;
+
+    return Math.max(0, workingDays);
+  };
+
+  // Handle date changes
+  const handleStartDateChange = (date) => {
+    setStartDate(date);
+    checkWeekendDays(date, endDate);
+  };
+
+  const handleEndDateChange = (date) => {
+    setEndDate(date);
+    checkWeekendDays(startDate, date);
+  };
+
+  // Open modal
+  const openTimeOffModal = () => {
+    setShowTimeOffModal(true);
+    loadEmployees();
+  };
+
+  // Close modal
+  const closeTimeOffModal = () => {
+    setShowTimeOffModal(false);
+    setSelectedEmployee('');
+    setStartDate(null);
+    setEndDate(null);
+    setStartHalfDay('full');
+    setEndHalfDay('full');
+    setWeekendWarning('');
+  };
+
+  // Check if form is valid for submission
+  const isFormValid = () => {
+    return selectedEmployee && startDate && endDate && !weekendWarning;
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
         <p className="text-gray-600">Manage your schedule and view upcoming events</p>
-      </div>
-
-      {/* Upcoming Shifts Section */}
-      <div className="mb-8">
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Shifts</h2>
-            <p className="text-sm text-gray-500">Your next scheduled shifts</p>
-          </div>
-          
-          <div className="divide-y">
-            {/* Today's Shift */}
-            <div className="p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <ClockIcon className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">Today - Morning Shift</div>
-                    <div className="text-sm text-gray-500">09:00 - 17:00</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">Main Office</div>
-                  <div className="text-xs text-blue-600">In 2 hours</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tomorrow's Shift */}
-            <div className="p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <ClockIcon className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">Tomorrow - Evening Shift</div>
-                    <div className="text-sm text-gray-500">14:00 - 22:00</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">Branch Office</div>
-                  <div className="text-xs text-green-600">In 1 day</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Week's Shift */}
-            <div className="p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <ClockIcon className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">Monday - Night Shift</div>
-                    <div className="text-sm text-gray-500">22:00 - 06:00</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">Main Office</div>
-                  <div className="text-xs text-purple-600">In 5 days</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Calendar Section */}
@@ -179,7 +218,10 @@ const Calendar = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={openTimeOffModal}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
               <PlusIcon className="h-4 w-4" />
               <span>Time Off</span>
             </button>
@@ -240,44 +282,138 @@ const Calendar = () => {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <CalendarDaysIcon className="h-6 w-6 text-blue-600" />
+      {/* Time Off Modal */}
+      {showTimeOffModal && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Dark backdrop */}
+          <div 
+            className="flex-1 bg-black/50"
+            onClick={closeTimeOffModal}
+          ></div>
+
+          {/* Modal content */}
+          <div className="w-full max-w-2xl bg-white shadow-xl overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold">Time Off</h2>
+              <button
+                onClick={closeTimeOffModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">12</div>
-              <div className="text-sm text-gray-500">Shifts This Month</div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              {/* Employee Selection */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Employee <span className="text-red-500">*</span>
+                </label>
+                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select an employee..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date Selection */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <DatePicker
+                    label="Start Date"
+                    value={startDate}
+                    onChange={handleStartDateChange}
+                    required
+                    className="w-full"
+                  />
+                  <div className="mt-2">
+                    <Select value={startHalfDay} onValueChange={setStartHalfDay}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full">Full Day</SelectItem>
+                        <SelectItem value="first">First Half</SelectItem>
+                        <SelectItem value="second">Second Half</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <DatePicker
+                    label="End Date"
+                    value={endDate}
+                    onChange={handleEndDateChange}
+                    required
+                    minDate={startDate}
+                    className="w-full"
+                  />
+                  <div className="mt-2">
+                    <Select value={endHalfDay} onValueChange={setEndHalfDay}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full">Full Day</SelectItem>
+                        <SelectItem value="first">First Half</SelectItem>
+                        <SelectItem value="second">Second Half</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Weekend Warning */}
+              {weekendWarning && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">{weekendWarning}</p>
+                </div>
+              )}
+
+              {/* Summary */}
+              {startDate && endDate && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    You were off from <strong>{dayjs(startDate).format('dddd, D MMMM YYYY')}</strong> until{' '}
+                    <strong>{dayjs(endDate).format('dddd, D MMMM YYYY')}</strong> and{' '}
+                    <strong>{calculateWorkingDays(startDate, endDate)} day(s)</strong> will be deducted from your entitlement.
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={closeTimeOffModal}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    isFormValid()
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                  disabled={!isFormValid()}
+                >
+                  Add Absence
+                </button>
+              </div>
             </div>
           </div>
         </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <UserGroupIcon className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">3</div>
-              <div className="text-sm text-gray-500">Team Meetings</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <DocumentTextIcon className="h-6 w-6 text-red-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-900">2</div>
-              <div className="text-sm text-gray-500">Deadlines</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
