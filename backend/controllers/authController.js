@@ -26,7 +26,9 @@ const generateToken = (user) => {
 // Employee/Admin Login
 exports.employeeLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // Handle both 'email' and 'identifier' fields for compatibility
+    const email = req.body.email || req.body.identifier;
+    const { password } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -89,7 +91,9 @@ exports.employeeLogin = async (req, res) => {
 // Profile Login
 exports.profileLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    // Handle both 'email' and 'identifier' fields for compatibility
+    const email = req.body.email || req.body.identifier;
+    const { password } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -160,7 +164,9 @@ exports.profileLogin = async (req, res) => {
 // Unified Login (detects user type automatically)
 exports.unifiedLogin = async (req, res) => {
   try {
-    const { email, password, userType } = req.body;
+    // Handle both 'email' and 'identifier' fields for compatibility
+    const email = req.body.email || req.body.identifier;
+    const { password, userType } = req.body;
 
     // Validate input
     if (!email || !password) {

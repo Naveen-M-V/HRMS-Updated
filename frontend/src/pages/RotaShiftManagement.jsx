@@ -24,6 +24,9 @@ import axios from 'axios';
 import { buildApiUrl } from '../utils/apiConfig';
 import LoadingScreen from '../components/LoadingScreen';
 import { DatePicker } from '../components/ui/date-picker';
+import { DateRangePicker } from '@mui/x-date-pickers/DateRangePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import MUITimePicker from '../components/MUITimePicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -81,7 +84,7 @@ const RotaShiftManagement = () => {
   const [filters, setFilters] = useState(getInitialFilters);
   const [formData, setFormData] = useState({
     employeeId: '',
-    date: '',
+    dateRange: [null, null],
     startTime: '09:00',
     endTime: '17:00',
     location: 'Office',
@@ -205,179 +208,55 @@ const RotaShiftManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.employeeId || !formData.date) {
+    if (!formData.employeeId || !formData.dateRange[0] || !formData.dateRange[1]) {
       toast.warning('Please fill in all required fields');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('📤 Assigning shift with data:', formData);
-      console.log('📤 Employee ID type:', typeof formData.employeeId);
-      console.log('📤 Employee ID value:', formData.employeeId);
+      // Create individual shift assignments for each date in the range
+      const startDate = formData.dateRange[0];
+      const endDate = formData.dateRange[1];
+      const dates = [];
       
-      const response = await assignShift(formData);
-      console.log('📥 Assign shift response:', response);
-      
-      if (response.success) {
-        toast.success('Shift assigned successfully');
-        
-        // Check if the assigned date is within current filter range
-        const assignedDate = new Date(formData.date);
-        const filterStart = new Date(filters.startDate);
-        const filterEnd = new Date(filters.endDate);
-        
-        console.log('📅 Checking date range:', {
-          assignedDate: assignedDate.toISOString().split('T')[0],
-          filterStart: filterStart.toISOString().split('T')[0],
-          filterEnd: filterEnd.toISOString().split('T')[0],
-          isWithinRange: assignedDate >= filterStart && assignedDate <= filterEnd
-        });
-        
-        setShowModal(false);
-        resetModalState();
-        
-        // If assigned date is outside current filter range, expand the range
-        if (assignedDate < filterStart || assignedDate > filterEnd) {
-          console.log('⚠️ Assigned date is outside filter range, expanding...');
-          const newStartDate = assignedDate < filterStart ? assignedDate : filterStart;
-          const newEndDate = assignedDate > filterEnd ? assignedDate : filterEnd;
-          
-          // Update filters - this will trigger useEffect to fetch data
-          const newFilters = {
-            ...filters,
-            startDate: newStartDate.toISOString().split('T')[0],
-            endDate: newEndDate.toISOString().split('T')[0]
-          };
-          setFilters(newFilters);
-          
-          // Save to localStorage
-          try {
-            localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
-            console.log('💾 Saved expanded filters to localStorage:', newFilters);
-          } catch (error) {
-            console.error('Error saving filters to localStorage:', error);
-          }
-          
-          toast.info('Date range expanded to show the new shift', { autoClose: 3000 });
-        } else {
-          // Date is within range, just refresh data
-          console.log('✅ Assigned date is within filter range, refreshing...');
-          await fetchData();
-        }
+      // Generate all dates in the range
+      let currentDate = startDate.startOf('day');
+      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+        dates.push(currentDate.format('YYYY-MM-DD'));
+        currentDate = currentDate.add(1, 'day');
       }
+
+      console.log('📤 Assigning shifts for date range:', { startDate: startDate.format('YYYY-MM-DD'), endDate: endDate.format('YYYY-MM-DD'), totalDates: dates.length });
+      
+      // Create shift assignments for all dates
+      const shiftPromises = dates.map(date => {
+        const shiftData = {
+          ...formData,
+          date: date,
+          dateRange: undefined // Remove dateRange from individual shift data
+        };
+        return assignShift(shiftData);
+      });
+
+      const results = await Promise.allSettled(shiftPromises);
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+      const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
+
+      if (successful > 0) {
+        toast.success(`Successfully assigned ${successful} shift${successful > 1 ? 's' : ''}`);
+      }
+      
+      if (failed > 0) {
+        toast.warning(`${failed} shift${failed > 1 ? 's' : ''} could not be assigned due to conflicts or errors`);
+      }
+      
+      setShowModal(false);
+      resetModalState();
+      await fetchData();
     } catch (error) {
       console.error('❌ Assign shift error:', error);
-      console.error('Error message:', error.message);
-      
-      // Handle specific error messages from backend
-      const errorMsg = error.message || 'Failed to assign shift';
-      
-      if (errorMsg === 'Employee is inactive or not found') {
-        toast.error('Employee is inactive or not found in the system. Please select an active employee.', { autoClose: 5000 });
-        return;
-      }
-      
-      // The error thrown from rotaApi is already error.response.data
-      // So 'error' here is the actual error data from the backend
-      console.log('📋 Error data:', error);
-      console.log('📋 Has conflicts?', !!error.conflicts);
-      console.log('📋 Conflicts array:', error.conflicts);
-      
-      // Show conflict details if available
-      if (error.conflicts && error.conflicts.length > 0) {
-        const conflicts = error.conflicts;
-        console.error('⚠️ Shift conflicts:', conflicts);
-        
-        // Find the date range that includes all conflicts
-        const conflictDates = conflicts.map(c => new Date(c.date));
-        const assignedDate = new Date(formData.date);
-        const allDates = [...conflictDates, assignedDate];
-        
-        const minDate = new Date(Math.min(...allDates));
-        const maxDate = new Date(Math.max(...allDates));
-        
-        console.log('📅 Conflict date range:', {
-          minDate: minDate.toISOString().split('T')[0],
-          maxDate: maxDate.toISOString().split('T')[0],
-          conflicts: conflicts.map(c => ({ date: c.date, time: `${c.startTime}-${c.endTime}` }))
-        });
-        
-        // Expand filters to show conflicting shifts
-        const currentStart = new Date(filters.startDate);
-        const currentEnd = new Date(filters.endDate);
-        const newStartDate = minDate < currentStart ? minDate : currentStart;
-        const newEndDate = maxDate > currentEnd ? maxDate : currentEnd;
-        
-        const newFilters = {
-          ...filters,
-          startDate: newStartDate.toISOString().split('T')[0],
-          endDate: newEndDate.toISOString().split('T')[0]
-        };
-        
-        setFilters(newFilters);
-        
-        // Save to localStorage
-        try {
-          localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
-          console.log('💾 Expanded filters to show conflicts:', newFilters);
-        } catch (err) {
-          console.error('Error saving filters:', err);
-        }
-        
-        // Show detailed conflict message
-        toast.error(
-          <div>
-            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{errorMsg}</div>
-            <div style={{ fontSize: '12px' }}>
-              {conflicts.map((c, i) => (
-                <div key={i} style={{ marginTop: '4px' }}>
-                  • {formatDateDDMMYY(c.date)} {c.startTime} - {c.endTime} at {c.location}
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: '8px', fontSize: '11px', fontStyle: 'italic' }}>
-              Date range expanded to show conflicting shifts
-            </div>
-          </div>,
-          { autoClose: 10000 }
-        );
-      } else {
-        // No conflicts, just show the error message
-        toast.error(errorMsg, { autoClose: 5000 });
-        
-        // If it's a conflict but no conflicts array, try to expand to show today's date
-        if (errorMsg.includes('conflict') || errorMsg.includes('already has')) {
-          console.log('⚠️ Conflict detected but no conflicts array, expanding to include assigned date');
-          const assignedDate = new Date(formData.date);
-          const currentStart = new Date(filters.startDate);
-          const currentEnd = new Date(filters.endDate);
-          const newStartDate = assignedDate < currentStart ? assignedDate : currentStart;
-          const newEndDate = assignedDate > currentEnd ? assignedDate : currentEnd;
-          
-          const newFilters = {
-            ...filters,
-            startDate: newStartDate.toISOString().split('T')[0],
-            endDate: newEndDate.toISOString().split('T')[0]
-          };
-          
-          setFilters(newFilters);
-          
-          try {
-            localStorage.setItem('rotaShiftFilters', JSON.stringify(newFilters));
-            console.log('💾 Expanded filters to show conflict date:', newFilters);
-          } catch (err) {
-            console.error('Error saving filters:', err);
-          }
-          
-          toast.info('Date range expanded to show the conflict', { autoClose: 3000 });
-        }
-      }
-      
-      // Show detailed error in console for debugging
-      if (error.details) {
-        console.error('Backend stack trace:', error.details);
-      }
+      toast.error(error.message || 'Failed to assign shifts');
     } finally {
       setLoading(false);
     }
@@ -567,7 +446,7 @@ const RotaShiftManagement = () => {
     setTeamMembers([]);
     setFormData({
       employeeId: '',
-      date: '',
+      dateRange: [null, null],
       startTime: '09:00',
       endTime: '17:00',
       location: 'Office',
@@ -1168,14 +1047,21 @@ const RotaShiftManagement = () => {
                 </div>
               )}
 
-              {/* Date Selection */}
+              {/* Date Range Selection */}
               <div style={{ marginBottom: '20px' }}>
-                <DatePicker
-                  label="Date"
-                  required
-                  value={formData.date ? dayjs(formData.date) : null}
-                  onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
-                />
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DateRangePicker
+                    label="Date Range"
+                    value={formData.dateRange}
+                    onChange={(newDateRange) => setFormData({ ...formData, dateRange: newDateRange })}
+                    renderInput={(startProps, endProps) => (
+                      <>
+                        <input {...startProps} style={{ width: '48%', marginRight: '4%' }} />
+                        <input {...endProps} style={{ width: '48%' }} />
+                      </>
+                    )}
+                  />
+                </LocalizationProvider>
               </div>
 
               {/* Time Selection */}

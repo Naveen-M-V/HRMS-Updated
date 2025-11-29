@@ -3,6 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../utils/apiConfig';
 import { toast, ToastContainer } from 'react-toastify';
 import { DatePicker } from '../components/ui/date-picker';
+import { DateRangePicker } from '@mui/x-date-pickers/DateRangePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
 import 'react-toastify/dist/ReactToastify.css';
@@ -24,7 +27,7 @@ const TimeHistory = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState({
     employeeId: '',
-    date: '',
+    dateRange: [null, null],
     startTime: '09:00',
     endTime: '17:00',
     location: 'Office',
@@ -109,44 +112,64 @@ const TimeHistory = () => {
   const handleAssignShift = async (e) => {
     e.preventDefault();
     
-    if (!formData.employeeId || !formData.date) {
+    if (!formData.employeeId || !formData.dateRange[0] || !formData.dateRange[1]) {
       toast.warning('Please fill in all required fields');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('📤 Assigning shift with data:', formData);
-      console.log('📤 Employee ID type:', typeof formData.employeeId);
-      console.log('📤 Employee ID value:', formData.employeeId);
+      // Create individual shift assignments for each date in the range
+      const startDate = formData.dateRange[0];
+      const endDate = formData.dateRange[1];
+      const dates = [];
       
-      const response = await assignShift(formData);
-      console.log('📥 Assign shift response:', response);
-      
-      if (response.success) {
-        toast.success('Shift assigned successfully');
-        setShowAssignModal(false);
-        setFormData({
-          employeeId: '',
-          date: '',
-          startTime: '09:00',
-          endTime: '17:00',
-          location: 'Office',
-          workType: 'Regular',
-          breakDuration: 60,
-          notes: ''
-        });
-        fetchTimeEntries();
+      // Generate all dates in the range
+      let currentDate = startDate.startOf('day');
+      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+        dates.push(currentDate.format('YYYY-MM-DD'));
+        currentDate = currentDate.add(1, 'day');
       }
+
+      console.log('📤 Assigning shifts for date range:', { startDate: startDate.format('YYYY-MM-DD'), endDate: endDate.format('YYYY-MM-DD'), totalDates: dates.length });
+      
+      // Create shift assignments for all dates
+      const shiftPromises = dates.map(date => {
+        const shiftData = {
+          ...formData,
+          date: date,
+          dateRange: undefined // Remove dateRange from individual shift data
+        };
+        return assignShift(shiftData);
+      });
+
+      const results = await Promise.allSettled(shiftPromises);
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+      const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
+
+      if (successful > 0) {
+        toast.success(`Successfully assigned ${successful} shift${successful > 1 ? 's' : ''}`);
+      }
+      
+      if (failed > 0) {
+        toast.warning(`${failed} shift${failed > 1 ? 's' : ''} could not be assigned due to conflicts or errors`);
+      }
+      
+      setShowAssignModal(false);
+      setFormData({
+        employeeId: '',
+        dateRange: [null, null],
+        startTime: '09:00',
+        endTime: '17:00',
+        location: 'Office',
+        workType: 'Regular',
+        breakDuration: 60,
+        notes: ''
+      });
+      fetchTimeEntries();
     } catch (error) {
       console.error('❌ Assign shift error:', error);
-      console.error('Error response:', error.response);
-      console.error('Error data:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Error message:', error.message);
-      
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to assign shift';
-      toast.error(errorMessage);
+      toast.error(error.message || 'Failed to assign shifts');
     } finally {
       setLoading(false);
     }
@@ -569,12 +592,19 @@ const TimeHistory = () => {
                 </Select>
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <DatePicker
-                  label="Date"
-                  required
-                  value={formData.date ? dayjs(formData.date) : null}
-                  onChange={(date) => setFormData({ ...formData, date: date ? date.format('YYYY-MM-DD') : '' })}
-                />
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DateRangePicker
+                    label="Date Range"
+                    value={formData.dateRange}
+                    onChange={(newDateRange) => setFormData({ ...formData, dateRange: newDateRange })}
+                    renderInput={(startProps, endProps) => (
+                      <>
+                        <input {...startProps} style={{ width: '48%', marginRight: '4%' }} />
+                        <input {...endProps} style={{ width: '48%' }} />
+                      </>
+                    )}
+                  />
+                </LocalizationProvider>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>

@@ -185,34 +185,37 @@ exports.createEmployee = async (req, res) => {
       });
     }
     
-    // Generate unique 4-digit employee ID
-    const generateEmployeeId = () => {
-      const min = 1000;
-      const max = 9999;
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+    // Generate sequential employee ID
+    const generateSequentialEmployeeId = async () => {
+      try {
+        // Find the highest existing employee ID
+        const lastEmployee = await EmployeeHub.findOne({ 
+          employeeId: { $regex: /^EMP\d+$/ } 
+        }).sort({ employeeId: -1 }).limit(1);
+        
+        let nextNumber = 1001; // Start from EMP1001
+        
+        if (lastEmployee && lastEmployee.employeeId) {
+          // Extract number from last employee ID (e.g., EMP1001 -> 1001)
+          const lastNumber = parseInt(lastEmployee.employeeId.replace('EMP', ''));
+          if (!isNaN(lastNumber)) {
+            nextNumber = lastNumber + 1;
+          }
+        }
+        
+        return `EMP${nextNumber}`;
+      } catch (error) {
+        console.error('Error generating sequential employee ID:', error);
+        // Fallback to random generation if there's an error
+        const min = 1000;
+        const max = 9999;
+        return `EMP${Math.floor(Math.random() * (max - min + 1)) + min}`;
+      }
     };
 
-    // Ensure unique employee ID
-    let employeeId;
-    let isUnique = false;
-    let attempts = 0;
-    const maxAttempts = 100;
-
-    while (!isUnique && attempts < maxAttempts) {
-      employeeId = `EMP${generateEmployeeId()}`;
-      const existing = await EmployeeHub.findOne({ employeeId });
-      if (!existing) {
-        isUnique = true;
-      }
-      attempts++;
-    }
-
-    if (!isUnique) {
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to generate unique employee ID'
-      });
-    }
+    // Generate unique sequential employee ID
+    const employeeId = await generateSequentialEmployeeId();
+    console.log('🔍 Generated employee ID:', employeeId);
 
     // Generate secure temporary password
     const temporaryPassword = crypto.randomBytes(8).toString('hex');
