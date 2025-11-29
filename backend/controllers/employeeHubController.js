@@ -9,6 +9,218 @@ const crypto = require('crypto');
 const { sendUserCredentialsEmail } = require('../utils/emailService');
 
 /**
+ * Get organizational hierarchy tree
+ */
+exports.getOrganizationalChart = async (req, res) => {
+  try {
+    // Find all employees who are active and populate their managers
+    const employees = await EmployeeHub.find({ 
+      isActive: true, 
+      status: { $ne: 'Terminated' } 
+    })
+      .populate('managerId', 'firstName lastName jobTitle department')
+      .sort({ firstName: 1, lastName: 1 });
+
+    // Create a map for quick lookup
+    const employeeMap = {};
+    employees.forEach(emp => {
+      employeeMap[emp._id.toString()] = {
+        ...emp.toObject(),
+        directReports: []
+      };
+    });
+
+    // Build the hierarchy tree
+    const roots = [];
+    employees.forEach(emp => {
+      const empId = emp._id.toString();
+      if (emp.managerId) {
+        const managerId = emp.managerId._id.toString();
+        if (employeeMap[managerId]) {
+          employeeMap[managerId].directReports.push(employeeMap[empId]);
+        }
+      } else {
+        roots.push(employeeMap[empId]);
+      }
+    });
+
+    // Function to recursively build tree structure
+    const buildTreeNode = (employee) => {
+      return {
+        id: employee._id,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        fullName: `${employee.firstName} ${employee.lastName}`,
+        jobTitle: employee.jobTitle,
+        department: employee.department,
+        team: employee.team,
+        email: employee.email,
+        avatar: employee.avatar,
+        initials: employee.initials,
+        color: employee.color,
+        managerId: employee.managerId?._id,
+        managerName: employee.managerId ? 
+          `${employee.managerId.firstName} ${employee.managerId.lastName}` : null,
+        directReports: employee.directReports.map(buildTreeNode),
+        directReportsCount: employee.directReports.length
+      };
+    };
+
+    const orgChart = roots.map(buildTreeNode);
+
+    res.status(200).json({
+      success: true,
+      data: orgChart,
+      totalEmployees: employees.length,
+      hierarchyLevels: calculateHierarchyLevels(roots)
+    });
+  } catch (error) {
+    console.error('Error fetching organizational chart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch organizational chart',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get direct reports for a specific manager
+ */
+exports.getDirectReports = async (req, res) => {
+  try {
+    const { managerId } = req.params;
+    
+    const directReports = await EmployeeHub.find({ 
+      managerId: managerId,
+      isActive: true,
+      status: { $ne: 'Terminated' }
+    })
+      .populate('managerId', 'firstName lastName')
+      .sort({ firstName: 1, lastName: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: directReports,
+      count: directReports.length
+    });
+  } catch (error) {
+    console.error('Error fetching direct reports:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch direct reports',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Update employee's manager
+ */
+exports.updateEmployeeManager = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { managerId } = req.body;
+
+    // Validate employee exists
+    const employee = await EmployeeHub.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    // Validate manager exists (if provided)
+    if (managerId) {
+      const manager = await EmployeeHub.findById(managerId);
+      if (!manager) {
+        return res.status(404).json({
+          success: false,
+          message: 'Manager not found'
+        });
+      }
+
+      // Prevent circular reporting (employee cannot be their own manager)
+      if (managerId === employeeId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Employee cannot be their own manager'
+        });
+      }
+
+      // Check for circular reporting in the chain
+      const isCircular = await checkCircularReporting(managerId, employeeId);
+      if (isCircular) {
+        return res.status(400).json({
+          success: false,
+          message: 'This would create a circular reporting relationship'
+        });
+      }
+    }
+
+    // Update the employee's manager
+    const updatedEmployee = await EmployeeHub.findByIdAndUpdate(
+      employeeId,
+      { managerId: managerId || null },
+      { new: true, runValidators: true }
+    ).populate('managerId', 'firstName lastName jobTitle');
+
+    res.status(200).json({
+      success: true,
+      message: 'Employee manager updated successfully',
+      data: updatedEmployee
+    });
+  } catch (error) {
+    console.error('Error updating employee manager:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update employee manager',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Helper function to calculate hierarchy levels
+ */
+function calculateHierarchyLevels(roots, level = 1) {
+  let maxLevel = level;
+  roots.forEach(root => {
+    if (root.directReports && root.directReports.length > 0) {
+      const childLevel = calculateHierarchyLevels(root.directReports, level + 1);
+      maxLevel = Math.max(maxLevel, childLevel);
+    }
+  });
+  return maxLevel;
+}
+
+/**
+ * Helper function to check for circular reporting
+ */
+async function checkCircularReporting(managerId, employeeId, visited = new Set()) {
+  if (visited.has(managerId)) {
+    return true; // Circular reference detected
+  }
+
+  visited.add(managerId);
+
+  // Get the manager's current manager
+  const manager = await EmployeeHub.findById(managerId).select('managerId');
+  if (!manager || !manager.managerId) {
+    return false; // Reached top of hierarchy
+  }
+
+  // If we reach the original employee, it's circular
+  if (manager.managerId.toString() === employeeId) {
+    return true;
+  }
+
+  // Recursively check up the chain
+  return await checkCircularReporting(manager.managerId, employeeId, visited);
+}
+
+/**
  * Get all employees
  */
 exports.getAllEmployees = async (req, res) => {

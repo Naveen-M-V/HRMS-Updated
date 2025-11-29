@@ -405,6 +405,18 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               </button>
 
               <button
+                onClick={() => handleNavigation("/organizational-chart")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                  isActive("/organizational-chart")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                }`}
+              >
+                <UserGroupIcon className="h-4 w-4" />
+                <span>Organizational Chart</span>
+              </button>
+
+              <button
                 onClick={() => handleNavigation("/employees/archived")}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                   isActive("/employees/archived")

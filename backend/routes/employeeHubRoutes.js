@@ -10,6 +10,12 @@ router.get('/unregistered-brighthr', employeeHubController.getUnregisteredBright
 router.get('/without-team', employeeHubController.getEmployeesWithoutTeam);
 router.get('/archived', employeeHubController.getArchivedEmployees);
 router.get('/team/:teamName', employeeHubController.getEmployeesByTeam);
+
+// Organizational Chart routes
+router.get('/org-chart', employeeHubController.getOrganizationalChart);
+router.get('/direct-reports/:managerId', employeeHubController.getDirectReports);
+router.patch('/:employeeId/manager', employeeHubController.updateEmployeeManager);
+
 // POST, PUT, DELETE before GET /:id to ensure they're matched first
 router.post('/', employeeHubController.createEmployee);
 router.put('/:id', employeeHubController.updateEmployee);
