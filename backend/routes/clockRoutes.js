@@ -16,10 +16,10 @@ const {
 const crypto = require('crypto');
 
 // Import asyncHandler from server.js
-const { asyncHandler } = require('../server');
+const { asyncHandler } = require('../middleware/auth');
 
 // Import authentication middleware
-const { authenticateSession } = require('../server');
+const { authenticateSession } = require('../middleware/auth');
 
 /**
  * Clock Routes
@@ -1142,6 +1142,12 @@ router.get('/export', async (req, res) => {
 // @route   GET /api/clock/user/status
 // @desc    Get current user's clock status
 // @access  Private (User)
+
+// User-specific routes (employees can only manage their own time)
+
+// @route   GET /api/clock/user/status
+// @desc    Get current user's clock status
+// @access  Private (User)
 router.get('/user/status', authenticateSession, async (req, res) => {
   try {
     // Defensive check for req.user
@@ -1152,12 +1158,14 @@ router.get('/user/status', authenticateSession, async (req, res) => {
         message: 'Authentication required'
       });
     }
-    
+
     const userId = req.user.id || req.user._id || req.user.userId;
-    
+
     // Use UK timezone for date comparison
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
-    const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
+    const dateString = ukNow.toISOString().slice(0, 10);
+
+    // (keep your existing logic below this line)
     
     console.log('📊 User status query - userId:', userId, 'dateString:', dateString);
     

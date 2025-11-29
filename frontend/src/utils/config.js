@@ -6,7 +6,7 @@ const getApiBaseUrl = () => {
   }
   return process.env.REACT_APP_API_BASE_URL || 
          process.env.REACT_APP_API_URL || 
-         'https://talentshield.co.uk/api';
+         'https://hrms.athryan.com/api';
 };
 
 const getServerBaseUrl = () => {
@@ -17,7 +17,7 @@ const getServerBaseUrl = () => {
   return process.env.REACT_APP_SERVER_BASE_URL || 
          process.env.REACT_APP_API_BASE_URL?.replace('/api', '') || 
          process.env.REACT_APP_API_URL?.replace('/api', '') || 
-         'https://talentshield.co.uk';
+         'https://hrms.athryan.com';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

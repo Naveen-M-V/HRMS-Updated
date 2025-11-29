@@ -81,11 +81,11 @@ app.use(session({
 // CORS configuration
 console.log('🔧 CORS Configuration:', {
   NODE_ENV: process.env.NODE_ENV,
-  CORS_ORIGIN: process.env.CORS_ORIGINS,
+  CORS_ORIGIN: process.env.CORS_ORIGIN,
   'All environment vars': {
     PORT: process.env.PORT,
     NODE_ENV: process.env.NODE_ENV,
-    CORS_ORIGIN: process.env.CORS_ORIGINS
+    CORS_ORIGIN: process.env.CORS_ORIGIN
   }
 });
 
@@ -93,7 +93,7 @@ console.log('🔧 CORS Configuration:', {
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.PORT === '5004';
 
 // Always allow localhost in development regardless of NODE_ENV
-const corsOriginStr = process.env.CORS_ORIGINS || '';
+const corsOriginStr = process.env.CORS_ORIGIN || '';
 const baseOrigins = corsOriginStr.split(',').map(o => o.trim()).filter(Boolean);
 
 const allowedOrigins = isDevelopment

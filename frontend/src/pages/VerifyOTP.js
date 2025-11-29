@@ -81,7 +81,7 @@ export default function VerifyOTP() {
     setError("");
 
     try {
-      const response = await fetch('http://talentshield.co.uk/api/auth/verify-otp', {
+      const response = await fetch('http://hrms.athryan.com/api/auth/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ export default function VerifyOTP() {
     setError("");
 
     try {
-      const response = await fetch('http://talentshield.co.uk/api/auth/forgot-password', {
+      const response = await fetch('http://hrms.athryan.com/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
