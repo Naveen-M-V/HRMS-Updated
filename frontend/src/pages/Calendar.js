@@ -113,25 +113,55 @@ const Calendar = () => {
       return;
     }
 
-    // Ensure we have dayjs objects
-    const startDate = dayjs.isDayjs(start) ? start : dayjs(start);
-    const endDate = dayjs.isDayjs(end) ? end : dayjs(end);
-
-    let hasWeekend = false;
-    let current = startDate;
-    const endDay = endDate;
-
-    while (current.isSameOrBefore(endDay)) {
-      if (current.day() === 0 || current.day() === 6) { // Sunday or Saturday
-        hasWeekend = true;
-        break;
+    try {
+      // Ensure we have dayjs objects
+      let startDate, endDate;
+      
+      if (dayjs.isDayjs(start)) {
+        startDate = start;
+      } else if (start instanceof Date) {
+        startDate = dayjs(start);
+      } else if (typeof start === 'object' && start.$d) {
+        startDate = dayjs(start.$d);
+      } else {
+        startDate = dayjs(start);
       }
-      current = current.add(1, 'day');
-    }
+      
+      if (dayjs.isDayjs(end)) {
+        endDate = end;
+      } else if (end instanceof Date) {
+        endDate = dayjs(end);
+      } else if (typeof end === 'object' && end.$d) {
+        endDate = dayjs(end.$d);
+      } else {
+        endDate = dayjs(end);
+      }
 
-    if (hasWeekend) {
-      setWeekendWarning('Saturday is not a working day');
-    } else {
+      // Validate the dayjs objects
+      if (!startDate.isValid() || !endDate.isValid()) {
+        setWeekendWarning('');
+        return;
+      }
+
+      let hasWeekend = false;
+      let current = startDate;
+      const endDay = endDate;
+
+      while (current.isSameOrBefore(endDay)) {
+        if (current.day() === 0 || current.day() === 6) { // Sunday or Saturday
+          hasWeekend = true;
+          break;
+        }
+        current = current.add(1, 'day');
+      }
+
+      if (hasWeekend) {
+        setWeekendWarning('Saturday is not a working day');
+      } else {
+        setWeekendWarning('');
+      }
+    } catch (error) {
+      console.error('Weekend check error:', error);
       setWeekendWarning('');
     }
   };
@@ -140,39 +170,112 @@ const Calendar = () => {
   const calculateWorkingDays = (start, end) => {
     if (!start || !end) return 0;
     
-    // Ensure we have dayjs objects
-    const startDate = dayjs.isDayjs(start) ? start : dayjs(start);
-    const endDate = dayjs.isDayjs(end) ? end : dayjs(end);
-    
-    let workingDays = 0;
-    let current = startDate;
-    const endDay = endDate;
-
-    while (current.isSameOrBefore(endDay)) {
-      if (current.day() !== 0 && current.day() !== 6) { // Not Sunday or Saturday
-        workingDays++;
+    try {
+      // Ensure we have dayjs objects
+      let startDate, endDate;
+      
+      if (dayjs.isDayjs(start)) {
+        startDate = start;
+      } else if (start instanceof Date) {
+        startDate = dayjs(start);
+      } else if (typeof start === 'object' && start.$d) {
+        startDate = dayjs(start.$d);
+      } else {
+        startDate = dayjs(start);
       }
-      current = current.add(1, 'day');
+      
+      if (dayjs.isDayjs(end)) {
+        endDate = end;
+      } else if (end instanceof Date) {
+        endDate = dayjs(end);
+      } else if (typeof end === 'object' && end.$d) {
+        endDate = dayjs(end.$d);
+      } else {
+        endDate = dayjs(end);
+      }
+
+      // Validate the dayjs objects
+      if (!startDate.isValid() || !endDate.isValid()) {
+        return 0;
+      }
+      
+      let workingDays = 0;
+      let current = startDate;
+      const endDay = endDate;
+
+      while (current.isSameOrBefore(endDay)) {
+        if (current.day() !== 0 && current.day() !== 6) { // Not Sunday or Saturday
+          workingDays++;
+        }
+        current = current.add(1, 'day');
+      }
+
+      // Adjust for half days
+      if (startHalfDay !== 'full') workingDays -= 0.5;
+      if (endHalfDay !== 'full' && !startDate.isSame(endDate)) workingDays -= 0.5;
+
+      return Math.max(0, workingDays);
+    } catch (error) {
+      console.error('Working days calculation error:', error);
+      return 0;
     }
-
-    // Adjust for half days
-    if (startHalfDay !== 'full') workingDays -= 0.5;
-    if (endHalfDay !== 'full' && !startDate.isSame(endDate)) workingDays -= 0.5;
-
-    return Math.max(0, workingDays);
   };
 
   // Handle date changes
   const handleStartDateChange = (date) => {
-    // Ensure we store a dayjs object
-    const dayjsDate = dayjs.isDayjs(date) ? date : (date ? dayjs(date) : null);
+    // Handle different types of date objects from DatePicker
+    let dayjsDate = null;
+    
+    if (date) {
+      try {
+        if (dayjs.isDayjs(date)) {
+          dayjsDate = date;
+        } else if (date instanceof Date) {
+          dayjsDate = dayjs(date);
+        } else if (typeof date === 'object' && date.$d) {
+          // Handle moment-like objects
+          dayjsDate = dayjs(date.$d);
+        } else if (typeof date === 'string') {
+          dayjsDate = dayjs(date);
+        } else {
+          // Last resort - try to convert
+          dayjsDate = dayjs(date);
+        }
+      } catch (error) {
+        console.error('Date conversion error:', error);
+        dayjsDate = null;
+      }
+    }
+    
     setStartDate(dayjsDate);
     checkWeekendDays(dayjsDate, endDate);
   };
 
   const handleEndDateChange = (date) => {
-    // Ensure we store a dayjs object
-    const dayjsDate = dayjs.isDayjs(date) ? date : (date ? dayjs(date) : null);
+    // Handle different types of date objects from DatePicker
+    let dayjsDate = null;
+    
+    if (date) {
+      try {
+        if (dayjs.isDayjs(date)) {
+          dayjsDate = date;
+        } else if (date instanceof Date) {
+          dayjsDate = dayjs(date);
+        } else if (typeof date === 'object' && date.$d) {
+          // Handle moment-like objects
+          dayjsDate = dayjs(date.$d);
+        } else if (typeof date === 'string') {
+          dayjsDate = dayjs(date);
+        } else {
+          // Last resort - try to convert
+          dayjsDate = dayjs(date);
+        }
+      } catch (error) {
+        console.error('Date conversion error:', error);
+        dayjsDate = null;
+      }
+    }
+    
     setEndDate(dayjsDate);
     checkWeekendDays(startDate, dayjsDate);
   };

@@ -534,7 +534,9 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         
         {/* Drawer */}
         <div className="relative flex h-full">
-          <div className="fixed left-0 top-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
+          <div className={`fixed left-0 top-0 h-full bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
+            isOpen ? 'w-80 ml-64' : 'w-80 ml-16'
+          }`}>
             {/* Drawer Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <h2 className="text-lg font-semibold text-gray-900">Documents</h2>
