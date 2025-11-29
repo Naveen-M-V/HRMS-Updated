@@ -12,8 +12,8 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import dayjs from 'dayjs';
-import { DatePicker } from './ui/date-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { DatePicker } from '../components/ui/date-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(dayjs());
