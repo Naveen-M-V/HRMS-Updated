@@ -3,9 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../utils/apiConfig';
 import { toast, ToastContainer } from 'react-toastify';
 import { DatePicker } from '../components/ui/date-picker';
-import { DateRangePicker } from '@mui/x-date-pickers/DateRangePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
 import 'react-toastify/dist/ReactToastify.css';
@@ -27,7 +24,8 @@ const TimeHistory = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState({
     employeeId: '',
-    dateRange: [null, null],
+    startDate: '',
+    endDate: '',
     startTime: '09:00',
     endTime: '17:00',
     location: 'Office',
@@ -112,7 +110,7 @@ const TimeHistory = () => {
   const handleAssignShift = async (e) => {
     e.preventDefault();
     
-    if (!formData.employeeId || !formData.dateRange[0] || !formData.dateRange[1]) {
+    if (!formData.employeeId || !formData.startDate || !formData.endDate) {
       toast.warning('Please fill in all required fields');
       return;
     }
@@ -120,25 +118,26 @@ const TimeHistory = () => {
     setLoading(true);
     try {
       // Create individual shift assignments for each date in the range
-      const startDate = formData.dateRange[0];
-      const endDate = formData.dateRange[1];
+      const start = dayjs(formData.startDate);
+      const end = dayjs(formData.endDate);
       const dates = [];
       
       // Generate all dates in the range
-      let currentDate = startDate.startOf('day');
-      while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+      let currentDate = start.startOf('day');
+      while (currentDate.isBefore(end) || currentDate.isSame(end)) {
         dates.push(currentDate.format('YYYY-MM-DD'));
         currentDate = currentDate.add(1, 'day');
       }
 
-      console.log('📤 Assigning shifts for date range:', { startDate: startDate.format('YYYY-MM-DD'), endDate: endDate.format('YYYY-MM-DD'), totalDates: dates.length });
+      console.log('📤 Assigning shifts for date range:', { startDate: formData.startDate, endDate: formData.endDate, totalDates: dates.length });
       
       // Create shift assignments for all dates
       const shiftPromises = dates.map(date => {
         const shiftData = {
           ...formData,
           date: date,
-          dateRange: undefined // Remove dateRange from individual shift data
+          startDate: undefined,
+          endDate: undefined // Remove dateRange from individual shift data
         };
         return assignShift(shiftData);
       });
@@ -158,7 +157,8 @@ const TimeHistory = () => {
       setShowAssignModal(false);
       setFormData({
         employeeId: '',
-        dateRange: [null, null],
+        startDate: '',
+        endDate: '',
         startTime: '09:00',
         endTime: '17:00',
         location: 'Office',
@@ -592,19 +592,26 @@ const TimeHistory = () => {
                 </Select>
               </div>
               <div style={{ marginBottom: '20px' }}>
-                <LocalizationProvider dateAdapter={AdapterDayjs}>
-                  <DateRangePicker
-                    label="Date Range"
-                    value={formData.dateRange}
-                    onChange={(newDateRange) => setFormData({ ...formData, dateRange: newDateRange })}
-                    renderInput={(startProps, endProps) => (
-                      <>
-                        <input {...startProps} style={{ width: '48%', marginRight: '4%' }} />
-                        <input {...endProps} style={{ width: '48%' }} />
-                      </>
-                    )}
-                  />
-                </LocalizationProvider>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Date Range <span style={{ color: '#dc2626' }}>*</span></label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <DatePicker
+                      label="Start Date"
+                      required
+                      value={formData.startDate ? dayjs(formData.startDate) : null}
+                      onChange={(date) => setFormData({ ...formData, startDate: date ? date.format('YYYY-MM-DD') : '' })}
+                    />
+                  </div>
+                  <div>
+                    <DatePicker
+                      label="End Date"
+                      required
+                      value={formData.endDate ? dayjs(formData.endDate) : null}
+                      onChange={(date) => setFormData({ ...formData, endDate: date ? date.format('YYYY-MM-DD') : '' })}
+                      minDate={formData.startDate ? dayjs(formData.startDate) : undefined}
+                    />
+                  </div>
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
                 <div>

@@ -15,7 +15,7 @@ const TEXT_ONLY_FIELDS = new Set([
   "jobTitle",
   "department",
   "team",
-  "office",
+  "Organisation Name",
   "townCity",
   "county",
   "emergencyContactName",
@@ -103,7 +103,7 @@ export default function AddEmployee() {
     jobTitle: "",
     department: "",
     team: "",
-    office: "",
+    OrganisationName: "",
     employmentStartDate: "",
     probationEndDate: "",
     // Profile photo
@@ -1169,6 +1169,7 @@ export default function AddEmployee() {
                   <SelectItem value="Sibling">Sibling</SelectItem>
                   <SelectItem value="Child">Child</SelectItem>
                   <SelectItem value="Friend">Friend</SelectItem>
+                  <SelectItem value="Partner">Partner</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -1283,7 +1284,7 @@ export default function AddEmployee() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Name on account
+                Account Holder Name
               </label>
               <input
                 type="text"
