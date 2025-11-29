@@ -113,9 +113,13 @@ const Calendar = () => {
       return;
     }
 
+    // Ensure we have dayjs objects
+    const startDate = dayjs.isDayjs(start) ? start : dayjs(start);
+    const endDate = dayjs.isDayjs(end) ? end : dayjs(end);
+
     let hasWeekend = false;
-    let current = dayjs(start);
-    const endDay = dayjs(end);
+    let current = startDate;
+    const endDay = endDate;
 
     while (current.isSameOrBefore(endDay)) {
       if (current.day() === 0 || current.day() === 6) { // Sunday or Saturday
@@ -136,9 +140,13 @@ const Calendar = () => {
   const calculateWorkingDays = (start, end) => {
     if (!start || !end) return 0;
     
+    // Ensure we have dayjs objects
+    const startDate = dayjs.isDayjs(start) ? start : dayjs(start);
+    const endDate = dayjs.isDayjs(end) ? end : dayjs(end);
+    
     let workingDays = 0;
-    let current = dayjs(start);
-    const endDay = dayjs(end);
+    let current = startDate;
+    const endDay = endDate;
 
     while (current.isSameOrBefore(endDay)) {
       if (current.day() !== 0 && current.day() !== 6) { // Not Sunday or Saturday
@@ -149,20 +157,24 @@ const Calendar = () => {
 
     // Adjust for half days
     if (startHalfDay !== 'full') workingDays -= 0.5;
-    if (endHalfDay !== 'full' && !dayjs(start).isSame(dayjs(end))) workingDays -= 0.5;
+    if (endHalfDay !== 'full' && !startDate.isSame(endDate)) workingDays -= 0.5;
 
     return Math.max(0, workingDays);
   };
 
   // Handle date changes
   const handleStartDateChange = (date) => {
-    setStartDate(date);
-    checkWeekendDays(date, endDate);
+    // Ensure we store a dayjs object
+    const dayjsDate = dayjs.isDayjs(date) ? date : (date ? dayjs(date) : null);
+    setStartDate(dayjsDate);
+    checkWeekendDays(dayjsDate, endDate);
   };
 
   const handleEndDateChange = (date) => {
-    setEndDate(date);
-    checkWeekendDays(startDate, date);
+    // Ensure we store a dayjs object
+    const dayjsDate = dayjs.isDayjs(date) ? date : (date ? dayjs(date) : null);
+    setEndDate(dayjsDate);
+    checkWeekendDays(startDate, dayjsDate);
   };
 
   // Open modal
@@ -384,8 +396,8 @@ const Calendar = () => {
               {startDate && endDate && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-700">
-                    You were off from <strong>{dayjs(startDate).format('dddd, D MMMM YYYY')}</strong> until{' '}
-                    <strong>{dayjs(endDate).format('dddd, D MMMM YYYY')}</strong> and{' '}
+                    You were off from <strong>{startDate.format('dddd, D MMMM YYYY')}</strong> until{' '}
+                    <strong>{endDate.format('dddd, D MMMM YYYY')}</strong> and{' '}
                     <strong>{calculateWorkingDays(startDate, endDate)} day(s)</strong> will be deducted from your entitlement.
                   </p>
                 </div>

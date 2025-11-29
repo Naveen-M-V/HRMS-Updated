@@ -10,6 +10,7 @@ import {
   HomeIcon,
   UserIcon,
   DocumentTextIcon,
+  DocumentDuplicateIcon,
   BellIcon,
   ArrowRightOnRectangleIcon,
   CalendarDaysIcon,
@@ -36,6 +37,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
   const [openRotaShift, setOpenRotaShift] = useState(false);
   const [openEmployees, setOpenEmployees] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
+  const [openDocumentsDrawer, setOpenDocumentsDrawer] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
@@ -334,10 +336,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         {/* Calendar Section */}
         <div className="pt-2 border-t border-sidebar-border">
           <button
-            onClick={() => {
-              handleMenuClick();
-              handleNavigation("/calendar");
-            }}
+            onClick={() => handleNavigation("/calendar")}
             className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
               isActive("/calendar")
                 ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
@@ -347,6 +346,22 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <CalendarIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
               <span className="text-sm font-medium flex-1 text-left">Calendar</span>
+            )}
+          </button>
+        </div>
+
+        {/* Documents Section */}
+        <div>
+          <button
+            onClick={() => {
+              // Don't expand sidebar, just open drawer
+              setOpenDocumentsDrawer(true);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all hover:bg-sidebar-accent/50`}
+          >
+            <DocumentDuplicateIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">Documents</span>
             )}
           </button>
         </div>
@@ -507,6 +522,50 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           )}
         </div>
       </div>
-    </div>
-  );
+
+    {/* Documents Drawer */}
+    {openDocumentsDrawer && (
+      <div className="fixed inset-0 z-50 flex">
+        {/* Backdrop */}
+        <div 
+          className="fixed inset-0 bg-black/50"
+          onClick={() => setOpenDocumentsDrawer(false)}
+        />
+        
+        {/* Drawer */}
+        <div className="relative flex h-full">
+          <div className="fixed left-0 top-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold text-gray-900">Documents</h2>
+              <button
+                onClick={() => setOpenDocumentsDrawer(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Empty State */}
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <DocumentDuplicateIcon className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No documents yet</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Get started by uploading your first document.
+                </p>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  Upload Document
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+);
 }
