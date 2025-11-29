@@ -317,6 +317,75 @@ const Calendar = () => {
         <p className="text-gray-600">Manage your schedule and view upcoming events</p>
       </div>
 
+      {/* Upcoming Shifts Section */}
+      <div className="mb-8">
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">Upcoming Shifts</h2>
+            <p className="text-sm text-gray-500">Your next scheduled shifts</p>
+          </div>
+          
+          <div className="divide-y">
+            {/* Today's Shift */}
+            <div className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <ClockIcon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Today - Morning Shift</div>
+                    <div className="text-sm text-gray-500">09:00 - 17:00</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">Main Office</div>
+                  <div className="text-xs text-blue-600">In 2 hours</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tomorrow's Shift */}
+            <div className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <ClockIcon className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Tomorrow - Evening Shift</div>
+                    <div className="text-sm text-gray-500">14:00 - 22:00</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">Branch Office</div>
+                  <div className="text-xs text-green-600">In 1 day</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Next Week's Shift */}
+            <div className="p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <ClockIcon className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Monday - Night Shift</div>
+                    <div className="text-sm text-gray-500">22:00 - 06:00</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">Main Office</div>
+                  <div className="text-xs text-purple-600">In 5 days</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* View Mode Toggle */}
       <div className="mb-6 flex items-center gap-2">
         <button
