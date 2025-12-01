@@ -99,6 +99,7 @@ const checkPermission = (action) => {
 
 // Health check endpoint
 router.get('/health', (req, res) => {
+  console.log('🏥 Document Management Health Check Called');
   res.json({ 
     status: 'OK', 
     message: 'Document Management API is working',
@@ -109,13 +110,16 @@ router.get('/health', (req, res) => {
 // Get all folders
 router.get('/folders', async (req, res) => {
   try {
-    const folders = await Folder.getRootFolders()
+    console.log('📂 Fetching folders...');
+    const folders = await Folder.getFolderTree(null)
       .populate('createdBy', 'firstName lastName employeeId')
       .lean(); // Use lean for better performance
     
+    console.log('✅ Folders fetched successfully:', folders.length);
     res.json(folders);
   } catch (error) {
-    console.error('Error fetching folders:', error);
+    console.error('💥 Error fetching folders:', error);
+    console.error('💥 Error stack:', error.stack);
     res.status(500).json({ 
       message: error.message || 'Internal server error while fetching folders' 
     });
@@ -146,17 +150,22 @@ router.get('/folders/:folderId', async (req, res) => {
 // Create new folder
 router.post('/folders', async (req, res) => {
   try {
+    console.log('📁 Creating folder - Request body:', req.body);
+    
     const { name, description, parentFolder, permissions } = req.body;
     
     // Validate required fields
     if (!name || name.trim() === '') {
+      console.log('❌ Folder name validation failed');
       return res.status(400).json({ message: 'Folder name is required' });
     }
     
     // Get user ID from request (handle different auth middleware formats)
     const userId = req.user?._id || req.user?.id || req.session?.user?.id || 'system';
+    console.log('👤 User ID:', userId);
     
     // Check if folder name already exists in the same parent
+    console.log('🔍 Checking for existing folder...');
     const existingFolder = await Folder.findOne({ 
       name: name.trim(), 
       parentFolder: parentFolder || null,
@@ -164,9 +173,11 @@ router.post('/folders', async (req, res) => {
     });
     
     if (existingFolder) {
+      console.log('❌ Folder already exists:', existingFolder.name);
       return res.status(400).json({ message: 'Folder with this name already exists' });
     }
     
+    console.log('✅ Creating new folder...');
     const folder = new Folder({
       name: name.trim(),
       description: description?.trim() || '',
@@ -179,15 +190,21 @@ router.post('/folders', async (req, res) => {
       createdBy: userId
     });
     
+    console.log('💾 Saving folder to database...');
     await folder.save();
+    console.log('✅ Folder saved successfully');
+    
     await folder.populate('createdBy', 'firstName lastName employeeId');
     
+    console.log('📤 Sending response...');
     res.status(201).json(folder);
   } catch (error) {
-    console.error('Error creating folder:', error);
+    console.error('💥 Error creating folder:', error);
+    console.error('💥 Error stack:', error.stack);
     
     // Handle duplicate key error
     if (error.code === 11000) {
+      console.log('❌ Duplicate key error');
       return res.status(400).json({ 
         message: 'Folder with this name already exists in this location' 
       });
