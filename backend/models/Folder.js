@@ -10,8 +10,7 @@ const folderSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Folder name is required'],
     trim: true,
-    maxlength: [100, 'Folder name cannot exceed 100 characters'],
-    unique: true
+    maxlength: [100, 'Folder name cannot exceed 100 characters']
   },
   description: {
     type: String,
@@ -136,6 +135,9 @@ folderSchema.methods.hasPermission = function(action, userRole) {
   if (!this.permissions[action]) return false;
   return this.permissions[action].includes(userRole) || this.permissions[action].includes('admin');
 };
+
+// Compound index for unique folder names within parent folder
+folderSchema.index({ name: 1, parentFolder: 1 }, { unique: true });
 
 // Prevent model re-compilation
 const Folder = mongoose.models.Folder || mongoose.model('Folder', folderSchema);

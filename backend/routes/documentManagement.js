@@ -185,6 +185,14 @@ router.post('/folders', async (req, res) => {
     res.status(201).json(folder);
   } catch (error) {
     console.error('Error creating folder:', error);
+    
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: 'Folder with this name already exists in this location' 
+      });
+    }
+    
     res.status(500).json({ 
       message: error.message || 'Internal server error while creating folder' 
     });
