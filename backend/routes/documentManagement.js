@@ -144,19 +144,17 @@ router.get('/test-folder', async (req, res) => {
   }
 });
 
-// Get all folders
+// Get all folders - SIMPLIFIED
 router.get('/folders', async (req, res) => {
   try {
-    console.log('📂 Fetching folders...');
-    const folders = await Folder.getFolderTree(null)
-      .populate('createdBy', 'firstName lastName employeeId')
-      .lean(); // Use lean for better performance
+    console.log("📂 Fetching folders...");
+    const folders = await Folder.find({ isActive: true })
+      .sort({ name: 1 });
     
-    console.log('✅ Folders fetched successfully:', folders.length);
+    console.log("✅ Folders fetched successfully:", folders.length);
     res.json(folders);
   } catch (error) {
-    console.error('💥 Error fetching folders:', error);
-    console.error('💥 Error stack:', error.stack);
+    console.error("💥 Error fetching folders:", error);
     res.status(500).json({ 
       message: error.message || 'Internal server error while fetching folders' 
     });
@@ -184,45 +182,28 @@ router.get('/folders/:folderId', async (req, res) => {
   }
 });
 
-// Create new folder - Simplified for debugging
-router.post('/folders', async (req, res) => {
+// Create new folder - WORKING VERSION
+router.post("/folders", async (req, res) => {
   try {
-    console.log('📁 Creating folder - Request body:', req.body);
-    
-    const { name, description } = req.body;
-    
-    // Basic validation
+    console.log("FOLDER API BODY:", req.body);
+
+    const { name, createdBy } = req.body;
+
     if (!name) {
-      console.log('❌ Folder name validation failed');
-      return res.status(400).json({ message: 'Folder name is required' });
+      return res.status(400).json({ message: "Folder name is required" });
     }
-    
-    console.log('✅ Creating folder with minimal data...');
-    
-    // Create folder with minimum required fields
-    const folder = new Folder({
+
+    const folder = await Folder.create({
       name: name.trim(),
-      description: description?.trim() || '',
-      createdBy: 'system'
+      description: req.body.description || '',
+      createdBy: createdBy || null,
     });
-    
-    console.log('💾 Saving folder to database...');
-    await folder.save();
-    console.log('✅ Folder saved successfully');
-    
-    console.log('📤 Sending response...');
-    res.status(201).json(folder);
-  } catch (error) {
-    console.error('💥 Error creating folder:', error);
-    console.error('💥 Error stack:', error.stack);
-    console.error('💥 Error code:', error.code);
-    console.error('💥 Error name:', error.name);
-    
-    res.status(500).json({ 
-      message: error.message || 'Internal server error while creating folder',
-      code: error.code,
-      name: error.name
-    });
+
+    console.log("✅ Folder created successfully:", folder);
+    return res.status(201).json(folder);
+  } catch (err) {
+    console.error("FOLDER CREATION ERROR:", err);
+    return res.status(500).json({ message: "Server error creating folder" });
   }
 });
 
