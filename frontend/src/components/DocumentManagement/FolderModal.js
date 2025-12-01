@@ -151,7 +151,7 @@ const FolderModal = ({ onClose, onSubmit, isFirstFolder = false }) => {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 ${
                   errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="e.g., Employee Documents, Contracts, etc."
@@ -172,7 +172,7 @@ const FolderModal = ({ onClose, onSubmit, isFirstFolder = false }) => {
                 value={formData.description}
                 onChange={handleInputChange}
                 rows={3}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 resize-none ${
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Optional description of this folder..."

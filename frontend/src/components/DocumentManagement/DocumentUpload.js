@@ -277,7 +277,7 @@ const DocumentUpload = ({
               <select
                 value={selectedFolder?._id || ''}
                 onChange={(e) => setSelectedFolder(folders.find(f => f._id === e.target.value))}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${
                   errors.folder ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
@@ -392,7 +392,7 @@ const DocumentUpload = ({
                 <select
                   value={documentMetadata.category}
                   onChange={(e) => setDocumentMetadata(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 >
                   {categories.map(cat => (
                     <option key={cat} value={cat}>
@@ -412,7 +412,7 @@ const DocumentUpload = ({
                   value={documentMetadata.tags}
                   onChange={(e) => setDocumentMetadata(prev => ({ ...prev, tags: e.target.value }))}
                   placeholder="Separate tags with commas"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400"
                 />
               </div>
 
@@ -425,7 +425,7 @@ const DocumentUpload = ({
                   type="date"
                   value={documentMetadata.expiresOn}
                   onChange={(e) => setDocumentMetadata(prev => ({ ...prev, expiresOn: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-400 ${
                     errors.expiresOn ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />

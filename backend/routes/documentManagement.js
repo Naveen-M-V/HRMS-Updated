@@ -97,15 +97,28 @@ const checkPermission = (action) => {
 
 // ==================== FOLDER ROUTES ====================
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Document Management API is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Get all folders
 router.get('/folders', async (req, res) => {
   try {
     const folders = await Folder.getRootFolders()
-      .populate('createdBy', 'firstName lastName employeeId');
+      .populate('createdBy', 'firstName lastName employeeId')
+      .lean(); // Use lean for better performance
     
     res.json(folders);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error fetching folders:', error);
+    res.status(500).json({ 
+      message: error.message || 'Internal server error while fetching folders' 
+    });
   }
 });
 
@@ -135,9 +148,20 @@ router.post('/folders', async (req, res) => {
   try {
     const { name, description, parentFolder, permissions } = req.body;
     
+    // Validate required fields
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Folder name is required' });
+    }
+    
+    // Get user ID from request (handle different auth middleware formats)
+    const userId = req.user?._id || req.user?.id || req.session?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
     // Check if folder name already exists in the same parent
     const existingFolder = await Folder.findOne({ 
-      name, 
+      name: name.trim(), 
       parentFolder: parentFolder || null,
       isActive: true 
     });
@@ -147,15 +171,15 @@ router.post('/folders', async (req, res) => {
     }
     
     const folder = new Folder({
-      name,
-      description,
+      name: name.trim(),
+      description: description?.trim() || '',
       parentFolder: parentFolder || null,
       permissions: permissions || {
         view: ['admin', 'hr', 'manager', 'employee'],
         edit: ['admin', 'hr'],
         delete: ['admin']
       },
-      createdBy: req.user._id
+      createdBy: userId
     });
     
     await folder.save();
@@ -163,7 +187,10 @@ router.post('/folders', async (req, res) => {
     
     res.status(201).json(folder);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error creating folder:', error);
+    res.status(500).json({ 
+      message: error.message || 'Internal server error while creating folder' 
+    });
   }
 });
 
