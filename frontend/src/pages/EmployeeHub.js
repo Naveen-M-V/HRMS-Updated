@@ -631,94 +631,79 @@ export default function EmployeeHub() {
             {(filterBy === "Employees" ? [] : filteredTeams.length > 0 ? filteredTeams : teams).map((team) => {
               const teamMembers = getTeamEmployees(team.name);
               return (
-              <div
-                key={team._id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300"
-              >
-                {/* Team Header */}
-                <div className="flex items-center gap-4 mb-4">
-                  {/* Team Avatar */}
-                  <div
-                    className="h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-                    style={{ backgroundColor: team.color || '#3B82F6' }}
-                  >
-                    {team.initials || team.name.substring(0, 2).toUpperCase()}
-                  </div>
-
-                  {/* Team Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
-                      {team.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {team.memberCount || 0} member{(team.memberCount || 0) !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Team Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleTeam(team.name)}
-                    className="flex-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-2 rounded transition-colors font-medium"
-                  >
-                    {expandedTeams[team.name] ? 'Hide Members' : 'View Members'}
-                  </button>
-                  <button
-                    onClick={() => toggleTeam(team.name)}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
-                    title={expandedTeams[team.name] ? "Hide Members" : "View Members"}
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Team Members - Expandable */}
-                {expandedTeams[team.name] && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 max-h-48 overflow-y-auto pr-1">
-                    <div className="space-y-2">
-                      {teamMembers.length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-2">
-                          No members assigned
-                        </p>
-                      ) : (
-                        teamMembers.map((employee) => (
-                          <div key={employee._id || employee.id} className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
-                              {employee.profilePhoto ? (
-                                <img
-                                  src={employee.profilePhoto}
-                                  alt={`${employee.firstName} ${employee.lastName}`}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  className="h-full w-full flex items-center justify-center text-white font-medium text-sm"
-                                  style={{ backgroundColor: employee.color || '#3B82F6' }}
-                                >
-                                  {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-gray-900 truncate">
-                                {employee.firstName} {employee.lastName}
-                              </div>
-                              <div className="text-xs text-gray-500 truncate">
-                                {employee.jobTitle || '-'}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
+                <div
+                  key={team._id}
+                  className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div
+                      className="h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                      style={{ backgroundColor: team.color || '#3B82F6' }}
+                    >
+                      {team.initials || team.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                        {team.name}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {team.memberCount || 0} member{(team.memberCount || 0) !== 1 ? 's' : ''}
+                      </p>
                     </div>
                   </div>
-                )}
-              </div>
-              </div>
-            );
-          })}
-        </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleTeam(team.name)}
+                      className="flex-1 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-2 rounded transition-colors font-medium"
+                    >
+                      {expandedTeams[team.name] ? 'Hide Members' : 'View Members'}
+                    </button>
+                  </div>
+                  {expandedTeams[team.name] && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 max-h-48 overflow-y-auto pr-1">
+                      <div className="space-y-2">
+                        {teamMembers.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-2">
+                            No members assigned
+                          </p>
+                        ) : (
+                          teamMembers.map((employee) => (
+                            <div key={employee._id || employee.id} className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                                {employee.profilePhoto ? (
+                                  <img
+                                    src={employee.profilePhoto}
+                                    alt={`${employee.firstName} ${employee.lastName}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className="h-full w-full flex items-center justify-center text-white font-medium text-sm"
+                                    style={{ backgroundColor: employee.color || '#3B82F6' }}
+                                  >
+                                    {employee.initials || `${employee.firstName?.charAt(0) || ''}${employee.lastName?.charAt(0) || ''}`}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {employee.firstName} {employee.lastName}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">
+                                  {employee.jobTitle || '-'}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
