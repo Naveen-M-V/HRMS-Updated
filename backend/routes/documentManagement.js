@@ -107,6 +107,43 @@ router.get('/health', (req, res) => {
   });
 });
 
+// Test endpoint to check Folder model
+router.get('/test-folder', async (req, res) => {
+  try {
+    console.log('🧪 Testing Folder model...');
+    
+    // Test if Folder model exists
+    console.log('📁 Folder model:', typeof Folder);
+    
+    // Test database connection
+    const count = await Folder.countDocuments();
+    console.log('📊 Folder count:', count);
+    
+    // Test creating a simple folder
+    const testFolder = {
+      name: 'Test Folder ' + Date.now(),
+      description: 'Test description',
+      createdBy: 'system'
+    };
+    
+    console.log('✅ Test endpoint successful');
+    res.json({
+      status: 'OK',
+      folderModelExists: typeof Folder === 'function',
+      folderCount: count,
+      testFolder: testFolder
+    });
+  } catch (error) {
+    console.error('💥 Test endpoint error:', error);
+    console.error('💥 Error stack:', error.stack);
+    res.status(500).json({
+      status: 'ERROR',
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Get all folders
 router.get('/folders', async (req, res) => {
   try {
@@ -147,71 +184,44 @@ router.get('/folders/:folderId', async (req, res) => {
   }
 });
 
-// Create new folder
+// Create new folder - Simplified for debugging
 router.post('/folders', async (req, res) => {
   try {
     console.log('📁 Creating folder - Request body:', req.body);
     
-    const { name, description, parentFolder, permissions } = req.body;
+    const { name, description } = req.body;
     
-    // Validate required fields
-    if (!name || name.trim() === '') {
+    // Basic validation
+    if (!name) {
       console.log('❌ Folder name validation failed');
       return res.status(400).json({ message: 'Folder name is required' });
     }
     
-    // Get user ID from request (handle different auth middleware formats)
-    const userId = req.user?._id || req.user?.id || req.session?.user?.id || 'system';
-    console.log('👤 User ID:', userId);
+    console.log('✅ Creating folder with minimal data...');
     
-    // Check if folder name already exists in the same parent
-    console.log('🔍 Checking for existing folder...');
-    const existingFolder = await Folder.findOne({ 
-      name: name.trim(), 
-      parentFolder: parentFolder || null,
-      isActive: true 
-    });
-    
-    if (existingFolder) {
-      console.log('❌ Folder already exists:', existingFolder.name);
-      return res.status(400).json({ message: 'Folder with this name already exists' });
-    }
-    
-    console.log('✅ Creating new folder...');
+    // Create folder with minimum required fields
     const folder = new Folder({
       name: name.trim(),
       description: description?.trim() || '',
-      parentFolder: parentFolder || null,
-      permissions: permissions || {
-        view: ['admin', 'hr', 'manager', 'employee'],
-        edit: ['admin', 'hr'],
-        delete: ['admin']
-      },
-      createdBy: userId
+      createdBy: 'system'
     });
     
     console.log('💾 Saving folder to database...');
     await folder.save();
     console.log('✅ Folder saved successfully');
     
-    await folder.populate('createdBy', 'firstName lastName employeeId');
-    
     console.log('📤 Sending response...');
     res.status(201).json(folder);
   } catch (error) {
     console.error('💥 Error creating folder:', error);
     console.error('💥 Error stack:', error.stack);
-    
-    // Handle duplicate key error
-    if (error.code === 11000) {
-      console.log('❌ Duplicate key error');
-      return res.status(400).json({ 
-        message: 'Folder with this name already exists in this location' 
-      });
-    }
+    console.error('💥 Error code:', error.code);
+    console.error('💥 Error name:', error.name);
     
     res.status(500).json({ 
-      message: error.message || 'Internal server error while creating folder' 
+      message: error.message || 'Internal server error while creating folder',
+      code: error.code,
+      name: error.name
     });
   }
 });
