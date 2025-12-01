@@ -19,7 +19,7 @@ import {
   UsersIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import { DocumentDrawer } from "./DocumentManagement";
+import DocumentDrawer from "./DocumentManagement/DocumentDrawer";
 
 export default function ModernSidebar({ isOpen, toggleSidebar }) {
   const navigate = useNavigate();

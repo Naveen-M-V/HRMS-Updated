@@ -18,7 +18,6 @@ import {
   Eye,
   Share2
 } from 'lucide-react';
-import axios from '../../utils/axiosConfig';
 import FolderCard from './FolderCard';
 import DocumentPanel from './DocumentPanel';
 import FolderModal from './FolderModal';
@@ -43,10 +42,31 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
   const fetchFolders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/documentManagement/folders');
-      setFolders(response.data);
+      const token = localStorage.getItem('auth_token');
+      console.log('Fetching folders - Token available:', !!token);
+      
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const response = await fetch(`${apiUrl}/api/documentManagement/folders?t=${Date.now()}`, {
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setFolders(data);
     } catch (error) {
       console.error('Error fetching folders:', error);
+      if (error.message.includes('401') || error.message.includes('403')) {
+        console.error('Authentication failed - token may be expired');
+      }
     } finally {
       setLoading(false);
     }
@@ -54,11 +74,34 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
 
   const handleCreateFolder = async (folderData) => {
     try {
-      const response = await axios.post('/api/documentManagement/folders', folderData);
-      setFolders([...folders, response.data]);
+      const token = localStorage.getItem('auth_token');
+      console.log('Token available:', !!token);
+      console.log('Folder data:', folderData);
+      
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const response = await fetch(`${apiUrl}/api/documentManagement/folders`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(folderData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setFolders([...folders, data]);
       setShowFolderModal(false);
     } catch (error) {
       console.error('Error creating folder:', error);
+      if (error.message.includes('401') || error.message.includes('403')) {
+        console.error('Authentication failed - token may be expired');
+      }
     }
   };
 

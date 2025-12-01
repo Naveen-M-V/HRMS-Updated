@@ -20,7 +20,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import axios from '../../utils/axiosConfig';
+import axios from 'axios';
 import DocumentUpload from './DocumentUpload';
 
 const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {

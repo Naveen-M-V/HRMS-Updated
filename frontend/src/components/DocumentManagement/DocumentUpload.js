@@ -14,7 +14,7 @@ import {
   Shield,
   Tag
 } from 'lucide-react';
-import axios from '../../utils/axiosConfig';
+import axios from 'axios';
 
 const DocumentUpload = ({ 
   onClose, 
