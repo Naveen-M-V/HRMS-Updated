@@ -2592,6 +2592,7 @@ const clockRoutes = require('./routes/clockRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const employeeHubRoutes = require('./routes/employeeHubRoutes');
+const documentManagementRoutes = require('./routes/documentManagement');
 
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
@@ -3494,6 +3495,7 @@ app.use('/api/clock', authenticateSession, clockRoutes);
 app.use('/api/leave', authenticateSession, leaveRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/employees', employeeHubRoutes);
+app.use('/api/documentManagement', authenticateSession, documentManagementRoutes);
 
 // Email service handled by utils/emailService.js
 
