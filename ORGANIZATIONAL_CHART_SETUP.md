@@ -287,8 +287,38 @@ For issues or questions:
 3. Verify database indexes
 4. Test with sample data
 
+## Recent Updates (December 2025)
+
+### BrightHR-Inspired UI Enhancement
+The organizational chart now features a modern, polished UI inspired by BrightHR:
+
+#### New Features:
+- **Employee Quick View Modal**: Click any employee to open a beautiful modal with:
+  - Large profile avatar with colored background
+  - Working status indicator (working from home/office)
+  - Team badges
+  - Contact information with clickable email/phone
+  - Department and office location
+  - Reports-to section showing the full reporting chain
+  - Quick actions to view full profile
+
+- **Enhanced Visual Design**:
+  - Larger, more prominent employee cards with gradient backgrounds for root nodes
+  - Better spacing and typography
+  - Blue-themed connectors between employees
+  - "Labs" badge on header to indicate experimental feature
+  - Print chart functionality
+  - Improved zoom controls with clearer percentage display
+  - Better search with clear button
+
+#### Components:
+- `EmployeeQuickView.js` - New modal component matching BrightHR design
+- Updated `OrganizationalChart.js` with improved card styling and layout
+- Enhanced backend endpoint to populate manager details with full information
+
 ---
 
 **Implementation Date**: November 2025  
-**Version**: 1.0  
+**Last Updated**: December 2025  
+**Version**: 1.1  
 **Compatibility**: HRMS v1.14+

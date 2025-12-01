@@ -331,7 +331,7 @@ exports.getEmployeeById = async (req, res) => {
     }
 
     const employee = await EmployeeHub.findById(req.params.id)
-      .populate('managerId', 'firstName lastName email');
+      .populate('managerId', 'firstName lastName email jobTitle department office workLocation avatar initials color');
     
     if (!employee) {
       console.log('Employee not found with ID:', req.params.id);

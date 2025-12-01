@@ -14,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import ConfirmDialog from "../components/ConfirmDialog";
+import EmployeeQuickView from "../components/EmployeeQuickView";
 
 export default function OrganizationalChart() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function OrganizationalChart() {
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [viewMode, setViewMode] = useState("tree"); // "tree" or "compact"
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -117,27 +119,27 @@ export default function OrganizationalChart() {
         {/* Employee card */}
         <div
           className={`
-            relative bg-white border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
-            ${level === 0 ? "border-blue-300 bg-blue-50" : "border-gray-200"}
-            ${selectedEmployee?.id === employee.id ? "ring-2 ring-blue-500" : ""}
+            relative bg-white border-2 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer min-w-[320px] max-w-[380px]
+            ${level === 0 ? "border-blue-400 bg-gradient-to-br from-blue-50 to-white" : "border-gray-200 hover:border-blue-300"}
+            ${selectedEmployee?.id === employee.id ? "ring-2 ring-blue-500 ring-offset-2" : ""}
           `}
           onClick={() => {
             setSelectedEmployee(employee);
-            setShowEmployeeModal(true);
+            setShowQuickView(true);
           }}
         >
-          <div className="p-4">
-            <div className="flex items-start gap-3">
+          <div className="p-5">
+            <div className="flex items-start gap-4">
               {/* Avatar */}
               <div
-                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
+                className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-md"
                 style={{ backgroundColor: employee.color || "#3B82F6" }}
               >
                 {employee.avatar ? (
                   <img
                     src={employee.avatar}
                     alt={employee.fullName}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-14 h-14 rounded-full object-cover"
                   />
                 ) : (
                   employee.initials || `${employee.firstName[0]}${employee.lastName[0]}`
@@ -146,68 +148,75 @@ export default function OrganizationalChart() {
               
               {/* Employee info */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 truncate">
+                <h3 className="font-bold text-gray-900 truncate text-base leading-tight">
                   {employee.fullName}
                 </h3>
-                <p className="text-sm text-gray-600 truncate">{employee.jobTitle}</p>
-                <div className="flex items-center gap-4 mt-1">
+                <p className="text-sm text-gray-600 truncate mt-0.5 font-medium">{employee.jobTitle}</p>
+                <div className="flex flex-col gap-1 mt-2">
                   {employee.department && (
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <BuildingOfficeIcon className="w-3 h-3" />
-                      {employee.department}
+                    <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <BuildingOfficeIcon className="w-3.5 h-3.5 text-blue-500" />
+                      <span className="truncate">{employee.department}</span>
                     </span>
                   )}
                   {employee.team && (
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <UserGroupIcon className="w-3 h-3" />
-                      {employee.team}
+                    <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <UserGroupIcon className="w-3.5 h-3.5 text-green-500" />
+                      <span className="truncate">{employee.team}</span>
                     </span>
                   )}
                 </div>
-                {hasReports && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleNodeExpansion(employee.id);
-                      }}
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      {isExpanded ? (
-                        <ChevronDownIcon className="w-4 h-4" />
-                      ) : (
-                        <ChevronRightIcon className="w-4 h-4" />
-                      )}
-                      {employee.directReportsCount} direct report{employee.directReportsCount !== 1 ? "s" : ""}
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
+            
+            {/* Show/Hide Reports Button */}
+            {hasReports && (
+              <div className="mt-4 pt-3 border-t border-gray-200">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleNodeExpansion(employee.id);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-semibold transition-colors py-1"
+                >
+                  {isExpanded ? (
+                    <>
+                      <span>Hide {employee.directReportsCount} direct report{employee.directReportsCount !== 1 ? "s" : ""}</span>
+                      <ChevronDownIcon className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      <span>Show {employee.directReportsCount} direct report{employee.directReportsCount !== 1 ? "s" : ""}</span>
+                      <ChevronRightIcon className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Direct reports */}
         {hasReports && isExpanded && (
-          <div className="relative mt-4 ml-8">
-            {/* Connector line */}
-            <div className="absolute left-0 top-0 w-px h-8 bg-gray-300 -translate-x-4" />
+          <div className="relative mt-6 ml-10">
+            {/* Vertical connector line from parent */}
+            <div className="absolute left-0 top-0 w-0.5 h-10 bg-blue-300 -translate-x-5" />
             
             {/* Reports container */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               {employee.directReports.map((report, index) => (
                 <div key={report.id} className="relative">
                   {/* Horizontal connector */}
-                  <div className="absolute left-0 top-6 w-4 h-px bg-gray-300 -translate-x-4" />
+                  <div className="absolute left-0 top-8 w-5 h-0.5 bg-blue-300 -translate-x-5" />
                   
                   {/* Vertical connector for multiple reports */}
                   {employee.directReports.length > 1 && (
                     <>
                       {index === 0 && (
-                        <div className="absolute left-0 top-6 w-px h-full bg-gray-300 -translate-x-4" />
+                        <div className="absolute left-0 top-8 w-0.5 h-full bg-blue-300 -translate-x-5" />
                       )}
                       {index === employee.directReports.length - 1 && (
-                        <div className="absolute left-0 top-0 w-px h-6 bg-gray-300 -translate-x-4" />
+                        <div className="absolute left-0 top-0 w-0.5 h-8 bg-blue-300 -translate-x-5" />
                       )}
                     </>
                   )}
@@ -272,14 +281,22 @@ export default function OrganizationalChart() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <UserGroupIcon className="h-8 w-8 text-blue-600" />
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center gap-4">
+              <UserGroupIcon className="h-9 w-9 text-blue-600" />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Organizational Chart</h1>
-                <p className="text-sm text-gray-500">Visualize your company's reporting structure</p>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-gray-900">Organizational chart</h1>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-pink-100 text-pink-800 border border-pink-200">
+                    labs
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  This is an experimental feature, 
+                  <a href="#" className="text-blue-600 hover:text-blue-700 ml-1">send us feedback</a> to tell us what you love and what doesn't work for you.
+                </p>
               </div>
             </div>
             
@@ -287,10 +304,16 @@ export default function OrganizationalChart() {
               <button
                 onClick={fetchOrgChart}
                 disabled={loading}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Print chart
               </button>
             </div>
           </div>
@@ -298,24 +321,32 @@ export default function OrganizationalChart() {
       </div>
 
       {/* Controls */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex flex-wrap items-center gap-4">
             {/* Search */}
-            <div className="relative flex-1 min-w-64">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative flex-1 min-w-72">
+              <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search employees..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             {/* Department filter */}
             <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-56 h-12 border-2">
                 <SelectValue placeholder="Filter by department" />
               </SelectTrigger>
               <SelectContent>
@@ -327,30 +358,30 @@ export default function OrganizationalChart() {
             </Select>
 
             {/* Zoom controls */}
-            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-white border-2 border-gray-300 rounded-lg p-1">
               <button
                 onClick={handleZoomOut}
-                className="p-1 hover:bg-white rounded transition-colors"
+                className="px-3 py-1.5 hover:bg-gray-100 rounded font-bold text-gray-700 transition-colors"
                 title="Zoom out"
               >
-                <span className="text-sm font-medium">−</span>
+                <span className="text-lg">−</span>
               </button>
-              <span className="text-sm font-medium px-2">
+              <span className="text-sm font-semibold px-3 py-1 min-w-[60px] text-center text-gray-700">
                 {Math.round(zoomLevel * 100)}%
               </span>
               <button
                 onClick={handleZoomIn}
-                className="p-1 hover:bg-white rounded transition-colors"
+                className="px-3 py-1.5 hover:bg-gray-100 rounded font-bold text-gray-700 transition-colors"
                 title="Zoom in"
               >
-                <span className="text-sm font-medium">+</span>
+                <span className="text-lg">+</span>
               </button>
               <button
                 onClick={handleZoomReset}
-                className="p-1 hover:bg-white rounded transition-colors"
+                className="px-3 py-1.5 hover:bg-gray-100 rounded font-bold text-gray-700 transition-colors ml-1"
                 title="Reset zoom"
               >
-                <span className="text-sm font-medium">⟲</span>
+                <span className="text-base">⟲</span>
               </button>
             </div>
           </div>
@@ -360,21 +391,21 @@ export default function OrganizationalChart() {
       {/* Chart content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-96 bg-white rounded-xl border-2 border-gray-200">
             <div className="text-center">
-              <ArrowPathIcon className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-2" />
-              <p className="text-gray-600">Loading organizational chart...</p>
+              <ArrowPathIcon className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-3" />
+              <p className="text-gray-600 font-medium text-lg">Loading organizational chart...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{error}</p>
+          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-6">
+            <p className="text-red-800 font-medium">{error}</p>
           </div>
         ) : filteredData.length === 0 ? (
-          <div className="text-center py-12">
-            <UserGroupIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
-            <p className="text-gray-500">
+          <div className="text-center py-20 bg-white rounded-xl border-2 border-gray-200">
+            <UserGroupIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No employees found</h3>
+            <p className="text-gray-600">
               {searchTerm || departmentFilter !== "all" 
                 ? "Try adjusting your search or filters"
                 : "No employees available in the organizational chart"
@@ -384,102 +415,34 @@ export default function OrganizationalChart() {
         ) : (
           <div
             ref={chartRef}
-            className="overflow-auto bg-white rounded-lg border p-8"
+            className="overflow-auto bg-white rounded-xl border-2 border-gray-200 p-10 shadow-sm"
             style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'top left' }}
           >
             <div className="inline-block min-w-full">
               {filteredData.map(root => (
-                <EmployeeCard key={root.id} employee={root} />
+                <div key={root.id} className="mb-8">
+                  <EmployeeCard employee={root} />
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* Employee detail modal */}
-      {showEmployeeModal && selectedEmployee && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setShowEmployeeModal(false)} />
-          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Employee Details</h2>
-              <button
-                onClick={() => setShowEmployeeModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-4">
-              <div className="flex items-center gap-4 mb-4">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-semibold text-xl"
-                  style={{ backgroundColor: selectedEmployee.color || "#3B82F6" }}
-                >
-                  {selectedEmployee.initials || `${selectedEmployee.firstName[0]}${selectedEmployee.lastName[0]}`}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedEmployee.fullName}</h3>
-                  <p className="text-gray-600">{selectedEmployee.jobTitle}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <BriefcaseIcon className="w-4 h-4 text-gray-400" />
-                  <span className="font-medium">Department:</span>
-                  <span>{selectedEmployee.department || "Not specified"}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <UserGroupIcon className="w-4 h-4 text-gray-400" />
-                  <span className="font-medium">Team:</span>
-                  <span>{selectedEmployee.team || "Not specified"}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <UserIcon className="w-4 h-4 text-gray-400" />
-                  <span className="font-medium">Email:</span>
-                  <span>{selectedEmployee.email}</span>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <UserGroupIcon className="w-4 h-4 text-gray-400" />
-                  <span className="font-medium">Direct Reports:</span>
-                  <span>{selectedEmployee.directReportsCount}</span>
-                </div>
-                
-                {selectedEmployee.managerName && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <UserIcon className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">Reports to:</span>
-                    <span>{selectedEmployee.managerName}</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={() => {
-                    loadManagers();
-                    setShowManagerDialog(true);
-                  }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Update Manager
-                </button>
-                <button
-                  onClick={() => navigate(`/employee-hub?employee=${selectedEmployee.id}`)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  View Full Profile
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Employee Quick View Modal */}
+      <EmployeeQuickView
+        employee={selectedEmployee}
+        isOpen={showQuickView}
+        onClose={() => {
+          setShowQuickView(false);
+          setSelectedEmployee(null);
+        }}
+        onViewFullProfile={() => {
+          if (selectedEmployee) {
+            navigate(`/employee-hub?employee=${selectedEmployee.id}`);
+          }
+        }}
+      />
 
       {/* Manager update dialog */}
       <ConfirmDialog
