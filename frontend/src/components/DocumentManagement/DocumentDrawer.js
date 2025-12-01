@@ -18,7 +18,7 @@ import {
   Eye,
   Share2
 } from 'lucide-react';
-import axios from 'axios';
+import axios from '../../utils/axiosConfig';
 import FolderCard from './FolderCard';
 import DocumentPanel from './DocumentPanel';
 import FolderModal from './FolderModal';
