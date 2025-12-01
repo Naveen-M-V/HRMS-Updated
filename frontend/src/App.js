@@ -48,6 +48,7 @@ import UserCertificateView from "./pages/UserCertificateView";
 import AdminDetailsModal from "./pages/AdminDetailsModal";
 import RotaShiftManagement from "./pages/RotaShiftManagement";
 import ClockInOut from "./pages/ClockInOut";
+import EmployeeProfile from "./pages/EmployeeProfile";
 import ClockIns from "./pages/ClockIns";
 import TimeHistory from "./pages/TimeHistory";
 import EmployeeHub from "./pages/EmployeeHub";
@@ -369,6 +370,10 @@ function App() {
                                   <Route
                                     path="/calendar"
                                     element={<Calendar />}
+                                  />
+                                  <Route
+                                    path="/employee/:employeeId"
+                                    element={<EmployeeProfile />}
                                   />
                                 </Routes>
                               </div>
