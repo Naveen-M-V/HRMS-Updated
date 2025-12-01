@@ -16,7 +16,7 @@ import {
   FolderOpen,
   Upload
 } from 'lucide-react';
-import axios from '../../utils/axiosConfig';
+import axios from '../utils/axiosConfig';
 
 const EmployeeProfile = () => {
   const { employeeId } = useParams();
