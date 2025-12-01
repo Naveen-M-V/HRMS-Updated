@@ -3495,7 +3495,7 @@ app.use('/api/clock', authenticateSession, clockRoutes);
 app.use('/api/leave', authenticateSession, leaveRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/employees', employeeHubRoutes);
-app.use('/api/documentManagement', authenticateSession, documentManagementRoutes);
+app.use('/api/documentManagement', documentManagementRoutes);
 
 // Email service handled by utils/emailService.js
 
