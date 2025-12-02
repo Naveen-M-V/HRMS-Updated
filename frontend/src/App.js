@@ -56,7 +56,7 @@ import ManageTeams from "./pages/ManageTeams";
 import AddEmployee from "./pages/AddEmployee";
 import ArchiveEmployees from "./pages/ArchiveEmployees";
 import Calendar from "./pages/Calendar";
-import OrganizationalChart from "./pages/OrganizationalChart";
+import OrganisationalChart from "./pages/OrganisationalChart";
 import AnnualLeaveBalance from "./components/AnnualLeaveBalance";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
@@ -349,20 +349,12 @@ function App() {
                                     element={<TimeHistory />}
                                   />
                                   <Route
-                                    path="/employee-hub"
-                                    element={<EmployeeHub />}
-                                  />
-                                  <Route
-                                    path="/organizational-chart"
-                                    element={<OrganizationalChart />}
-                                  />
-                                  <Route
-                                    path="/employees/archived"
-                                    element={<ArchiveEmployees />}
-                                  />
-                                  <Route
                                     path="/manage-teams"
                                     element={<ManageTeams />}
+                                  />
+                                  <Route
+                                    path="/organisational-chart"
+                                    element={<OrganisationalChart />}
                                   />
                                   <Route
                                     path="/add-employee"
