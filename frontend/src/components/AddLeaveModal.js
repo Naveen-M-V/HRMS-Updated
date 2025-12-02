@@ -16,19 +16,31 @@ export default function AddLeaveModal({ employee, onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      // TODO: Replace startDate/endDate with real date logic if needed
-      await axios.post("/api/leave/records", {
-        userId: employee._id || employee.id,
-        type: type === "Annual leave" ? "annual" : type === "Sick leave" ? "sick" : "unpaid",
+      const userId = employee._id || employee.id;
+      const leaveType = type === "Annual leave" ? "annual" : type === "Sick leave" ? "sick" : "unpaid";
+      
+      // Calculate end date based on number of days
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + Number(totalDays) - 1);
+      
+      const response = await axios.post("/api/leave/records", {
+        userId: userId,
+        type: leaveType,
         days: Number(totalDays),
-        startDate: new Date().toISOString(), // dummy: today
-        endDate: new Date().toISOString(),   // dummy: today
-        reason: notes,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        reason: notes || `${type} - ${totalDays} days`,
+        status: "approved" // Explicitly set status as approved since admin is adding it
       });
+      
+      console.log('Leave record created:', response.data);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      setError("Failed to add absence. Please try again.");
+      console.error('Failed to add leave record:', err);
+      const errorMessage = err.response?.data?.message || "Failed to add absence. Please try again.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
