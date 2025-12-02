@@ -50,6 +50,44 @@ const EmployeeProfile = () => {
 
   const fetchEmployeeData = async () => {
     try {
+      // Validate MongoDB ObjectId format (24 hex characters)
+      const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+      if (!objectIdPattern.test(employeeId)) {
+        console.error('Invalid employee ID format:', employeeId);
+        // Set fallback employee data
+        const fallbackEmployee = {
+          _id: employeeId,
+          name: 'Invalid Employee',
+          firstName: 'Invalid',
+          lastName: 'ID',
+          email: 'invalid@example.com',
+          workingStatus: 'Invalid ID format',
+          gender: 'Unspecified',
+          dateOfBirth: '1990-01-01',
+          mobileNumber: '+1234567890',
+          addressLine1: '123 Main St',
+          addressLine2: 'Apt 4B',
+          city: 'New York',
+          postalCode: '10001',
+          country: 'USA',
+          salary: '$50,000',
+          payrollCycle: 'Monthly',
+          bankName: 'Bank of America',
+          accountNumber: '****1234',
+          passportNumber: 'P123456789',
+          visaType: 'H1B',
+          workPermitExpiry: '2025-12-31',
+          nationalInsuranceNumber: 'NI123456789',
+          department: 'Engineering',
+          position: 'Software Engineer',
+          startDate: '2023-01-01',
+          employmentType: 'Full-time'
+        };
+        setEmployee(fallbackEmployee);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees/${employeeId}`);
       if (response.data.success) {

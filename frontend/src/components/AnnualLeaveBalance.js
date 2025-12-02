@@ -22,50 +22,62 @@ const AnnualLeaveBalance = () => {
   const fetchAnnualLeaveData = async () => {
     try {
       setLoading(true);
-      // Fetch annual leave balances from backend
-      const response = await axios.get("/api/leave/balances");
-      if (response.data.success && response.data.data.length > 0) {
-        // Map backend leave balances to table format
-        const transformedData = response.data.data.map(bal => ({
-          id: bal.user?._id,
-          name: bal.user ? `${bal.user.firstName} ${bal.user.lastName}` : 'Unknown',
-          allowance: bal.entitlementDays,
-          balance: bal.entitlementDays - (bal.usedDays || 0),
-          remainingPercentage: bal.entitlementDays ? Math.round(((bal.entitlementDays - (bal.usedDays || 0)) / bal.entitlementDays) * 100) : 0
-        }));
-        setEmployees(transformedData);
+      
+      // Fetch both employees and leave balances
+      const [employeesRes, leaveBalancesRes] = await Promise.all([
+        axios.get("/api/employees"),
+        axios.get("/api/leave/balances")
+      ]);
+      
+      if (employeesRes.data.success && employeesRes.data.data.length > 0) {
+        const employees = employeesRes.data.data;
+        
+        // If we have leave balance data, merge it with employees
+        if (leaveBalancesRes.data.success && leaveBalancesRes.data.data.length > 0) {
+          const leaveBalances = leaveBalancesRes.data.data;
+          
+          // Create a map of leave balances by user ID for quick lookup
+          const balanceMap = {};
+          leaveBalances.forEach(bal => {
+            if (bal.user?._id) {
+              balanceMap[bal.user._id] = bal;
+            }
+          });
+          
+          // Merge employee data with leave balance data
+          const transformedData = employees.map(employee => {
+            const balance = balanceMap[employee._id];
+            return {
+              id: employee._id,
+              name: `${employee.firstName} ${employee.lastName}`,
+              allowance: balance ? balance.entitlementDays : 12, // Default 12 days if no balance data
+              balance: balance ? balance.entitlementDays - (balance.usedDays || 0) : 12,
+              remainingPercentage: balance 
+                ? (balance.entitlementDays ? Math.round(((balance.entitlementDays - (balance.usedDays || 0)) / balance.entitlementDays) * 100) : 100)
+                : 100
+            };
+          });
+          
+          setEmployees(transformedData);
+        } else {
+          // No leave balance data, show employees with default values
+          const transformedData = employees.map(employee => ({
+            id: employee._id,
+            name: `${employee.firstName} ${employee.lastName}`,
+            allowance: 12, // Default allowance
+            balance: 12, // Default balance
+            remainingPercentage: 100
+          }));
+          setEmployees(transformedData);
+        }
       } else {
-        // Fallback to mock data if no employees found
-        const mockData = [
-          { id: "123", name: "Syed Ahmed", allowance: 12, balance: 10, remainingPercentage: 83 },
-          { id: "124", name: "Jane Smith", allowance: 15, balance: 8, remainingPercentage: 53 },
-          { id: "125", name: "John Doe", allowance: 12, balance: 3, remainingPercentage: 25 },
-          { id: "126", name: "Sarah Johnson", allowance: 18, balance: 15, remainingPercentage: 83 },
-          { id: "127", name: "Michael Brown", allowance: 12, balance: 11, remainingPercentage: 92 },
-          { id: "128", name: "Emily Davis", allowance: 14, balance: 4, remainingPercentage: 29 },
-          { id: "129", name: "Robert Wilson", allowance: 12, balance: 7, remainingPercentage: 58 },
-          { id: "130", name: "Lisa Anderson", allowance: 16, balance: 12, remainingPercentage: 75 },
-          { id: "131", name: "David Martinez", allowance: 12, balance: 2, remainingPercentage: 17 },
-          { id: "132", name: "Jennifer Taylor", allowance: 15, balance: 9, remainingPercentage: 60 }
-        ];
-        setEmployees(mockData);
+        // No employees found, show empty state
+        setEmployees([]);
       }
     } catch (error) {
       console.error('Error fetching annual leave data:', error);
-      // Fallback to mock data
-      const mockData = [
-        { id: "123", name: "Syed Ahmed", allowance: 12, balance: 10, remainingPercentage: 83 },
-        { id: "124", name: "Jane Smith", allowance: 15, balance: 8, remainingPercentage: 53 },
-        { id: "125", name: "John Doe", allowance: 12, balance: 3, remainingPercentage: 25 },
-        { id: "126", name: "Sarah Johnson", allowance: 18, balance: 15, remainingPercentage: 83 },
-        { id: "127", name: "Michael Brown", allowance: 12, balance: 11, remainingPercentage: 92 },
-        { id: "128", name: "Emily Davis", allowance: 14, balance: 4, remainingPercentage: 29 },
-        { id: "129", name: "Robert Wilson", allowance: 12, balance: 7, remainingPercentage: 58 },
-        { id: "130", name: "Lisa Anderson", allowance: 16, balance: 12, remainingPercentage: 75 },
-        { id: "131", name: "David Martinez", allowance: 12, balance: 2, remainingPercentage: 17 },
-        { id: "132", name: "Jennifer Taylor", allowance: 15, balance: 9, remainingPercentage: 60 }
-      ];
-      setEmployees(mockData);
+      // Show empty state on error
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -89,6 +101,12 @@ const AnnualLeaveBalance = () => {
   };
 
   const handleEmployeeClick = (employeeId) => {
+    // Validate MongoDB ObjectId format (24 hex characters)
+    const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+    if (!objectIdPattern.test(employeeId)) {
+      alert('Invalid employee ID. Cannot view profile.');
+      return;
+    }
     navigate(`/employee/${employeeId}`);
   };
 

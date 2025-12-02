@@ -32,6 +32,13 @@ const EmployeeQuickView = ({ employee, isOpen, onClose, onViewFullProfile }) => 
   const fetchReportingStructure = async () => {
     if (!employee?.managerId) return;
     
+    // Validate MongoDB ObjectId format (24 hex characters)
+    const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+    if (!objectIdPattern.test(employee.managerId)) {
+      console.warn('Invalid manager ID format:', employee.managerId);
+      return;
+    }
+    
     setLoading(true);
     try {
       // Fetch direct manager details
@@ -50,7 +57,7 @@ const EmployeeQuickView = ({ employee, isOpen, onClose, onViewFullProfile }) => 
         }];
         
         // If manager has a manager, fetch them too (up the chain)
-        if (manager.managerId) {
+        if (manager.managerId && objectIdPattern.test(manager.managerId)) {
           try {
             const upperResponse = await axios.get(`/api/employees/${manager.managerId}`);
             if (upperResponse.data.success) {

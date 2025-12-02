@@ -206,6 +206,13 @@ export default function AddEmployee() {
 
   // Fetch employee data for edit mode
   const fetchEmployeeData = async (employeeId) => {
+    // Validate MongoDB ObjectId format (24 hex characters)
+    const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+    if (!objectIdPattern.test(employeeId)) {
+      console.warn('Invalid employee ID format:', employeeId);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees/${employeeId}`);
