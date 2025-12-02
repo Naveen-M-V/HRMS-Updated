@@ -9,16 +9,16 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isBetween from 'dayjs/plugin/isBetween';
 import 'react-toastify/dist/ReactToastify.css';
-
-dayjs.extend(isSameOrBefore);
-dayjs.extend(isSameOrAfter);
-dayjs.extend(isBetween);
 import { getTimeEntries, exportTimeEntries } from '../utils/clockApi';
 import { assignShift } from '../utils/rotaApi';
 import axios from 'axios';
 import LoadingScreen from '../components/LoadingScreen';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isBetween);
 
 const TimeHistory = () => {
   const [timeEntries, setTimeEntries] = useState([]);
