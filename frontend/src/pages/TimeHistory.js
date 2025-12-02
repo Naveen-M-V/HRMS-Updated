@@ -5,7 +5,14 @@ import { toast, ToastContainer } from 'react-toastify';
 import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isBetween from 'dayjs/plugin/isBetween';
 import 'react-toastify/dist/ReactToastify.css';
+
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isBetween);
 import { getTimeEntries, exportTimeEntries } from '../utils/clockApi';
 import { assignShift } from '../utils/rotaApi';
 import axios from 'axios';

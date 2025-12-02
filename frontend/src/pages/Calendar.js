@@ -12,7 +12,14 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isBetween from 'dayjs/plugin/isBetween';
 import axios from '../utils/axiosConfig';
+
+dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isBetween);
 import { DatePicker } from '../components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
