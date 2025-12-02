@@ -162,11 +162,19 @@ const EmployeeProfile = () => {
   <div className="flex items-center gap-8">
     {/* Avatar */}
     <div className="relative">
-      <div className="w-[160px] h-[160px] rounded-full bg-[#0056b3] flex items-center justify-center ring-4 ring-[#e6f0fa]">
-        <span className="text-4xl font-bold text-white select-none">
-          {employee.initials || (employee.name ? employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '')}
-        </span>
-      </div>
+      <div className="w-[160px] h-[160px] rounded-full bg-[#0056b3] flex items-center justify-center ring-4 ring-[#e6f0fa] overflow-hidden">
+  {employee.profilePhoto ? (
+    <img
+      src={employee.profilePhoto}
+      alt={employee.name || 'Employee'}
+      className="w-full h-full object-cover rounded-full"
+    />
+  ) : (
+    <span className="text-4xl font-bold text-white select-none">
+      {employee.initials || (employee.name ? employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '')}
+    </span>
+  )}
+</div>
       {/* Edit Icon */}
       <button
         className="absolute bottom-4 right-4 bg-white p-2 rounded-full shadow-md border border-gray-200 hover:bg-blue-50 transition-colors"
@@ -181,23 +189,23 @@ const EmployeeProfile = () => {
     {/* Details */}
     <div className="flex flex-col gap-1 text-left">
       <span className="text-2xl font-bold text-gray-900 leading-tight">
-        {employee.name || ''}
-      </span>
-      <span className="text-base text-gray-700">
-        {employee.jobRole || employee.jobTitle || employee.position || ''}
-      </span>
-      <span className="flex items-center text-base text-gray-600 mt-1">
-        <svg className="w-4 h-4 mr-2 text-[#0056b3]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 21a2 2 0 01-2.828 0l-4.243-4.343a8 8 0 1111.314 0z" /><circle cx="12" cy="11" r="3" /></svg>
-        {employee.officeLocation || employee.workLocation || employee.OrganisationName || ''}
-      </span>
-      <span className="flex items-center text-base text-gray-600 mt-1">
-        <Mail className="w-4 h-4 mr-2 text-[#0056b3]" />
-        {employee.email || ''}
-      </span>
-      <span className="flex items-center text-base text-gray-600 mt-1">
-        <Phone className="w-4 h-4 mr-2 text-[#0056b3]" />
-        {employee.phoneNumber || employee.mobileNumber || employee.phone || ''}
-      </span>
+  {employee.name || employee.firstName && employee.lastName ? `${employee.firstName} ${employee.lastName}` : ''}
+</span>
+<span className="text-base text-gray-700">
+  {employee.jobRole || employee.jobTitle || employee.position || ''}
+</span>
+<span className="flex items-center text-base text-gray-600 mt-1">
+  <svg className="w-4 h-4 mr-2 text-[#0056b3]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 21a2 2 0 01-2.828 0l-4.243-4.343a8 8 0 1111.314 0z" /><circle cx="12" cy="11" r="3" /></svg>
+  {employee.officeLocation || employee.workLocation || employee.OrganisationName || employee.office || ''}
+</span>
+<span className="flex items-center text-base text-gray-600 mt-1">
+  <Mail className="w-4 h-4 mr-2 text-[#0056b3]" />
+  {employee.email || employee.emailAddress || ''}
+</span>
+<span className="flex items-center text-base text-gray-600 mt-1">
+  <Phone className="w-4 h-4 mr-2 text-[#0056b3]" />
+  {employee.phoneNumber || employee.mobileNumber || employee.phone || employee.workPhone || ''}
+</span>
     </div>
   </div>
 </div>
