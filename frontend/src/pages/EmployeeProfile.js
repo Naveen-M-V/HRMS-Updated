@@ -157,28 +157,50 @@ const EmployeeProfile = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between h-auto md:h-16 py-4 md:py-0">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                ← Back
-              </button>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">{employee.name}</h1>
-                <div className="flex flex-wrap gap-4 mt-2 text-gray-700">
-                  <span className="block"><Mail className="inline w-4 h-4 mr-1" />{employee.email}</span>
-                  <span className="block"><Phone className="inline w-4 h-4 mr-1" />{employee.mobileNumber || employee.phone}</span>
-                  <span className="block"><Briefcase className="inline w-4 h-4 mr-1" />{employee.jobTitle || employee.position || 'Not specified'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Employee Header - Pixel-accurate, screenshot-matched */}
+<div className="bg-white border border-[#0056b3] rounded-lg p-6 mb-8">
+  <div className="flex items-center gap-8">
+    {/* Avatar */}
+    <div className="relative">
+      <div className="w-[160px] h-[160px] rounded-full bg-[#0056b3] flex items-center justify-center ring-4 ring-[#e6f0fa]">
+        <span className="text-4xl font-bold text-white select-none">
+          {employee.initials || (employee.name ? employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '')}
+        </span>
       </div>
+      {/* Edit Icon */}
+      <button
+        className="absolute bottom-4 right-4 bg-white p-2 rounded-full shadow-md border border-gray-200 hover:bg-blue-50 transition-colors"
+        title="Edit photo"
+        tabIndex={0}
+      >
+        <svg className="w-5 h-5 text-[#e00070]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z" />
+        </svg>
+      </button>
+    </div>
+    {/* Details */}
+    <div className="flex flex-col gap-1 text-left">
+      <span className="text-2xl font-bold text-gray-900 leading-tight">
+        {employee.name || ''}
+      </span>
+      <span className="text-base text-gray-700">
+        {employee.jobRole || employee.jobTitle || employee.position || ''}
+      </span>
+      <span className="flex items-center text-base text-gray-600 mt-1">
+        <svg className="w-4 h-4 mr-2 text-[#0056b3]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 21a2 2 0 01-2.828 0l-4.243-4.343a8 8 0 1111.314 0z" /><circle cx="12" cy="11" r="3" /></svg>
+        {employee.officeLocation || employee.workLocation || employee.OrganisationName || ''}
+      </span>
+      <span className="flex items-center text-base text-gray-600 mt-1">
+        <Mail className="w-4 h-4 mr-2 text-[#0056b3]" />
+        {employee.email || ''}
+      </span>
+      <span className="flex items-center text-base text-gray-600 mt-1">
+        <Phone className="w-4 h-4 mr-2 text-[#0056b3]" />
+        {employee.phoneNumber || employee.mobileNumber || employee.phone || ''}
+      </span>
+    </div>
+  </div>
+</div>
 
       {/* Employee Identity Section */}
       {/* Avatar and info now in header above, so this section is removed */}
