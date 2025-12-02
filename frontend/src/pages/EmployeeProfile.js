@@ -23,8 +23,12 @@ import {
   Download
 } from 'lucide-react';
 import axios from '../utils/axiosConfig';
+import AddLeaveModal from '../components/AddLeaveModal';
 
 const EmployeeProfile = () => {
+  const [showLeaveModal, setShowLeaveModal] = React.useState(false);
+  // Dummy refreshAbsences stub
+  const refreshAbsences = () => {};
   const { employeeId } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
@@ -240,7 +244,16 @@ const EmployeeProfile = () => {
         {activeTab === 'employment' && <EmploymentTab employee={employee} />}
         {activeTab === 'emergencies' && <EmergenciesTab employee={employee} />}
         {activeTab === 'documents' && <DocumentsTab employee={employee} />}
-        {activeTab === 'absence' && <AbsenceTab employee={employee} />}
+        {activeTab === 'absence' && (
+  <AbsenceTab employee={employee} onAddLeave={() => setShowLeaveModal(true)} />
+)}
+{showLeaveModal && (
+  <AddLeaveModal
+    employee={employee}
+    onClose={() => setShowLeaveModal(false)}
+    onSuccess={refreshAbsences}
+  />
+)}
         {activeTab === 'overtime' && <OvertimeTab employee={employee} />}
       </div>
     </div>
@@ -248,7 +261,7 @@ const EmployeeProfile = () => {
 };
 
 // Absence Tab Component
-const AbsenceTab = ({ employee }) => {
+const AbsenceTab = ({ employee, onAddLeave }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Left Side */}
@@ -271,9 +284,13 @@ const AbsenceTab = ({ employee }) => {
             {employee.leaveBalance?.taken || 0} / {employee.leaveBalance?.total || 12} days
           </div>
           <div className="space-y-3">
-            <button className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium">
-              Add annual leave
-            </button>
+            <button
+  type="button"
+  className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium"
+  onClick={onAddLeave}
+>
+  Add annual leave
+</button>
             <button className="w-full px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-600 rounded-lg">
               Update carryover
             </button>
@@ -513,87 +530,45 @@ const PersonalTab = ({ employee }) => {
 };
 
 const EmergenciesTab = ({ employee }) => {
-  const [emergencyContacts, setEmergencyContacts] = useState([]);
-
-  useEffect(() => {
-    fetchEmergencyContacts();
-  }, []);
-
-  const fetchEmergencyContacts = async () => {
-    try {
-      // Mock data for emergency contacts
-      setEmergencyContacts([
-        {
-          id: 1,
-          name: 'Jane Smith',
-          relationship: 'Spouse',
-          phone: '+1 234-567-8901',
-          email: 'jane.smith@email.com'
-        },
-        {
-          id: 2,
-          name: 'John Doe',
-          relationship: 'Parent',
-          phone: '+1 234-567-8902',
-          email: 'john.doe@email.com'
-        }
-      ]);
-    } catch (error) {
-      console.error('Error fetching emergency contacts:', error);
-    }
-  };
+  const contactName = employee.emergencyContactName;
+  const contactRelation = employee.emergencyContactRelation;
+  const contactPhone = employee.emergencyContactPhone;
+  const contactEmail = employee.emergencyContactEmail;
+  const hasContact = contactName || contactRelation || contactPhone || contactEmail;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Emergency Contacts</h3>
-        <button className="px-4 py-2 bg-[#e00070] text-white rounded-lg hover:bg-[#c00060] font-medium shadow-md transition-colors">
-          <Plus className="w-4 h-4 inline mr-2" />
-          Add Contact
-        </button>
+        <h3 className="text-lg font-semibold text-gray-900">Emergency Contact</h3>
       </div>
-
-      {emergencyContacts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {emergencyContacts.map((contact) => (
-            <div key={contact.id} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600" />
-                </div>
-                <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full">
-                  {contact.relationship}
-                </span>
+      {hasContact ? (
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+          <div className="flex items-center gap-4 mb-2">
+            <Users className="w-8 h-8 text-blue-600" />
+            <span className="text-gray-900 text-lg font-semibold">{contactName || '-'}</span>
+            {contactRelation && (
+              <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full">{contactRelation}</span>
+            )}
+          </div>
+          <div className="space-y-2 mt-2">
+            {contactPhone && (
+              <div className="flex items-center text-gray-600">
+                <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                <a href={`tel:${contactPhone}`} className="hover:text-blue-600 transition-colors">{contactPhone}</a>
               </div>
-              
-              <h4 className="text-lg font-semibold text-gray-900 mb-3">{contact.name}</h4>
-              
-              <div className="space-y-2">
-                <div className="flex items-center text-gray-600">
-                  <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                  <a href={`tel:${contact.phone}`} className="hover:text-blue-600 transition-colors">
-                    {contact.phone}
-                  </a>
-                </div>
-                <div className="flex items-center text-gray-600">
-                  <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                  <a href={`mailto:${contact.email}`} className="hover:text-blue-600 transition-colors">
-                    {contact.email}
-                  </a>
-                </div>
+            )}
+            {contactEmail && (
+              <div className="flex items-center text-gray-600">
+                <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                <a href={`mailto:${contactEmail}`} className="hover:text-blue-600 transition-colors">{contactEmail}</a>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No emergency contacts</h3>
-          <p className="text-gray-500 mb-6">Add emergency contacts for this employee</p>
-          <button className="px-4 py-2 bg-[#e00070] text-white rounded-lg hover:bg-[#c00060] font-medium shadow-md transition-colors">
-            <Plus className="w-4 h-4 inline mr-2" />
-            Add First Contact
-          </button>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No emergency contact added.</h3>
         </div>
       )}
     </div>
@@ -602,59 +577,10 @@ const EmergenciesTab = ({ employee }) => {
 
 // Documents Tab with Document Manager
 const DocumentsTab = ({ employee }) => {
-  const [folders, setFolders] = useState([]);
+  // Assume employee.folders or employee.documents is the real data array
+  const folders = employee.folders || [];
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchDocuments();
-  }, [employee.id]);
-
-  const fetchDocuments = async () => {
-    setLoading(true);
-    try {
-      // Mock data for employee-specific documents
-      const employeeFolders = [
-        { 
-          id: 1, 
-          name: 'Employment Documents', 
-          count: 3,
-          documents: [
-            { id: 1, name: 'Employment Contract.pdf', size: '2.3 MB', uploaded: '2024-01-15', version: 'v1.0', expiry: '2025-01-15' },
-            { id: 2, name: 'Job Description.pdf', size: '1.1 MB', uploaded: '2024-01-15', version: 'v2.1' },
-            { id: 3, name: 'Non-Disclosure Agreement.pdf', size: '856 KB', uploaded: '2024-01-15', version: 'v1.0' }
-          ]
-        },
-        { 
-          id: 2, 
-          name: 'Certifications', 
-          count: 2,
-          documents: [
-            { id: 4, name: 'First Aid Certificate.pdf', size: '1.5 MB', uploaded: '2024-03-10', version: 'v1.0', expiry: '2025-03-10' },
-            { id: 5, name: 'Safety Training.pdf', size: '2.1 MB', uploaded: '2024-02-20', version: 'v1.0', expiry: '2025-02-20' }
-          ]
-        },
-        { 
-          id: 3, 
-          name: 'Performance Reviews', 
-          count: 5,
-          documents: [
-            { id: 6, name: 'Q1 2024 Review.pdf', size: '890 KB', uploaded: '2024-04-01', version: 'v1.0' },
-            { id: 7, name: 'Q2 2024 Review.pdf', size: '945 KB', uploaded: '2024-07-01', version: 'v1.0' },
-            { id: 8, name: 'Q3 2024 Review.pdf', size: '1.2 MB', uploaded: '2024-10-01', version: 'v1.0' },
-            { id: 9, name: 'Q4 2024 Review.pdf', size: '1.1 MB', uploaded: '2024-12-15', version: 'v1.0' },
-            { id: 10, name: 'Annual Review 2024.pdf', size: '2.3 MB', uploaded: '2024-12-20', version: 'v1.0' }
-          ]
-        }
-      ];
-      setFolders(employeeFolders);
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFolderClick = (folder) => {
     setSelectedFolder(folder);
@@ -666,20 +592,11 @@ const DocumentsTab = ({ employee }) => {
     setDocuments([]);
   };
 
-  const handleUploadDocument = () => {
-    // This would open upload modal or navigate to upload page
-    console.log('Upload document for folder:', selectedFolder?.name);
-  };
-
-  const handleAddFolder = () => {
-    // This would open a modal to add a new folder
-    console.log('Add new folder');
-  };
-
-  if (loading) {
+  if (!folders.length) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+        <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found.</h3>
       </div>
     );
   }
@@ -688,19 +605,8 @@ const DocumentsTab = ({ employee }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
-        {!selectedFolder && (
-          <button
-            onClick={handleAddFolder}
-            className="px-4 py-2 bg-[#e00070] text-white rounded-lg hover:bg-[#c00060] font-medium shadow-md transition-colors"
-          >
-            <Plus className="w-4 h-4 inline mr-2" />
-            Add Folder
-          </button>
-        )}
       </div>
-
       {!selectedFolder ? (
-        /* Folder Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {folders.map((folder) => (
             <div
@@ -711,7 +617,7 @@ const DocumentsTab = ({ employee }) => {
               <div className="flex items-center justify-between mb-4">
                 <FolderOpen className="w-10 h-10 text-blue-600 group-hover:text-blue-700 transition-colors" />
                 <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                  {folder.count} files
+                  {folder.documents ? folder.documents.length : 0} files
                 </span>
               </div>
               <h4 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
@@ -724,7 +630,6 @@ const DocumentsTab = ({ employee }) => {
           ))}
         </div>
       ) : (
-        /* Document List */
         <div className="bg-white border border-gray-200 rounded-xl">
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -739,25 +644,9 @@ const DocumentsTab = ({ employee }) => {
                 <p className="text-sm text-gray-500">{documents.length} documents</p>
               </div>
             </div>
-            <div className="flex space-x-3">
-              <button 
-                onClick={handleAddFolder}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-              >
-                Add Folder
-              </button>
-              <button 
-                onClick={handleUploadDocument}
-                className="px-4 py-2 bg-[#e00070] text-white rounded-lg hover:bg-[#c00060] font-medium shadow-md transition-colors"
-              >
-                <Upload className="w-4 h-4 inline mr-2" />
-                Upload Document
-              </button>
-            </div>
           </div>
-          
           <div className="divide-y divide-gray-200">
-            {documents.map((doc) => (
+            {documents.length ? documents.map((doc) => (
               <div key={doc.id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -799,7 +688,9 @@ const DocumentsTab = ({ employee }) => {
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="p-4 text-center text-gray-500">No documents in this folder.</div>
+            )}
           </div>
         </div>
       )}
