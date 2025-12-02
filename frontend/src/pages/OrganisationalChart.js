@@ -92,7 +92,7 @@ function Connector({ from, to, vertical = false }) {
   );
 }
 
-export default function OrganisationalChart() {
+function OrganisationalChart() {
   const [zoom, setZoom] = useState(1);
   const [hideChildren, setHideChildren] = useState(false);
 
@@ -203,3 +203,5 @@ export default function OrganisationalChart() {
     </div>
   );
 }
+
+export default OrganisationalChart;

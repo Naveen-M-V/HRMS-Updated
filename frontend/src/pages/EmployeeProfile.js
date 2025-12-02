@@ -291,6 +291,13 @@ const AbsenceTab = ({ employee, onAddLeave }) => {
 >
   Add annual leave
 </button>
+            <button
+  type="button"
+  className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium"
+  onClick={onAddLeave}
+>
+  Add time off
+</button>
             <button className="w-full px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-600 rounded-lg">
               Update carryover
             </button>

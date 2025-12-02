@@ -3,13 +3,12 @@ import axios from "../utils/axiosConfig";
 
 export default function AddLeaveModal({ employee, onClose, onSuccess }) {
   const [type, setType] = useState("Annual leave");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [totalDays, setTotalDays] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const isValid = type && startDate && endDate;
+  const isValid = type && totalDays && Number(totalDays) > 0;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,8 +19,7 @@ export default function AddLeaveModal({ employee, onClose, onSuccess }) {
       await axios.post("/api/absence/add", {
         employeeId: employee._id || employee.id,
         type,
-        startDate,
-        endDate,
+        totalDays: Number(totalDays),
         notes,
       });
       if (onSuccess) onSuccess();
@@ -67,34 +65,19 @@ export default function AddLeaveModal({ employee, onClose, onSuccess }) {
               <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </div>
           </div>
-          <div className="flex gap-6">
-            <div className="flex-1">
-              <label className="block text-gray-700 text-[16px] mb-2 font-medium">Start</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  className="w-full h-12 border border-[#c9d4df] rounded-lg pl-3 pr-10 text-[16px] placeholder-gray-400 focus:ring-2 focus:ring-blue-200"
-                  placeholder="dd/mm/yyyy"
-                  value={startDate}
-                  onChange={e => setStartDate(e.target.value)}
-                  autoComplete="off"
-                />
-                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              </div>
-            </div>
-            <div className="flex-1">
-              <label className="block text-gray-700 text-[16px] mb-2 font-medium">End</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  className="w-full h-12 border border-[#c9d4df] rounded-lg pl-3 pr-10 text-[16px] placeholder-gray-400 focus:ring-2 focus:ring-blue-200"
-                  placeholder="dd/mm/yyyy"
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                  autoComplete="off"
-                />
-                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              </div>
+          <div>
+            <label className="block text-gray-700 text-[16px] mb-2 font-medium">Total Days</label>
+            <div className="relative">
+              <input
+                type="number"
+                min="1"
+                className="w-full h-12 border border-[#c9d4df] rounded-lg pl-3 pr-10 text-[16px] placeholder-gray-400 focus:ring-2 focus:ring-blue-200"
+                placeholder="Number of days"
+                value={totalDays}
+                onChange={e => setTotalDays(e.target.value)}
+                autoComplete="off"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">days</span>
             </div>
           </div>
           <div>
