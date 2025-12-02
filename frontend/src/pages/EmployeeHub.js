@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { formatDateDDMMYY } from "../utils/dateFormatter";
+import AnnualLeaveBalance from "../components/AnnualLeaveBalance";
 
 export default function EmployeeHub() {
   const navigate = useNavigate();
@@ -592,6 +593,14 @@ export default function EmployeeHub() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Annual Leave Balance Section */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Annual Leave Balance
+        </h2>
+        <AnnualLeaveBalance />
       </div>
 
       {/* Teams Section */}
