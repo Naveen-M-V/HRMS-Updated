@@ -159,70 +159,29 @@ const EmployeeProfile = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              ← Back
-            </button>
-            <h1 className="text-xl font-semibold text-gray-900">Employee Profile</h1>
-            <div className="w-20"></div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between h-auto md:h-16 py-4 md:py-0">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => navigate(-1)}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                ← Back
+              </button>
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">{employee.name}</h1>
+                <div className="flex flex-wrap gap-4 mt-2 text-gray-700">
+                  <span className="block"><Mail className="inline w-4 h-4 mr-1" />{employee.email}</span>
+                  <span className="block"><Phone className="inline w-4 h-4 mr-1" />{employee.mobileNumber || employee.phone}</span>
+                  <span className="block"><Briefcase className="inline w-4 h-4 mr-1" />{employee.jobTitle || employee.position || 'Not specified'}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Employee Identity Section */}
-      <div className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            {/* Left Side - Avatar and Info */}
-            <div className="flex items-center space-x-6">
-              {/* Avatar */}
-              <div className="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-3xl font-bold text-blue-600">
-                  {getInitials(employee.name)}
-                </span>
-              </div>
-              
-              {/* Employee Info */}
-              <div>
-                <h2 className="text-3xl font-bold text-gray-900">{employee.name}</h2>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                  <a 
-                    href={`mailto:${employee.email}`}
-                    className="text-blue-600 hover:text-blue-800 text-lg"
-                  >
-                    {employee.email}
-                  </a>
-                </div>
-                <button
-                  onClick={sendRegistrationEmail}
-                  className="mt-4 px-6 py-3 bg-[#e00070] text-white rounded-lg hover:bg-[#c00060] text-sm font-medium shadow-md transition-colors"
-                >
-                  Send registration email
-                </button>
-              </div>
-            </div>
-
-            {/* Right Side - Working Status */}
-            <div className="flex flex-col items-end space-y-4">
-              <div className="bg-[#d8edfd] border border-blue-200 rounded-xl px-6 py-4 shadow-sm">
-                <div className="flex items-center space-x-3">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  <span className="text-base font-medium text-blue-900">
-                    {employee.workingStatus || 'Working from usual location'}
-                  </span>
-                </div>
-              </div>
-              <button className="text-blue-600 hover:text-blue-800 text-base font-medium hover:underline">
-                Set working status
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Avatar and info now in header above, so this section is removed */}
 
       {/* Tab Navigation */}
       <div className="bg-white border-b border-gray-200">
@@ -391,33 +350,61 @@ const EmploymentTab = ({ employee }) => {
 
       {/* Sensitive Details Section */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <Shield className="w-5 h-5 text-orange-500" />
-            <h3 className="text-lg font-semibold text-gray-900">Sensitive Details</h3>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Passport number</label>
-              <div className="text-gray-900 font-medium">{employee.passportNumber || 'Not specified'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Visa type</label>
-              <div className="text-gray-900 font-medium">{employee.visaType || 'Not specified'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Work permit expiry</label>
-              <div className="text-gray-900 font-medium">{employee.workPermitExpiry || 'Not specified'}</div>
-            </div>
-            <div className="col-span-full">
-              <label className="block text-sm font-medium text-gray-700 mb-2">National insurance number</label>
-              <div className="text-gray-900 font-medium">{employee.nationalInsuranceNumber || 'Not specified'}</div>
-            </div>
-          </div>
-        </div>
+  <div className="p-6 border-b border-gray-200">
+    <div className="flex items-center space-x-2">
+      <Shield className="w-5 h-5 text-orange-500" />
+      <h3 className="text-lg font-semibold text-gray-900">Sensitive Details</h3>
+    </div>
+  </div>
+  <div className="p-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Tax code</label>
+        <div className="text-gray-900 font-medium">{employee.taxCode || employee.taxcode || 'Not specified'}</div>
       </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">National Insurance Number</label>
+        <div className="text-gray-900 font-medium">{employee.niNumber || employee.nationalInsuranceNumber || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Passport number</label>
+        <div className="text-gray-900 font-medium">{employee.passportNumber || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Passport country</label>
+        <div className="text-gray-900 font-medium">{employee.passportCountry || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Passport expiry date</label>
+        <div className="text-gray-900 font-medium">{employee.passportExpiryDate || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Visa number</label>
+        <div className="text-gray-900 font-medium">{employee.visaNumber || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Visa expiry date</label>
+        <div className="text-gray-900 font-medium">{employee.visaExpiryDate || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Driving licence number</label>
+        <div className="text-gray-900 font-medium">{employee.licenceNumber || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Licence country</label>
+        <div className="text-gray-900 font-medium">{employee.licenceCountry || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Licence class</label>
+        <div className="text-gray-900 font-medium">{employee.licenceClass || 'Not specified'}</div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Licence expiry date</label>
+        <div className="text-gray-900 font-medium">{employee.licenceExpiryDate || 'Not specified'}</div>
+      </div>
+    </div>
+  </div>
+</div>
     </div>
   );
 };
