@@ -22,17 +22,16 @@ const AnnualLeaveBalance = () => {
   const fetchAnnualLeaveData = async () => {
     try {
       setLoading(true);
-      // Fetch actual employee data from the same endpoint as EmployeeHub
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
-      
+      // Fetch annual leave balances from backend
+      const response = await axios.get("/api/leave/balances");
       if (response.data.success && response.data.data.length > 0) {
-        // Transform API data to match expected format with mock leave data
-        const transformedData = response.data.data.map(emp => ({
-          id: emp._id,
-          name: `${emp.firstName} ${emp.lastName}`,
-          allowance: 12, // Default allowance
-          balance: Math.floor(Math.random() * 12) + 1, // Random balance for demo
-          remainingPercentage: Math.floor(Math.random() * 100) + 1 // Random percentage for demo
+        // Map backend leave balances to table format
+        const transformedData = response.data.data.map(bal => ({
+          id: bal.user?._id,
+          name: bal.user ? `${bal.user.firstName} ${bal.user.lastName}` : 'Unknown',
+          allowance: bal.entitlementDays,
+          balance: bal.entitlementDays - (bal.usedDays || 0),
+          remainingPercentage: bal.entitlementDays ? Math.round(((bal.entitlementDays - (bal.usedDays || 0)) / bal.entitlementDays) * 100) : 0
         }));
         setEmployees(transformedData);
       } else {

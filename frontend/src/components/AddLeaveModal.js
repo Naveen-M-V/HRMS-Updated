@@ -16,11 +16,14 @@ export default function AddLeaveModal({ employee, onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
-      await axios.post("/api/absence/add", {
-        employeeId: employee._id || employee.id,
-        type,
-        totalDays: Number(totalDays),
-        notes,
+      // TODO: Replace startDate/endDate with real date logic if needed
+      await axios.post("/api/leave/records", {
+        userId: employee._id || employee.id,
+        type: type === "Annual leave" ? "annual" : type === "Sick leave" ? "sick" : "unpaid",
+        days: Number(totalDays),
+        startDate: new Date().toISOString(), // dummy: today
+        endDate: new Date().toISOString(),   // dummy: today
+        reason: notes,
       });
       if (onSuccess) onSuccess();
       onClose();

@@ -1,31 +1,8 @@
 import React, { useState } from "react";
 import { ZoomIn, ZoomOut, Edit3, Printer, EyeOff, Eye } from "lucide-react";
 
-const orgData = {
-  name: "SCB Group Limited",
-  children: [
-    {
-      id: "1",
-      name: "Stefan Bond",
-      role: "Managing Director",
-      initials: "SB",
-      children: [
-        {
-          id: "2",
-          name: "Jo Evans",
-          role: "Work Coordinator (Admin)",
-          initials: "JE",
-        },
-        {
-          id: "3",
-          name: "Gareth Leonard",
-          role: "Operations Director",
-          initials: "GL",
-        },
-      ],
-    },
-  ],
-};
+import axios from "../utils/axiosConfig";
+
 
 function Avatar({ initials }) {
   return (
@@ -92,10 +69,7 @@ function Connector({ from, to, vertical = false }) {
   );
 }
 
-function OrganisationalChart() {
-  const [zoom, setZoom] = useState(1);
-  const [hideChildren, setHideChildren] = useState(false);
-
+function OrgChartTree({ teams, employees, zoom }) {
   // Layout constants (for pixel-perfect spacing)
   const rootY = 40;
   const rootX = 420;
@@ -109,6 +83,61 @@ function OrganisationalChart() {
   const joY = stefanY + vGap;
   const garethX = rootX + hGap;
   const garethY = stefanY + vGap;
+
+  return (
+    <div
+      className="relative mx-auto"
+      style={{ width: 1080, height: 540, transform: `scale(${zoom})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}
+    >
+      {/* Root node (company) */}
+      <div style={{ position: 'absolute', left: rootX, top: rootY }} className="flex flex-col items-center">
+        <div className="bg-white rounded-xl shadow-lg px-8 py-4 min-w-[260px] max-w-[320px] flex flex-col items-center border border-[#e7edf5]">
+          <div className="text-lg font-bold text-gray-900">Company</div>
+        </div>
+        {/* Vertical line down to teams */}
+        <div className="w-0.5 h-16 bg-[#c9d4df] mx-auto"></div>
+      </div>
+      {/* Level 1: Teams */}
+      {teams.map((team, index) => (
+        <div key={team.id} style={{ position: 'absolute', left: stefanX + (index % 2 === 0 ? -hGap : hGap), top: stefanY }}>
+          <NodeCard node={team} />
+        </div>
+      ))}
+      {/* Level 2: Employees */}
+      {employees.map((employee, index) => (
+        <div key={employee.id} style={{ position: 'absolute', left: joX + (index % 2 === 0 ? -hGap : hGap), top: joY }}>
+          <NodeCard node={employee} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function OrganisationalChart() {
+  const [zoom, setZoom] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [teams, setTeams] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [teamsRes, employeesRes] = await Promise.all([
+          axios.get("/api/teams"),
+          axios.get("/api/employees"),
+        ]);
+        setTeams(teamsRes.data.data || []);
+        setEmployees(employeesRes.data.data || []);
+      } catch (err) {
+        setError("Failed to load org chart data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f6f8fa] p-8">
@@ -143,61 +172,14 @@ function OrganisationalChart() {
       </div>
       {/* Chart Canvas */}
       <div className="relative bg-white border border-[#e7edf5] rounded-lg p-12 overflow-auto" style={{ minHeight: 700, minWidth: 900, maxHeight: '75vh' }}>
-        {/* Zoom controls (top-left inside canvas) */}
-        <div className="absolute left-8 top-8 z-20 flex flex-col gap-2">
-          <button className="" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}><ZoomOut className="w-6 h-6 text-[#0056b3]" /></button>
-          <button className="" onClick={() => setZoom(z => Math.min(2, z + 0.1))}><ZoomIn className="w-6 h-6 text-[#0056b3]" /></button>
-        </div>
-        {/* Org chart layout */}
-        <div
-          className="relative mx-auto"
-          style={{ width: 1080, height: 540, transform: `scale(${zoom})`, transformOrigin: 'top center', transition: 'transform 0.2s' }}
-        >
-          {/* Root node (company) */}
-          <div style={{ position: 'absolute', left: rootX, top: rootY }} className="flex flex-col items-center">
-            <div className="bg-white rounded-xl shadow-lg px-8 py-4 min-w-[260px] max-w-[320px] flex flex-col items-center border border-[#e7edf5]">
-              <div className="text-lg font-bold text-gray-900">{orgData.name}</div>
+        {loading ? (
+          <div className="flex items-center justify-center h-full text-lg text-gray-500">Loading org chart...</div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-full text-lg text-red-500">{error}</div>
+        ) : (
+          <OrgChartTree teams={teams} employees={employees} zoom={zoom} />
+        )}
             </div>
-            {/* Vertical line down to Stefan Bond */}
-            <div className="w-0.5 h-16 bg-[#c9d4df] mx-auto"></div>
-          </div>
-          {/* Level 1: Stefan Bond */}
-          <div style={{ position: 'absolute', left: stefanX, top: stefanY }}>
-            <NodeCard
-              node={orgData.children[0]}
-              hideable={true}
-              hidden={hideChildren}
-              onToggle={() => setHideChildren(h => !h)}
-            />
-          </div>
-          {/* Connector from company to Stefan */}
-          <div style={{ position: 'absolute', left: rootX + 65, top: rootY + 90, width: 2, height: 30, zIndex: 1 }}>
-            <div className="w-0.5 h-full bg-[#c9d4df]"></div>
-          </div>
-          {/* Level 2: Jo Evans and Gareth Leonard */}
-          {!hideChildren && (
-            <>
-              {/* Horizontal connector line */}
-              <div style={{ position: 'absolute', left: joX + 115, top: stefanY + 70, width: garethX - joX + 45, height: 0, zIndex: 1 }}>
-                <div className="h-0.5 w-full bg-[#c9d4df]"></div>
-              </div>
-              {/* Vertical connectors to each child */}
-              <div style={{ position: 'absolute', left: joX + 135, top: stefanY + 70, width: 2, height: 50, zIndex: 1 }}>
-                <div className="w-0.5 h-full bg-[#c9d4df]"></div>
-              </div>
-              <div style={{ position: 'absolute', left: garethX + 135, top: stefanY + 70, width: 2, height: 50, zIndex: 1 }}>
-                <div className="w-0.5 h-full bg-[#c9d4df]"></div>
-              </div>
-              {/* Jo Evans */}
-              <div style={{ position: 'absolute', left: joX, top: joY }}>
-                <NodeCard node={orgData.children[0].children[0]} />
-              </div>
-              {/* Gareth Leonard */}
-              <div style={{ position: 'absolute', left: garethX, top: garethY }}>
-                <NodeCard node={orgData.children[0].children[1]} />
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
