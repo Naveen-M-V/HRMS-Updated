@@ -179,8 +179,6 @@ function OrganisationalChart() {
         ) : (
           <OrgChartTree teams={teams} employees={employees} zoom={zoom} />
         )}
-            </div>
-        </div>
       </div>
     </div>
   );
