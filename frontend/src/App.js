@@ -57,6 +57,7 @@ import AddEmployee from "./pages/AddEmployee";
 import ArchiveEmployees from "./pages/ArchiveEmployees";
 import Calendar from "./pages/Calendar";
 import OrganizationalChart from "./pages/OrganizationalChart";
+import AnnualLeaveBalance from "./components/AnnualLeaveBalance";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -374,6 +375,10 @@ function App() {
                                   <Route
                                     path="/employee/:employeeId"
                                     element={<EmployeeProfile />}
+                                  />
+                                  <Route
+                                    path="/annual-leave-balance"
+                                    element={<AnnualLeaveBalance />}
                                   />
                                 </Routes>
                               </div>
