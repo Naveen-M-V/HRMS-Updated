@@ -330,7 +330,7 @@ function OrganisationalChart() {
       return tree;
     };
     
-    setOrgData(updateNodeInTree(orgData, updatedNode.id, updatedData));
+    setOrgData(updateNodeInTree(orgData, updatedNode.id, updatedNode));
     setHasChanges(true);
   };
 
