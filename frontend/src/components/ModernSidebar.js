@@ -418,9 +418,9 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               </button>
 
               <button
-                onClick={() => handleNavigation("/organizational-chart")}
+                onClick={() => handleNavigation("/organisational-chart")}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/organizational-chart")
+                  isActive("/organisational-chart")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
                 }`}
@@ -429,7 +429,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                 <span>Organizational Chart</span>
               </button>
 
-              <button
+              {/*<button
                 onClick={() => handleNavigation("/employees/archived")}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                   isActive("/employees/archived")
@@ -439,7 +439,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               >
                 <DocumentTextIcon className="h-4 w-4" />
                 <span>Archived Employees</span>
-              </button>
+              </button>*/}
 
               <button
                 onClick={() => handleNavigation("/manage-teams")}
