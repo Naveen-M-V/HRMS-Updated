@@ -114,11 +114,16 @@ const shiftAssignmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Performance indexes
 shiftAssignmentSchema.index({ employeeId: 1, date: 1 });
 shiftAssignmentSchema.index({ date: 1 });
 shiftAssignmentSchema.index({ location: 1 });
 shiftAssignmentSchema.index({ workType: 1 });
 shiftAssignmentSchema.index({ status: 1 });
+// NEW: Compound indexes for common queries
+shiftAssignmentSchema.index({ date: 1, location: 1 }); // Date + location filtering
+shiftAssignmentSchema.index({ status: 1, date: 1 }); // Status + date queries
+shiftAssignmentSchema.index({ employeeId: 1, status: 1 }); // Employee shift status
 
 // Prevent model re-compilation
 const ShiftAssignment = mongoose.models.ShiftAssignment || mongoose.model('ShiftAssignment', shiftAssignmentSchema);

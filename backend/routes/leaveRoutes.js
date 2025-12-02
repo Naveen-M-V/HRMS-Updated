@@ -601,4 +601,37 @@ router.get('/user/next-leave', async (req, res) => {
   }
 });
 
+// ==================== LEAVE APPROVAL WORKFLOW ROUTES ====================
+const leaveApprovalController = require('../controllers/leaveApprovalController');
+
+// @route   POST /api/leave/requests/submit
+// @desc    Submit a new leave request (pending approval)
+// @access  Private
+router.post('/requests/submit', leaveApprovalController.submitLeaveRequest);
+
+// @route   POST /api/leave/requests/:leaveId/approve
+// @desc    Approve a pending leave request
+// @access  Private (Manager/Admin)
+router.post('/requests/:leaveId/approve', leaveApprovalController.approveLeaveRequest);
+
+// @route   POST /api/leave/requests/:leaveId/reject
+// @desc    Reject a pending leave request
+// @access  Private (Manager/Admin)
+router.post('/requests/:leaveId/reject', leaveApprovalController.rejectLeaveRequest);
+
+// @route   GET /api/leave/requests/pending
+// @desc    Get all pending leave requests for a manager
+// @access  Private (Manager/Admin)
+router.get('/requests/pending', leaveApprovalController.getPendingLeaveRequests);
+
+// @route   GET /api/leave/requests/employee/:employeeId
+// @desc    Get all leave requests for a specific employee
+// @access  Private
+router.get('/requests/employee/:employeeId', leaveApprovalController.getEmployeeLeaveRequests);
+
+// @route   GET /api/leave/overlaps
+// @desc    Detect overlapping leave requests for team/department
+// @access  Private (Manager/Admin)
+router.get('/overlaps', leaveApprovalController.detectLeaveOverlaps);
+
 module.exports = router;

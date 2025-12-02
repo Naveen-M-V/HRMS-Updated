@@ -68,9 +68,14 @@ const leaveRecordSchema = new mongoose.Schema({
 });
 
 // Compound indexes for efficient queries
+// Performance indexes
 leaveRecordSchema.index({ user: 1, startDate: 1 });
 leaveRecordSchema.index({ startDate: 1, endDate: 1 });
 leaveRecordSchema.index({ type: 1, status: 1 });
+// NEW: Compound indexes for date range queries
+leaveRecordSchema.index({ user: 1, startDate: 1, endDate: 1 }); // User's leaves in range
+leaveRecordSchema.index({ status: 1, startDate: 1 }); // Approved leaves by date
+leaveRecordSchema.index({ type: 1, status: 1, startDate: 1 }); // Leave type filtering
 
 // Method to check if leave record covers a specific date
 leaveRecordSchema.methods.coversDate = function(date) {

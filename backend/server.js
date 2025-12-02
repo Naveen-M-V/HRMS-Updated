@@ -3501,6 +3501,10 @@ app.use('/api/employees', employeeHubRoutes);
 app.use('/api/employee-profile', authenticateSession, employeeProfileRoutes);
 app.use('/api/documentManagement', documentManagementRoutes);
 
+// NEW: Reporting routes
+const reportingRoutes = require('./routes/reportingRoutes');
+app.use('/api/reports', authenticateSession, reportingRoutes);
+
 // Email service handled by utils/emailService.js
 
 // Global Error Handler Middleware (must be after all routes)
@@ -3873,6 +3877,14 @@ const enhancedCertificateExpiryMonitoring = async () => {
 // Schedule enhanced certificate expiry monitoring to run daily at 9 AM
 cron.schedule('0 9 * * *', enhancedCertificateExpiryMonitoring);
 console.log('Enhanced certificate expiry monitoring scheduled for 9 AM daily');
+
+// NEW: Schedule document expiry checks to run daily at 9 AM
+const { runExpiryChecks } = require('./scripts/documentExpiryChecker');
+cron.schedule('0 9 * * *', async () => {
+  console.log('⏰ Running daily document expiry check...');
+  await runExpiryChecks();
+});
+console.log('📅 Scheduled document expiry checks to run daily at 9 AM');
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

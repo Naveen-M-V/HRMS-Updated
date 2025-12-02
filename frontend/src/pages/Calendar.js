@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon, 
@@ -12,6 +12,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import dayjs from 'dayjs';
+import axios from '../utils/axiosConfig';
 import { DatePicker } from '../components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
@@ -26,6 +27,62 @@ const Calendar = () => {
   const [startHalfDay, setStartHalfDay] = useState('full');
   const [endHalfDay, setEndHalfDay] = useState('full');
   const [weekendWarning, setWeekendWarning] = useState('');
+  
+  // NEW: Real data from API
+  const [leaveRecords, setLeaveRecords] = useState([]);
+  const [shiftAssignments, setShiftAssignments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // NEW: Fetch calendar events when month changes
+  useEffect(() => {
+    fetchCalendarEvents();
+  }, [currentDate]);
+
+  const fetchCalendarEvents = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const startOfMonth = currentDate.startOf('month').format('YYYY-MM-DD');
+      const endOfMonth = currentDate.endOf('month').format('YYYY-MM-DD');
+      
+      // Fetch approved leave records
+      const leaveResponse = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/leave/records`,
+        {
+          params: {
+            startDate: startOfMonth,
+            endDate: endOfMonth,
+            status: 'approved'
+          }
+        }
+      );
+      
+      // Fetch shift assignments
+      const shiftResponse = await axios.get(
+        `${process.env.REACT_APP_API_BASE_URL}/rota/shifts/all`,
+        {
+          params: {
+            startDate: startOfMonth,
+            endDate: endOfMonth
+          }
+        }
+      );
+      
+      setLeaveRecords(leaveResponse.data.data || []);
+      setShiftAssignments(shiftResponse.data.data || []);
+      
+    } catch (error) {
+      console.error('Error fetching calendar events:', error);
+      setError('Failed to load calendar events. Using sample data.');
+      // Don't block UI - fall back to empty arrays
+      setLeaveRecords([]);
+      setShiftAssignments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getDaysInMonth = (date) => {
     const start = date.startOf('month').startOf('week');
@@ -54,55 +111,75 @@ const Calendar = () => {
   };
 
   const getEventsForDate = (date) => {
-    // Sample events - in real app, these would come from API
     const events = [];
+    const dateString = date.format('YYYY-MM-DD');
     
-    // Sample shift assignments
-    if (date.day() === 1 || date.day() === 3) { // Monday, Wednesday
-      events.push({
-        type: 'shift',
-        title: 'Morning Shift',
-        time: '09:00 - 17:00',
-        color: 'bg-blue-100 text-blue-800 border-blue-200'
-      });
-    }
+    // Add leave events (REAL DATA)
+    leaveRecords.forEach(leave => {
+      const leaveStart = dayjs(leave.startDate).format('YYYY-MM-DD');
+      const leaveEnd = dayjs(leave.endDate).format('YYYY-MM-DD');
+      
+      if (dateString >= leaveStart && dateString <= leaveEnd) {
+        const employeeName = leave.user 
+          ? `${leave.user.firstName || ''} ${leave.user.lastName || ''}`.trim()
+          : 'Unknown';
+        
+        events.push({
+          type: 'leave',
+          title: `${employeeName} - ${leave.type || 'Leave'}`,
+          time: 'All day',
+          color: 'bg-orange-100 text-orange-800 border-orange-200',
+          icon: '🏖️',
+          data: leave
+        });
+      }
+    });
     
-    // Sample meetings
-    if (date.date() === 15) {
-      events.push({
-        type: 'meeting',
-        title: 'Team Standup',
-        time: '10:00 - 10:30',
-        color: 'bg-green-100 text-green-800 border-green-200'
-      });
-    }
-    
-    // Sample deadlines
-    if (date.date() === 30) {
-      events.push({
-        type: 'deadline',
-        title: 'Project Deadline',
-        time: 'End of Day',
-        color: 'bg-red-100 text-red-800 border-red-200'
-      });
-    }
+    // Add shift events (REAL DATA)
+    shiftAssignments.forEach(shift => {
+      const shiftDate = dayjs(shift.date).format('YYYY-MM-DD');
+      
+      if (shiftDate === dateString) {
+        const employeeName = shift.employeeId
+          ? `${shift.employeeId.firstName || ''} ${shift.employeeId.lastName || ''}`.trim()
+          : 'Unassigned';
+        
+        events.push({
+          type: 'shift',
+          title: `${employeeName} - ${shift.location || 'Shift'}`,
+          time: `${shift.startTime || ''} - ${shift.endTime || ''}`,
+          color: shift.status === 'Completed' 
+            ? 'bg-green-100 text-green-800 border-green-200'
+            : shift.status === 'Missed' || shift.status === 'Cancelled'
+            ? 'bg-red-100 text-red-800 border-red-200'
+            : 'bg-blue-100 text-blue-800 border-blue-200',
+          icon: '👔',
+          data: shift
+        });
+      }
+    });
     
     return events;
   };
 
-  // Load employees when modal opens
+  // Load employees when modal opens (REAL DATA)
   const loadEmployees = async () => {
     try {
-      // Sample employees - in real app, fetch from API
-      const sampleEmployees = [
-        { id: '1', name: 'John Doe', email: 'john@example.com' },
-        { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
-        { id: '3', name: 'Mike Johnson', email: 'mike@example.com' },
-        { id: '4', name: 'Sarah Wilson', email: 'sarah@example.com' }
-      ];
-      setEmployees(sampleEmployees);
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
+      const employeeData = response.data.data || [];
+      
+      // Transform to format expected by modal
+      const formattedEmployees = employeeData.map(emp => ({
+        id: emp._id,
+        name: `${emp.firstName} ${emp.lastName}`,
+        email: emp.email,
+        department: emp.department
+      }));
+      
+      setEmployees(formattedEmployees);
     } catch (error) {
       console.error('Error loading employees:', error);
+      setError('Failed to load employees');
     }
   };
 
@@ -307,6 +384,20 @@ const Calendar = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
         <p className="text-gray-600">Manage your schedule and view upcoming events</p>
+        
+        {/* Error Alert */}
+        {error && (
+          <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-sm text-yellow-800">{error}</p>
+          </div>
+        )}
+        
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">Loading calendar events...</p>
+          </div>
+        )}
       </div>
 
       {/* Calendar Section */}

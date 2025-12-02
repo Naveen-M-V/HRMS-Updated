@@ -361,12 +361,19 @@ const employeeHubSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
+// Performance indexes
 employeeHubSchema.index({ firstName: 1, lastName: 1 });
 employeeHubSchema.index({ email: 1 });
 employeeHubSchema.index({ team: 1 });
 employeeHubSchema.index({ department: 1 });
 employeeHubSchema.index({ status: 1 });
 employeeHubSchema.index({ isActive: 1 });
+// NEW: Compound indexes for common queries
+employeeHubSchema.index({ department: 1, team: 1 }); // Department + team filtering
+employeeHubSchema.index({ status: 1, isActive: 1 }); // Status queries
+employeeHubSchema.index({ managerId: 1 }); // Manager hierarchy queries
+// Text search index for name and email
+employeeHubSchema.index({ firstName: 'text', lastName: 'text', email: 'text' });
 
 // Virtual for full name
 employeeHubSchema.virtual('fullName').get(function() {

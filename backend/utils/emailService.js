@@ -1012,6 +1012,187 @@ const sendExpiryNotificationEmail = async (userEmail, userName, itemName, itemTy
   });
 };
 
+// 10. Send leave request notification to manager
+const sendLeaveRequestEmail = async (managerEmail, managerName, employeeName, leaveType, startDate, endDate, days, reason) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">📅 New Leave Request</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${managerName}</strong>,</p>
+        <p style="color:#1f2937;"><strong>${employeeName}</strong> has submitted a leave request that requires your approval.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #3b82f6;">
+          <h3 style="margin-top:0;color:#3b82f6;">Leave Request Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Employee</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${employeeName}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Leave Type</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${leaveType.charAt(0).toUpperCase() + leaveType.slice(1)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Start Date</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${new Date(startDate).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">End Date</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${new Date(endDate).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Total Days</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-weight:bold;">${days} days</td>
+            </tr>
+            ${reason ? `
+            <tr>
+              <td style="padding:10px;color:#374151;font-weight:600;">Reason</td>
+              <td style="padding:10px;color:#6b7280;">${reason}</td>
+            </tr>
+            ` : ''}
+          </table>
+        </div>
+        
+        <div style="background-color:#dbeafe;padding:20px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#1e40af;"><strong>⚡ Action Required:</strong> Please review and approve/reject this leave request at your earliest convenience.</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated notification from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: managerEmail,
+    subject: `Leave Request from ${employeeName} - Approval Required`,
+    html
+  });
+};
+
+// 11. Send leave approval confirmation to employee
+const sendLeaveApprovalEmail = async (employeeEmail, employeeName, leaveType, startDate, endDate, days, approverName) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">✅ Leave Request Approved</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${employeeName}</strong>,</p>
+        <p style="color:#10b981;font-weight:600;">Great news! Your leave request has been approved.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
+          <h3 style="margin-top:0;color:#10b981;">Approved Leave Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Leave Type</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${leaveType.charAt(0).toUpperCase() + leaveType.slice(1)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Start Date</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${new Date(startDate).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">End Date</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${new Date(endDate).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Total Days</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-weight:bold;">${days} days</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;color:#374151;font-weight:600;">Approved By</td>
+              <td style="padding:10px;color:#6b7280;">${approverName}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color:#d1fae5;padding:20px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#065f46;">✨ Your leave has been added to the system and will appear on the calendar. Enjoy your time off!</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated notification from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: employeeEmail,
+    subject: `✅ Your Leave Request Has Been Approved`,
+    html
+  });
+};
+
+// 12. Send leave rejection notification to employee
+const sendLeaveRejectionEmail = async (employeeEmail, employeeName, leaveType, startDate, endDate, days, rejectorName, rejectionReason) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 30px 20px; text-align: center;">
+        <h1 style="margin:0;font-size:28px;">❌ Leave Request Not Approved</h1>
+      </div>
+      <div style="padding: 30px 20px; background-color: #f9fafb;">
+        <p style="font-size:16px;color:#374151;">Hello <strong>${employeeName}</strong>,</p>
+        <p style="color:#ef4444;font-weight:600;">Unfortunately, your leave request was not approved.</p>
+        
+        <div style="background-color:#fff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #ef4444;">
+          <h3 style="margin-top:0;color:#ef4444;">Leave Request Details</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Leave Type</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${leaveType.charAt(0).toUpperCase() + leaveType.slice(1)}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Start Date</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${new Date(startDate).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">End Date</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;">${new Date(endDate).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#374151;font-weight:600;">Total Days</td>
+              <td style="padding:10px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-weight:bold;">${days} days</td>
+            </tr>
+            <tr>
+              <td style="padding:10px;color:#374151;font-weight:600;">Reviewed By</td>
+              <td style="padding:10px;color:#6b7280;">${rejectorName}</td>
+            </tr>
+          </table>
+        </div>
+        
+        ${rejectionReason ? `
+        <div style="background-color:#fee2e2;padding:20px;border-radius:6px;margin:20px 0;">
+          <h4 style="margin-top:0;color:#991b1b;">Reason for Rejection:</h4>
+          <p style="margin:0;color:#7f1d1d;">${rejectionReason}</p>
+        </div>
+        ` : ''}
+        
+        <div style="background-color:#dbeafe;padding:20px;border-radius:6px;margin:20px 0;">
+          <p style="margin:0;color:#1e40af;">If you have questions about this decision, please contact your manager or HR department.</p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+          <p style="margin:5px 0;">This is an automated notification from Talent Shield HRMS</p>
+          <p style="margin:5px 0;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: employeeEmail,
+    subject: `Leave Request Not Approved - ${leaveType.charAt(0).toUpperCase() + leaveType.slice(1)}`,
+    html
+  });
+};
+
 module.exports = {
   sendEmail,
   sendLoginSuccessEmail,
@@ -1032,5 +1213,8 @@ module.exports = {
   sendCertificateExpiryReminderEmail,
   sendCertificateExpiredEmail,
   sendPasswordResetEmail,
-  sendExpiryNotificationEmail
+  sendExpiryNotificationEmail,
+  sendLeaveRequestEmail,
+  sendLeaveApprovalEmail,
+  sendLeaveRejectionEmail
 };
