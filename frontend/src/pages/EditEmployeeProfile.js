@@ -113,9 +113,12 @@ export default function EditEmployeeProfile() {
     setLoading(true);
     
     try {
+      // Remove officeLocation from formData and map it to office
+      const { officeLocation, ...restFormData } = formData;
+      
       const employeeData = {
-        ...formData,
-        office: formData.officeLocation, // Map officeLocation to office
+        ...restFormData,
+        office: officeLocation, // Map officeLocation to office
         dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
       };
