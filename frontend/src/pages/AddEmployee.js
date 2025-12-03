@@ -444,25 +444,23 @@ export default function AddEmployee() {
         townCity: formData.townCity,
         county: formData.county,
         postcode: formData.postcode,
-        emergencyContact: {
-          name: formData.emergencyContactName,
-          relationship: formData.emergencyContactRelation,
-          phone: formData.emergencyContactPhone,
-          email: formData.emergencyContactEmail
-        },
+        // Emergency contact - send as flat fields, backend will transform
+        emergencyContactName: formData.emergencyContactName,
+        emergencyContactRelation: formData.emergencyContactRelation,
+        emergencyContactPhone: formData.emergencyContactPhone,
+        emergencyContactEmail: formData.emergencyContactEmail,
         salary: formData.salary,
         rate: formData.rate,
         paymentFrequency: formData.paymentFrequency,
         effectiveFrom: formData.effectiveFrom,
         reason: formData.reason,
         payrollNumber: formData.payrollNumber,
-        bankDetails: {
-          accountName: formData.accountName,
-          bankName: formData.bankName,
-          bankBranch: formData.bankBranch,
-          accountNumber: formData.accountNumber,
-          sortCode: formData.sortCode
-        },
+        // Bank details - send as flat fields
+        accountName: formData.accountName,
+        bankName: formData.bankName,
+        bankBranch: formData.bankBranch,
+        accountNumber: formData.accountNumber,
+        sortCode: formData.sortCode,
         taxCode: formData.taxCode,
         niNumber: formData.niNumber,
         passportNumber: formData.passportNumber,
