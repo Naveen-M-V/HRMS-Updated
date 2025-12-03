@@ -783,32 +783,6 @@ const Calendar = () => {
         </div>
       )}
 
-      {/* Keep original footer placeholder */}
-      {showDayModal && false && (
-            <div className="border-t border-gray-200 p-6 bg-gray-50">
-              {/* Old Footer - Hidden */}
-            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
-              <button
-                onClick={() => setShowDayDetailsModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  setShowDayDetailsModal(false);
-                  openTimeOffModal();
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Time Off
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Time Off Modal */}
       {showTimeOffModal && (
         <div className="fixed inset-0 z-50 flex">
