@@ -27,13 +27,16 @@ import AddLeaveModal from '../components/AddLeaveModal';
 
 const EmployeeProfile = () => {
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
-  // Dummy refreshAbsences stub
-  const refreshAbsences = () => {};
   const { employeeId } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('personal');
+
+  // Function to refresh employee data after leave is added
+  const refreshAbsences = () => {
+    fetchEmployeeData();
+  };
 
   const tabs = [
     { id: 'personal', label: 'Personal' },
@@ -220,8 +223,14 @@ const EmployeeProfile = () => {
 {showLeaveModal && (
   <AddLeaveModal
     employee={employee}
-    onClose={() => setShowLeaveModal(false)}
-    onSuccess={refreshAbsences}
+    onClose={() => {
+      setShowLeaveModal(false);
+      refreshAbsences(); // Refresh data when modal closes
+    }}
+    onSuccess={() => {
+      setShowLeaveModal(false);
+      refreshAbsences(); // Refresh data on successful leave addition
+    }}
   />
 )}
         {activeTab === 'overtime' && <OvertimeTab employee={employee} />}

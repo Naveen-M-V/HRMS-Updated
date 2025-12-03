@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const EmployeeHub = require('../models/EmployeesHub');
+const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
+const LeaveRecord = require('../models/LeaveRecord');
 
 // Get employee by ID with complete profile data
 router.get('/:id', async (req, res) => {
@@ -11,7 +13,47 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    // Mock additional data for now
+    // Fetch real leave balance data for current year
+    const now = new Date();
+    const leaveBalance = await AnnualLeaveBalance.findOne({
+      user: req.params.id,
+      leaveYearStart: { $lte: now },
+      leaveYearEnd: { $gte: now }
+    });
+
+    // Fetch recent leave records
+    const recentLeaveRecords = await LeaveRecord.find({
+      user: req.params.id
+    })
+      .sort({ startDate: -1 })
+      .limit(5);
+
+    // Calculate leave statistics
+    const leaveBalanceData = leaveBalance ? {
+      total: leaveBalance.entitlementDays,
+      taken: leaveBalance.usedDays || 0,
+      remaining: leaveBalance.entitlementDays - (leaveBalance.usedDays || 0)
+    } : {
+      total: 28,  // Default UK statutory minimum
+      taken: 0,
+      remaining: 28
+    };
+
+    // Count sickness and lateness occurrences (you can add these models later)
+    const absencesData = {
+      sicknessCount: 0,  // TODO: Implement sickness tracking
+      latenessCount: 0   // TODO: Implement lateness tracking
+    };
+
+    // Format recent absences
+    const recentAbsences = recentLeaveRecords.map(record => ({
+      type: record.leaveType,
+      date: record.startDate,
+      endDate: record.endDate,
+      status: record.status,
+      days: record.daysUsed
+    }));
+
     const profileData = {
       _id: employee._id,
       name: `${employee.firstName} ${employee.lastName}`,
@@ -21,32 +63,14 @@ router.get('/:id', async (req, res) => {
       employeeId: employee.employeeId,
       workingStatus: 'Working from usual location',
       department: employee.department || 'Engineering',
-      position: employee.position || 'Senior Developer',
+      position: employee.jobTitle || employee.position || 'Employee',
       startDate: employee.startDate || '2022-01-15',
       employmentType: employee.employmentType || 'Full-time',
-      phone: employee.phone || '+1 234 567 8900',
-      address: employee.address || '123 Main St, City, State',
-      leaveBalance: {
-        total: 12,
-        taken: 10,
-        remaining: 2
-      },
-      absences: {
-        sicknessCount: 2,
-        latenessCount: 1
-      },
-      recentAbsences: [
-        {
-          type: 'Annual Leave',
-          date: '2024-11-15',
-          status: 'Approved'
-        },
-        {
-          type: 'Sick Leave',
-          date: '2024-10-20',
-          status: 'Approved'
-        }
-      ]
+      phone: employee.phoneNumber || employee.phone || '',
+      address: employee.addressLine1 || employee.address || '',
+      leaveBalance: leaveBalanceData,
+      absences: absencesData,
+      recentAbsences: recentAbsences
     };
 
     res.json(profileData);
