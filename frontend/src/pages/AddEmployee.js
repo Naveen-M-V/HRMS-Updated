@@ -419,22 +419,59 @@ export default function AddEmployee() {
 
       // Prepare employee data
       const employeeData = {
-        ...formData,
-        employmentStartDate: formattedStartDate,
+        title: formData.title,
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        lastName: formData.lastName,
+        gender: formData.gender,
+        ethnicity: formData.ethnicity,
         dateOfBirth: formatDateField(formData.dateOfBirth),
+        emailAddress: formData.emailAddress,
+        mobileNumber: formData.mobileNumber,
+        workPhone: formData.workPhone,
+        jobTitle: formData.jobTitle,
+        department: formData.department,
+        team: formData.team,
+        OrganisationName: formData.OrganisationName,
+        employmentStartDate: formattedStartDate,
+        probationEndDate: formData.probationEndDate ? formatDateField(formData.probationEndDate) : null,
+        profilePhoto: formData.profilePhoto,
+        address1: formData.address1,
+        address2: formData.address2,
+        address3: formData.address3,
+        townCity: formData.townCity,
+        county: formData.county,
+        postcode: formData.postcode,
         emergencyContact: {
-          ...formData.emergencyContact,
-          relationship: formData.emergencyContact?.relationship || ''
+          name: formData.emergencyContactName,
+          relationship: formData.emergencyContactRelation,
+          phone: formData.emergencyContactPhone,
+          email: formData.emergencyContactEmail
         },
+        salary: formData.salary,
+        rate: formData.rate,
+        paymentFrequency: formData.paymentFrequency,
+        effectiveFrom: formData.effectiveFrom,
+        reason: formData.reason,
+        payrollNumber: formData.payrollNumber,
         bankDetails: {
-          ...formData.bankDetails,
-          accountName: formData.bankDetails?.accountName || ''
+          accountName: formData.accountName,
+          bankName: formData.bankName,
+          bankBranch: formData.bankBranch,
+          accountNumber: formData.accountNumber,
+          sortCode: formData.sortCode
         },
-        workInfo: {
-          ...formData.workInfo,
-          department: formData.workInfo?.department || '',
-          location: formData.workInfo?.location || ''
-        },
+        taxCode: formData.taxCode,
+        niNumber: formData.niNumber,
+        passportNumber: formData.passportNumber,
+        passportCountry: formData.passportCountry,
+        passportExpiryDate: formData.passportExpiryDate ? formatDateField(formData.passportExpiryDate) : null,
+        licenceNumber: formData.licenceNumber,
+        licenceCountry: formData.licenceCountry,
+        licenceClass: formData.licenceClass,
+        licenceExpiryDate: formData.licenceExpiryDate ? formatDateField(formData.licenceExpiryDate) : null,
+        visaNumber: formData.visaNumber,
+        visaExpiryDate: formData.visaExpiryDate ? formatDateField(formData.visaExpiryDate) : null,
         documents: formData.documents || []
       };
 
