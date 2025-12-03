@@ -477,6 +477,10 @@ export default function AddEmployee() {
       }
     };
 
+    const handleCancel = () => {
+      navigate("/employee-hub");
+    };
+
     // Render step indicator
     const renderStepIndicator = () => {
       return (
