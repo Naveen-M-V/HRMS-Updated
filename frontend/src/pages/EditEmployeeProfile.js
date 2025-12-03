@@ -15,6 +15,7 @@ export default function EditEmployeeProfile() {
   const [managers, setManagers] = useState([]);
   const [annualLeaveAllowance, setAnnualLeaveAllowance] = useState(28);
   const [formData, setFormData] = useState({
+    // Basic Info
     firstName: "",
     lastName: "",
     email: "",
@@ -22,14 +23,43 @@ export default function EditEmployeeProfile() {
     mobileNumber: "",
     dateOfBirth: "",
     gender: "",
+    employeeId: "",
+    // Employment
     jobTitle: "",
     department: "",
     team: "",
     officeLocation: "",
     managerId: "",
-    employeeId: "",
     status: "Active",
     startDate: "",
+    probationEndDate: "",
+    employmentType: "Full-time",
+    // Pay Details
+    salary: "",
+    rate: "",
+    paymentFrequency: "",
+    payrollNumber: "",
+    // Bank Details
+    accountName: "",
+    bankName: "",
+    bankBranch: "",
+    accountNumber: "",
+    sortCode: "",
+    // Tax & NI
+    taxCode: "",
+    niNumber: "",
+    // Passport
+    passportNumber: "",
+    passportCountry: "",
+    passportExpiryDate: "",
+    // Driving Licence
+    licenceNumber: "",
+    licenceCountry: "",
+    licenceClass: "",
+    licenceExpiryDate: "",
+    // Visa
+    visaNumber: "",
+    visaExpiryDate: "",
     // Emergency Contact
     emergencyContactName: "",
     emergencyContactRelation: "",
@@ -46,7 +76,7 @@ export default function EditEmployeeProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const tabs = ["Basic Info", "Contact", "Employment", "Emergency Contact", "Address"];
+  const tabs = ["Basic Info", "Contact", "Employment", "Pay & Bank", "Sensitive Details", "Emergency Contact", "Address"];
 
   useEffect(() => {
     if (!id) {
@@ -88,30 +118,62 @@ export default function EditEmployeeProfile() {
       if (response.data.success && response.data.data) {
         const emp = response.data.data;
         setFormData({
+          // Basic Info
           firstName: emp.firstName || "",
           lastName: emp.lastName || "",
           email: emp.email || "",
-          phoneNumber: emp.phoneNumber || "",
-          mobileNumber: emp.mobileNumber || "",
+          phoneNumber: emp.phone || emp.phoneNumber || "",
+          mobileNumber: emp.phone || emp.mobileNumber || "",
           dateOfBirth: emp.dateOfBirth ? new Date(emp.dateOfBirth).toISOString().split('T')[0] : "",
           gender: emp.gender || "",
+          employeeId: emp.employeeId || "",
+          // Employment
           jobTitle: emp.jobTitle || "",
           department: emp.department || "",
           team: emp.team || "",
-          officeLocation: emp.officeLocation || emp.office || "",
+          officeLocation: emp.office || emp.officeLocation || "",
           managerId: emp.managerId?._id || emp.managerId || "",
-          employeeId: emp.employeeId || "",
           status: emp.status || "Active",
           startDate: emp.startDate ? new Date(emp.startDate).toISOString().split('T')[0] : "",
+          probationEndDate: emp.probationEndDate ? new Date(emp.probationEndDate).toISOString().split('T')[0] : "",
+          employmentType: emp.employmentType || "Full-time",
+          // Pay Details
+          salary: emp.salary || "",
+          rate: emp.rate || "",
+          paymentFrequency: emp.paymentFrequency || emp.payrollCycle || "",
+          payrollNumber: emp.payrollNumber || "",
+          // Bank Details
+          accountName: emp.accountName || "",
+          bankName: emp.bankName || "",
+          bankBranch: emp.bankBranch || "",
+          accountNumber: emp.accountNumber || "",
+          sortCode: emp.sortCode || "",
+          // Tax & NI
+          taxCode: emp.taxCode || "",
+          niNumber: emp.niNumber || emp.nationalInsuranceNumber || "",
+          // Passport
+          passportNumber: emp.passportNumber || "",
+          passportCountry: emp.passportCountry || "",
+          passportExpiryDate: emp.passportExpiryDate ? new Date(emp.passportExpiryDate).toISOString().split('T')[0] : "",
+          // Driving Licence
+          licenceNumber: emp.licenceNumber || "",
+          licenceCountry: emp.licenceCountry || "",
+          licenceClass: emp.licenceClass || "",
+          licenceExpiryDate: emp.licenceExpiryDate ? new Date(emp.licenceExpiryDate).toISOString().split('T')[0] : "",
+          // Visa
+          visaNumber: emp.visaNumber || "",
+          visaExpiryDate: emp.visaExpiryDate ? new Date(emp.visaExpiryDate).toISOString().split('T')[0] : "",
+          // Emergency Contact
           emergencyContactName: emp.emergencyContactName || "",
           emergencyContactRelation: emp.emergencyContactRelation || "",
           emergencyContactPhone: emp.emergencyContactPhone || "",
           emergencyContactEmail: emp.emergencyContactEmail || "",
-          addressLine1: emp.addressLine1 || "",
-          addressLine2: emp.addressLine2 || "",
-          city: emp.city || "",
-          postalCode: emp.postalCode || "",
-          country: emp.country || "",
+          // Address
+          addressLine1: emp.address1 || emp.addressLine1 || "",
+          addressLine2: emp.address2 || emp.addressLine2 || "",
+          city: emp.townCity || emp.city || "",
+          postalCode: emp.postcode || emp.postalCode || "",
+          country: emp.county || emp.country || "",
         });
       } else {
         error('Employee not found');
@@ -139,14 +201,29 @@ export default function EditEmployeeProfile() {
     setLoading(true);
     
     try {
-      // Remove officeLocation from formData and map it to office
-      const { officeLocation, ...restFormData } = formData;
+      // Map frontend field names to backend schema field names
+      const { officeLocation, addressLine1, addressLine2, city, postalCode, country, phoneNumber, mobileNumber, ...restFormData } = formData;
       
       const employeeData = {
         ...restFormData,
-        office: officeLocation, // Map officeLocation to office
+        // Map office location
+        office: officeLocation,
+        // Map phone numbers (backend uses 'phone' and 'workPhone')
+        phone: mobileNumber || phoneNumber,
+        workPhone: phoneNumber,
+        // Map address fields (backend uses address1/2/3, townCity, postcode, county)
+        address1: addressLine1,
+        address2: addressLine2,
+        townCity: city,
+        postcode: postalCode,
+        county: country,
+        // Handle dates
         dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        probationEndDate: formData.probationEndDate ? new Date(formData.probationEndDate).toISOString() : null,
+        passportExpiryDate: formData.passportExpiryDate ? new Date(formData.passportExpiryDate).toISOString() : null,
+        licenceExpiryDate: formData.licenceExpiryDate ? new Date(formData.licenceExpiryDate).toISOString() : null,
+        visaExpiryDate: formData.visaExpiryDate ? new Date(formData.visaExpiryDate).toISOString() : null,
       };
       
       // Remove empty string fields that should be null/undefined for ObjectId fields
@@ -471,6 +548,313 @@ export default function EditEmployeeProfile() {
                   placeholder="28"
                   className="border p-2 rounded w-full"
                 />
+              </div>
+              <div>
+                <DatePicker
+                  label="Probation End Date"
+                  value={formData.probationEndDate || null}
+                  onChange={(date) => handleChange({ target: { name: 'probationEndDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
+                />
+              </div>
+              <div>
+                <label htmlFor="employmentType" className="block text-sm font-medium text-gray-700 mb-2">Employment Type</label>
+                <Select
+                  value={formData.employmentType}
+                  onValueChange={(value) => handleChange({ target: { name: 'employmentType', value } })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Full-time">Full-time</SelectItem>
+                    <SelectItem value="Part-time">Part-time</SelectItem>
+                    <SelectItem value="Contract">Contract</SelectItem>
+                    <SelectItem value="Temporary">Temporary</SelectItem>
+                    <SelectItem value="Intern">Intern</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Pay & Bank Details */}
+          {activeTab === "Pay & Bank" && (
+            <div className="space-y-8">
+              {/* Pay Details Section */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-4">Pay Details</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <div>
+                    <label htmlFor="salary" className="block text-sm font-medium text-gray-700 mb-2">Salary</label>
+                    <input
+                      id="salary"
+                      type="text"
+                      name="salary"
+                      value={formData.salary}
+                      onChange={handleChange}
+                      placeholder="£0.00"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="rate" className="block text-sm font-medium text-gray-700 mb-2">Rate</label>
+                    <input
+                      id="rate"
+                      type="text"
+                      name="rate"
+                      value={formData.rate}
+                      onChange={handleChange}
+                      placeholder="e.g., Hourly, Daily"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="paymentFrequency" className="block text-sm font-medium text-gray-700 mb-2">Payment Frequency</label>
+                    <Select
+                      value={formData.paymentFrequency}
+                      onValueChange={(value) => handleChange({ target: { name: 'paymentFrequency', value } })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select Frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                        <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
+                        <SelectItem value="Monthly">Monthly</SelectItem>
+                        <SelectItem value="Annually">Annually</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label htmlFor="payrollNumber" className="block text-sm font-medium text-gray-700 mb-2">Payroll Number</label>
+                    <input
+                      id="payrollNumber"
+                      type="text"
+                      name="payrollNumber"
+                      value={formData.payrollNumber}
+                      onChange={handleChange}
+                      placeholder="Payroll Number"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bank Details Section */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-4">Bank Details</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <div>
+                    <label htmlFor="accountName" className="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+                    <input
+                      id="accountName"
+                      type="text"
+                      name="accountName"
+                      value={formData.accountName}
+                      onChange={handleChange}
+                      placeholder="Account Name"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="bankName" className="block text-sm font-medium text-gray-700 mb-2">Bank Name</label>
+                    <input
+                      id="bankName"
+                      type="text"
+                      name="bankName"
+                      value={formData.bankName}
+                      onChange={handleChange}
+                      placeholder="Bank Name"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="bankBranch" className="block text-sm font-medium text-gray-700 mb-2">Bank Branch</label>
+                    <input
+                      id="bankBranch"
+                      type="text"
+                      name="bankBranch"
+                      value={formData.bankBranch}
+                      onChange={handleChange}
+                      placeholder="Bank Branch"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-2">Account Number</label>
+                    <input
+                      id="accountNumber"
+                      type="text"
+                      name="accountNumber"
+                      value={formData.accountNumber}
+                      onChange={handleChange}
+                      placeholder="Account Number"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="sortCode" className="block text-sm font-medium text-gray-700 mb-2">Sort Code</label>
+                    <input
+                      id="sortCode"
+                      type="text"
+                      name="sortCode"
+                      value={formData.sortCode}
+                      onChange={handleChange}
+                      placeholder="00-00-00"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sensitive Details */}
+          {activeTab === "Sensitive Details" && (
+            <div className="space-y-8">
+              {/* Tax & NI Section */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-4">Tax & National Insurance</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <div>
+                    <label htmlFor="taxCode" className="block text-sm font-medium text-gray-700 mb-2">Tax Code</label>
+                    <input
+                      id="taxCode"
+                      type="text"
+                      name="taxCode"
+                      value={formData.taxCode}
+                      onChange={handleChange}
+                      placeholder="Tax Code"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="niNumber" className="block text-sm font-medium text-gray-700 mb-2">National Insurance Number</label>
+                    <input
+                      id="niNumber"
+                      type="text"
+                      name="niNumber"
+                      value={formData.niNumber}
+                      onChange={handleChange}
+                      placeholder="NI Number"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Passport Section */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-4">Passport Information</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <div>
+                    <label htmlFor="passportNumber" className="block text-sm font-medium text-gray-700 mb-2">Passport Number</label>
+                    <input
+                      id="passportNumber"
+                      type="text"
+                      name="passportNumber"
+                      value={formData.passportNumber}
+                      onChange={handleChange}
+                      placeholder="Passport Number"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="passportCountry" className="block text-sm font-medium text-gray-700 mb-2">Passport Country</label>
+                    <input
+                      id="passportCountry"
+                      type="text"
+                      name="passportCountry"
+                      value={formData.passportCountry}
+                      onChange={handleChange}
+                      placeholder="Country"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <DatePicker
+                      label="Passport Expiry Date"
+                      value={formData.passportExpiryDate || null}
+                      onChange={(date) => handleChange({ target: { name: 'passportExpiryDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Driving Licence Section */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-4">Driving Licence</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <div>
+                    <label htmlFor="licenceNumber" className="block text-sm font-medium text-gray-700 mb-2">Licence Number</label>
+                    <input
+                      id="licenceNumber"
+                      type="text"
+                      name="licenceNumber"
+                      value={formData.licenceNumber}
+                      onChange={handleChange}
+                      placeholder="Licence Number"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="licenceCountry" className="block text-sm font-medium text-gray-700 mb-2">Licence Country</label>
+                    <input
+                      id="licenceCountry"
+                      type="text"
+                      name="licenceCountry"
+                      value={formData.licenceCountry}
+                      onChange={handleChange}
+                      placeholder="Country"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="licenceClass" className="block text-sm font-medium text-gray-700 mb-2">Licence Class</label>
+                    <input
+                      id="licenceClass"
+                      type="text"
+                      name="licenceClass"
+                      value={formData.licenceClass}
+                      onChange={handleChange}
+                      placeholder="e.g., B, C, D"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <DatePicker
+                      label="Licence Expiry Date"
+                      value={formData.licenceExpiryDate || null}
+                      onChange={(date) => handleChange({ target: { name: 'licenceExpiryDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Visa Section */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-900 mb-4">Visa Information</h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                  <div>
+                    <label htmlFor="visaNumber" className="block text-sm font-medium text-gray-700 mb-2">Visa Number</label>
+                    <input
+                      id="visaNumber"
+                      type="text"
+                      name="visaNumber"
+                      value={formData.visaNumber}
+                      onChange={handleChange}
+                      placeholder="Visa Number"
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
+                  <div>
+                    <DatePicker
+                      label="Visa Expiry Date"
+                      value={formData.visaExpiryDate || null}
+                      onChange={(date) => handleChange({ target: { name: 'visaExpiryDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -65,31 +65,37 @@ router.get('/:id', async (req, res) => {
       employeeId: employee.employeeId,
       
       // Contact Info
-      phoneNumber: employee.phoneNumber,
-      mobileNumber: employee.mobileNumber,
-      phone: employee.phoneNumber || employee.mobileNumber,
+      phoneNumber: employee.phone || employee.workPhone,
+      mobileNumber: employee.phone,
+      phone: employee.phone || employee.workPhone,
       
       // Job Info
       jobTitle: employee.jobTitle,
       position: employee.jobTitle,
       department: employee.department,
       team: employee.team,
-      officeLocation: employee.officeLocation,
+      officeLocation: employee.office,
+      office: employee.office,
+      workLocation: employee.workLocation,
+      managerId: employee.managerId,
       
       // Dates
       startDate: employee.startDate,
       dateOfBirth: employee.dateOfBirth,
+      probationEndDate: employee.probationEndDate,
       
       // Personal Info
       gender: employee.gender,
+      title: employee.title,
+      ethnicity: employee.ethnicity,
       
-      // Address
-      addressLine1: employee.addressLine1,
-      addressLine2: employee.addressLine2,
-      city: employee.city,
-      postalCode: employee.postalCode,
-      country: employee.country,
-      address: employee.addressLine1,
+      // Address - Map schema fields (address1/2/3) to frontend names (addressLine1/2)
+      addressLine1: employee.address1,
+      addressLine2: employee.address2,
+      city: employee.townCity,
+      postalCode: employee.postcode,
+      country: employee.county,
+      address: employee.address1,
       
       // Emergency Contact
       emergencyContactName: employee.emergencyContactName,
@@ -97,16 +103,54 @@ router.get('/:id', async (req, res) => {
       emergencyContactPhone: employee.emergencyContactPhone,
       emergencyContactEmail: employee.emergencyContactEmail,
       
+      // Employment/Pay Details
+      salary: employee.salary,
+      rate: employee.rate,
+      paymentFrequency: employee.paymentFrequency,
+      payrollCycle: employee.paymentFrequency,
+      effectiveFrom: employee.effectiveFrom,
+      payrollNumber: employee.payrollNumber,
+      
+      // Bank Details
+      accountName: employee.accountName,
+      bankName: employee.bankName,
+      bankBranch: employee.bankBranch,
+      accountNumber: employee.accountNumber,
+      sortCode: employee.sortCode,
+      
+      // Tax & NI
+      taxCode: employee.taxCode,
+      niNumber: employee.niNumber,
+      nationalInsuranceNumber: employee.niNumber,
+      
+      // Passport
+      passportNumber: employee.passportNumber,
+      passportCountry: employee.passportCountry,
+      passportExpiryDate: employee.passportExpiryDate,
+      
+      // Driving Licence
+      licenceNumber: employee.licenceNumber,
+      licenceCountry: employee.licenceCountry,
+      licenceClass: employee.licenceClass,
+      licenceExpiryDate: employee.licenceExpiryDate,
+      
+      // Visa
+      visaNumber: employee.visaNumber,
+      visaExpiryDate: employee.visaExpiryDate,
+      
       // Leave & Absence
       leaveBalance: leaveBalanceData,
       absences: absencesData,
       recentAbsences: recentAbsences,
       
       // Other
-      workingStatus: 'On-site',
+      status: employee.status,
+      workingStatus: employee.workLocation || 'On-site',
       employmentType: employee.employmentType || 'Full-time',
       initials: employee.initials || `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase(),
-      profilePhoto: employee.profilePhoto
+      profilePhoto: employee.profilePhoto || employee.avatar,
+      role: employee.role,
+      notes: employee.notes
     };
 
     res.json(profileData);
