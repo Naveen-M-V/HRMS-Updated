@@ -42,6 +42,11 @@ const Calendar = () => {
   const [shiftAssignments, setShiftAssignments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // NEW: Day expansion state
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [dayDetails, setDayDetails] = useState([]);
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'short-term', 'long-term'
 
   // NEW: Fetch calendar events when month changes
   useEffect(() => {
@@ -169,6 +174,109 @@ const Calendar = () => {
     });
     
     return events;
+  };
+
+  // NEW: Handle day expansion
+  const handleDayClick = (date) => {
+    const dateString = date.format('YYYY-MM-DD');
+    
+    if (expandedDay === dateString) {
+      // Close if clicking the same day
+      setExpandedDay(null);
+      setDayDetails([]);
+      setActiveTab('all');
+    } else {
+      // Expand the clicked day
+      setExpandedDay(dateString);
+      fetchDayDetails(date);
+    }
+  };
+
+  // NEW: Fetch detailed information for a specific day
+  const fetchDayDetails = async (date) => {
+    const dateString = date.format('YYYY-MM-DD');
+    const details = [];
+    
+    // Process leave records for this day
+    leaveRecords.forEach(leave => {
+      const leaveStart = dayjs(leave.startDate).format('YYYY-MM-DD');
+      const leaveEnd = dayjs(leave.endDate).format('YYYY-MM-DD');
+      
+      if (dateString >= leaveStart && dateString <= leaveEnd) {
+        const employeeName = leave.user 
+          ? `${leave.user.firstName || ''} ${leave.user.lastName || ''}`.trim()
+          : 'Unknown';
+        
+        const duration = dayjs(leave.endDate).diff(dayjs(leave.startDate), 'day') + 1;
+        const isLongTerm = duration > 7;
+        
+        details.push({
+          id: leave._id,
+          type: 'leave',
+          employeeName,
+          startDate: dayjs(leave.startDate).format('ddd D MMM YY'),
+          endDate: dayjs(leave.endDate).format('ddd D MMM YY'),
+          duration: `${duration} day${duration > 1 ? 's' : ''}`,
+          leaveType: leave.type || 'Annual leave',
+          category: isLongTerm ? 'long-term' : 'short-term',
+          status: leave.status || 'approved',
+          icon: '🏖️',
+          color: isLongTerm ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
+        });
+      }
+    });
+    
+    // Process shift assignments for this day
+    shiftAssignments.forEach(shift => {
+      const shiftDate = dayjs(shift.date).format('YYYY-MM-DD');
+      
+      if (shiftDate === dateString) {
+        const employeeName = shift.employeeId
+          ? `${shift.employeeId.firstName || ''} ${shift.employeeId.lastName || ''}`.trim()
+          : 'Unassigned';
+        
+        details.push({
+          id: shift._id,
+          type: 'shift',
+          employeeName,
+          startDate: dayjs(shift.date).format('ddd D MMM YY'),
+          endDate: dayjs(shift.date).format('ddd D MMM YY'),
+          duration: '1 day',
+          leaveType: `${shift.location || 'Shift'} - ${shift.startTime || ''} to ${shift.endTime || ''}`,
+          category: 'shift',
+          status: shift.status || 'Scheduled',
+          icon: '👔',
+          color: shift.status === 'Completed' 
+            ? 'bg-green-100 text-green-800'
+            : shift.status === 'Missed' || shift.status === 'Cancelled'
+            ? 'bg-red-100 text-red-800'
+            : 'bg-blue-100 text-blue-800'
+        });
+      }
+    });
+    
+    setDayDetails(details);
+  };
+
+  // NEW: Filter details based on active tab
+  const getFilteredDetails = () => {
+    switch (activeTab) {
+      case 'short-term':
+        return dayDetails.filter(detail => detail.category === 'short-term');
+      case 'long-term':
+        return dayDetails.filter(detail => detail.category === 'long-term');
+      default:
+        return dayDetails;
+    }
+  };
+
+  // NEW: Get tab counts
+  const getTabCounts = () => {
+    const all = dayDetails.length;
+    const shortTerm = dayDetails.filter(detail => detail.category === 'short-term').length;
+    const longTerm = dayDetails.filter(detail => detail.category === 'long-term').length;
+    
+    return { all, shortTerm, longTerm };
   };
 
   // Load employees when modal opens (REAL DATA)
@@ -558,7 +666,7 @@ const Calendar = () => {
                     </button>
                   </div>
                 </div>
-              ) : ("}]
+              ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   {/* Shifts Section */}
                   {selectedDayEvents.filter(e => e.type === 'shift').length > 0 && (
