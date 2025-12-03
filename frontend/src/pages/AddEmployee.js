@@ -412,38 +412,60 @@ export default function AddEmployee() {
         const standardParsed = dayjs(dateStr);
         if (standardParsed.isValid()) {
           return standardParsed.format("YYYY-MM-DD");
-          response = await axios.put(
-            `${process.env.REACT_APP_API_BASE_URL}/employees/${editEmployeeId}`,
-            employeeData
-          );
-        } else {
-          // Create new employee
-          response = await axios.post(
-            `${process.env.REACT_APP_API_BASE_URL}/employees`,
-            employeeData
-          );
         }
+        
+        return null;
+      };
 
-        const succeeded = response?.data?.success ?? (response?.status >= 200 && response?.status < 300);
-        if (succeeded) {
-          showSuccess(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
-          navigate("/employee-hub?refresh=" + Date.now());
-        } else {
-          throw new Error(response?.data?.message || 'Employee creation was rejected by the server.');
-        }
-      } catch (error) {
-        const message = error.response?.data?.message || error.message || "Failed to save employee. Please try again.";
-        console.error('Employee save failed:', error);
-        showError(message);
-      } finally {
-        setLoading(false);
+      // Prepare employee data
+      const employeeData = {
+        ...formData,
+        employmentStartDate: formattedStartDate,
+        dateOfBirth: formatDateField(formData.dateOfBirth),
+        emergencyContact: {
+          ...formData.emergencyContact,
+          relationship: formData.emergencyContact?.relationship || ''
+        },
+        bankDetails: {
+          ...formData.bankDetails,
+          accountName: formData.bankDetails?.accountName || ''
+        },
+        workInfo: {
+          ...formData.workInfo,
+          department: formData.workInfo?.department || '',
+          location: formData.workInfo?.location || ''
+        },
+        documents: formData.documents || []
+      };
+
+      let response;
+      if (isEditMode) {
+        response = await axios.put(
+          `${process.env.REACT_APP_API_BASE_URL}/employees/${editEmployeeId}`,
+          employeeData
+        );
+      } else {
+        response = await axios.post(
+          `${process.env.REACT_APP_API_BASE_URL}/employees`,
+          employeeData
+        );
       }
-    };
 
-
-    const handleCancel = () => {
-      navigate("/employee-hub");
-    };
+      const succeeded = response?.data?.success ?? (response?.status >= 200 && response?.status < 300);
+      if (succeeded) {
+        showSuccess(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
+        navigate("/employee-hub?refresh=" + Date.now());
+      } else {
+        throw new Error(response?.data?.message || 'Employee creation was rejected by the server.');
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || "Failed to save employee. Please try again.";
+      console.error('Employee save failed:', error);
+      showError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
     const handleBack = () => {
       if (isEditMode) {
