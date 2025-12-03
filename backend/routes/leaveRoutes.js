@@ -400,9 +400,14 @@ router.get('/records', async (req, res) => {
 // @access  Private
 router.post('/records', async (req, res) => {
   try {
+    console.log('=== CREATE LEAVE RECORD REQUEST ===');
+    console.log('Request body:', req.body);
+    console.log('Authenticated user:', req.user);
+    
     const { userId, type, startDate, endDate, days, reason, status } = req.body;
     
     if (!userId || !startDate || !endDate || days === undefined) {
+      console.error('Missing required fields:', { userId: !!userId, startDate: !!startDate, endDate: !!endDate, days });
       return res.status(400).json({
         success: false,
         message: 'userId, startDate, endDate, and days are required'
@@ -430,8 +435,8 @@ router.post('/records', async (req, res) => {
       endDate: new Date(endDate),
       days,
       reason,
-      createdBy: req.user.id,
-      approvedBy: status === 'approved' ? req.user.id : null,
+      createdBy: req.user?.id || null,
+      approvedBy: status === 'approved' ? (req.user?.id || null) : null,
       approvedAt: status === 'approved' ? new Date() : null
     });
     
@@ -448,10 +453,13 @@ router.post('/records', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Create leave record error:', error);
+    console.error('=== CREATE LEAVE RECORD ERROR ===');
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Server error creating leave record'
+      message: 'Server error creating leave record',
+      error: error.message
     });
   }
 });
