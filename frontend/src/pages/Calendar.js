@@ -772,7 +772,7 @@ const Calendar = () => {
                   <span className="font-semibold">{selectedDayEvents.length}</span> total event(s) on this day
                 </div>
                 <button
-                  onClick={() => setShowDayModal(false)}
+                  onClick={() => setShowDayDetailsModal(false)}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
                 >
                   Close

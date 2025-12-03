@@ -222,7 +222,13 @@ const EmployeeProfile = () => {
         {activeTab === 'emergencies' && <EmergenciesTab employee={employee} />}
         {activeTab === 'documents' && <DocumentsTab employee={employee} />}
         {activeTab === 'absence' && (
-  <AbsenceTab employee={employee} onAddLeave={() => setShowLeaveModal(true)} />
+  <AbsenceTab 
+    employee={employee} 
+    onAddLeave={() => setShowLeaveModal(true)}
+    onOpenCarryover={() => setShowCarryoverModal(true)}
+    onOpenSickness={() => setShowSicknessModal(true)}
+    onOpenLateness={() => setShowLatenessModal(true)}
+  />
 )}
 {showLeaveModal && (
   <AddLeaveModal
@@ -265,7 +271,7 @@ const EmployeeProfile = () => {
 };
 
 // Absence Tab Component
-const AbsenceTab = ({ employee, onAddLeave }) => {
+const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onOpenLateness }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Left Side */}
@@ -304,7 +310,7 @@ const AbsenceTab = ({ employee, onAddLeave }) => {
 </button>
             <button 
               type="button"
-              onClick={() => setShowCarryoverModal(true)}
+              onClick={onOpenCarryover}
               className="w-full px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-600 rounded-lg"
             >
               Update carryover
@@ -325,7 +331,7 @@ const AbsenceTab = ({ employee, onAddLeave }) => {
               <h4 className="font-medium text-gray-900">Sickness</h4>
               <button 
                 type="button"
-                onClick={() => setShowSicknessModal(true)}
+                onClick={onOpenSickness}
                 className="p-1 text-pink-600 hover:bg-pink-50 rounded"
               >
                 <Plus className="w-4 h-4" />
@@ -343,7 +349,7 @@ const AbsenceTab = ({ employee, onAddLeave }) => {
               <h4 className="font-medium text-gray-900">Lateness</h4>
               <button 
                 type="button"
-                onClick={() => setShowLatenessModal(true)}
+                onClick={onOpenLateness}
                 className="p-1 text-pink-600 hover:bg-pink-50 rounded"
               >
                 <Plus className="w-4 h-4" />
