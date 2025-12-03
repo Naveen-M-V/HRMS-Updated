@@ -1150,3 +1150,112 @@ exports.terminateEmployee = async (req, res) => {
     });
   }
 };
+
+/**
+ * Bulk delete employees
+ * DELETE /api/employees/bulk
+ */
+exports.bulkDeleteEmployees = async (req, res) => {
+  try {
+    console.log('🔍 Starting bulk delete process...');
+    console.log('🔍 Request body:', req.body);
+    
+    const { employeeIds } = req.body;
+    
+    // Validate input
+    if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
+      console.log('❌ Invalid employee IDs provided');
+      return res.status(400).json({
+        success: false,
+        message: 'Employee IDs array is required'
+      });
+    }
+    
+    console.log(`🔍 Attempting to delete ${employeeIds.length} employee(s)`);
+    
+    // Check database connection
+    const dbState = mongoose.connection.readyState;
+    if (dbState !== 1) {
+      console.log('❌ Database not connected');
+      return res.status(500).json({
+        success: false,
+        message: 'Database not connected'
+      });
+    }
+    
+    // Find all employees to be deleted
+    const employees = await EmployeeHub.find({ _id: { $in: employeeIds } });
+    
+    if (employees.length === 0) {
+      console.log('❌ No employees found with provided IDs');
+      return res.status(404).json({
+        success: false,
+        message: 'No employees found with the provided IDs'
+      });
+    }
+    
+    console.log(`✅ Found ${employees.length} employee(s) to delete`);
+    
+    // Check if all employees are terminated (optional - remove this check if you want to allow deletion of active employees)
+    const nonTerminatedEmployees = employees.filter(emp => emp.status?.toLowerCase() !== 'terminated');
+    if (nonTerminatedEmployees.length > 0) {
+      console.log(`⚠️ Found ${nonTerminatedEmployees.length} non-terminated employee(s)`);
+      // Uncomment the following to enforce termination before deletion:
+      // return res.status(400).json({
+      //   success: false,
+      //   message: 'Only terminated employees can be permanently deleted',
+      //   nonTerminatedCount: nonTerminatedEmployees.length
+      // });
+    }
+    
+    // Archive employees before deletion
+    const ArchiveEmployee = require('../models/ArchiveEmployee');
+    const archivePromises = employees.map(employee => {
+      const archiveData = {
+        employeeId: employee._id.toString(),
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        fullName: `${employee.firstName} ${employee.lastName}`,
+        email: employee.email,
+        department: employee.department || null,
+        jobTitle: employee.jobTitle || null,
+        status: employee.status,
+        terminatedDate: employee.terminatedDate || null,
+        deletedDate: new Date(),
+        snapshot: employee.toObject()
+      };
+      return ArchiveEmployee.create(archiveData);
+    });
+    
+    await Promise.all(archivePromises);
+    console.log('✅ All employees archived successfully');
+    
+    // Delete related records
+    const deletePromises = [
+      TimeEntry.deleteMany({ employeeId: { $in: employeeIds } }),
+      ShiftAssignment.deleteMany({ employeeId: { $in: employeeIds } }),
+      LeaveRecord.deleteMany({ employeeId: { $in: employeeIds } }),
+    ];
+    
+    await Promise.all(deletePromises);
+    console.log('✅ Related records deleted successfully');
+    
+    // Finally, delete the employees
+    const deleteResult = await EmployeeHub.deleteMany({ _id: { $in: employeeIds } });
+    console.log(`✅ Deleted ${deleteResult.deletedCount} employee(s)`);
+    
+    res.status(200).json({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} employee(s)`,
+      deletedCount: deleteResult.deletedCount
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in bulk delete:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting employees',
+      error: error.message
+    });
+  }
+};

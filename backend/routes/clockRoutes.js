@@ -790,6 +790,197 @@ router.post('/entry/:id/break', asyncHandler(async (req, res) => {
   });
 }));
 
+// @route   POST /api/clock/onbreak
+// @desc    Set employee on break
+// @access  Private (Admin)
+router.post('/onbreak', asyncHandler(async (req, res) => {
+  const { employeeId } = req.body;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee ID is required'
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const entry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today
+  });
+
+  // VALIDATION CHECKS
+  if (!entry) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No TimeEntry found for today. Employee must clock in first." 
+    });
+  }
+
+  if (!entry.sessions || entry.sessions.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No active session found" 
+    });
+  }
+
+  const last = entry.sessions[entry.sessions.length - 1];
+
+  if (!last.clockIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Invalid session. Employee must clock in first." 
+    });
+  }
+
+  if (last.clockOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Session already closed. Cannot start break." 
+    });
+  }
+
+  if (last.breakIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Already on break" 
+    });
+  }
+
+  // Set break start time (UTC)
+  last.breakIn = new Date().toISOString();
+  entry.status = 'on_break';
+  
+  await entry.save();
+  console.log('✅ Break started successfully for employee:', employeeId);
+
+  // Create notification
+  try {
+    const Notification = require('../models/Notification');
+    const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
+    const User = require('../models/User');
+    const adminUser = adminUserId ? await User.findById(adminUserId) : null;
+    const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+    
+    await Notification.create({
+      userId: employeeId,
+      type: 'system',
+      title: 'Break Started by Admin',
+      message: `${adminName} started your break at ${new Date().toLocaleTimeString()}`,
+      priority: 'low'
+    });
+  } catch (notifError) {
+    console.error('❌ Failed to create notification:', notifError);
+  }
+
+  return res.json({ 
+    success: true, 
+    message: 'Break started successfully',
+    entry: entry
+  });
+}));
+
+// @route   POST /api/clock/endbreak
+// @desc    End employee break (resume work)
+// @access  Private (Admin)
+router.post('/endbreak', asyncHandler(async (req, res) => {
+  const { employeeId } = req.body;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee ID is required'
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const entry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today
+  });
+
+  // VALIDATION CHECKS
+  if (!entry) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No TimeEntry found for today" 
+    });
+  }
+
+  if (!entry.sessions || entry.sessions.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No active session found" 
+    });
+  }
+
+  const last = entry.sessions[entry.sessions.length - 1];
+
+  if (!last.clockIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Invalid session" 
+    });
+  }
+
+  if (last.clockOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Session already closed" 
+    });
+  }
+
+  if (!last.breakIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Not on break" 
+    });
+  }
+
+  if (last.breakOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Break already ended" 
+    });
+  }
+
+  // End break (UTC timestamp)
+  last.breakOut = new Date().toISOString();
+  entry.status = 'clocked_in';
+  
+  await entry.save();
+  console.log('✅ Break ended successfully for employee:', employeeId);
+
+  // Create notification
+  try {
+    const Notification = require('../models/Notification');
+    const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
+    const User = require('../models/User');
+    const adminUser = adminUserId ? await User.findById(adminUserId) : null;
+    const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+    
+    await Notification.create({
+      userId: employeeId,
+      type: 'system',
+      title: 'Break Ended by Admin',
+      message: `${adminName} ended your break at ${new Date().toLocaleTimeString()}`,
+      priority: 'medium'
+    });
+  } catch (notifError) {
+    console.error('❌ Failed to create notification:', notifError);
+  }
+
+  return res.json({ 
+    success: true, 
+    message: 'Break ended successfully',
+    entry: entry
+  });
+}));
+
 // @route   POST /api/clock/resume
 // @desc    Resume work (end break) for employee
 // @access  Private (Admin)
@@ -1936,27 +2127,50 @@ router.get('/timesheet/:employeeId', async (req, res) => {
       });
     }
 
-    // Parse dates
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // Parse dates - TimeEntry.date is stored as String (YYYY-MM-DD format)
+    const startDateStr = startDate; // Already in YYYY-MM-DD format
+    const endDateStr = endDate;     // Already in YYYY-MM-DD format
+
+    console.log('📅 Querying with date strings:', startDateStr, 'to', endDateStr);
 
     // Fetch time entries for the employee within the date range
     const timeEntries = await TimeEntry.find({
       employee: employeeId,
       date: {
-        $gte: start,
-        $lte: end
+        $gte: startDateStr,
+        $lte: endDateStr
       }
     })
-    .populate('employee', 'firstName lastName email vtid')
-    .populate('shiftId', 'startTime endTime location')
     .sort({ date: 1, clockIn: 1 }) // Sort by date, then by clock-in time for multiple sessions
     .lean();
 
     console.log(`✅ Found ${timeEntries.length} time entries`);
+    
+    // Manually populate employee data from EmployeesHub
+    const employeeData = await EmployeesHub.findById(employeeId).select('firstName lastName email vtid').lean();
+    
+    if (!employeeData) {
+      // Fallback to User model if not found in EmployeesHub
+      const userData = await User.findById(employeeId).select('firstName lastName email vtid').lean();
+      if (userData) {
+        timeEntries.forEach(entry => {
+          entry.employee = userData;
+        });
+      }
+    } else {
+      timeEntries.forEach(entry => {
+        entry.employee = employeeData;
+      });
+    }
+    
+    // Populate shift data
+    for (let entry of timeEntries) {
+      if (entry.shiftId) {
+        const Shift = require('../models/Shift');
+        const shiftData = await Shift.findById(entry.shiftId).select('startTime endTime location').lean();
+        entry.shiftId = shiftData;
+      }
+    }
 
     // Calculate statistics
     let totalHoursWorked = 0;

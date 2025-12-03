@@ -24,9 +24,13 @@ import {
 } from 'lucide-react';
 import axios from '../utils/axiosConfig';
 import AddLeaveModal from '../components/AddLeaveModal';
+import { SicknessModal, LatenessModal, CarryoverModal } from '../components/AbsenceModals';
 
 const EmployeeProfile = () => {
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
+  const [showSicknessModal, setShowSicknessModal] = React.useState(false);
+  const [showLatenessModal, setShowLatenessModal] = React.useState(false);
+  const [showCarryoverModal, setShowCarryoverModal] = React.useState(false);
   const { employeeId } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
@@ -233,6 +237,27 @@ const EmployeeProfile = () => {
     }}
   />
 )}
+{showSicknessModal && (
+  <SicknessModal
+    employee={employee}
+    onClose={() => setShowSicknessModal(false)}
+    onSuccess={() => refreshAbsences()}
+  />
+)}
+{showLatenessModal && (
+  <LatenessModal
+    employee={employee}
+    onClose={() => setShowLatenessModal(false)}
+    onSuccess={() => refreshAbsences()}
+  />
+)}
+{showCarryoverModal && (
+  <CarryoverModal
+    employee={employee}
+    onClose={() => setShowCarryoverModal(false)}
+    onSuccess={() => refreshAbsences()}
+  />
+)}
         {activeTab === 'overtime' && <OvertimeTab employee={employee} />}
       </div>
     </div>
@@ -277,7 +302,11 @@ const AbsenceTab = ({ employee, onAddLeave }) => {
 >
   Add time off
 </button>
-            <button className="w-full px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-600 rounded-lg">
+            <button 
+              type="button"
+              onClick={() => setShowCarryoverModal(true)}
+              className="w-full px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-600 rounded-lg"
+            >
               Update carryover
             </button>
           </div>
@@ -292,9 +321,13 @@ const AbsenceTab = ({ employee, onAddLeave }) => {
         <div className="grid grid-cols-2 gap-4">
           {/* Sickness */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-gray-900">Sickness</h4>
-              <button className="p-1 text-pink-600 hover:bg-pink-50 rounded">
+              <button 
+                type="button"
+                onClick={() => setShowSicknessModal(true)}
+                className="p-1 text-pink-600 hover:bg-pink-50 rounded"
+              >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -306,9 +339,13 @@ const AbsenceTab = ({ employee, onAddLeave }) => {
 
           {/* Lateness */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-gray-900">Lateness</h4>
-              <button className="p-1 text-pink-600 hover:bg-pink-50 rounded">
+              <button 
+                type="button"
+                onClick={() => setShowLatenessModal(true)}
+                className="p-1 text-pink-600 hover:bg-pink-50 rounded"
+              >
                 <Plus className="w-4 h-4" />
               </button>
             </div>

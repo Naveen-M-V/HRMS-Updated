@@ -21,6 +21,7 @@ router.post('/', employeeHubController.createEmployee);
 router.put('/:id', employeeHubController.updateEmployee);
 router.patch('/:id/terminate', employeeHubController.terminateEmployee);
 router.patch('/:id/rehire', employeeHubController.rehireEmployee);
+router.delete('/bulk', employeeHubController.bulkDeleteEmployees);
 router.delete('/:id', employeeHubController.deleteEmployee);
 // GET /:id should be LAST to avoid matching specific routes
 router.get('/:id', employeeHubController.getEmployeeById);

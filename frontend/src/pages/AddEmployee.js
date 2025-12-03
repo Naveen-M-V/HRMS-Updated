@@ -103,6 +103,7 @@ export default function AddEmployee() {
     jobTitle: "",
     department: "",
     team: "",
+    office: "",
     OrganisationName: "",
     employmentStartDate: "",
     probationEndDate: "",
@@ -435,6 +436,7 @@ export default function AddEmployee() {
         jobTitle: formData.jobTitle,
         department: formData.department,
         team: formData.team || "",
+        office: formData.office,
         OrganisationName: formData.OrganisationName,
         startDate: formattedStartDate,
         probationEndDate: formatDateField(formData.probationEndDate),
@@ -995,7 +997,7 @@ export default function AddEmployee() {
               </label>
               <input
                 type="text"
-                placeholder="Organisation location"
+                placeholder="Organisation name"
                 value={formData.OrganisationName}
                 onChange={(e) => handleInputChange("OrganisationName", e.target.value)}
                 className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${

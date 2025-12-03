@@ -32,6 +32,10 @@ export default function EmployeeHub() {
   const [teams, setTeams] = useState([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
 
+  // Bulk delete state
+  const [selectedEmployees, setSelectedEmployees] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   // Fetch employees from EmployeesHub schema
   const fetchAllEmployees = async () => {
     setLoading(true);
@@ -59,6 +63,51 @@ export default function EmployeeHub() {
     
     // Navigate to the new employee profile page
     navigate(`/employee/${employeeId}`);
+  };
+
+  // Toggle employee selection
+  const toggleEmployeeSelection = (employeeId) => {
+    setSelectedEmployees(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(employeeId)) {
+        newSet.delete(employeeId);
+      } else {
+        newSet.add(employeeId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all employees selection
+  const toggleAllEmployees = () => {
+    if (selectedEmployees.size === filteredEmployees.length) {
+      setSelectedEmployees(new Set());
+    } else {
+      setSelectedEmployees(new Set(filteredEmployees.map(e => e._id)));
+    }
+  };
+
+  // Bulk delete employees
+  const handleBulkDelete = async () => {
+    if (selectedEmployees.size === 0) return;
+    
+    try {
+      const employeeIds = Array.from(selectedEmployees);
+      const response = await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/employees/bulk`, {
+        data: { employeeIds }
+      });
+
+      if (response.data.success) {
+        // Refresh employee list
+        await fetchAllEmployees();
+        setSelectedEmployees(new Set());
+        setShowDeleteConfirm(false);
+        alert(`Successfully deleted ${employeeIds.length} employee(s)`);
+      }
+    } catch (error) {
+      console.error('Error deleting employees:', error);
+      alert('Failed to delete employees. Please try again.');
+    }
   };
 
   // Listen for refresh parameter to reload data after edits
@@ -183,13 +232,26 @@ export default function EmployeeHub() {
       {/* Header Section */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => navigate("/add-employee")}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
-          >
-            Add employees
-          </button>
-
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/add-employee")}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+            >
+              Add employees
+            </button>
+            
+            {selectedEmployees.size > 0 && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Selected ({selectedEmployees.size})
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -425,6 +487,14 @@ export default function EmployeeHub() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
+                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0}
+                          onChange={toggleAllEmployees}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                        />
+                      </th>
                       <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
                       <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                       <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Team Name</th>
@@ -436,14 +506,23 @@ export default function EmployeeHub() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredEmployees.map((employee, index) => {
                       const isTerminated = (employee.status || '').toLowerCase() === 'terminated';
+                      const isSelected = selectedEmployees.has(employee._id);
                       return (
                       <tr 
                         key={employee._id} 
                         className={`hover:bg-gray-50 cursor-pointer ${
                           isTerminated ? 'bg-red-50 border-red-200' : ''
-                        }`}
+                        } ${isSelected ? 'bg-blue-50' : ''}`}
                         onClick={() => handleViewProfile(employee._id)}
                       >
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleEmployeeSelection(employee._id)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                          />
+                        </td>
                         <td className={`px-6 py-4 text-sm ${
                           isTerminated ? 'text-red-700 font-medium' : 'text-gray-900'
                         }`}>{index + 1}</td>
@@ -705,6 +784,47 @@ export default function EmployeeHub() {
           </div>
         ))}
       </div>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 animate-scaleIn">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-4 rounded-t-xl">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Confirm Deletion
+              </h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Are you sure you want to delete <span className="font-bold text-red-600">{selectedEmployees.size}</span> employee(s)?
+              </p>
+              <p className="text-sm text-gray-600 mb-6">
+                This action cannot be undone. All employee data will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

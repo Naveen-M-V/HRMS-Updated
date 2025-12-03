@@ -330,25 +330,48 @@ profileSchema.index({ createdOn: -1 }); // Index for sorting by creation date
 const Profile = mongoose.model('Profile', profileSchema);
 
 // User Schema for Authentication
+// This model handles authentication for PROFILES (interns/trainees)
+// For EMPLOYEES, use EmployeesHub model instead
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   username: { type: String, unique: true, sparse: true, trim: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
-  vtid: { type: String, unique: true, sparse: true, uppercase: true, trim: true, index: true }, // Add VTID to User
+  role: { type: String, enum: ['user', 'admin', 'profile'], default: 'user' }, // Added 'profile' role
+  vtid: { type: String, unique: true, sparse: true, uppercase: true, trim: true, index: true }, // VTID for profiles
   profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', unique: true, sparse: true }, // Link to Profile
+  profileType: { type: String, enum: ['intern', 'trainee', 'contract-trainee'], default: 'intern' }, // Profile type
+  
+  // Contact & Personal Info
+  phone: { type: String, trim: true },
+  dateOfBirth: { type: Date },
+  gender: { type: String, enum: ['Male', 'Female', 'Other', 'Unspecified'], default: 'Unspecified' },
+  
+  // Institution & Course (for profiles)
+  institution: { type: String, trim: true },
+  course: { type: String, trim: true },
+  startDate: { type: Date },
+  endDate: { type: Date },
+  
+  // Status & Verification
   isActive: { type: Boolean, default: true },
-  emailVerified: { type: Boolean, default: false },
+  isEmailVerified: { type: Boolean, default: false },
+  isAdminApproved: { type: Boolean, default: false }, // Changed from adminApprovalStatus
+  status: { type: String, enum: ['active', 'completed', 'terminated'], default: 'active' },
+  
+  // Security & Tokens
   verificationToken: { type: String },
-  adminApprovalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
   adminApprovalToken: { type: String },
-  termsAcceptedAt: { type: Date },
-  passwordChangedAt: { type: Date },
-  lastLoginAt: { type: Date },
   resetPasswordToken: { type: String },
-  resetPasswordExpires: { type: Date }
+  resetPasswordExpires: { type: Date },
+  
+  // Login Tracking
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date },
+  lastLoginAt: { type: Date },
+  passwordChangedAt: { type: Date },
+  termsAcceptedAt: { type: Date }
 }, { timestamps: true });
 
 // Hash password before saving
@@ -366,6 +389,97 @@ userSchema.pre('save', async function(next) {
   }
 });
 
+// Password comparison method
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Virtual for account lock status
+userSchema.virtual('isLocked').get(function() {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+});
+
+// Increment login attempts
+userSchema.methods.incLoginAttempts = function() {
+  // If we have a previous lock that has expired, restart at 1
+  if (this.lockUntil && this.lockUntil < Date.now()) {
+    return this.updateOne({
+      $set: { loginAttempts: 1 },
+      $unset: { lockUntil: 1 }
+    });
+  }
+  
+  // Otherwise we're incrementing
+  const updates = { $inc: { loginAttempts: 1 } };
+  
+  // Lock the account after 5 failed attempts for 2 hours
+  const maxAttempts = 5;
+  const lockTime = 2 * 60 * 60 * 1000; // 2 hours
+  
+  if (this.loginAttempts + 1 >= maxAttempts && !this.isLocked) {
+    updates.$set = { lockUntil: Date.now() + lockTime };
+  }
+  
+  return this.updateOne(updates);
+};
+
+// Reset login attempts
+userSchema.methods.resetLoginAttempts = function() {
+  return this.updateOne({
+    $set: { loginAttempts: 0 },
+    $unset: { lockUntil: 1 }
+  });
+};
+
+// Static method for authentication (used by authController)
+userSchema.statics.authenticate = async function(identifier, password) {
+  // Find user by email or VTID
+  const user = await this.findOne({
+    $or: [
+      { email: identifier.toLowerCase() },
+      { vtid: identifier.toUpperCase() }
+    ],
+    isActive: true
+  });
+
+  if (!user) {
+    return { success: false, message: 'Invalid credentials' };
+  }
+
+  // Check if account is locked
+  if (user.isLocked) {
+    return { success: false, message: 'Account is locked. Please try again later.' };
+  }
+
+  // Verify password
+  const isMatch = await user.comparePassword(password);
+
+  if (!isMatch) {
+    await user.incLoginAttempts();
+    return { success: false, message: 'Invalid credentials' };
+  }
+
+  // Check if profile is approved
+  if (!user.isAdminApproved) {
+    return { success: false, message: 'Your profile is pending admin approval' };
+  }
+
+  // Reset login attempts on successful login
+  if (user.loginAttempts > 0 || user.lockUntil) {
+    await user.resetLoginAttempts();
+  }
+
+  // Update last login time
+  user.lastLoginAt = new Date();
+  await user.save();
+
+  return { success: true, user };
+};
+
 // Add method to create default admin if none exists
 userSchema.statics.ensureAdminExists = async function() {
   try {
@@ -380,8 +494,8 @@ userSchema.statics.ensureAdminExists = async function() {
         password: hashedPassword,
         role: 'admin',
         isActive: true,
-        emailVerified: true,
-        adminApprovalStatus: 'approved'
+        isEmailVerified: true,
+        isAdminApproved: true
       });
       console.log('Default admin account created');
     }
@@ -912,11 +1026,13 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
           email: savedProfile.email,
           password: generatedPassword, // Password will be hashed by pre-save hook
           vtid: savedProfile.vtid.toString(), // Store VTID in User for VTID-based login
-          role: 'user',
-          userType: 'profile', // Profile users: certificate management only
+          role: 'profile',
+          profileType: 'intern', // Default to intern, can be updated
           isActive: true,
-          emailVerified: true, // Auto-verify user accounts created by admin
-          profileId: savedProfile._id
+          isEmailVerified: true, // Auto-verify user accounts created by admin
+          isAdminApproved: true, // Auto-approve admin-created profiles
+          profileId: savedProfile._id,
+          startDate: savedProfile.startDate || new Date()
         });
         
         await newUser.save();
@@ -963,7 +1079,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       console.log('Profile creation email sent to user:', savedProfile.email);
       
       // 2. Send notification to all admins
-      const adminUsers = await User.find({ role: 'admin' });
+      const adminUsers = await EmployeesHub.find({ role: 'admin' });
       console.log(`Found ${adminUsers.length} admin users for notification`);
       
       for (const admin of adminUsers) {

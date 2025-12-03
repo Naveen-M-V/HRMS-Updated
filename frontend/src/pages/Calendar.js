@@ -27,6 +27,8 @@ const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [showTimeOffModal, setShowTimeOffModal] = useState(false);
+  const [showDayDetailsModal, setShowDayDetailsModal] = useState(false);
+  const [selectedDayEvents, setSelectedDayEvents] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [startDate, setStartDate] = useState(null);
@@ -468,7 +470,11 @@ const Calendar = () => {
                 className={`min-h-[80px] p-2 border-r border-b cursor-pointer transition-colors ${
                   !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
                 } ${isToday ? 'bg-blue-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:bg-gray-50`}
-                onClick={() => setSelectedDate(date)}
+                onClick={() => {
+                  setSelectedDate(date);
+                  setSelectedDayEvents(events);
+                  setShowDayDetailsModal(true);
+                }}
               >
                 <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}`}>
                   {date.format('D')}
@@ -494,6 +500,206 @@ const Calendar = () => {
           })}
         </div>
       </div>
+
+      {/* Day Details Modal - Expanded/Fullscreen */}
+      {showDayDetailsModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 animate-fadeIn">
+          <div className="h-full flex flex-col bg-white">
+            {/* Modal Header - Enhanced */}
+            <div className="flex items-center justify-between p-8 border-b bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
+              <div className="flex items-center gap-6">
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
+                  <CalendarDaysIcon className="h-10 w-10 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-white">
+                    {selectedDate.format('dddd, MMMM D, YYYY')}
+                  </h2>
+                  <p className="text-blue-100 text-lg mt-1 flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <UserGroupIcon className="h-5 w-5" />
+                      {selectedDayEvents.filter(e => e.type === 'shift').length} shift{selectedDayEvents.filter(e => e.type === 'shift').length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-blue-200">•</span>
+                    <span className="flex items-center gap-1">
+                      <CalendarOutlineIcon className="h-5 w-5" />
+                      {selectedDayEvents.filter(e => e.type === 'leave').length} time off
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDayDetailsModal(false)}
+                className="p-3 hover:bg-white/20 rounded-xl transition-all text-white hover:scale-110"
+              >
+                <XMarkIcon className="h-8 w-8" />
+              </button>
+            </div>
+
+            {/* Modal Body - Expanded */}
+            <div className="flex-1 p-8 overflow-y-auto bg-gray-50">
+              {selectedDayEvents.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center py-20">
+                    <div className="bg-gray-100 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-6">
+                      <CalendarDaysIcon className="h-16 w-16 text-gray-400" />
+                    </div>
+                    <h3 className="text-2xl font-semibold text-gray-900 mb-3">No events scheduled</h3>
+                    <p className="text-gray-500 text-lg mb-8">This day is currently free.</p>
+                    <button
+                      onClick={() => {
+                        setShowDayDetailsModal(false);
+                        openTimeOffModal();
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl text-lg font-medium"
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                      Schedule Time Off
+                    </button>
+                  </div>
+                </div>
+              ) : ("}]
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {/* Shifts Section */}
+                  {selectedDayEvents.filter(e => e.type === 'shift').length > 0 && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                          <div className="bg-blue-100 p-2 rounded-lg">
+                            <UserGroupIcon className="h-6 w-6 text-blue-600" />
+                          </div>
+                          Scheduled Shifts
+                        </h3>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
+                          {selectedDayEvents.filter(e => e.type === 'shift').length}
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        {selectedDayEvents.filter(e => e.type === 'shift').map((event, idx) => (
+                          <div key={idx} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-4 hover:shadow-md transition-all">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="text-3xl">{event.icon}</span>
+                                  <div>
+                                    <h4 className="font-bold text-gray-900 text-lg">{event.title}</h4>
+                                    <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
+                                      <ClockIcon className="h-4 w-4 text-blue-600" />
+                                      <span className="font-medium">{event.time}</span>
+                                    </p>
+                                  </div>
+                                </div>
+                                {event.data.location && (
+                                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                                    <span className="font-medium">📍 Location:</span>
+                                    <span>{event.data.location}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`px-4 py-2 rounded-lg text-sm font-bold ${event.color} shadow-sm`}>
+                                {event.data.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Time Off Section */}
+                  {selectedDayEvents.filter(e => e.type === 'leave').length > 0 && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                          <div className="bg-amber-100 p-2 rounded-lg">
+                            <CalendarDaysIcon className="h-6 w-6 text-amber-600" />
+                          </div>
+                          Time Off Requests
+                        </h3>
+                        <span className="px-3 py-1 bg-amber-100 text-amber-800 text-sm font-semibold rounded-full">
+                          {selectedDayEvents.filter(e => e.type === 'leave').length}
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        {selectedDayEvents.filter(e => e.type === 'leave').map((event, idx) => (
+                          <div key={idx} className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg p-4 hover:shadow-md transition-all">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="text-3xl">{event.icon}</span>
+                                  <div>
+                                    <h4 className="font-bold text-gray-900 text-lg">{event.title}</h4>
+                                    <p className="text-sm text-gray-600 mt-1">{event.time}</p>
+                                  </div>
+                                </div>
+                                {event.data.reason && (
+                                  <div className="bg-white rounded-lg p-3 mt-3 border border-amber-200">
+                                    <p className="text-sm text-gray-700 italic">💬 "{event.data.reason}"</p>
+                                  </div>
+                                )}
+                                {event.data.days && (
+                                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                                    <span className="font-medium">⏱️ Duration:</span>
+                                    <span className="font-semibold">{event.data.days} day(s)</span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`px-4 py-2 rounded-lg text-sm font-bold ${event.color} shadow-sm`}>
+                                {event.data.leaveType || event.data.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer - Enhanced */}
+            <div className="border-t border-gray-200 bg-gray-50 p-6">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  <span className="font-semibold">{selectedDayEvents.length}</span> total event(s) on this day
+                </div>
+                <button
+                  onClick={() => setShowDayModal(false)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keep original footer placeholder */}
+      {showDayModal && false && (
+            <div className="border-t border-gray-200 p-6 bg-gray-50">
+              {/* Old Footer - Hidden */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+              <button
+                onClick={() => setShowDayDetailsModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowDayDetailsModal(false);
+                  openTimeOffModal();
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Time Off
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Time Off Modal */}
       {showTimeOffModal && (
