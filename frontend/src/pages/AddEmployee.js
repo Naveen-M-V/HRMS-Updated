@@ -427,15 +427,15 @@ export default function AddEmployee() {
         gender: formData.gender,
         ethnicity: formData.ethnicity,
         dateOfBirth: formatDateField(formData.dateOfBirth),
-        emailAddress: formData.emailAddress,
-        mobileNumber: formData.mobileNumber,
+        email: formData.emailAddress, // Map emailAddress to email for backend
+        phone: formData.mobileNumber, // Map mobileNumber to phone for backend
         workPhone: formData.workPhone,
         jobTitle: formData.jobTitle,
         department: formData.department,
         team: formData.team || "",
         office: formData.office,
         OrganisationName: formData.OrganisationName,
-        employmentStartDate: formattedStartDate,
+        startDate: formattedStartDate, // Map employmentStartDate to startDate for backend
         probationEndDate: formData.probationEndDate ? formatDateField(formData.probationEndDate) : null,
         profilePhoto: formData.profilePhoto,
         address1: formData.address1,
