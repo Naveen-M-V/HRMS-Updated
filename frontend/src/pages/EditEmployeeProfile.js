@@ -138,9 +138,12 @@ export default function EditEmployeeProfile() {
       // Show detailed validation errors if available
       if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
         const errorMessages = err.response.data.errors.map(e => e.message).join('\n');
+        alert(`Validation errors:\n${errorMessages}`);
         error(`Validation errors:\n${errorMessages}`);
       } else {
-        error(err.response?.data?.message || 'Failed to update employee. Please try again.');
+        const errorMsg = err.response?.data?.message || 'Failed to update employee. Please try again.';
+        alert(`Error: ${errorMsg}\n\nFull error: ${JSON.stringify(err.response?.data, null, 2)}`);
+        error(errorMsg);
       }
     } finally {
       setLoading(false);
