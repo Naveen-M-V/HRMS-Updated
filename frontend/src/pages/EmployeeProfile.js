@@ -155,7 +155,7 @@ const EmployeeProfile = () => {
           {employee.name || employee.firstName && employee.lastName ? `${employee.firstName} ${employee.lastName}` : ''}
         </span>
         <button
-          onClick={() => navigate(`/edit-user-profile/${employeeId}`)}
+          onClick={() => navigate(`/edit-employee/${employeeId}`)}
           className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           title="Edit Employee Details"
         >

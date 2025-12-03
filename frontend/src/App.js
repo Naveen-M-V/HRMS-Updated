@@ -31,6 +31,7 @@ import Sharestaff from "./pages/ShareStaff";
 import NoAccess from "./pages/NoAccess";
 import EditUserProfile from "./pages/EditUserProfile";
 import EditProfile from "./pages/EditProfile";
+import EditEmployeeProfile from "./pages/EditEmployeeProfile";
 import EditCertificate from "./pages/EditCertificate";
 import ViewCertificate from "./pages/ViewCertificate";
 import ProfileDetailView from "./pages/ProfileDetailView";
@@ -284,6 +285,10 @@ function App() {
                                   <Route
                                     path="/edit-user-profile/:id"
                                     element={<EditUserProfile />}
+                                  />
+                                  <Route
+                                    path="/edit-employee/:id"
+                                    element={<EditEmployeeProfile />}
                                   />
                                   <Route
                                     path="/profile"
