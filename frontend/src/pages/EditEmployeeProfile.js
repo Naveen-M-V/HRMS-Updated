@@ -130,7 +130,15 @@ export default function EditEmployeeProfile() {
       }
     } catch (err) {
       console.error("Failed to update employee:", err);
-      error(err.response?.data?.message || 'Failed to update employee. Please try again.');
+      console.error("Error response:", err.response?.data);
+      
+      // Show detailed validation errors if available
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const errorMessages = err.response.data.errors.map(e => e.message).join('\n');
+        error(`Validation errors:\n${errorMessages}`);
+      } else {
+        error(err.response?.data?.message || 'Failed to update employee. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
