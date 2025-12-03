@@ -653,4 +653,52 @@ router.get('/requests/employee/:employeeId', leaveApprovalController.getEmployee
 // @access  Private (Manager/Admin)
 router.get('/overlaps', leaveApprovalController.detectLeaveOverlaps);
 
+// @route   PUT /api/leave/balance/:userId
+// @desc    Update user's annual leave entitlement by userId
+// @access  Private (Admin)
+router.put('/balance/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { totalDays } = req.body;
+    
+    if (!totalDays || totalDays < 0 || totalDays > 60) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid total days. Must be between 0 and 60.'
+      });
+    }
+    
+    // Find current leave year balance
+    const now = new Date();
+    const balance = await AnnualLeaveBalance.findOne({
+      user: userId,
+      leaveYearStart: { $lte: now },
+      leaveYearEnd: { $gte: now }
+    });
+    
+    if (!balance) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave balance not found for current year'
+      });
+    }
+    
+    balance.entitlementDays = totalDays;
+    await balance.save();
+    
+    res.json({
+      success: true,
+      message: 'Annual leave allowance updated successfully',
+      data: balance
+    });
+  } catch (error) {
+    console.error('Error updating leave balance:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update leave balance',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

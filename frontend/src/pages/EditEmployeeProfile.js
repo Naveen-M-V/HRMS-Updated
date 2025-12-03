@@ -12,6 +12,8 @@ export default function EditEmployeeProfile() {
   const [loading, setLoading] = useState(false);
   const [employeeLoading, setEmployeeLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [managers, setManagers] = useState([]);
+  const [annualLeaveAllowance, setAnnualLeaveAllowance] = useState(28);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -52,7 +54,31 @@ export default function EditEmployeeProfile() {
       return;
     }
     loadEmployee();
+    loadManagers();
+    loadAnnualLeaveBalance();
   }, [id]);
+
+  const loadManagers = async () => {
+    try {
+      const response = await axios.get('/api/employees?status=Active');
+      if (response.data.success) {
+        setManagers(response.data.data.filter(emp => emp._id !== id));
+      }
+    } catch (err) {
+      console.error('Error loading managers:', err);
+    }
+  };
+
+  const loadAnnualLeaveBalance = async () => {
+    try {
+      const response = await axios.get(`/api/leave/balance/${id}`);
+      if (response.data.success && response.data.data) {
+        setAnnualLeaveAllowance(response.data.data.totalDays || 28);
+      }
+    } catch (err) {
+      console.error('Error loading annual leave balance:', err);
+    }
+  };
 
   const loadEmployee = async () => {
     setEmployeeLoading(true);
@@ -123,7 +149,26 @@ export default function EditEmployeeProfile() {
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
       };
       
+      // Remove empty string fields that should be null/undefined for ObjectId fields
+      if (!employeeData.managerId || employeeData.managerId === "") {
+        delete employeeData.managerId;
+      }
+      if (!employeeData.team || employeeData.team === "") {
+        delete employeeData.team;
+      }
+      
       const response = await axios.put(`/api/employees/${id}`, employeeData);
+      
+      // Update annual leave balance if changed
+      if (response.data.success && annualLeaveAllowance !== 28) {
+        try {
+          await axios.put(`/api/leave/balance/${id}`, {
+            totalDays: annualLeaveAllowance
+          });
+        } catch (leaveErr) {
+          console.error('Failed to update leave balance:', leaveErr);
+        }
+      }
       
       if (response.data.success) {
         success('Employee updated successfully!');
@@ -373,6 +418,25 @@ export default function EditEmployeeProfile() {
                 />
               </div>
               <div>
+                <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 mb-2">Manager</label>
+                <Select
+                  value={formData.managerId}
+                  onValueChange={(value) => handleChange({ target: { name: 'managerId', value } })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Manager</SelectItem>
+                    {managers.map((manager) => (
+                      <SelectItem key={manager._id} value={manager._id}>
+                        {manager.firstName} {manager.lastName} - {manager.jobTitle}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <Select
                   value={formData.status}
@@ -393,6 +457,19 @@ export default function EditEmployeeProfile() {
                   label="Start Date"
                   value={formData.startDate || null}
                   onChange={(date) => handleChange({ target: { name: 'startDate', value: date ? date.format('YYYY-MM-DD') : '' } })}
+                />
+              </div>
+              <div>
+                <label htmlFor="annualLeaveAllowance" className="block text-sm font-medium text-gray-700 mb-2">Annual Leave Allowance (Days)</label>
+                <input
+                  id="annualLeaveAllowance"
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={annualLeaveAllowance}
+                  onChange={(e) => setAnnualLeaveAllowance(parseInt(e.target.value) || 0)}
+                  placeholder="28"
+                  className="border p-2 rounded w-full"
                 />
               </div>
             </div>
