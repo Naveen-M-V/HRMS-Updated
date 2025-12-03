@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { getClockStatus, clockIn, clockOut, changeEmployeeStatus, getDashboardStats, setOnBreak, deleteTimeEntry, userClockIn, userClockOut, userStartBreak } from '../utils/clockApi';
 import LoadingScreen from '../components/LoadingScreen';
 import EmployeeTimesheetModal from '../components/EmployeeTimesheetModal';
+import TimelineBar from '../components/TimelineBar';
 import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
@@ -58,6 +59,8 @@ const ClockIns = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [showTimesheetModal, setShowTimesheetModal] = useState(false);
   const [selectedFromSearch, setSelectedFromSearch] = useState(false); // Track if employee was selected from search bar
+  const [showTimelineInModal, setShowTimelineInModal] = useState(false);
+  const [timelineStartTime, setTimelineStartTime] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -327,6 +330,15 @@ const ClockIns = () => {
       
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked in successfully' : 'Employee clocked in successfully');
+        
+        // Show timeline in modal
+        const currentTime = new Date().toLocaleTimeString('en-GB', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+        setTimelineStartTime(currentTime);
+        setShowTimelineInModal(true);
         
         // Immediately update the employee status in the list for instant UI feedback
         setEmployees(prevEmployees => 
@@ -1761,86 +1773,173 @@ const ClockIns = () => {
 
             {/* Content Section */}
             <div style={{ padding: '32px' }}>
-              <h2 style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: '#111827',
-                marginBottom: '12px',
-                textAlign: 'center'
-              }}>
-                Clock In Confirmation
-              </h2>
-              <p style={{
-                fontSize: '15px',
-                color: '#6b7280',
-                textAlign: 'center',
-                lineHeight: '1.6',
-                marginBottom: '32px'
-              }}>
-                You are about to clock in <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong>.
-                <br />
-                This action will be recorded with a timestamp.
-              </p>
+              {!showTimelineInModal ? (
+                <>
+                  <h2 style={{
+                    fontSize: '28px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}>
+                    Clock In Confirmation
+                  </h2>
+                  <p style={{
+                    fontSize: '15px',
+                    color: '#6b7280',
+                    textAlign: 'center',
+                    lineHeight: '1.6',
+                    marginBottom: '32px'
+                  }}>
+                    You are about to clock in <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong>.
+                    <br />
+                    This action will be recorded with a timestamp.
+                  </p>
 
-              {/* Action Buttons */}
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                justifyContent: 'center'
-              }}>
-                <button
-                  onClick={() => setShowClockInModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: '14px 24px',
-                    borderRadius: '12px',
-                    border: '2px solid #e5e7eb',
-                    background: '#ffffff',
-                    color: '#374151',
+                  {/* Action Buttons */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    justifyContent: 'center'
+                  }}>
+                    <button
+                      onClick={() => setShowClockInModal(false)}
+                      style={{
+                        flex: 1,
+                        padding: '14px 24px',
+                        borderRadius: '12px',
+                        border: '2px solid #e5e7eb',
+                        background: '#ffffff',
+                        color: '#374151',
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#f9fafb';
+                        e.target.style.borderColor = '#d1d5db';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#ffffff';
+                        e.target.style.borderColor = '#e5e7eb';
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmClockIn}
+                      style={{
+                        flex: 1,
+                        padding: '14px 24px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                        color: '#ffffff',
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+                      }}
+                    >
+                      Confirm Clock In
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 style={{
+                    fontSize: '28px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}>
+                    Clock In Successful!
+                  </h2>
+                  <p style={{
                     fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#f9fafb';
-                    e.target.style.borderColor = '#d1d5db';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#e5e7eb';
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmClockIn}
-                  style={{
-                    flex: 1,
-                    padding: '14px 24px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                    color: '#ffffff',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
-                  }}
-                >
-                  Confirm Clock In
-                </button>
-              </div>
+                    color: '#6b7280',
+                    textAlign: 'center',
+                    lineHeight: '1.6',
+                    marginBottom: '32px'
+                  }}>
+                    <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong> has been clocked in at {timelineStartTime}.
+                  </p>
+
+                  {/* Timeline Section */}
+                  <div style={{ marginBottom: '32px' }}>
+                    <h3 style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '16px',
+                      textAlign: 'center'
+                    }}>
+                      Today's Timeline
+                    </h3>
+                    <TimelineBar 
+                      segments={[
+                        {
+                          type: 'working',
+                          startTime: timelineStartTime,
+                          endTime: 'Present',
+                          label: 'Working'
+                        }
+                      ]}
+                      clockInTime={timelineStartTime}
+                      clockOutTime={null}
+                      isToday={true}
+                    />
+                  </div>
+
+                  {/* Close Button */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}>
+                    <button
+                      onClick={() => {
+                        setShowClockInModal(false);
+                        setShowTimelineInModal(false);
+                        setTimelineStartTime('');
+                      }}
+                      style={{
+                        padding: '14px 32px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: '#ffffff',
+                        fontSize: '15px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
