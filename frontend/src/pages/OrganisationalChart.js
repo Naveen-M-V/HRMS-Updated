@@ -485,7 +485,43 @@ function OrganisationalChart() {
 
   // Print chart
   const handlePrint = () => {
+    // Add print-specific class to body
+    document.body.classList.add('printing-org-chart');
+    
+    // Add print styles dynamically
+    const style = document.createElement('style');
+    style.id = 'org-chart-print-styles';
+    style.textContent = `
+      @media print {
+        body.printing-org-chart * {
+          visibility: hidden;
+        }
+        body.printing-org-chart #org-chart-container,
+        body.printing-org-chart #org-chart-container * {
+          visibility: visible;
+        }
+        body.printing-org-chart #org-chart-container {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+        }
+        /* Hide control buttons when printing */
+        body.printing-org-chart .no-print {
+          display: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
     window.print();
+    
+    // Cleanup after print
+    setTimeout(() => {
+      document.body.classList.remove('printing-org-chart');
+      const styleEl = document.getElementById('org-chart-print-styles');
+      if (styleEl) styleEl.remove();
+    }, 1000);
   };
 
   if (loading) {
@@ -555,7 +591,7 @@ function OrganisationalChart() {
       </div>
 
       {/* Chart Canvas */}
-      <div className="relative bg-white border border-[#e7edf5] rounded-lg p-12 overflow-auto" style={{ minHeight: 700, minWidth: 900, maxHeight: '75vh' }}>
+      <div id="org-chart-container" className="relative bg-white border border-[#e7edf5] rounded-lg p-12 overflow-auto" style={{ minHeight: 700, minWidth: 900, maxHeight: '75vh' }}>
         {error ? (
           <div className="flex items-center justify-center h-full text-lg text-red-500">{error}</div>
         ) : (

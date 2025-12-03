@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "check-expiring-docs": "node scripts/documentExpiryChecker.js"
+    "check-expiring-docs": "node scripts/documentExpiryChecker.js",
+    "init-leave-balances": "node scripts/initializeLeaveBalances.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

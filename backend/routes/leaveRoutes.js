@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
 const LeaveRecord = require('../models/LeaveRecord');
-const User = require('../models/User');
+const EmployeesHub = require('../models/EmployeesHub');
 
 /**
  * Leave Management Routes
@@ -104,12 +104,13 @@ router.post('/balances', async (req, res) => {
       });
     }
     
-    // Check if user exists
-    const user = await User.findById(userId);
-    if (!user) {
+    // Check if employee exists in EmployeesHub
+    const employee = await EmployeesHub.findById(userId);
+    
+    if (!employee) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'Employee not found. Leave balances are only for EmployeesHub employees.'
       });
     }
     
@@ -186,18 +187,23 @@ router.post('/balances/upload', async (req, res) => {
       try {
         const { identifier, leaveYearStart, leaveYearEnd, entitlementDays, carryOverDays } = item;
         
-        // Find user by email or vtid
-        let user;
-        if (identifier.includes('@')) {
-          user = await User.findOne({ email: identifier.toLowerCase() });
-        } else {
-          user = await User.findOne({ vtid: identifier });
-        }
+        // Find employee by email in EmployeesHub
+        let employee;
         
-        if (!user) {
+        if (identifier.includes('@')) {
+          employee = await EmployeesHub.findOne({ email: identifier.toLowerCase() });
+        } else {
           results.failed.push({
             identifier,
-            reason: 'User not found'
+            reason: 'Invalid identifier format (use email)'
+          });
+          continue;
+        }
+        
+        if (!employee) {
+          results.failed.push({
+            identifier,
+            reason: 'Employee not found in EmployeesHub'
           });
           continue;
         }
@@ -205,11 +211,11 @@ router.post('/balances/upload', async (req, res) => {
         // Create or update balance
         await AnnualLeaveBalance.findOneAndUpdate(
           { 
-            user: user._id, 
+            user: employee._id, 
             leaveYearStart: new Date(leaveYearStart) 
           },
           {
-            user: user._id,
+            user: employee._id,
             leaveYearStart: new Date(leaveYearStart),
             leaveYearEnd: new Date(leaveYearEnd),
             entitlementDays: entitlementDays || 20,
@@ -403,13 +409,18 @@ router.post('/records', async (req, res) => {
       });
     }
     
-    const user = await User.findById(userId);
-    if (!user) {
+    // Check if employee exists in EmployeesHub
+    const employee = await EmployeesHub.findById(userId);
+    
+    if (!employee) {
+      console.error('Employee not found in EmployeesHub:', userId);
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'Employee not found. Leave records are only for EmployeesHub employees.'
       });
     }
+    
+    console.log('Creating leave record for:', employee.email || employee.firstName);
     
     const record = new LeaveRecord({
       user: userId,

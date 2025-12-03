@@ -282,6 +282,10 @@ function App() {
                                     element={<EditUserProfile />}
                                   />
                                   <Route
+                                    path="/edit-user-profile/:id"
+                                    element={<EditUserProfile />}
+                                  />
+                                  <Route
                                     path="/profile"
                                     element={<Profile />}
                                   />
