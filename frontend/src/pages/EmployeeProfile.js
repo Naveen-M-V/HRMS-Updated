@@ -62,11 +62,11 @@ const EmployeeProfile = () => {
       }
 
       setLoading(true);
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees/${employeeId}`);
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employee-profile/${employeeId}`);
       
-      if (response.data.success && response.data.data) {
-        // Successfully fetched employee data
-        setEmployee(response.data.data);
+      // The employee-profile endpoint returns data directly, not wrapped in success/data
+      if (response.data) {
+        setEmployee(response.data);
       } else {
         console.error('Employee not found or API returned unsuccessful response');
         setEmployee(null);

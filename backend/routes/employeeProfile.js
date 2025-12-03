@@ -54,23 +54,59 @@ router.get('/:id', async (req, res) => {
       days: record.daysUsed
     }));
 
+    // Return complete employee data with leave balance
     const profileData = {
+      // Basic Info
       _id: employee._id,
       name: `${employee.firstName} ${employee.lastName}`,
-      email: employee.email,
       firstName: employee.firstName,
       lastName: employee.lastName,
+      email: employee.email,
       employeeId: employee.employeeId,
-      workingStatus: 'Working from usual location',
-      department: employee.department || 'Engineering',
-      position: employee.jobTitle || employee.position || 'Employee',
-      startDate: employee.startDate || '2022-01-15',
-      employmentType: employee.employmentType || 'Full-time',
-      phone: employee.phoneNumber || employee.phone || '',
-      address: employee.addressLine1 || employee.address || '',
+      
+      // Contact Info
+      phoneNumber: employee.phoneNumber,
+      mobileNumber: employee.mobileNumber,
+      phone: employee.phoneNumber || employee.mobileNumber,
+      
+      // Job Info
+      jobTitle: employee.jobTitle,
+      position: employee.jobTitle,
+      department: employee.department,
+      team: employee.team,
+      officeLocation: employee.officeLocation,
+      
+      // Dates
+      startDate: employee.startDate,
+      dateOfBirth: employee.dateOfBirth,
+      
+      // Personal Info
+      gender: employee.gender,
+      
+      // Address
+      addressLine1: employee.addressLine1,
+      addressLine2: employee.addressLine2,
+      city: employee.city,
+      postalCode: employee.postalCode,
+      country: employee.country,
+      address: employee.addressLine1,
+      
+      // Emergency Contact
+      emergencyContactName: employee.emergencyContactName,
+      emergencyContactRelation: employee.emergencyContactRelation,
+      emergencyContactPhone: employee.emergencyContactPhone,
+      emergencyContactEmail: employee.emergencyContactEmail,
+      
+      // Leave & Absence
       leaveBalance: leaveBalanceData,
       absences: absencesData,
-      recentAbsences: recentAbsences
+      recentAbsences: recentAbsences,
+      
+      // Other
+      workingStatus: 'On-site',
+      employmentType: employee.employmentType || 'Full-time',
+      initials: employee.initials || `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase(),
+      profilePhoto: employee.profilePhoto
     };
 
     res.json(profileData);
