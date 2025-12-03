@@ -475,6 +475,9 @@ export default function AddEmployee() {
         documents: formData.documents || []
       };
 
+      // Log the data being sent for debugging
+      console.log('📤 Sending employee data:', JSON.stringify(employeeData, null, 2));
+      
       let response;
       if (isEditMode) {
         response = await axios.put(
@@ -496,9 +499,14 @@ export default function AddEmployee() {
         throw new Error(response?.data?.message || 'Employee creation was rejected by the server.');
       }
     } catch (error) {
+      // Enhanced error logging
+      console.error('❌ Employee save failed:', error);
+      console.error('📋 Error response:', error.response?.data);
+      console.error('📋 Error status:', error.response?.status);
+      console.error('📋 Error message:', error.response?.data?.message);
+      
       const message = error.response?.data?.message || error.message || "Failed to save employee. Please try again.";
-      console.error('Employee save failed:', error);
-      showError(message);
+      showError(`Failed to save employee: ${message}`);
     } finally {
       setLoading(false);
     }
