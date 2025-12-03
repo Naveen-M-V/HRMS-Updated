@@ -72,7 +72,7 @@ export default function EditEmployeeProfile() {
           jobTitle: emp.jobTitle || "",
           department: emp.department || "",
           team: emp.team || "",
-          officeLocation: emp.officeLocation || "",
+          officeLocation: emp.officeLocation || emp.office || "",
           managerId: emp.managerId?._id || emp.managerId || "",
           employeeId: emp.employeeId || "",
           status: emp.status || "Active",
@@ -115,6 +115,7 @@ export default function EditEmployeeProfile() {
     try {
       const employeeData = {
         ...formData,
+        office: formData.officeLocation, // Map officeLocation to office
         dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
         startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
       };

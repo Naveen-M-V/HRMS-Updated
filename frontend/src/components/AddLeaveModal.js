@@ -39,8 +39,10 @@ export default function AddLeaveModal({ employee, onClose, onSuccess }) {
       onClose();
     } catch (err) {
       console.error('Failed to add leave record:', err);
-      const errorMessage = err.response?.data?.message || "Failed to add absence. Please try again.";
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Failed to add absence. Please try again.";
       setError(errorMessage);
+      alert(`Error details: ${errorMessage}\n\nCheck console for full error.`);
     } finally {
       setLoading(false);
     }
