@@ -84,7 +84,7 @@ annualLeaveBalanceSchema.statics.recalculateUsedDays = async function(userId, le
   const result = await LeaveRecord.aggregate([
     {
       $match: {
-        user: mongoose.Types.ObjectId(userId),
+        user: new mongoose.Types.ObjectId(userId),
         type: 'annual',
         status: 'approved',
         startDate: { $lte: new Date(leaveYearEnd) },
