@@ -9,6 +9,7 @@ import {
   TableRow,
 } from './ui/table';
 import { Button } from './ui/button';
+import TimelineBar from './TimelineBar';
 
 export function EmployeeTimeTable({ records, onEdit, onDelete }) {
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -20,7 +21,7 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
         setOpenMenuId(null);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenuId]);
@@ -54,6 +55,9 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
               </TableHead>
               <TableHead className="w-48">
                 <div className="text-gray-700 font-semibold">Geolocation</div>
+              </TableHead>
+              <TableHead className="min-w-[400px]">
+                <div className="text-gray-700 font-semibold">Timeline</div>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -196,6 +200,38 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                       </a>
                     ) : (
                       <span className="text-gray-500">{record.geolocation}</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="py-2">
+                    {record.sessions && record.sessions.length > 0 && record.sessions[0].clockIn !== '--' ? (
+                      <TimelineBar
+                        segments={(() => {
+                          // Convert session data to timeline segments
+                          const segments = [];
+                          const firstSession = record.sessions[0];
+
+                          // Only show timeline if we have valid clock-in time
+                          if (firstSession.clockIn && firstSession.clockIn !== '--') {
+                            const clockOutTime = firstSession.clockOut !== '--' ? firstSession.clockOut : 'Present';
+
+                            segments.push({
+                              type: 'working',
+                              startTime: firstSession.clockIn,
+                              endTime: clockOutTime,
+                              label: 'Working'
+                            });
+                          }
+
+                          return segments;
+                        })()}
+                        clockInTime={record.sessions[0].clockIn}
+                        clockOutTime={record.sessions[0].clockOut !== '--' ? record.sessions[0].clockOut : 'Present'}
+                        isToday={record.day === 'Today'}
+                      />
+                    ) : (
+                      <div className="text-center text-gray-400 text-sm py-2">No data</div>
                     )}
                   </div>
                 </TableCell>
