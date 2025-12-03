@@ -8,25 +8,28 @@ const initialOrgData = {
   name: "Your Company",
   role: "Company Root",
   initials: "YC",
-  branch: "Executive Leadership",
+  branches: ["Executive Leadership", "Corporate"],
   children: [
     {
       id: "ceo",
       name: "CEO",
       role: "Chief Executive Officer",
       initials: "CE",
+      branches: ["Executive", "Strategy"],
       peers: [
         {
           id: "cfo",
           name: "CFO",
           role: "Chief Financial Officer",
-          initials: "CF"
+          initials: "CF",
+          branches: ["Finance", "Operations"]
         },
         {
           id: "cto",
           name: "CTO",
           role: "Chief Technology Officer",
-          initials: "CT"
+          initials: "CT",
+          branches: ["Technology", "Innovation"]
         }
       ],
       children: [
@@ -35,7 +38,7 @@ const initialOrgData = {
           name: "Engineering",
           role: "Engineering Department",
           initials: "EN",
-          branch: "Engineering Division",
+          branches: ["Engineering Division", "Product Development"],
           children: []
         },
         {
@@ -43,7 +46,7 @@ const initialOrgData = {
           name: "Sales",
           role: "Sales Department",
           initials: "SA",
-          branch: "Sales Division",
+          branches: ["Sales Division", "Revenue"],
           children: []
         }
       ]
@@ -126,7 +129,8 @@ function EditNodeModal({ isOpen, onClose, node, onSave }) {
   const [formData, setFormData] = useState({
     name: node?.name || '',
     role: node?.role || '',
-    initials: node?.initials || ''
+    initials: node?.initials || '',
+    branches: node?.branches || []
   });
 
   const handleSubmit = (e) => {
@@ -135,11 +139,25 @@ function EditNodeModal({ isOpen, onClose, node, onSave }) {
     onClose();
   };
 
+  const handleBranchChange = (index, value) => {
+    const newBranches = [...formData.branches];
+    if (value) {
+      newBranches[index] = value;
+    } else {
+      newBranches.splice(index, 1);
+    }
+    setFormData({ ...formData, branches: newBranches });
+  };
+
+  const addBranch = () => {
+    setFormData({ ...formData, branches: [...formData.branches, ''] });
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl p-6 w-96">
+      <div className="bg-white rounded-xl shadow-2xl p-6 w-96 max-h-[80vh] overflow-y-auto">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Edit {node?.type || 'Node'}</h3>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -173,6 +191,34 @@ function EditNodeModal({ isOpen, onClose, node, onSave }) {
               required
             />
           </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Branches/Departments</label>
+            {formData.branches.map((branch, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={branch}
+                  onChange={(e) => handleBranchChange(index, e.target.value)}
+                  placeholder="Enter branch name"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleBranchChange(index, '')}
+                  className="px-2 py-1 text-red-600 hover:bg-red-50 rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addBranch}
+              className="mt-2 text-blue-600 text-sm font-medium hover:underline flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-1" /> Add Branch
+            </button>
+          </div>
           <div className="flex gap-3 justify-end">
             <button
               type="button"
@@ -199,7 +245,7 @@ function TreeNode({ node, level = 0, isEditable = false, onEdit, onDelete, onAdd
   const isHidden = hiddenNodes.includes(node.id);
   const hasChildren = node.children && node.children.length > 0;
   const hasPeers = node.peers && node.peers.length > 0;
-  const hasBranch = node.branch; // Branch/Department indicator
+  const hasBranches = node.branches && node.branches.length > 0;
 
   const handleDragStart = (e) => {
     if (isEditable) {
@@ -223,10 +269,17 @@ function TreeNode({ node, level = 0, isEditable = false, onEdit, onDelete, onAdd
 
   return (
     <div className="flex flex-col items-center">
-      {/* Branch/Department Label */}
-      {hasBranch && (
-        <div className="mb-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg text-sm font-semibold">
-          {node.branch}
+      {/* Branch/Department Labels */}
+      {hasBranches && (
+        <div className="mb-4 flex flex-wrap gap-2 justify-center">
+          {node.branches.map((branch, index) => (
+            <div
+              key={index}
+              className="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg text-xs font-semibold"
+            >
+              {branch}
+            </div>
+          ))}
         </div>
       )}
 
@@ -467,11 +520,22 @@ function OrganisationalChart() {
 
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 3);
 
+    // Ask if user wants to add branches
+    const addBranches = window.confirm(`Would you like to add branches/departments for ${name}?`);
+    let branches = [];
+    
+    if (addBranches) {
+      const branchInput = prompt(`Enter branches/departments for ${name} (comma-separated):`);
+      if (branchInput) {
+        branches = branchInput.split(',').map(b => b.trim()).filter(b => b);
+      }
+    }
+
     const addNodeToTree = (tree, targetId, newNode) => {
       if (tree.id === targetId) {
         return {
           ...tree,
-          children: [...(tree.children || []), { ...newNode, id: Date.now().toString(), children: [] }]
+          children: [...(tree.children || []), { ...newNode, id: Date.now().toString(), children: [], branches }]
         };
       }
       if (tree.children) {
@@ -483,7 +547,7 @@ function OrganisationalChart() {
       return tree;
     };
 
-    setOrgData(addNodeToTree(orgData, parentNode.id, { name, role, initials }));
+    setOrgData(addNodeToTree(orgData, parentNode.id, { name, role, initials, branches }));
     setHasChanges(true);
   };
 

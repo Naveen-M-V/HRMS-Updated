@@ -40,6 +40,11 @@ const Calendar = () => {
   const [shiftAssignments, setShiftAssignments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // NEW: Day expansion state
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [dayDetails, setDayDetails] = useState([]);
+  const [activeTab, setActiveTab] = useState('all'); // 'all', 'short-term', 'long-term'
 
   // NEW: Fetch calendar events when month changes
   useEffect(() => {
@@ -167,6 +172,109 @@ const Calendar = () => {
     });
     
     return events;
+  };
+
+  // NEW: Handle day expansion
+  const handleDayClick = (date) => {
+    const dateString = date.format('YYYY-MM-DD');
+    
+    if (expandedDay === dateString) {
+      // Close if clicking the same day
+      setExpandedDay(null);
+      setDayDetails([]);
+      setActiveTab('all');
+    } else {
+      // Expand the clicked day
+      setExpandedDay(dateString);
+      fetchDayDetails(date);
+    }
+  };
+
+  // NEW: Fetch detailed information for a specific day
+  const fetchDayDetails = async (date) => {
+    const dateString = date.format('YYYY-MM-DD');
+    const details = [];
+    
+    // Process leave records for this day
+    leaveRecords.forEach(leave => {
+      const leaveStart = dayjs(leave.startDate).format('YYYY-MM-DD');
+      const leaveEnd = dayjs(leave.endDate).format('YYYY-MM-DD');
+      
+      if (dateString >= leaveStart && dateString <= leaveEnd) {
+        const employeeName = leave.user 
+          ? `${leave.user.firstName || ''} ${leave.user.lastName || ''}`.trim()
+          : 'Unknown';
+        
+        const duration = dayjs(leave.endDate).diff(dayjs(leave.startDate), 'day') + 1;
+        const isLongTerm = duration > 7;
+        
+        details.push({
+          id: leave._id,
+          type: 'leave',
+          employeeName,
+          startDate: dayjs(leave.startDate).format('ddd D MMM YY'),
+          endDate: dayjs(leave.endDate).format('ddd D MMM YY'),
+          duration: `${duration} day${duration > 1 ? 's' : ''}`,
+          leaveType: leave.type || 'Annual leave',
+          category: isLongTerm ? 'long-term' : 'short-term',
+          status: leave.status || 'approved',
+          icon: '🏖️',
+          color: isLongTerm ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
+        });
+      }
+    });
+    
+    // Process shift assignments for this day
+    shiftAssignments.forEach(shift => {
+      const shiftDate = dayjs(shift.date).format('YYYY-MM-DD');
+      
+      if (shiftDate === dateString) {
+        const employeeName = shift.employeeId
+          ? `${shift.employeeId.firstName || ''} ${shift.employeeId.lastName || ''}`.trim()
+          : 'Unassigned';
+        
+        details.push({
+          id: shift._id,
+          type: 'shift',
+          employeeName,
+          startDate: dayjs(shift.date).format('ddd D MMM YY'),
+          endDate: dayjs(shift.date).format('ddd D MMM YY'),
+          duration: '1 day',
+          leaveType: `${shift.location || 'Shift'} - ${shift.startTime || ''} to ${shift.endTime || ''}`,
+          category: 'shift',
+          status: shift.status || 'Scheduled',
+          icon: '👔',
+          color: shift.status === 'Completed' 
+            ? 'bg-green-100 text-green-800'
+            : shift.status === 'Missed' || shift.status === 'Cancelled'
+            ? 'bg-red-100 text-red-800'
+            : 'bg-blue-100 text-blue-800'
+        });
+      }
+    });
+    
+    setDayDetails(details);
+  };
+
+  // NEW: Filter details based on active tab
+  const getFilteredDetails = () => {
+    switch (activeTab) {
+      case 'short-term':
+        return dayDetails.filter(detail => detail.category === 'short-term');
+      case 'long-term':
+        return dayDetails.filter(detail => detail.category === 'long-term');
+      default:
+        return dayDetails;
+    }
+  };
+
+  // NEW: Get tab counts
+  const getTabCounts = () => {
+    const all = dayDetails.length;
+    const shortTerm = dayDetails.filter(detail => detail.category === 'short-term').length;
+    const longTerm = dayDetails.filter(detail => detail.category === 'long-term').length;
+    
+    return { all, shortTerm, longTerm };
   };
 
   // Load employees when modal opens (REAL DATA)
@@ -468,7 +576,7 @@ const Calendar = () => {
                 className={`min-h-[80px] p-2 border-r border-b cursor-pointer transition-colors ${
                   !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
                 } ${isToday ? 'bg-blue-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:bg-gray-50`}
-                onClick={() => setSelectedDate(date)}
+                onClick={() => handleDayClick(date)}
               >
                 <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}`}>
                   {date.format('D')}
@@ -494,6 +602,114 @@ const Calendar = () => {
           })}
         </div>
       </div>
+
+      {/* Expanded Day View */}
+      {expandedDay && (
+        <div className="mt-6 bg-white rounded-lg shadow">
+          <div className="p-6 border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">
+                  {dayjs(expandedDay).format('dddd D MMMM')}
+                </h2>
+                <p className="text-gray-600">
+                  {dayjs(expandedDay).format('MMMM YYYY')}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setExpandedDay(null);
+                  setDayDetails([]);
+                  setActiveTab('all');
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="border-b">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'all'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                All ({getTabCounts().all})
+              </button>
+              <button
+                onClick={() => setActiveTab('short-term')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'short-term'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Short-term absences ({getTabCounts().shortTerm})
+              </button>
+              <button
+                onClick={() => setActiveTab('long-term')}
+                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'long-term'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Long-term absences ({getTabCounts().longTerm})
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {getFilteredDetails().length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-2">
+                  <CalendarDaysIcon className="h-12 w-12 mx-auto" />
+                </div>
+                <p className="text-gray-500">No events found for this day</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {getFilteredDetails().map((detail) => (
+                  <div
+                    key={detail.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="text-2xl">{detail.icon}</div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {detail.employeeName}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {detail.startDate} - {detail.endDate}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {detail.duration} • {detail.leaveType}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${detail.color}`}>
+                        {detail.status}
+                      </span>
+                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <DocumentTextIcon className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Time Off Modal */}
       {showTimeOffModal && (
