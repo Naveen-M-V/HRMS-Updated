@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import {
   ClipboardDocumentIcon,
+  ClipboardDocumentCheckIcon,
   AcademicCapIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -347,6 +348,23 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <CalendarIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
               <span className="text-sm font-medium flex-1 text-left">Calendar</span>
+            )}
+          </button>
+        </div>
+
+        {/* Manager Approvals Section */}
+        <div>
+          <button
+            onClick={() => handleNavigation("/manager-approvals")}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              isActive("/manager-approvals")
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <ClipboardDocumentCheckIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">Leave Approvals</span>
             )}
           </button>
         </div>

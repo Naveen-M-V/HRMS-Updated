@@ -58,6 +58,7 @@ import ArchiveEmployees from "./pages/ArchiveEmployees";
 import Calendar from "./pages/Calendar";
 import OrganisationalChart from "./pages/OrganisationalChart";
 import AnnualLeaveBalance from "./components/AnnualLeaveBalance";
+import ManagerApprovalDashboard from "./pages/ManagerApprovalDashboard";
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -379,6 +380,10 @@ function App() {
                                   <Route
                                     path="/annual-leave-balance"
                                     element={<AnnualLeaveBalance />}
+                                  />
+                                  <Route
+                                    path="/manager-approvals"
+                                    element={<ManagerApprovalDashboard />}
                                   />
                                 </Routes>
                               </div>

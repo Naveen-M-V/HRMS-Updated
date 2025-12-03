@@ -149,10 +149,22 @@ const EmployeeProfile = () => {
       </button>
     </div>
     {/* Details */}
-    <div className="flex flex-col gap-1 text-left">
-      <span className="text-2xl font-bold text-gray-900 leading-tight">
-  {employee.name || employee.firstName && employee.lastName ? `${employee.firstName} ${employee.lastName}` : ''}
-</span>
+    <div className="flex-1 flex flex-col gap-1 text-left">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl font-bold text-gray-900 leading-tight">
+          {employee.name || employee.firstName && employee.lastName ? `${employee.firstName} ${employee.lastName}` : ''}
+        </span>
+        <button
+          onClick={() => navigate(`/edit-employee/${employeeId}`)}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          title="Edit Employee Details"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z" />
+          </svg>
+          Edit Profile
+        </button>
+      </div>
 <span className="text-base text-gray-700">
   {employee.jobRole || employee.jobTitle || employee.position || ''}
 </span>

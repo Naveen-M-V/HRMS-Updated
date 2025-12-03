@@ -5,33 +5,10 @@ import axios from "../utils/axiosConfig";
 // Initial org data structure
 const initialOrgData = {
   id: "root",
-  name: "SCB Group Limited",
-  role: "",
-  initials: "SC",
-  children: [
-    {
-      id: "1",
-      name: "Stefan Bond",
-      role: "Managing Director",
-      initials: "SB",
-      children: [
-        {
-          id: "2",
-          name: "Jo Evans",
-          role: "Work Coordinator (Admin)",
-          initials: "JE",
-          children: []
-        },
-        {
-          id: "3",
-          name: "Gareth Leonard",
-          role: "Operations Director",
-          initials: "GL",
-          children: []
-        }
-      ]
-    }
-  ]
+  name: "Your Company",
+  role: "Company Root",
+  initials: "YC",
+  children: []
 };
 
 // Avatar component
@@ -281,13 +258,32 @@ function OrganisationalChart() {
     async function fetchData() {
       setLoading(true);
       try {
-        // For now, use initial data. In production, load from API
-        // const response = await axios.get("/api/orgchart");
-        // setOrgData(response.data);
+        // First, try to load custom org chart from localStorage
+        const savedOrgChart = localStorage.getItem('customOrgChart');
+        if (savedOrgChart) {
+          const parsed = JSON.parse(savedOrgChart);
+          setOrgData(parsed);
+          setOriginalOrgData(parsed);
+          setLoading(false);
+          return;
+        }
+        
+        // If no saved chart, load from backend
+        const response = await axios.get("/api/employees/org-chart");
+        if (response.data.success && response.data.data && response.data.data.length > 0) {
+          // Use the first org chart from backend
+          setOrgData(response.data.data[0]);
+          setOriginalOrgData(response.data.data[0]);
+        } else {
+          // No org chart in backend, use initial data
+          setOrgData(initialOrgData);
+          setOriginalOrgData(initialOrgData);
+        }
+      } catch (err) {
+        console.error("Failed to load org chart:", err);
+        // Fallback to initial data if API fails
         setOrgData(initialOrgData);
         setOriginalOrgData(initialOrgData);
-      } catch (err) {
-        setError("Failed to load org chart data");
       } finally {
         setLoading(false);
       }
@@ -461,14 +457,20 @@ function OrganisationalChart() {
   const handleSave = async () => {
     try {
       setLoading(true);
-      // TODO: Save to backend
-      // await axios.post("/api/orgchart/update", orgData);
-      console.log('Saving org chart:', JSON.stringify(orgData, null, 2));
+      
+      // Store org chart in localStorage for persistence
+      localStorage.setItem('customOrgChart', JSON.stringify(orgData));
+      
+      console.log('Org chart saved to localStorage');
+      alert('Organizational chart saved successfully! Note: This is stored locally. To persist changes permanently, employee manager relationships need to be updated in the employee profiles.');
+      
       setOriginalOrgData(JSON.parse(JSON.stringify(orgData)));
       setHasChanges(false);
       setIsEditable(false);
     } catch (err) {
+      console.error('Failed to save org chart:', err);
       setError("Failed to save org chart");
+      alert('Failed to save org chart. Please try again.');
     } finally {
       setLoading(false);
     }
