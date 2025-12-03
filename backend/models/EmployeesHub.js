@@ -80,8 +80,9 @@ const employeeHubSchema = new mongoose.Schema({
   // Office/Location Information
   office: {
     type: String,
-    required: [true, 'Office location is required'],
-    trim: true
+    required: false, // Made optional since frontend uses OrganisationName instead
+    trim: true,
+    default: ''
   },
   workLocation: {
     type: String,

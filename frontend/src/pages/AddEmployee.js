@@ -87,6 +87,9 @@ export default function AddEmployee() {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 5;
 
+  // Employees list for manager dropdown
+  const [employees, setEmployees] = useState([]);
+
   // Form data state
   const [formData, setFormData] = useState({
     // Basic details
@@ -104,6 +107,7 @@ export default function AddEmployee() {
     department: "",
     team: "",
     office: "",
+    managerId: "",
     OrganisationName: "",
     employmentStartDate: "",
     probationEndDate: "",
@@ -291,6 +295,22 @@ export default function AddEmployee() {
   };
 
   // Load employee data when in edit mode
+  // Fetch employees for manager dropdown
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
+        if (response.data?.data) {
+          setEmployees(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+      }
+    };
+    
+    fetchEmployees();
+  }, []);
+
   useEffect(() => {
     if (isEditMode && editEmployeeId) {
       fetchEmployeeData(editEmployeeId);
@@ -434,6 +454,7 @@ export default function AddEmployee() {
         department: formData.department,
         team: formData.team || "",
         office: formData.office,
+        managerId: formData.managerId || null,
         OrganisationName: formData.OrganisationName,
         startDate: formattedStartDate, // Map employmentStartDate to startDate for backend
         probationEndDate: formData.probationEndDate ? formatDateField(formData.probationEndDate) : null,
@@ -504,8 +525,15 @@ export default function AddEmployee() {
       console.error('📋 Error response:', error.response?.data);
       console.error('📋 Error status:', error.response?.status);
       console.error('📋 Error message:', error.response?.data?.message);
+      console.error('📋 Validation errors:', error.response?.data?.errors);
       
-      const message = error.response?.data?.message || error.message || "Failed to save employee. Please try again.";
+      // Build detailed error message
+      let message = error.response?.data?.message || error.message || "Failed to save employee. Please try again.";
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const errorDetails = error.response.data.errors.map(err => err.message || err).join(', ');
+        message = `${message}: ${errorDetails}`;
+      }
+      
       showError(`Failed to save employee: ${message}`);
     } finally {
       setLoading(false);
@@ -960,6 +988,25 @@ export default function AddEmployee() {
                   onChange={(e) => handleInputChange("team", e.target.value)}
                   className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              </div>
+
+              {/* Manager */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reports To (Manager)
+                </label>
+                <select
+                  value={formData.managerId}
+                  onChange={(e) => handleInputChange("managerId", e.target.value)}
+                  className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="">No Manager (Top Level)</option>
+                  {employees.map((emp) => (
+                    <option key={emp._id} value={emp._id}>
+                      {emp.firstName} {emp.lastName} - {emp.jobTitle}
+                    </option>
+                  ))}
+                </select>
               </div>
 
             {/* Organisation Name */}
