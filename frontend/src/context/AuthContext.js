@@ -154,7 +154,7 @@ export const AuthProvider = ({ children }) => {
   // Check for existing session on app start
   useEffect(() => {
     let isMounted = true;
-    
+
     // Only run background validation if user is not already set
     if (!user && isMounted) {
       checkExistingSession();
@@ -163,7 +163,7 @@ export const AuthProvider = ({ children }) => {
     // Listen for localStorage changes to sync across tabs (session management only)
     const handleStorageChange = (e) => {
       if (!isMounted) return;
-      
+
       if (e.key === 'user_session') {
         if (e.newValue) {
           try {
@@ -207,7 +207,8 @@ export const AuthProvider = ({ children }) => {
         withCredentials: true
       });
 
-      const { token, user: userData } = response.data;
+      // Backend returns: { success: true, data: { user, token, userType } }
+      const { token, user: userData } = response.data.data || response.data;
 
       if (!userData) {
         throw new Error('Invalid response from server');
@@ -224,6 +225,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
+      console.error('Login error:', err.response?.data || err.message);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);

@@ -2,13 +2,53 @@ import React, { useState, useRef, useCallback } from "react";
 import { ZoomIn, ZoomOut, Edit3, Printer, EyeOff, Eye, X, Plus, Save, RotateCcw, Trash2 } from "lucide-react";
 import axios from "../utils/axiosConfig";
 
-// Initial org data structure
+// Initial org data structure with branches and co-employees
 const initialOrgData = {
   id: "root",
   name: "Your Company",
   role: "Company Root",
   initials: "YC",
-  children: []
+  branch: "Executive Leadership",
+  children: [
+    {
+      id: "ceo",
+      name: "CEO",
+      role: "Chief Executive Officer",
+      initials: "CE",
+      peers: [
+        {
+          id: "cfo",
+          name: "CFO",
+          role: "Chief Financial Officer",
+          initials: "CF"
+        },
+        {
+          id: "cto",
+          name: "CTO",
+          role: "Chief Technology Officer",
+          initials: "CT"
+        }
+      ],
+      children: [
+        {
+          id: "eng-dept",
+          name: "Engineering",
+          role: "Engineering Department",
+          initials: "EN",
+          branch: "Engineering Division",
+          children: []
+        },
+        {
+          id: "sales-dept",
+          name: "Sales",
+          role: "Sales Department",
+          initials: "SA",
+          branch: "Sales Division",
+          children: []
+        }
+      ]
+    }
+  ]
 };
 
 // Avatar component
@@ -26,9 +66,8 @@ function NodeCard({ node, onProfile, children, hideable, hidden, onToggle, onEdi
   return (
     <div className="flex flex-col items-center">
       <div
-        className={`bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-150 px-6 py-4 min-w-[210px] max-w-[240px] flex flex-col items-center border border-[#e7edf5] cursor-pointer relative ${
-          isDragging ? 'opacity-50 scale-95' : ''
-        } ${isEditable ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}`}
+        className={`bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-150 px-6 py-4 min-w-[210px] max-w-[240px] flex flex-col items-center border border-[#e7edf5] cursor-pointer relative ${isDragging ? 'opacity-50 scale-95' : ''
+          } ${isEditable ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}`}
         onClick={onProfile}
         style={{ zIndex: 2 }}
       >
@@ -50,11 +89,11 @@ function NodeCard({ node, onProfile, children, hideable, hidden, onToggle, onEdi
             </button>
           </div>
         )}
-        
+
         <Avatar initials={node.initials} />
         <div className="mt-3 text-lg font-bold text-gray-900 text-center leading-tight">{node.name}</div>
         <div className="text-sm text-gray-500 text-center mt-1">{node.role}</div>
-        
+
         {hideable && (
           <button
             className="mt-3 text-[#0056b3] text-sm font-medium hover:underline focus:outline-none"
@@ -67,7 +106,7 @@ function NodeCard({ node, onProfile, children, hideable, hidden, onToggle, onEdi
             )}
           </button>
         )}
-        
+
         {isEditable && !hideable && (
           <button
             className="mt-3 text-green-600 text-sm font-medium hover:underline focus:outline-none"
@@ -155,11 +194,13 @@ function EditNodeModal({ isOpen, onClose, node, onSave }) {
   );
 }
 
-// Tree Node Component (Recursive)
+// Tree Node Component (Recursive) - Enhanced with co-employees and branches
 function TreeNode({ node, level = 0, isEditable = false, onEdit, onDelete, onAdd, onToggle, hiddenNodes, draggedNode, onDragStart, onDragOver, onDrop }) {
   const isHidden = hiddenNodes.includes(node.id);
   const hasChildren = node.children && node.children.length > 0;
-  
+  const hasPeers = node.peers && node.peers.length > 0;
+  const hasBranch = node.branch; // Branch/Department indicator
+
   const handleDragStart = (e) => {
     if (isEditable) {
       onDragStart(e, node);
@@ -182,36 +223,96 @@ function TreeNode({ node, level = 0, isEditable = false, onEdit, onDelete, onAdd
 
   return (
     <div className="flex flex-col items-center">
-      <div
-        draggable={isEditable}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        className={`transition-all duration-200 ${isEditable ? 'cursor-move' : ''}`}
-      >
-        <NodeCard
-          node={node}
-          isEditable={isEditable}
-          hideable={hasChildren}
-          hidden={isHidden}
-          onToggle={() => onToggle(node.id)}
-          onEdit={() => onEdit(node)}
-          onDelete={() => onDelete(node)}
-          onAdd={() => onAdd(node)}
-          isDragging={draggedNode?.id === node.id}
-        />
+      {/* Branch/Department Label */}
+      {hasBranch && (
+        <div className="mb-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg text-sm font-semibold">
+          {node.branch}
+        </div>
+      )}
+
+      {/* Main node with peers (horizontal layout) */}
+      <div className="flex items-center gap-6">
+        {/* Left peers */}
+        {hasPeers && node.peers.slice(0, Math.floor(node.peers.length / 2)).map((peer, index) => (
+          <div key={`peer-left-${index}`} className="relative">
+            {/* Horizontal connector to main node */}
+            <div className="absolute top-1/2 -right-3 w-6 h-0.5 bg-blue-400 transform -translate-y-1/2"></div>
+            <div
+              draggable={isEditable}
+              onDragStart={(e) => isEditable && onDragStart(e, peer)}
+              onDragOver={(e) => isEditable && handleDragOver(e)}
+              onDrop={(e) => isEditable && handleDrop(e)}
+              className={`transition-all duration-200 ${isEditable ? 'cursor-move' : ''}`}
+            >
+              <NodeCard
+                node={peer}
+                isEditable={isEditable}
+                onEdit={() => onEdit(peer)}
+                onDelete={() => onDelete(peer)}
+                onAdd={() => onAdd(peer)}
+                isDragging={draggedNode?.id === peer.id}
+              />
+            </div>
+          </div>
+        ))}
+
+        {/* Main node */}
+        <div
+          draggable={isEditable}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          className={`transition-all duration-200 ${isEditable ? 'cursor-move' : ''} ${hasPeers ? 'ring-2 ring-blue-300 ring-offset-2' : ''}`}
+        >
+          <NodeCard
+            node={node}
+            isEditable={isEditable}
+            hideable={hasChildren}
+            hidden={isHidden}
+            onToggle={() => onToggle(node.id)}
+            onEdit={() => onEdit(node)}
+            onDelete={() => onDelete(node)}
+            onAdd={() => onAdd(node)}
+            isDragging={draggedNode?.id === node.id}
+          />
+        </div>
+
+        {/* Right peers */}
+        {hasPeers && node.peers.slice(Math.floor(node.peers.length / 2)).map((peer, index) => (
+          <div key={`peer-right-${index}`} className="relative">
+            {/* Horizontal connector to main node */}
+            <div className="absolute top-1/2 -left-3 w-6 h-0.5 bg-blue-400 transform -translate-y-1/2"></div>
+            <div
+              draggable={isEditable}
+              onDragStart={(e) => isEditable && onDragStart(e, peer)}
+              onDragOver={(e) => isEditable && handleDragOver(e)}
+              onDrop={(e) => isEditable && handleDrop(e)}
+              className={`transition-all duration-200 ${isEditable ? 'cursor-move' : ''}`}
+            >
+              <NodeCard
+                node={peer}
+                isEditable={isEditable}
+                onEdit={() => onEdit(peer)}
+                onDelete={() => onDelete(peer)}
+                onAdd={() => onAdd(peer)}
+                isDragging={draggedNode?.id === peer.id}
+              />
+            </div>
+          </div>
+        ))}
       </div>
-      
+
+      {/* Children (subordinates) */}
       {!isHidden && hasChildren && (
         <div className="relative">
           {/* Vertical connector */}
           <div className="w-0.5 h-8 bg-[#c9d4df] mx-auto"></div>
-          
+
           {/* Horizontal connector and children */}
           <div className="flex gap-8 relative">
             {/* Horizontal line */}
             <div className="absolute top-0 left-1/2 w-full h-0.5 bg-[#c9d4df] transform -translate-x-1/2"></div>
-            
+
             {node.children.map((child, index) => (
               <div key={child.id} className="relative">
                 {/* Vertical connector to child */}
@@ -267,7 +368,7 @@ function OrganisationalChart() {
           setLoading(false);
           return;
         }
-        
+
         // If no saved chart, load from backend
         const response = await axios.get("/api/employees/org-chart");
         if (response.data.success && response.data.data && response.data.data.length > 0) {
@@ -325,7 +426,7 @@ function OrganisationalChart() {
       }
       return tree;
     };
-    
+
     setOrgData(updateNodeInTree(orgData, updatedNode.id, updatedNode));
     setHasChanges(true);
   };
@@ -388,8 +489,8 @@ function OrganisationalChart() {
 
   // Toggle node visibility
   const handleToggleNode = (nodeId) => {
-    setHiddenNodes(prev => 
-      prev.includes(nodeId) 
+    setHiddenNodes(prev =>
+      prev.includes(nodeId)
         ? prev.filter(id => id !== nodeId)
         : [...prev, nodeId]
     );
@@ -408,7 +509,7 @@ function OrganisationalChart() {
 
   const handleDrop = (e, targetNode) => {
     e.preventDefault();
-    
+
     if (!draggedNode || draggedNode.id === targetNode.id) {
       setDraggedNode(null);
       return;
@@ -447,7 +548,7 @@ function OrganisationalChart() {
 
     let updatedData = removeNodeFromTree(orgData, draggedNode.id);
     updatedData = addNodeToTree(updatedData, targetNode.id, draggedNode);
-    
+
     setOrgData(updatedData);
     setHasChanges(true);
     setDraggedNode(null);
@@ -457,13 +558,13 @@ function OrganisationalChart() {
   const handleSave = async () => {
     try {
       setLoading(true);
-      
+
       // Store org chart in localStorage for persistence
       localStorage.setItem('customOrgChart', JSON.stringify(orgData));
-      
+
       console.log('Org chart saved to localStorage');
       alert('Organizational chart saved successfully! Note: This is stored locally. To persist changes permanently, employee manager relationships need to be updated in the employee profiles.');
-      
+
       setOriginalOrgData(JSON.parse(JSON.stringify(orgData)));
       setHasChanges(false);
       setIsEditable(false);
@@ -487,7 +588,7 @@ function OrganisationalChart() {
   const handlePrint = () => {
     // Add print-specific class to body
     document.body.classList.add('printing-org-chart');
-    
+
     // Add print styles dynamically
     const style = document.createElement('style');
     style.id = 'org-chart-print-styles';
@@ -513,9 +614,9 @@ function OrganisationalChart() {
       }
     `;
     document.head.appendChild(style);
-    
+
     window.print();
-    
+
     // Cleanup after print
     setTimeout(() => {
       document.body.classList.remove('printing-org-chart');
@@ -545,17 +646,17 @@ function OrganisationalChart() {
             This is an experimental feature, please send us feedback to tell us what you love and what doesn't work for you.
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3 mt-4 md:mt-0">
           {isEditable ? (
             <>
-              <button 
+              <button
                 onClick={handleCancel}
                 className="border-2 border-[#e00070] text-[#e00070] px-5 py-2 rounded-lg font-medium text-sm hover:bg-[#fbeaf3] transition-colors flex items-center"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleSave}
                 className="bg-[#e00070] text-white px-5 py-2 rounded-lg font-medium text-sm hover:bg-[#c00060] transition-colors flex items-center disabled:opacity-50"
                 disabled={!hasChanges}
@@ -564,18 +665,18 @@ function OrganisationalChart() {
               </button>
             </>
           ) : (
-            <button 
+            <button
               className="border-2 border-[#e00070] text-[#e00070] px-5 py-2 rounded-lg font-medium text-sm hover:bg-[#fbeaf3] transition-colors flex items-center"
               onClick={handleEditToggle}
             >
               <Edit3 className="w-4 h-4 mr-2" /> Edit
             </button>
           )}
-          
+
           <button className="bg-[#e00070] text-white px-5 py-2 rounded-lg font-medium text-sm hover:bg-[#c00060] transition-colors flex items-center">
             Unpublish
           </button>
-          <button 
+          <button
             onClick={handlePrint}
             className="border-2 border-[#e00070] text-[#e00070] px-5 py-2 rounded-lg font-medium text-sm hover:bg-[#fbeaf3] transition-colors flex items-center"
           >
@@ -595,7 +696,7 @@ function OrganisationalChart() {
         {error ? (
           <div className="flex items-center justify-center h-full text-lg text-red-500">{error}</div>
         ) : (
-          <div 
+          <div
             className="flex justify-center transition-transform duration-200"
             style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
           >
