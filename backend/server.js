@@ -463,8 +463,9 @@ userSchema.statics.authenticate = async function(identifier, password) {
     return { success: false, message: 'Invalid credentials' };
   }
 
-  // Check if profile is approved
-  if (!user.isAdminApproved) {
+  // Check if profile is approved (only if field is explicitly set to false)
+  // If undefined or true, allow login (backward compatibility with existing users)
+  if (user.isAdminApproved === false) {
     return { success: false, message: 'Your profile is pending admin approval' };
   }
 
