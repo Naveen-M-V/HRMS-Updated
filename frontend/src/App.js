@@ -58,8 +58,10 @@ import AddEmployee from "./pages/AddEmployee";
 import ArchiveEmployees from "./pages/ArchiveEmployees";
 import Calendar from "./pages/Calendar";
 import OrganisationalChart from "./pages/OrganisationalChart";
-import AnnualLeaveBalance from "./components/AnnualLeaveBalance";
-import ManagerApprovalDashboard from "./pages/ManagerApprovalDashboard";
+import AnnualLeaveBalance from './pages/AnnualLeaveBalance';
+import ManagerApprovalDashboard from './pages/ManagerApprovalDashboard';
+import Documents from './pages/Documents';
+import FolderView from './pages/FolderView';
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -393,6 +395,14 @@ function App() {
                                   <Route
                                     path="/manager-approvals"
                                     element={<ManagerApprovalDashboard />}
+                                  />
+                                  <Route
+                                    path="/documents"
+                                    element={<Documents />}
+                                  />
+                                  <Route
+                                    path="/documents/:folderId"
+                                    element={<FolderView />}
                                   />
                                 </Routes>
                               </div>
