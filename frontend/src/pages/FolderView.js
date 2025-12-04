@@ -152,6 +152,11 @@ const FolderView = () => {
     fetchFolderContents();
   };
 
+  const handleCreateReport = () => {
+    // Implement create report functionality
+    console.log('Create report clicked');
+  };
+
   // Filter items based on search
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
