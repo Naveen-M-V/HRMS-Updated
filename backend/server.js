@@ -939,10 +939,10 @@ app.get('/api/auth/verify-email', async (req, res) => {
     // Get frontend URL for redirect
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     
-    // If user is admin, redirect to login (they still need approval)
+    // If user is admin, redirect to login
     if (user.role === 'admin') {
-      console.log('Admin user verified, redirecting to login (still needs approval)');
-      return res.redirect(`${frontendUrl}/login?verified=true&message=pending_approval`);
+      console.log('Admin user verified, redirecting to login');
+      return res.redirect(`${frontendUrl}/login?verified=true`);
     } else {
       // For regular users, redirect to login with success message
       console.log('Regular user verified, redirecting to login');
@@ -955,35 +955,6 @@ app.get('/api/auth/verify-email', async (req, res) => {
   }
 });
 
-// Approve admin endpoint (accessed via email link by super admin)
-app.get('/api/auth/approve-admin', async (req, res) => {
-  try {
-    const { token } = req.query;
-    if (!token) return res.status(400).send('Missing token');
-
-    let payload;
-    try {
-      payload = jwt.verify(token, JWT_SECRET);
-    } catch (e) {
-      return res.status(400).send('Invalid or expired token');
-    }
-
-    const user = await User.findOne({ email: payload.email, adminApprovalToken: token });
-    if (!user) return res.status(404).send('User not found');
-
-    if (user.role !== 'admin') return res.status(400).send('User is not an admin');
-
-    user.adminApprovalStatus = 'approved';
-    user.adminApprovalToken = undefined;
-    user.emailVerified = true; // Auto-verify email when admin is approved
-    await user.save();
-
-    res.send('Admin account approved successfully.');
-  } catch (error) {
-    console.error('Approve admin error:', error);
-    res.status(500).send('Server error');
-  }
-});
 
 // Get profile by ID with complete data (including binary data)
 app.get('/api/profiles/:id/complete', async (req, res) => {
@@ -2598,12 +2569,7 @@ app.post('/api/auth/signup', async (req, res) => {
       console.log('Verification token generated for:', email);
     }
 
-    if (role === 'admin') {
-      user.adminApprovalStatus = 'pending';
-      user.adminApprovalToken = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
-      console.log('Admin approval token generated for:', email);
-    }
-
+    
     await user.save();
     console.log('User saved to database:', {
       email: user.email,
@@ -2655,37 +2621,7 @@ app.post('/api/auth/signup', async (req, res) => {
       });
     }
 
-    // If admin role, send approval request to super admin(s)
-    try {
-      if (role === 'admin' && user.adminApprovalToken) {
-        const superAdminEmails = (process.env.SUPER_ADMIN_EMAIL || 'admin@talentshield.com')
-          .split(',')
-          .map(e => e.trim())
-          .filter(Boolean);
-        
-        const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
-        const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
-        const name = `${user.firstName} ${user.lastName}`.trim();
-        
-        console.log('Attempting to send admin approval email to:', superAdminEmails.join(', '));
-        
-        for (const saEmail of superAdminEmails) {
-          const result = await sendAdminApprovalRequestEmail(saEmail, name, user.email, approveUrl);
-          if (result.success) {
-            console.log(`✓ Admin approval request sent to ${saEmail}`);
-          } else {
-            console.error(`✗ Admin approval email failed for ${saEmail}:`, result.error);
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Failed to send admin approval email:', e);
-      console.error('Error details:', {
-        message: e.message,
-        code: e.code
-      });
-    }
-
+    
     res.status(201).json({ 
       message: 'User created successfully',
       user: {
@@ -2784,14 +2720,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
-    // For admin accounts, enforce approval
-    if (user.role === 'admin' && user.adminApprovalStatus !== 'approved') {
-      return res.status(403).json({ 
-        message: 'Your admin account is pending approval. Please wait for the super admin to approve your account.',
-        requiresApproval: true
-      });
-    }
-
+    
     // For admin accounts, enforce email verification
     if (user.role === 'admin' && !user.emailVerified) {
       return res.status(403).json({ 

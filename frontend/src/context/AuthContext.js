@@ -14,7 +14,11 @@ export const useAuth = () => {
 };
 
 const getApiUrl = () => {
-  // Force localhost in development mode
+  // Use environment variable if available
+  if (process.env.REACT_APP_API_BASE_URL) {
+    return process.env.REACT_APP_API_BASE_URL;
+  }
+  // Force localhost in development mode (only if no env var set)
   if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
     return 'http://localhost:5004';
   }
