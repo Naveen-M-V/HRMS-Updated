@@ -113,6 +113,14 @@ exports.profileLogin = async (req, res) => {
       });
     }
 
+    // Check if profile is approved (only if explicitly set to false)
+    // If undefined or true, allow login (backward compatibility)
+    if (profile.isAdminApproved === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your profile is pending admin approval'
+      });
+    }
 
     // Generate token
     const token = generateToken({
@@ -220,6 +228,13 @@ exports.unifiedLogin = async (req, res) => {
     try {
       const profile = await User.authenticate(normalizedEmail, password);
       if (profile) {
+        // Check if profile is approved (only if explicitly set to false)
+        if (profile.isAdminApproved === false) {
+          return res.status(403).json({
+            success: false,
+            message: 'Your profile is pending admin approval'
+          });
+        }
 
         const token = generateToken({
           ...profile.toObject(),

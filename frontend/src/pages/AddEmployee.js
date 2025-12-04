@@ -1021,6 +1021,8 @@ export default function AddEmployee() {
                 value={formData.OrganisationName}
                 onChange={(e) => handleInputChange("OrganisationName", e.target.value)}
                 className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+               
+               
                   errors.OrganisationName ? "border-red-500" : "border-gray-300"
                 }`}
               />

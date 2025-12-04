@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       const sessionData = sessionStorage.getUserSession();
       if (sessionData && sessionData.user) {
         try {
-          await axios.get(`${API_BASE_URL}/api/auth/validate-session`, {
+          await axios.get(`${API_BASE_URL}/auth/validate-session`, {
             withCredentials: true,
             timeout: 5000
           });
@@ -202,7 +202,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         identifier: emailOrUsername,
         password,
         rememberMe
@@ -241,7 +241,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, userData, {
+      const response = await axios.post(`${API_BASE_URL}/auth/signup`, userData, {
         timeout: 10000,
         withCredentials: true
       });
@@ -260,7 +260,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       // Call backend logout endpoint to destroy session
-      await axios.post(`${API_BASE_URL}/api/auth/logout`);
+      await axios.post(`${API_BASE_URL}/auth/logout`);
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
