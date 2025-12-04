@@ -2721,12 +2721,16 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     
-    // For admin accounts, enforce email verification
-    if (user.role === 'admin' && !user.emailVerified) {
-      return res.status(403).json({ 
-        message: 'Email not verified. Please check your email and click the verification link to continue.',
-        requiresVerification: true
-      });
+    // Skip email verification for admin accounts (system-created)
+    // For regular users/profiles, check email verification
+    if (user.role !== 'admin') {
+      const isVerified = user.isEmailVerified ?? user.emailVerified ?? false;
+      if (!isVerified) {
+        return res.status(403).json({ 
+          message: 'Email not verified. Please check your email and click the verification link to continue.',
+          requiresVerification: true
+        });
+      }
     }
 
     console.log('✅ Login successful for user:', user.email);
