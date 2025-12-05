@@ -639,7 +639,14 @@ const UserDashboard = () => {
 
   const handleProfileSave = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/${userProfile._id}`, {
+      // Determine which endpoint to use based on userType
+      const endpoint = isEmployeeUser 
+        ? `${API_BASE_URL}/api/employees/${userProfile._id}`
+        : `${API_BASE_URL}/api/profiles/${userProfile._id}`;
+      
+      console.log('Updating user data at:', endpoint, 'userType:', user.userType);
+      
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -655,7 +662,9 @@ const UserDashboard = () => {
         toast.success('Profile updated successfully!');
         await fetchUserData(false); // Background refresh to get new notification
       } else {
-        toast.error('Failed to update profile. Please try again.');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Update failed:', response.status, errorData);
+        toast.error(errorData.message || 'Failed to update profile. Please try again.');
       }
     } catch (error) {
       console.error('Error updating profile:', error);

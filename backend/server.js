@@ -2518,6 +2518,41 @@ app.get('/api/employees/by-email/:email', async (req, res) => {
   }
 });
 
+// Update employee profile (for UserDashboard)
+app.put('/api/employees/:id', async (req, res) => {
+  try {
+    const EmployeeHub = require('./models/EmployeesHub');
+    const employeeId = req.params.id;
+    
+    console.log('Updating employee:', employeeId, 'with data:', req.body);
+    
+    // Get original employee for comparison
+    const originalEmployee = await EmployeeHub.findById(employeeId);
+    if (!originalEmployee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+    
+    // Remove sensitive fields that shouldn't be updated via this endpoint
+    const updateData = { ...req.body };
+    delete updateData.password;
+    delete updateData.role;
+    delete updateData.isActive;
+    delete updateData.terminatedDate;
+    
+    const updatedEmployee = await EmployeeHub.findByIdAndUpdate(
+      employeeId,
+      { ...updateData, lastLogin: new Date() },
+      { new: true, runValidators: true }
+    );
+    
+    console.log('Employee updated successfully:', updatedEmployee.email);
+    res.json(updatedEmployee);
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 app.post('/api/certificates/delete-request', async (req, res) => {
   try {
     const { certificateId, certificateName, userEmail, userName, profileId } = req.body;
