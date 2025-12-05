@@ -87,24 +87,36 @@ const UserDashboard = () => {
         setLoading(true);
       }
       
-      // Fetch user profile by email
-      const profileResponse = await fetch(`${API_BASE_URL}/api/profiles/by-email/${user.email}`, {
+      // Determine which endpoint to use based on userType
+      const endpoint = isEmployeeUser 
+        ? `${API_BASE_URL}/api/employees/by-email/${user.email}`
+        : `${API_BASE_URL}/api/profiles/by-email/${user.email}`;
+      
+      console.log('Fetching user data from:', endpoint, 'userType:', user.userType);
+      
+      // Fetch user profile/employee by email
+      const userDataResponse = await fetch(endpoint, {
         credentials: 'include'
       });
       
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-        setUserProfile(profileData);
-        setEditedProfile(profileData);
+      if (userDataResponse.ok) {
+        const userData = await userDataResponse.json();
+        setUserProfile(userData);
+        setEditedProfile(userData);
         
-        // Fetch user certificates
-        const certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${profileData._id}/certificates`, {
-          credentials: 'include'
-        });
-        
-        if (certificatesResponse.ok) {
-          const certificatesData = await certificatesResponse.json();
-          setCertificates(certificatesData);
+        // Fetch certificates only for profiles (employees might not have profile-based certificates)
+        if (!isEmployeeUser && userData._id) {
+          const certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${userData._id}/certificates`, {
+            credentials: 'include'
+          });
+          
+          if (certificatesResponse.ok) {
+            const certificatesData = await certificatesResponse.json();
+            setCertificates(certificatesData);
+          }
+        } else {
+          // For employees, we might need a different certificate endpoint or skip this
+          setCertificates([]);
         }
 
         // Fetch user notifications from session-based endpoint
@@ -131,15 +143,21 @@ const UserDashboard = () => {
           console.error('Error fetching notifications:', notifError);
           setNotifications([]);
         }
+      } else {
+        console.error('Failed to fetch user data:', userDataResponse.status);
+        if (userDataResponse.status === 404) {
+          toast.error(`${isEmployeeUser ? 'Employee' : 'Profile'} not found. Please contact administrator.`);
+        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
+      toast.error('Failed to load user data. Please try again.');
     } finally {
       if (showLoading) {
         setLoading(false);
       }
     }
-  }, [API_BASE_URL, user.email]);
+  }, [API_BASE_URL, user.email, isEmployeeUser]);
 
   // Debug: Log clockStatus changes
   useEffect(() => {

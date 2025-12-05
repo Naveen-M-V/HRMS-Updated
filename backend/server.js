@@ -2494,6 +2494,30 @@ app.get('/api/profiles/by-email/:email', async (req, res) => {
   }
 });
 
+// Get employee by email (for UserDashboard)
+app.get('/api/employees/by-email/:email', async (req, res) => {
+  try {
+    const EmployeeHub = require('./models/EmployeesHub');
+    // Normalize email to lowercase for consistent lookup
+    const email = (req.params.email || '').toLowerCase().trim();
+    
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+    
+    const employee = await EmployeeHub.findOne({ email, isActive: true });
+    
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+    
+    res.json(employee);
+  } catch (error) {
+    console.error('Error fetching employee by email:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 app.post('/api/certificates/delete-request', async (req, res) => {
   try {
     const { certificateId, certificateName, userEmail, userName, profileId } = req.body;
