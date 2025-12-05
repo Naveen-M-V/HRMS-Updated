@@ -2674,16 +2674,95 @@ app.post('/api/auth/login', async (req, res) => {
 
     console.log('🔍 Searching for user with identifier:', loginIdentifier);
 
-    // Check for admin or user account - support email, username, or VTID login
+    // Check EmployeesHub first (for employees and admins)
+    const EmployeeHub = require('./models/EmployeesHub');
+    
+    try {
+      const employee = await EmployeeHub.findOne({ 
+        email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') },
+        isActive: true
+      }).select('+password');
+      
+      if (employee) {
+        console.log('👤 Employee found:', { 
+          email: employee.email, 
+          role: employee.role,
+          isActive: employee.isActive 
+        });
+        
+        // Check if employee is terminated
+        if (employee.status === 'Terminated') {
+          console.log('❌ Employee account terminated');
+          return res.status(403).json({ message: 'Access denied: Employee account has been terminated' });
+        }
+        
+        // Check if account is locked
+        if (employee.isLocked && employee.isLocked()) {
+          console.log('❌ Employee account locked');
+          return res.status(403).json({ message: 'Account is temporarily locked due to too many failed login attempts' });
+        }
+        
+        // Compare password
+        const isValidPassword = await employee.comparePassword(password);
+        console.log('🔐 Employee password comparison result:', isValidPassword);
+        
+        if (isValidPassword) {
+          console.log('✅ Employee login successful');
+          
+          // Reset login attempts on successful login
+          if (employee.resetLoginAttempts) {
+            await employee.resetLoginAttempts();
+          }
+          
+          // Update last login
+          employee.lastLogin = new Date();
+          await employee.save();
+          
+          // Create session data for employee
+          const sessionUser = {
+            userId: employee._id,
+            email: employee.email,
+            role: employee.role,
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            userType: 'employee',
+            employeeId: employee.employeeId || null,
+            department: employee.department,
+            jobTitle: employee.jobTitle
+          };
+
+          // Generate JWT token
+          const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
+
+          // Store in session
+          req.session.user = sessionUser;
+          
+          if (rememberMe) {
+            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+          }
+
+          return res.json({ user: sessionUser, token });
+        } else {
+          // Increment login attempts
+          if (employee.incLoginAttempts) {
+            await employee.incLoginAttempts();
+          }
+        }
+      }
+    } catch (employeeError) {
+      console.log('Employee lookup error (continuing to profile lookup):', employeeError.message);
+    }
+
+    // Check User model (for profiles - interns, trainees, contract trainees)
     const user = await User.findOne({ 
       $or: [
         { email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
         { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
         { vtid: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }
       ]
-    });
+    }).select('+password');
     
-    console.log('👤 User search result:', { 
+    console.log('👤 Profile user search result:', { 
       found: !!user, 
       email: user?.email, 
       role: user?.role,
@@ -2691,26 +2770,29 @@ app.post('/api/auth/login', async (req, res) => {
     });
     
     if (!user) {
-      console.log('❌ User not found in database');
+      console.log('❌ User not found in database (neither Employee nor Profile)');
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Check if account is locked
+    if (user.isLocked && user.isLocked()) {
+      console.log('❌ Profile account locked');
+      return res.status(403).json({ message: 'Account is temporarily locked due to too many failed login attempts' });
+    }
+
     // Check password
-    console.log('🔐 Comparing passwords...');
-    console.log('   Input password length:', password.length);
-    console.log('   Stored password length:', user.password.length);
-    console.log('   Stored password starts with:', user.password.substring(0, 10));
+    console.log('🔐 Comparing passwords for profile...');
     
     const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log('🔐 Password comparison result:', isValidPassword);
+    console.log('🔐 Profile password comparison result:', isValidPassword);
     
     if (!isValidPassword) {
-      console.log('❌ Invalid password for user:', user.email);
+      console.log('❌ Invalid password for profile:', user.email);
       
-      // Debug: Try to create a fresh hash and compare
-      const testHash = await bcrypt.hash(password, 10);
-      const testComparison = await bcrypt.compare(password, testHash);
-      console.log('🔧 Fresh hash test:', testComparison);
+      // Increment login attempts
+      if (user.incLoginAttempts) {
+        await user.incLoginAttempts();
+      }
       
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -2720,36 +2802,44 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Account is deactivated' });
     }
 
+    // Check email verification for profiles
+    const isVerified = user.isEmailVerified ?? user.emailVerified ?? false;
+    if (!isVerified) {
+      return res.status(403).json({ 
+        message: 'Email not verified. Please check your email and click the verification link to continue.',
+        requiresVerification: true
+      });
+    }
     
-    // Skip email verification for admin accounts (system-created)
-    // For regular users/profiles, check email verification
-    if (user.role !== 'admin') {
-      const isVerified = user.isEmailVerified ?? user.emailVerified ?? false;
-      if (!isVerified) {
-        return res.status(403).json({ 
-          message: 'Email not verified. Please check your email and click the verification link to continue.',
-          requiresVerification: true
-        });
-      }
+    // Check admin approval for profiles (if explicitly set to false)
+    if (user.isAdminApproved === false) {
+      return res.status(403).json({ 
+        message: 'Your profile is pending admin approval',
+        requiresApproval: true
+      });
     }
 
-    console.log('✅ Login successful for user:', user.email);
+    console.log('✅ Login successful for profile:', user.email);
+
+    // Reset login attempts on successful login
+    if (user.resetLoginAttempts) {
+      await user.resetLoginAttempts();
+    }
 
     // Update last login time
-    user.lastLoginAt = Date.now();
+    user.lastLogin = new Date();
     await user.save();
 
-    // Create session data
+    // Create session data for profile
     const sessionUser = {
       userId: user._id,
       email: user.email,
-      role: user.role,
+      role: user.role || 'profile',
       firstName: user.firstName,
       lastName: user.lastName,
       vtid: user.vtid,
-      userType: user.userType || 'profile',
-      employeeId: user.employeeId || null,
-      profileId: user.profileId || null
+      userType: 'profile',
+      profileType: user.profileType
     };
 
     // Generate JWT token
@@ -2764,9 +2854,8 @@ app.post('/api/auth/login', async (req, res) => {
 
     return res.json({ user: sessionUser, token });
 
-    // No user found with given credentials
-    return res.status(400).json({ message: 'Invalid credentials' });
   } catch (error) {
+    console.error('❌ Login error:', error);
     res.status(500).json({ message: error.message });
   }
 });
