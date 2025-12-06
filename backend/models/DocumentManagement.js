@@ -134,8 +134,7 @@ const documentManagementSchema = new mongoose.Schema({
     },
     performedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'EmployeeHub',
-      required: true
+      required: false // Made optional since it can be User or EmployeeHub
     },
     timestamp: {
       type: Date,
