@@ -151,12 +151,17 @@ const DocumentUpload = ({
         ));
 
         try {
+          // Get token from localStorage
+          const token = localStorage.getItem('auth_token');
+          
           const response = await axios.post(
             `/api/documentManagement/folders/${selectedFolder._id}/documents`,
             formData,
             {
               headers: {
-                'Content-Type': 'multipart/form-data'
+                // Don't set Content-Type - let axios set it with proper boundary
+                // Explicitly set Authorization header for multipart uploads
+                ...(token && { 'Authorization': `Bearer ${token}` })
               },
               onUploadProgress: (progressEvent) => {
                 const progress = Math.round(

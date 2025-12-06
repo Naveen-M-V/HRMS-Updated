@@ -3256,17 +3256,25 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // Session-based authentication middleware
 const authenticateSession = async (req, res, next) => {
   try {
-    // For multipart/form-data requests, prioritize JWT token
     const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
+    const authHeader = req.headers['authorization'];
+    
+    console.log('=== Authentication Debug ===');
+    console.log('Path:', req.path);
+    console.log('Is Multipart:', isMultipart);
+    console.log('Auth Header:', authHeader ? 'Present' : 'Missing');
+    console.log('Has Session:', !!req.session);
+    console.log('Session User:', !!req.session?.user);
     
     // Check JWT token first for multipart or if Authorization header exists
-    const authHeader = req.headers['authorization'];
     if (authHeader || isMultipart) {
       const token = authHeader && authHeader.split(' ')[1];
+      console.log('Token extracted:', token ? 'Yes' : 'No');
       
       if (token) {
         try {
           const decoded = await jwt.verify(token, JWT_SECRET);
+          console.log('JWT verified successfully for user:', decoded.email);
           req.user = decoded;
           // Update session with token data
           if (req.session) {
@@ -3282,11 +3290,13 @@ const authenticateSession = async (req, res, next) => {
 
     // Fall back to session check
     if (req.session && req.session.user) {
+      console.log('Using session auth for:', req.session.user.email);
       req.user = req.session.user;
       return next();
     }
 
     // No valid authentication found
+    console.error('Authentication failed - no valid JWT or session');
     return res.status(401).json({ message: 'Authentication required' });
   } catch (error) {
     console.error('Authentication error:', error);

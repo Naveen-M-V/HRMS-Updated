@@ -32,15 +32,18 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      console.error('Authentication failed - clearing session');
+      // Log authentication failure but don't auto-redirect
+      console.error('Authentication failed:', error.config?.url);
+      console.error('Token present:', !!localStorage.getItem('auth_token'));
       
-      // Clear auth data
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_session');
+      // Only clear and redirect if it's not a file upload (to preserve user's work)
+      const isFileUpload = error.config?.url?.includes('/documents') || 
+                          error.config?.headers?.['Content-Type']?.includes('multipart');
       
-      // Optionally redirect to login
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+      if (!isFileUpload && window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+        console.warn('Clearing session and redirecting to login');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_session');
         window.location.href = '/login';
       }
     }
