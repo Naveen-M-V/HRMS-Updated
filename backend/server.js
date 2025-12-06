@@ -484,21 +484,22 @@ userSchema.statics.authenticate = async function(identifier, password) {
 // Add method to create default admin if none exists
 userSchema.statics.ensureAdminExists = async function() {
   try {
-    const adminCount = await this.countDocuments({ role: 'admin' });
+    const adminCount = await this.countDocuments({ role: { $in: ['admin', 'super-admin'] } });
     if (adminCount === 0) {
-      // Create default admin account
+      // Create default super-admin account
       const hashedPassword = await bcrypt.hash('Admin@123', 10);
       await this.create({
         firstName: 'Admin',
         lastName: 'User',
         email: 'admin@talentshield.com',
         password: hashedPassword,
-        role: 'admin',
+        role: 'super-admin',
         isActive: true,
         isEmailVerified: true,
-        isAdminApproved: true
+        isAdminApproved: true,
+        vtid: 'VT0001' // Required field for User model
       });
-      console.log('Default admin account created');
+      console.log('Default super-admin account created');
     }
   } catch (error) {
     console.error('Error ensuring admin exists:', error);
@@ -2871,7 +2872,8 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     // Check admin approval for profiles (if explicitly set to false)
-    if (user.isAdminApproved === false) {
+    // BUT SKIP this check for super-admin accounts
+    if (user.isAdminApproved === false && user.role !== 'super-admin') {
       return res.status(403).json({ 
         message: 'Your profile is pending admin approval',
         requiresApproval: true

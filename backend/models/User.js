@@ -79,7 +79,7 @@ const userSchema = new mongoose.Schema({
   },
   role: { 
     type: String, 
-    enum: ['profile'], 
+    enum: ['profile', 'super-admin', 'admin'], 
     default: 'profile',
     required: true
   },
@@ -209,9 +209,10 @@ userSchema.methods.resetLoginAttempts = function() {
 userSchema.statics.authenticate = async function(email, password) {
   try {
     // Find profile with password field included
+    // Allow profile, admin, and super-admin roles
     const profile = await this.findOne({ 
       email: email.toLowerCase(), 
-      role: 'profile',
+      role: { $in: ['profile', 'admin', 'super-admin'] },
       isActive: true 
     }).select('+password');
     
