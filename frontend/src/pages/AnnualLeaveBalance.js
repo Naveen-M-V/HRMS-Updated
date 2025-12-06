@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Users, TrendingUp, Clock, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { getLeaveBalances } from '../utils/leaveApi';
-import { toast } from 'react-hot-toast';
 
 const AnnualLeaveBalance = () => {
   const [employees, setEmployees] = useState([]);
@@ -38,7 +37,6 @@ const AnnualLeaveBalance = () => {
       } catch (err) {
         console.error('Failed to fetch leave balances:', err);
         setError(err.message || 'Failed to load leave balances');
-        toast.error('Failed to load leave balances');
       } finally {
         setLoading(false);
       }
