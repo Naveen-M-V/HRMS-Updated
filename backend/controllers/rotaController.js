@@ -189,19 +189,18 @@ exports.assignShiftToEmployee = async (req, res) => {
       employeeName: populatedShift.employeeId?.firstName ? `${populatedShift.employeeId.firstName} ${populatedShift.employeeId.lastName}` : 'NOT POPULATED'
     });
 
-    // Create notification for shift assignment (if user has linked User account)
+    // Create notification for shift assignment
     try {
       const Notification = require('../models/Notification');
       const assignedByName = populatedShift.assignedBy 
         ? `${populatedShift.assignedBy.firstName} ${populatedShift.assignedBy.lastName}`
         : 'Admin';
       
-      // Use the User ID if linked, otherwise use EmployeesHub ID
-      const notificationUserId = employee.userId || actualEmployeeId;
-      
-      await Notification.create({
-        userId: notificationUserId,
-        type: 'system',
+      // Determine recipient type and reference
+      const notificationData = {
+        recipientType: 'employee',
+        employeeRef: actualEmployeeId,
+        type: 'shift_assigned',
         title: 'Shift Assigned',
         message: `New shift assigned by ${assignedByName} on ${new Date(date).toLocaleDateString()} from ${startTime} to ${endTime} at ${location}`,
         priority: 'medium',
@@ -214,8 +213,10 @@ exports.assignShiftToEmployee = async (req, res) => {
           assignedBy: assignedByName,
           assignedAt: new Date().toISOString()
         }
-      });
-      console.log('Shift assignment notification created for user:', notificationUserId);
+      };
+      
+      await Notification.create(notificationData);
+      console.log('Shift assignment notification created for employee:', actualEmployeeId);
     } catch (notifError) {
       console.error('Failed to create shift assignment notification:', notifError);
     }

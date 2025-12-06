@@ -3796,7 +3796,7 @@ app.use('/api/leave', authenticateSession, leaveRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/employees', employeeHubRoutes);
 app.use('/api/employee-profile', authenticateSession, employeeProfileRoutes);
-app.use('/api/documentManagement', documentManagementRoutes);
+app.use('/api/documentManagement', authenticateSession, documentManagementRoutes);
 
 // NEW: Reporting routes
 const reportingRoutes = require('./routes/reportingRoutes');
