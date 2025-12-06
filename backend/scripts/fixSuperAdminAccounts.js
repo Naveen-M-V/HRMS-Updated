@@ -10,7 +10,8 @@
  * Run: node backend/scripts/fixSuperAdminAccounts.js
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const EmployeeHub = require('../models/EmployeesHub');
@@ -23,6 +24,18 @@ const SUPER_ADMIN_EMAILS = process.env.SUPER_ADMIN_EMAIL
 console.log('🔧 Super Admin emails from .env:', SUPER_ADMIN_EMAILS);
 
 const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error('❌ MONGODB_URI not found in environment variables');
+  console.error('💡 Make sure .env file exists in the project root');
+  process.exit(1);
+}
+
+if (SUPER_ADMIN_EMAILS.length === 0) {
+  console.error('❌ SUPER_ADMIN_EMAIL not found in environment variables');
+  console.error('💡 Add SUPER_ADMIN_EMAIL to your .env file');
+  process.exit(1);
+}
 
 async function fixSuperAdminAccounts() {
   try {
