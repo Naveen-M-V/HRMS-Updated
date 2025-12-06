@@ -9,9 +9,15 @@ axios.interceptors.request.use(
     // Get token from localStorage
     const token = localStorage.getItem('auth_token');
     
+    console.log('Axios interceptor - Token:', token ? 'Present' : 'Missing');
+    console.log('Request URL:', config.url);
+    
     // Add Authorization header if token exists
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Authorization header set');
+    } else {
+      console.warn('No auth token found in localStorage');
     }
     
     return config;

@@ -3256,29 +3256,38 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // Session-based authentication middleware
 const authenticateSession = async (req, res, next) => {
   try {
-    // First check session
+    // For multipart/form-data requests, prioritize JWT token
+    const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
+    
+    // Check JWT token first for multipart or if Authorization header exists
+    const authHeader = req.headers['authorization'];
+    if (authHeader || isMultipart) {
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (token) {
+        try {
+          const decoded = await jwt.verify(token, JWT_SECRET);
+          req.user = decoded;
+          // Update session with token data
+          if (req.session) {
+            req.session.user = decoded;
+          }
+          return next();
+        } catch (tokenError) {
+          console.error('JWT verification failed:', tokenError.message);
+          // Fall through to session check if JWT fails
+        }
+      }
+    }
+
+    // Fall back to session check
     if (req.session && req.session.user) {
       req.user = req.session.user;
       return next();
     }
 
-    // Then check JWT token
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    try {
-      const decoded = await jwt.verify(token, JWT_SECRET);
-      req.user = decoded;
-      // Update session with token data
-      req.session.user = decoded;
-      return next();
-    } catch (tokenError) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
-    }
+    // No valid authentication found
+    return res.status(401).json({ message: 'Authentication required' });
   } catch (error) {
     console.error('Authentication error:', error);
     return res.status(500).json({ message: 'Internal server error during authentication' });
