@@ -65,8 +65,12 @@ const documentManagementSchema = new mongoose.Schema({
   // Access Control
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'EmployeeHub',
     required: [true, 'Uploaded by reference is required']
+  },
+  uploaderType: {
+    type: String,
+    enum: ['User', 'EmployeeHub'],
+    default: 'EmployeeHub'
   },
   permissions: {
     view: [{

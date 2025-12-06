@@ -289,22 +289,19 @@ router.post('/folders/:folderId/documents',
         return res.status(404).json({ message: 'Folder not found' });
       }
       
-      // Find the uploader's EmployeeHub record
-      // req.user might be from User model (admin/super-admin) or EmployeeHub model
-      let uploaderEmployeeId = null;
+      // Determine uploader ID and type
+      let uploaderId = req.user._id;
+      let uploaderType = 'User';
       
       if (req.user.email) {
-        // Try to find EmployeeHub by email
         const employee = await EmployeeHub.findOne({ email: req.user.email });
-        uploaderEmployeeId = employee ? employee._id : null;
+        if (employee) {
+          uploaderId = employee._id;
+          uploaderType = 'EmployeeHub';
+        }
       }
       
-      if (!uploaderEmployeeId) {
-        // If user is from EmployeeHub directly, use their ID
-        uploaderEmployeeId = req.user._id;
-      }
-      
-      console.log('Uploader Employee ID:', uploaderEmployeeId);
+      console.log('Uploader ID:', uploaderId, 'Type:', uploaderType);
       
       // Create document
       const document = new DocumentManagement({
@@ -316,7 +313,8 @@ router.post('/folders/:folderId/documents',
         mimeType: req.file.mimetype,
         category: category || 'other',
         tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        uploadedBy: uploaderEmployeeId,
+        uploadedBy: uploaderId,
+        uploaderType: uploaderType,
         permissions: permissions ? JSON.parse(permissions) : {
           view: ['admin', 'hr', 'manager', 'employee'],
           download: ['admin', 'hr', 'manager'],
@@ -327,14 +325,21 @@ router.post('/folders/:folderId/documents',
       });
       
       await document.save();
+      
+      // Populate with correct model based on uploaderType
+      if (document.uploaderType === 'User') {
+        await document.populate({ path: 'uploadedBy', model: 'User', select: 'firstName lastName email' });
+      } else {
+        await document.populate({ path: 'uploadedBy', model: 'EmployeeHub', select: 'firstName lastName employeeId' });
+      }
+      
       await document.populate([
-        { path: 'uploadedBy', select: 'firstName lastName employeeId' },
         { path: 'employeeId', select: 'firstName lastName employeeId' },
         { path: 'folderId', select: 'name' }
       ]);
       
       // Add audit log
-      await document.addAuditLog('uploaded', req.user._id, 'Document uploaded');
+      await document.addAuditLog('uploaded', req.user._id, `Document uploaded by ${req.user.firstName} ${req.user.lastName}`);
       
       console.log('Document uploaded successfully:', document._id);
       res.status(201).json(document);
