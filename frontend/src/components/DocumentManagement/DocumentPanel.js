@@ -97,7 +97,8 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
 
   const handleView = (doc) => {
     const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
-    const viewUrl = `${apiUrl}/api/documentManagement/documents/${doc._id}/view`;
+    const token = localStorage.getItem('auth_token');
+    const viewUrl = `${apiUrl}/api/documentManagement/documents/${doc._id}/view?token=${encodeURIComponent(token)}`;
     window.open(viewUrl, '_blank');
     setShowDocumentMenu(null);
   };

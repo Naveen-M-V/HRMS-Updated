@@ -441,9 +441,38 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
   }
 });
 
-// View/stream document (for opening in browser)
-router.get('/documents/:documentId/view', checkPermission('view'), async (req, res) => {
+// View/stream document (for opening in browser) - accepts token in query param
+router.get('/documents/:documentId/view', async (req, res) => {
   try {
+    // Check for token in query parameter or Authorization header
+    const token = req.query.token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
+    
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    // Verify token
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'hrms-jwt-secret-key-2024';
+    let user;
+    try {
+      user = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    
+    // Check permissions
+    const userRole = user.role || 'employee';
+    if (userRole !== 'admin' && userRole !== 'super-admin') {
+      const document = await DocumentManagement.findById(req.params.documentId);
+      if (!document) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
+      if (!document.hasPermission('view', userRole)) {
+        return res.status(403).json({ message: 'Insufficient permissions' });
+      }
+    }
+    
     const document = await DocumentManagement.findById(req.params.documentId);
     
     if (!document) {
