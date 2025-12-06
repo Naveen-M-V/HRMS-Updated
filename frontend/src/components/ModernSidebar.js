@@ -43,7 +43,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
-    if (!user || user.role !== "admin") {
+    if (!user || (user.role !== "admin" && user.role !== "super-admin")) {
       setUnreadNotifications(0);
       return;
     }

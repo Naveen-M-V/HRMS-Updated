@@ -128,7 +128,7 @@ export default function Login() {
         
         // Role-based routing using returned user role
         const userRole = result.user?.role || 'user';
-        const redirectPath = userRole === 'admin'
+        const redirectPath = (userRole === 'admin' || userRole === 'super-admin')
           ? (location.state?.from?.pathname || "/dashboard")
           : "/user-dashboard";
         
