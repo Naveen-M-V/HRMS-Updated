@@ -271,10 +271,15 @@ router.post('/folders/:folderId/documents',
   async (req, res) => {
     try {
       console.log('=== Document Upload Request ===');
-      console.log('User:', req.user?._id);
+      console.log('User:', req.user);
       console.log('Folder ID:', req.params.folderId);
       console.log('File received:', req.file ? req.file.originalname : 'No file');
       console.log('Body:', req.body);
+      
+      if (!req.user || !req.user._id) {
+        console.error('No authenticated user found');
+        return res.status(401).json({ message: 'Authentication required' });
+      }
       
       if (!req.file) {
         console.error('No file in request');
@@ -293,15 +298,23 @@ router.post('/folders/:folderId/documents',
       let uploaderId = req.user._id;
       let uploaderType = 'User';
       
+      console.log('Initial uploader:', { uploaderId, email: req.user.email });
+      
       if (req.user.email) {
         const employee = await EmployeeHub.findOne({ email: req.user.email });
+        console.log('EmployeeHub lookup result:', employee ? employee._id : 'Not found');
         if (employee) {
           uploaderId = employee._id;
           uploaderType = 'EmployeeHub';
         }
       }
       
-      console.log('Uploader ID:', uploaderId, 'Type:', uploaderType);
+      console.log('Final uploader - ID:', uploaderId, 'Type:', uploaderType);
+      
+      if (!uploaderId) {
+        console.error('Upload failed: No valid uploader ID determined');
+        return res.status(400).json({ message: 'Could not determine uploader identity' });
+      }
       
       // Create document
       const document = new DocumentManagement({
