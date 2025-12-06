@@ -447,6 +447,70 @@ const DocumentUpload = ({
                   Enable expiry reminder
                 </label>
               </div>
+
+              {/* Permissions */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <Shield className="w-4 h-4 inline mr-2" />
+                  Access Permissions
+                </label>
+                
+                <div className="space-y-3">
+                  {/* View Permission */}
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 mb-2">Who can view:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {roles.map(role => (
+                        <label key={`view-${role}`} className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={documentMetadata.permissions.view.includes(role)}
+                            onChange={(e) => handlePermissionChange('view', role, e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-1"
+                          />
+                          <span className="text-sm text-gray-700 capitalize">{role}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Download Permission */}
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 mb-2">Who can download:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {roles.map(role => (
+                        <label key={`download-${role}`} className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={documentMetadata.permissions.download.includes(role)}
+                            onChange={(e) => handlePermissionChange('download', role, e.target.checked)}
+                            className="rounded border-gray-300 text-green-600 focus:ring-green-500 mr-1"
+                          />
+                          <span className="text-sm text-gray-700 capitalize">{role}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Share Permission */}
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 mb-2">Who can share:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {roles.map(role => (
+                        <label key={`share-${role}`} className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={documentMetadata.permissions.share.includes(role)}
+                            onChange={(e) => handlePermissionChange('share', role, e.target.checked)}
+                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 mr-1"
+                          />
+                          <span className="text-sm text-gray-700 capitalize">{role}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

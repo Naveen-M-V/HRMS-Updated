@@ -25,6 +25,7 @@ import {
 import axios from 'axios';
 import UploadComponent from '../components/DocumentManagement/UploadComponent';
 import CreateFolderModal from '../components/DocumentManagement/CreateFolderModal';
+import DocumentViewer from '../components/DocumentManagement/DocumentViewer';
 
 const FolderView = () => {
   const { folderId } = useParams();
@@ -37,6 +38,8 @@ const FolderView = () => {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showItemMenu, setShowItemMenu] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
 
   // Fetch folder contents
   useEffect(() => {
@@ -71,8 +74,9 @@ const FolderView = () => {
     if (item.type === 'folder') {
       navigate(`/documents/${item._id}`);
     } else {
-      // Handle file click - download or preview
-      handleDownload(item);
+      // Show document viewer instead of auto-download
+      setSelectedDocument(item);
+      setShowDocumentViewer(true);
     }
   };
 
@@ -421,6 +425,18 @@ const FolderView = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Document Viewer */}
+      {showDocumentViewer && selectedDocument && (
+        <DocumentViewer
+          document={selectedDocument}
+          onClose={() => {
+            setShowDocumentViewer(false);
+            setSelectedDocument(null);
+          }}
+          onDownload={handleDownload}
+        />
+      )}
     </div>
   );
 };
