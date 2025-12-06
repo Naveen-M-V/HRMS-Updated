@@ -27,8 +27,12 @@ const documentManagementSchema = new mongoose.Schema({
   },
   fileUrl: {
     type: String,
-    required: [true, 'File URL is required'],
+    required: false, // Now optional since we store in DB
     trim: true
+  },
+  fileData: {
+    type: Buffer,
+    required: [true, 'File data is required']
   },
   fileSize: {
     type: Number,
@@ -277,12 +281,13 @@ documentManagementSchema.methods.incrementDownload = function(userId) {
 };
 
 // Instance method to create new version
-documentManagementSchema.methods.createNewVersion = function(newFileUrl, newFileName, newFileSize, newMimeType, uploadedBy) {
+documentManagementSchema.methods.createNewVersion = function(fileData, newFileName, newFileSize, newMimeType, uploadedBy) {
   const newDocument = new this.constructor({
     folderId: this.folderId,
     employeeId: this.employeeId,
     fileName: newFileName,
-    fileUrl: newFileUrl,
+    fileData: fileData,
+    fileUrl: null,
     fileSize: newFileSize,
     mimeType: newMimeType,
     version: this.version + 1,

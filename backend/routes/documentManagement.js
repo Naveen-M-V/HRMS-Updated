@@ -327,12 +327,16 @@ router.post('/folders/:folderId/documents',
         return res.status(400).json({ message: 'Could not determine uploader identity' });
       }
       
-      // Create document
+      // Read file data into buffer
+      const fileBuffer = await fs.readFile(req.file.path);
+      
+      // Create document with binary data
       const document = new DocumentManagement({
         folderId: req.params.folderId,
         employeeId: employeeId || null,
         fileName: req.file.originalname,
-        fileUrl: `/uploads/documents/${req.file.filename}`,
+        fileData: fileBuffer, // Store file content in MongoDB
+        fileUrl: null, // No longer storing in filesystem
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         category: category || 'other',
@@ -347,6 +351,13 @@ router.post('/folders/:folderId/documents',
         expiresOn: expiresOn ? new Date(expiresOn) : null,
         reminderEnabled: reminderEnabled === 'true'
       });
+      
+      // Delete uploaded file from filesystem after reading into buffer
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.error('Error deleting temp file:', unlinkError);
+      }
       
       await document.save();
       
@@ -430,6 +441,30 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
   }
 });
 
+// View/stream document (for opening in browser)
+router.get('/documents/:documentId/view', checkPermission('view'), async (req, res) => {
+  try {
+    const document = await DocumentManagement.findById(req.params.documentId);
+    
+    if (!document) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+    
+    if (!document.fileData) {
+      return res.status(404).json({ message: 'File data not found' });
+    }
+    
+    // Send file inline (for viewing in browser)
+    res.setHeader('Content-Type', document.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
+    res.setHeader('Content-Length', document.fileData.length);
+    res.send(document.fileData);
+  } catch (error) {
+    console.error('View error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Download document
 router.get('/documents/:documentId/download', checkPermission('download'), async (req, res) => {
   try {
@@ -439,13 +474,8 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
       return res.status(404).json({ message: 'Document not found' });
     }
     
-    const filePath = path.join(__dirname, '..', document.fileUrl);
-    
-    // Check if file exists
-    try {
-      await fs.access(filePath);
-    } catch (error) {
-      return res.status(404).json({ message: 'File not found' });
+    if (!document.fileData) {
+      return res.status(404).json({ message: 'File data not found' });
     }
     
     // Increment download count - don't block download if this fails
@@ -467,7 +497,11 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
       // Continue with download even if audit fails
     }
     
-    res.download(filePath, document.fileName);
+    // Send file from MongoDB buffer
+    res.setHeader('Content-Type', document.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+    res.setHeader('Content-Length', document.fileData.length);
+    res.send(document.fileData);
   } catch (error) {
     console.error('Download error:', error);
     res.status(500).json({ message: error.message });
@@ -537,10 +571,20 @@ router.post('/documents/:documentId/version',
         return res.status(404).json({ message: 'Document not found' });
       }
       
+      // Read file data into buffer
+      const fileBuffer = await fs.readFile(req.file.path);
+      
+      // Delete temp file
+      try {
+        await fs.unlink(req.file.path);
+      } catch (unlinkError) {
+        console.error('Error deleting temp file:', unlinkError);
+      }
+      
       // Create new version
       const userId = req.user._id || req.user.userId;
       const newVersion = await originalDocument.createNewVersion(
-        `/uploads/documents/${req.file.filename}`,
+        fileBuffer,
         req.file.originalname,
         req.file.size,
         req.file.mimetype,
@@ -622,20 +666,12 @@ router.delete('/documents/:documentId', checkPermission('delete'), async (req, r
       return res.status(404).json({ message: 'Document not found' });
     }
     
-    // Delete the physical file
-    const filePath = path.join(__dirname, '..', document.fileUrl);
-    try {
-      await fs.unlink(filePath);
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      // Continue even if file deletion fails
-    }
-    
-    // Delete from database
+    // Delete from database (file data is stored in MongoDB, no filesystem cleanup needed)
     await DocumentManagement.findByIdAndDelete(req.params.documentId);
     
     res.json({ message: 'Document deleted successfully' });
   } catch (error) {
+    console.error('Delete error:', error);
     res.status(500).json({ message: error.message });
   }
 });

@@ -97,8 +97,8 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
 
   const handleView = (doc) => {
     const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
-    const fileUrl = `${apiUrl}${doc.fileUrl}`;
-    window.open(fileUrl, '_blank');
+    const viewUrl = `${apiUrl}/api/documentManagement/documents/${doc._id}/view`;
+    window.open(viewUrl, '_blank');
     setShowDocumentMenu(null);
   };
 
