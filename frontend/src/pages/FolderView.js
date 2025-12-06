@@ -20,7 +20,8 @@ import {
   FileArchive,
   Home,
   Users,
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 import axios from 'axios';
 import UploadComponent from '../components/DocumentManagement/UploadComponent';
@@ -106,6 +107,41 @@ const FolderView = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);
+    }
+  };
+
+  const handleDelete = async (item) => {
+    if (!window.confirm(`Are you sure you want to delete "${item.name || item.fileName}"?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      
+      if (item.type === 'folder') {
+        await axios.delete(`${apiUrl}/api/documentManagement/folders/${item._id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } else {
+        await axios.delete(`${apiUrl}/api/documentManagement/documents/${item._id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+      
+      setShowItemMenu(null);
+      fetchFolderContents();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert('Failed to delete item');
+    }
+  };
+
+  const handleView = (item) => {
+    setShowItemMenu(null);
+    if (item.type === 'document') {
+      setSelectedDocument(item);
+      setShowDocumentViewer(true);
     }
   };
 
@@ -372,22 +408,29 @@ const FolderView = () => {
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   {item.type !== 'folder' && (
-                                    <button
-                                      onClick={() => handleDownload(item)}
-                                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                    >
-                                      <Download className="w-4 h-4" />
-                                      <span>Download</span>
-                                    </button>
+                                    <>
+                                      <button
+                                        onClick={() => handleView(item)}
+                                        className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                        <span>View</span>
+                                      </button>
+                                      <button
+                                        onClick={() => handleDownload(item)}
+                                        className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                      >
+                                        <Download className="w-4 h-4" />
+                                        <span>Download</span>
+                                      </button>
+                                    </>
                                   )}
                                   <button
-                                    onClick={() => {
-                                      setShowItemMenu(null);
-                                    }}
-                                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                    onClick={() => handleDelete(item)}
+                                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
                                   >
-                                    <Archive className="w-4 h-4" />
-                                    <span>Archive</span>
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Delete</span>
                                   </button>
                                 </motion.div>
                               )}

@@ -547,6 +547,33 @@ router.post('/documents/:documentId/archive', checkPermission('delete'), async (
   }
 });
 
+// Delete document
+router.delete('/documents/:documentId', checkPermission('delete'), async (req, res) => {
+  try {
+    const document = await DocumentManagement.findById(req.params.documentId);
+    
+    if (!document) {
+      return res.status(404).json({ message: 'Document not found' });
+    }
+    
+    // Delete the physical file
+    const filePath = path.join(__dirname, '..', document.fileUrl);
+    try {
+      await fs.unlink(filePath);
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      // Continue even if file deletion fails
+    }
+    
+    // Delete from database
+    await DocumentManagement.findByIdAndDelete(req.params.documentId);
+    
+    res.json({ message: 'Document deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Search documents
 router.get('/documents/search', async (req, res) => {
   try {
