@@ -338,8 +338,14 @@ router.post('/folders/:folderId/documents',
         { path: 'folderId', select: 'name' }
       ]);
       
-      // Add audit log (use the same uploaderId we determined earlier)
-      await document.addAuditLog('uploaded', uploaderId, `Document uploaded by ${req.user.firstName} ${req.user.lastName}`);
+      // Add audit log directly to array (document already saved)
+      document.auditLog.push({
+        action: 'uploaded',
+        performedBy: uploaderId,
+        timestamp: new Date(),
+        details: `Document uploaded by ${req.user.firstName} ${req.user.lastName}`
+      });
+      await document.save();
       
       console.log('Document uploaded successfully:', document._id);
       res.status(201).json(document);
