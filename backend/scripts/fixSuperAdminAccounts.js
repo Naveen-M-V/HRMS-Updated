@@ -11,7 +11,7 @@
  */
 
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const EmployeeHub = require('../models/EmployeesHub');
