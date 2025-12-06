@@ -1,35 +1,50 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import axios from "axios";
 
 export default function StaffDetail() {
   const { id } = useParams();
+  const [staff, setStaff] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Dummy data for now (replace with API later)
-  const staffData = {
-    1001: {
-      firstname: "David",
-      lastname: "Williams",
-      email: "david.williams@vitrux.co.uk",
-      company: "VitruX Ltd",
-      jobTitle: "Director",
-      role: "Administrator",
-      jobLevel: "Managerial",
-    },
-    1002: {
-      firstname: "John",
-      lastname: "Maxwell",
-      email: "john.maxwell@vitrux.co.uk",
-      company: "VitruX Ltd",
-      jobTitle: "Head of Delivery",
-      role: "Manager",
-      jobLevel: "Senior",
-    },
-  };
+  useEffect(() => {
+    const fetchStaffDetail = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees/${id}`);
+        if (response.data.success) {
+          const employee = response.data.data;
+          setStaff({
+            firstname: employee.firstName,
+            lastname: employee.lastName,
+            email: employee.email,
+            company: employee.company || 'N/A',
+            jobTitle: employee.jobTitle,
+            role: employee.role,
+            jobLevel: employee.jobLevel || 'N/A'
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching staff:', err);
+        setError('Failed to load employee details');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStaffDetail();
+  }, [id]);
 
-  const staff = staffData[id];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-6">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
-  if (!staff) {
-    return <div className="p-6">User not found</div>;
+  if (error || !staff) {
+    return <div className="p-6 text-red-600">{error || 'Employee not found'}</div>;
   }
 
   return (

@@ -19,19 +19,27 @@ const AnnualLeaveBalance = () => {
         const response = await getLeaveBalances({ current: true });
         
         // Transform API data to match component structure
-        const transformedData = response.data?.map(balance => ({
-          id: balance._id,
-          name: balance.employeeName || `${balance.firstName || ''} ${balance.lastName || ''}`.trim(),
-          department: balance.department || 'N/A',
-          totalLeave: balance.totalDays || 0,
-          takenLeave: balance.usedDays || 0,
-          pendingLeave: balance.pendingDays || 0,
-          remainingLeave: balance.remainingDays || 0,
-          status: balance.isActive ? 'active' : 'inactive',
-          userId: balance.userId,
-          yearStart: balance.yearStart,
-          yearEnd: balance.yearEnd
-        })) || [];
+        const transformedData = response.data?.map(balance => {
+          // API populates 'user' object with firstName, lastName, department from EmployeeHub
+          const userName = balance.user 
+            ? `${balance.user.firstName || ''} ${balance.user.lastName || ''}`.trim()
+            : 'Unknown Employee';
+          const userDept = balance.user?.department || 'N/A';
+          
+          return {
+            id: balance._id,
+            name: userName,
+            department: userDept,
+            totalLeave: (balance.entitlementDays || 0) + (balance.carryOverDays || 0),
+            takenLeave: balance.usedDays || 0,
+            pendingLeave: 0, // Will be calculated from pending leave requests
+            remainingLeave: balance.remainingDays || 0,
+            status: 'active',
+            userId: balance.user?._id,
+            yearStart: balance.leaveYearStart,
+            yearEnd: balance.leaveYearEnd
+          };
+        }) || [];
         
         setEmployees(transformedData);
       } catch (err) {

@@ -37,26 +37,26 @@ const AdminDashboard = () => {
           const data = await response.json();
           setStats(data);
         } else {
-          // Mock data for demonstration
           setStats({
-            totalEmployees: 25,
-            activeEmployees: 18,
-            onBreakEmployees: 4,
-            offlineEmployees: 3,
-            totalCertificates: 156,
-            expiringCertificates: 8
+            totalEmployees: 0,
+            activeEmployees: 0,
+            onBreakEmployees: 0,
+            offlineEmployees: 0,
+            totalCertificates: 0,
+            expiringCertificates: 0,
+            error: 'Failed to load dashboard statistics'
           });
         }
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
-        // Use mock data on error
         setStats({
-          totalEmployees: 25,
-          activeEmployees: 18,
-          onBreakEmployees: 4,
-          offlineEmployees: 3,
-          totalCertificates: 156,
-          expiringCertificates: 8
+          totalEmployees: 0,
+          activeEmployees: 0,
+          onBreakEmployees: 0,
+          offlineEmployees: 0,
+          totalCertificates: 0,
+          expiringCertificates: 0,
+          error: 'Failed to load dashboard statistics. Please try again.'
         });
       }
     };
