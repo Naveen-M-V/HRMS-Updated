@@ -23,16 +23,14 @@ import {
 import axios from 'axios';
 import '../../utils/axiosConfig';
 import DocumentUpload from './DocumentUpload';
-import DocumentViewer from './DocumentViewer';
 
 const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showUploadZone, setShowUploadZone] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState(null);
   const [showDocumentMenu, setShowDocumentMenu] = useState(null);
-  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   // Fetch documents for the folder
   useEffect(() => {
@@ -59,50 +57,58 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
     onDocumentUploaded && onDocumentUploaded(document);
   };
 
-  const handleDownload = async (document) => {
+  const handleDownload = async (doc) => {
     try {
       const response = await axios.get(
-        `/api/documentManagement/documents/${document._id}/download`,
+        `/api/documentManagement/documents/${doc._id}/download`,
         { responseType: 'blob' }
       );
       
       // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = window.document.createElement('a');
       link.href = url;
-      link.setAttribute('download', document.fileName);
-      document.body.appendChild(link);
+      link.setAttribute('download', doc.fileName);
+      window.document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading document:', error);
-    }
-  };
-
-  const handleArchive = async (document) => {
-    try {
-      await axios.post(`/api/documentManagement/documents/${document._id}/archive`);
-      fetchDocuments();
       setShowDocumentMenu(null);
     } catch (error) {
-      console.error('Error archiving document:', error);
+      console.error('Error downloading document:', error);
+      alert('Failed to download document');
     }
   };
 
-  const handleView = (document) => {
-    setSelectedDocument(document);
-    setShowDocumentViewer(true);
-    setShowDocumentMenu(null);
-  };
-
-  const handleDelete = async (document) => {
-    if (!window.confirm(`Are you sure you want to delete "${document.fileName}"?`)) {
+  const handleArchive = async (doc) => {
+    if (!window.confirm(`Are you sure you want to archive "${doc.fileName}"?`)) {
       return;
     }
 
     try {
-      await axios.delete(`/api/documentManagement/documents/${document._id}`);
+      await axios.post(`/api/documentManagement/documents/${doc._id}/archive`);
+      fetchDocuments();
+      setShowDocumentMenu(null);
+    } catch (error) {
+      console.error('Error archiving document:', error);
+      alert('Failed to archive document');
+    }
+  };
+
+  const handleView = (doc) => {
+    const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+    const fileUrl = `${apiUrl}${doc.fileUrl}`;
+    window.open(fileUrl, '_blank');
+    setShowDocumentMenu(null);
+  };
+
+  const handleDelete = async (doc) => {
+    if (!window.confirm(`Are you sure you want to delete "${doc.fileName}"?`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/documentManagement/documents/${doc._id}`);
       fetchDocuments();
       setShowDocumentMenu(null);
     } catch (error) {
@@ -137,11 +143,13 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
     );
   };
 
-  // Filter documents based on search
-  const filteredDocuments = documents.filter(doc =>
-    doc.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (doc.category && doc.category.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filter documents based on search and archived status
+  const filteredDocuments = documents.filter(doc => {
+    const matchesSearch = doc.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (doc.category && doc.category.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesArchived = showArchived ? doc.isArchived : !doc.isArchived;
+    return matchesSearch && matchesArchived;
+  });
 
   // Animation variants
   const panelVariants = {
@@ -212,14 +220,27 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
             </div>
           </div>
 
-          {/* Upload Button */}
-          <div className="p-4 border-b border-gray-200">
+          {/* Upload Button & Filter */}
+          <div className="p-4 border-b border-gray-200 space-y-2">
             <button
               onClick={() => setShowUploadZone(true)}
               className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Upload className="w-4 h-4" />
               <span>Upload Documents</span>
+            </button>
+            
+            {/* Archived Toggle */}
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                showArchived 
+                  ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Archive className="w-4 h-4" />
+              <span>{showArchived ? 'Hide Archived' : 'Show Archived'}</span>
             </button>
           </div>
 
@@ -361,18 +382,6 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
               onUpload={handleDocumentUploaded}
               folders={[folder]}
               defaultFolder={folder}
-            />
-          )}
-
-          {/* Document Viewer */}
-          {showDocumentViewer && selectedDocument && (
-            <DocumentViewer
-              document={selectedDocument}
-              onClose={() => {
-                setShowDocumentViewer(false);
-                setSelectedDocument(null);
-              }}
-              onDownload={handleDownload}
             />
           )}
         </motion.div>
