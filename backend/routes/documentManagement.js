@@ -408,8 +408,21 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
     }
     
     // Add audit log for viewing
-    const userId = req.user._id || req.user.userId;
-    await document.addAuditLog('viewed', userId, 'Document viewed');
+    try {
+      const userId = req.user._id || req.user.userId;
+      if (userId) {
+        document.auditLog.push({
+          action: 'viewed',
+          performedBy: userId,
+          timestamp: new Date(),
+          details: 'Document viewed'
+        });
+        await document.save();
+      }
+    } catch (auditError) {
+      console.error('Error logging view:', auditError);
+      // Continue to return document even if audit fails
+    }
     
     res.json(document);
   } catch (error) {
@@ -435,12 +448,28 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
       return res.status(404).json({ message: 'File not found' });
     }
     
-    // Increment download count
-    const userId = req.user._id || req.user.userId;
-    await document.incrementDownload(userId);
+    // Increment download count - don't block download if this fails
+    try {
+      const userId = req.user._id || req.user.userId;
+      document.downloadCount += 1;
+      document.lastAccessedAt = new Date();
+      if (userId) {
+        document.auditLog.push({
+          action: 'downloaded',
+          performedBy: userId,
+          timestamp: new Date(),
+          details: 'Document downloaded'
+        });
+      }
+      await document.save();
+    } catch (auditError) {
+      console.error('Error updating download audit:', auditError);
+      // Continue with download even if audit fails
+    }
     
     res.download(filePath, document.fileName);
   } catch (error) {
+    console.error('Download error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -471,8 +500,21 @@ router.put('/documents/:documentId', checkPermission('edit'), async (req, res) =
     }
     
     // Add audit log
-    const userId = req.user._id || req.user.userId;
-    await document.addAuditLog('updated', userId, 'Document updated');
+    try {
+      const userId = req.user._id || req.user.userId;
+      if (userId) {
+        document.auditLog.push({
+          action: 'updated',
+          performedBy: userId,
+          timestamp: new Date(),
+          details: 'Document updated'
+        });
+        await document.save();
+      }
+    } catch (auditError) {
+      console.error('Error logging update:', auditError);
+      // Continue to return document even if audit fails
+    }
     
     res.json(document);
   } catch (error) {
@@ -512,7 +554,20 @@ router.post('/documents/:documentId/version',
       ]);
       
       // Add audit log
-      await newVersion.addAuditLog('uploaded', userId, 'New version uploaded');
+      try {
+        if (userId) {
+          newVersion.auditLog.push({
+            action: 'uploaded',
+            performedBy: userId,
+            timestamp: new Date(),
+            details: 'New version uploaded'
+          });
+          await newVersion.save();
+        }
+      } catch (auditError) {
+        console.error('Error logging new version:', auditError);
+        // Continue to return document even if audit fails
+      }
       
       res.status(201).json(newVersion);
     } catch (error) {
@@ -539,10 +594,21 @@ router.post('/documents/:documentId/archive', checkPermission('delete'), async (
     }
     
     const userId = req.user._id || req.user.userId;
-    await document.archive(userId);
+    document.isArchived = true;
+    document.isActive = false;
+    if (userId) {
+      document.auditLog.push({
+        action: 'archived',
+        performedBy: userId,
+        timestamp: new Date(),
+        details: 'Document archived'
+      });
+    }
+    await document.save();
     
     res.json({ message: 'Document archived successfully' });
   } catch (error) {
+    console.error('Archive error:', error);
     res.status(500).json({ message: error.message });
   }
 });
