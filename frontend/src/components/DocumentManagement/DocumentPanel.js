@@ -23,6 +23,7 @@ import {
 import axios from 'axios';
 import '../../utils/axiosConfig';
 import DocumentUpload from './DocumentUpload';
+import DocumentViewer from './DocumentViewer';
 
 const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
   const [documents, setDocuments] = useState([]);
@@ -31,6 +32,7 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
   const [showUploadZone, setShowUploadZone] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showDocumentMenu, setShowDocumentMenu] = useState(null);
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
 
   // Fetch documents for the folder
   useEffect(() => {
@@ -85,6 +87,27 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
       setShowDocumentMenu(null);
     } catch (error) {
       console.error('Error archiving document:', error);
+    }
+  };
+
+  const handleView = (document) => {
+    setSelectedDocument(document);
+    setShowDocumentViewer(true);
+    setShowDocumentMenu(null);
+  };
+
+  const handleDelete = async (document) => {
+    if (!window.confirm(`Are you sure you want to delete "${document.fileName}"?`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/documentManagement/documents/${document._id}`);
+      fetchDocuments();
+      setShowDocumentMenu(null);
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document');
     }
   };
 
@@ -293,6 +316,13 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
                               className="absolute right-0 top-8 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10"
                             >
                               <button
+                                onClick={() => handleView(document)}
+                                className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <Eye className="w-4 h-4" />
+                                <span>View</span>
+                              </button>
+                              <button
                                 onClick={() => handleDownload(document)}
                                 className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                               >
@@ -305,6 +335,13 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
                               >
                                 <Archive className="w-4 h-4" />
                                 <span>Archive</span>
+                              </button>
+                              <button
+                                onClick={() => handleDelete(document)}
+                                className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Delete</span>
                               </button>
                             </motion.div>
                           )}
@@ -324,6 +361,18 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
               onUpload={handleDocumentUploaded}
               folders={[folder]}
               defaultFolder={folder}
+            />
+          )}
+
+          {/* Document Viewer */}
+          {showDocumentViewer && selectedDocument && (
+            <DocumentViewer
+              document={selectedDocument}
+              onClose={() => {
+                setShowDocumentViewer(false);
+                setSelectedDocument(null);
+              }}
+              onDownload={handleDownload}
             />
           )}
         </motion.div>
