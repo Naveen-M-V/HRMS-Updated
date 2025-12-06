@@ -276,7 +276,7 @@ router.post('/folders/:folderId/documents',
       console.log('File received:', req.file ? req.file.originalname : 'No file');
       console.log('Body:', req.body);
       
-      if (!req.user || !req.user._id) {
+      if (!req.user || (!req.user._id && !req.user.userId)) {
         console.error('No authenticated user found');
         return res.status(401).json({ message: 'Authentication required' });
       }
@@ -398,7 +398,8 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
     }
     
     // Add audit log for viewing
-    await document.addAuditLog('viewed', req.user._id, 'Document viewed');
+    const userId = req.user._id || req.user.userId;
+    await document.addAuditLog('viewed', userId, 'Document viewed');
     
     res.json(document);
   } catch (error) {
@@ -425,7 +426,8 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
     }
     
     // Increment download count
-    await document.incrementDownload(req.user._id);
+    const userId = req.user._id || req.user.userId;
+    await document.incrementDownload(userId);
     
     res.download(filePath, document.fileName);
   } catch (error) {
@@ -459,7 +461,8 @@ router.put('/documents/:documentId', checkPermission('edit'), async (req, res) =
     }
     
     // Add audit log
-    await document.addAuditLog('updated', req.user._id, 'Document updated');
+    const userId = req.user._id || req.user.userId;
+    await document.addAuditLog('updated', userId, 'Document updated');
     
     res.json(document);
   } catch (error) {
@@ -483,12 +486,13 @@ router.post('/documents/:documentId/version',
       }
       
       // Create new version
+      const userId = req.user._id || req.user.userId;
       const newVersion = await originalDocument.createNewVersion(
         `/uploads/documents/${req.file.filename}`,
         req.file.originalname,
         req.file.size,
         req.file.mimetype,
-        req.user._id
+        userId
       );
       
       await newVersion.populate([
@@ -498,7 +502,7 @@ router.post('/documents/:documentId/version',
       ]);
       
       // Add audit log
-      await newVersion.addAuditLog('uploaded', req.user._id, 'New version uploaded');
+      await newVersion.addAuditLog('uploaded', userId, 'New version uploaded');
       
       res.status(201).json(newVersion);
     } catch (error) {
@@ -524,7 +528,8 @@ router.post('/documents/:documentId/archive', checkPermission('delete'), async (
       return res.status(404).json({ message: 'Document not found' });
     }
     
-    await document.archive(req.user._id);
+    const userId = req.user._id || req.user.userId;
+    await document.archive(userId);
     
     res.json({ message: 'Document archived successfully' });
   } catch (error) {
