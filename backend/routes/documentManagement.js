@@ -444,12 +444,19 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
 // View/stream document (for opening in browser) - accepts token in query param
 router.get('/documents/:documentId/view', async (req, res) => {
   try {
+    console.log('=== View Document Request ===');
+    console.log('Query token:', req.query.token ? 'Present' : 'Missing');
+    console.log('Auth header:', req.headers.authorization ? 'Present' : 'Missing');
+    
     // Check for token in query parameter or Authorization header
     const token = req.query.token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
     
     if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
+      console.error('No token found in request');
+      return res.status(401).json({ message: 'Authentication required - no token' });
     }
+    
+    console.log('Token found, verifying...');
     
     // Verify token
     const jwt = require('jsonwebtoken');
@@ -457,7 +464,9 @@ router.get('/documents/:documentId/view', async (req, res) => {
     let user;
     try {
       user = jwt.verify(token, JWT_SECRET);
+      console.log('Token verified successfully for user:', user.email);
     } catch (err) {
+      console.error('Token verification failed:', err.message);
       return res.status(401).json({ message: 'Invalid token' });
     }
     

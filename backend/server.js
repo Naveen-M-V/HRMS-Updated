@@ -3258,17 +3258,19 @@ const authenticateSession = async (req, res, next) => {
   try {
     const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
     const authHeader = req.headers['authorization'];
+    const queryToken = req.query.token; // Check for token in query params
     
     console.log('=== Authentication Debug ===');
     console.log('Path:', req.path);
     console.log('Is Multipart:', isMultipart);
     console.log('Auth Header:', authHeader ? 'Present' : 'Missing');
+    console.log('Query Token:', queryToken ? 'Present' : 'Missing');
     console.log('Has Session:', !!req.session);
     console.log('Session User:', !!req.session?.user);
     
-    // Check JWT token first for multipart or if Authorization header exists
-    if (authHeader || isMultipart) {
-      const token = authHeader && authHeader.split(' ')[1];
+    // Check JWT token first - from header, query param, or for multipart
+    if (authHeader || queryToken || isMultipart) {
+      const token = queryToken || (authHeader && authHeader.split(' ')[1]);
       console.log('Token extracted:', token ? 'Yes' : 'No');
       
       if (token) {
