@@ -164,7 +164,7 @@ const employeeHubSchema = new mongoose.Schema({
   // Authentication & Access Control
   role: {
     type: String,
-    enum: ['employee', 'admin'],
+    enum: ['employee', 'admin', 'super-admin'],
     default: 'employee',
     required: true
   },

@@ -956,6 +956,72 @@ app.get('/api/auth/verify-email', async (req, res) => {
   }
 });
 
+// Approve admin endpoint (for super admins to approve new admin signups)
+app.get('/api/auth/approve-admin', async (req, res) => {
+  try {
+    const { token } = req.query;
+    console.log('Admin approval request received');
+    
+    if (!token) {
+      console.log('Approval failed: Missing token');
+      return res.status(400).send('Missing approval token');
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+      console.log('Approval token verified for email:', payload.email);
+    } catch (e) {
+      console.log('Token verification failed:', e.message);
+      return res.status(400).send('Invalid or expired approval token');
+    }
+
+    // Find user with matching email and token
+    const user = await User.findOne({ email: payload.email, adminApprovalToken: token });
+    
+    if (!user) {
+      console.log('User not found for approval:', payload.email);
+      return res.status(404).send('User not found or approval link has expired');
+    }
+
+    // Check if already approved
+    if (user.isAdminApproved) {
+      console.log('Admin already approved:', payload.email);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?approved=true&message=already_approved`);
+    }
+
+    // Approve the admin
+    user.isAdminApproved = true;
+    user.adminApprovalToken = undefined; // Clear the token
+    await user.save();
+    
+    console.log('Admin approved successfully:', user.email);
+
+    // Send notification to the new admin
+    try {
+      await sendUserCredentialsEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        user.email,
+        '(use your signup password)' // They already have their password
+      );
+      console.log('✅ Admin approval notification sent');
+    } catch (emailError) {
+      console.error('Failed to send approval notification:', emailError);
+    }
+
+    // Redirect to frontend
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    return res.redirect(`${frontendUrl}/login?approved=true&message=admin_approved`);
+    
+  } catch (error) {
+    console.error('Admin approval error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/login?error=approval_failed`);
+  }
+});
+
 
 // Get profile by ID with complete data (including binary data)
 app.get('/api/profiles/:id/complete', async (req, res) => {
@@ -2611,6 +2677,9 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
+    // Determine if this is an admin signup
+    const isAdminSignup = role === 'admin';
+
     // Prepare user document
     // NOTE: Password will be hashed by pre-save hook - do NOT hash manually to avoid double hashing
     const user = new User({
@@ -2618,15 +2687,23 @@ app.post('/api/auth/signup', async (req, res) => {
       lastName,
       email,
       password, // Plain text - pre-save hook will hash it
-      role: role === 'admin' ? 'admin' : 'user',
+      role: isAdminSignup ? 'admin' : 'user',
       isActive: true,
       termsAcceptedAt: termsAccepted ? new Date() : undefined,
-      emailVerified: !requireEmailVerification
+      isEmailVerified: !requireEmailVerification,
+      isAdminApproved: !isAdminSignup // Regular users are auto-approved, admins need approval
     });
 
+    // Generate verification token if email verification is required
     if (requireEmailVerification) {
       user.verificationToken = jwt.sign({ email }, JWT_SECRET, { expiresIn: '48h' });
       console.log('Verification token generated for:', email);
+    }
+
+    // Generate admin approval token for admin signups
+    if (isAdminSignup) {
+      user.adminApprovalToken = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+      console.log('Admin approval token generated for:', email);
     }
 
     
@@ -2634,9 +2711,10 @@ app.post('/api/auth/signup', async (req, res) => {
     console.log('User saved to database:', {
       email: user.email,
       role: user.role,
-      emailVerified: user.emailVerified,
+      emailVerified: user.isEmailVerified,
       hasVerificationToken: !!user.verificationToken,
-      adminApprovalStatus: user.adminApprovalStatus
+      isAdminApproved: user.isAdminApproved,
+      hasAdminApprovalToken: !!user.adminApprovalToken
     });
 
     // Send verification email if required
@@ -2650,13 +2728,6 @@ app.post('/api/auth/signup', async (req, res) => {
         console.log('Recipient:', user.email);
         console.log('Recipient Name:', name);
         console.log('Verify URL:', verifyUrl);
-        console.log('Email config:', {
-          host: process.env.EMAIL_HOST,
-          port: process.env.EMAIL_PORT,
-          user: process.env.EMAIL_USER ? 'configured' : 'missing',
-          pass: process.env.EMAIL_PASS ? 'configured' : 'missing',
-          from: process.env.EMAIL_FROM || process.env.EMAIL_USER
-        });
         
         const result = await sendVerificationEmail(user.email, verifyUrl, name);
         if (result.success) {
@@ -2666,24 +2737,50 @@ app.post('/api/auth/signup', async (req, res) => {
           console.error(`❌ Verification email failed for ${user.email}`);
           console.error(`Error: ${result.error}`);
         }
-      } else {
-        console.log('⚠️ Skipping verification email:', {
-          requireEmailVerification,
-          hasVerificationToken: !!user.verificationToken
-        });
       }
     } catch (e) {
       console.error('❌ Exception while sending verification email:', e);
-      console.error('Error details:', {
-        message: e.message,
-        code: e.code,
-        stack: e.stack
-      });
+    }
+
+    // Send admin approval request emails to all super admins
+    if (isAdminSignup && user.adminApprovalToken) {
+      try {
+        const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
+        const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
+        const applicantName = `${user.firstName} ${user.lastName}`.trim();
+        
+        // Get super admin emails from environment
+        const superAdminEmails = process.env.SUPER_ADMIN_EMAIL?.split(',').map(e => e.trim()) || [];
+        
+        console.log('=== SENDING ADMIN APPROVAL REQUESTS ===');
+        console.log('New admin applicant:', user.email);
+        console.log('Super admins to notify:', superAdminEmails.length);
+        
+        for (const superAdminEmail of superAdminEmails) {
+          const result = await sendAdminApprovalRequestEmail(
+            superAdminEmail,
+            applicantName,
+            user.email,
+            approveUrl
+          );
+          
+          if (result.success) {
+            console.log(`✅ Admin approval request sent to ${superAdminEmail}`);
+          } else {
+            console.error(`❌ Failed to send approval request to ${superAdminEmail}`);
+          }
+        }
+      } catch (e) {
+        console.error('❌ Exception while sending admin approval emails:', e);
+      }
     }
 
     
     res.status(201).json({ 
-      message: 'User created successfully',
+      message: isAdminSignup 
+        ? 'Admin account created. Pending super-admin approval.' 
+        : 'User created successfully',
+      requiresApproval: isAdminSignup,
       user: {
         id: user._id,
         firstName: user.firstName,

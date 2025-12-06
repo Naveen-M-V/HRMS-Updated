@@ -2,10 +2,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 /**
- * User Schema for Profiles Only
- * Handles profile accounts (interns, trainees, contract trainees) ONLY
- * Profiles DO NOT clock-in, DO NOT have rota/shift, DO NOT belong to EmployeesHub
- * Unique identifier: VTID (4 digits)
+ * User Schema for Profiles and Admin Accounts
+ * Handles:
+ * 1. Profile accounts (interns, trainees, contract trainees) - require VTID, profileType, startDate
+ * 2. Admin/Super-Admin accounts - standalone system administrators
+ * Profiles and Admins DO NOT clock-in, DO NOT have rota/shift, DO NOT belong to EmployeesHub
  */
 const userSchema = new mongoose.Schema({
   // Personal Information
@@ -32,11 +33,14 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   
-  // Profile Information
+  // Profile Information (optional for admin accounts)
   vtid: {
     type: String,
     unique: true,
-    required: [true, 'VTID is required'],
+    sparse: true, // Allow null values for admin accounts
+    required: function() {
+      return this.role === 'profile'; // Only required for profiles
+    },
     match: [/^VT\d{4}$/, 'VTID must be in format VT1234']
   },
   dateOfBirth: {
@@ -48,11 +52,13 @@ const userSchema = new mongoose.Schema({
     default: 'Unspecified'
   },
   
-  // Profile Type
+  // Profile Type (only for profile role, not for admins)
   profileType: {
     type: String,
     enum: ['intern', 'trainee', 'contract-trainee'],
-    required: [true, 'Profile type is required']
+    required: function() {
+      return this.role === 'profile'; // Only required for profiles
+    }
   },
   institution: {
     type: String,
@@ -64,7 +70,9 @@ const userSchema = new mongoose.Schema({
   },
   startDate: {
     type: Date,
-    required: [true, 'Start date is required']
+    required: function() {
+      return this.role === 'profile'; // Only required for profiles
+    }
   },
   endDate: {
     type: Date
