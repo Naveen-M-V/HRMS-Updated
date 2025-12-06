@@ -13,15 +13,19 @@ const storage = multer.diskStorage({
     const uploadPath = path.join(__dirname, '..', 'uploads', 'documents');
     try {
       await fs.mkdir(uploadPath, { recursive: true });
+      console.log('Upload directory ensured:', uploadPath);
       cb(null, uploadPath);
     } catch (error) {
+      console.error('Error creating upload directory:', error);
       cb(error);
     }
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    const filename = file.fieldname + '-' + uniqueSuffix + ext;
+    console.log('Generating filename:', filename);
+    cb(null, filename);
   }
 });
 
@@ -56,11 +60,16 @@ const upload = multer({
 const checkPermission = (action) => {
   return async (req, res, next) => {
     try {
+      if (!req.user) {
+        console.error('checkPermission: No user in request');
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
       const user = req.user;
       const userRole = user.role || 'employee';
       
-      // Admin has all permissions
-      if (userRole === 'admin') {
+      // Admin and super-admin have all permissions
+      if (userRole === 'admin' || userRole === 'super-admin') {
         return next();
       }
       
@@ -261,7 +270,14 @@ router.post('/folders/:folderId/documents',
   upload.single('file'), 
   async (req, res) => {
     try {
+      console.log('=== Document Upload Request ===');
+      console.log('User:', req.user?._id);
+      console.log('Folder ID:', req.params.folderId);
+      console.log('File received:', req.file ? req.file.originalname : 'No file');
+      console.log('Body:', req.body);
+      
       if (!req.file) {
+        console.error('No file in request');
         return res.status(400).json({ message: 'No file uploaded' });
       }
       
@@ -273,6 +289,23 @@ router.post('/folders/:folderId/documents',
         return res.status(404).json({ message: 'Folder not found' });
       }
       
+      // Find the uploader's EmployeeHub record
+      // req.user might be from User model (admin/super-admin) or EmployeeHub model
+      let uploaderEmployeeId = null;
+      
+      if (req.user.email) {
+        // Try to find EmployeeHub by email
+        const employee = await EmployeeHub.findOne({ email: req.user.email });
+        uploaderEmployeeId = employee ? employee._id : null;
+      }
+      
+      if (!uploaderEmployeeId) {
+        // If user is from EmployeeHub directly, use their ID
+        uploaderEmployeeId = req.user._id;
+      }
+      
+      console.log('Uploader Employee ID:', uploaderEmployeeId);
+      
       // Create document
       const document = new DocumentManagement({
         folderId: req.params.folderId,
@@ -283,7 +316,7 @@ router.post('/folders/:folderId/documents',
         mimeType: req.file.mimetype,
         category: category || 'other',
         tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        uploadedBy: req.user._id,
+        uploadedBy: uploaderEmployeeId,
         permissions: permissions ? JSON.parse(permissions) : {
           view: ['admin', 'hr', 'manager', 'employee'],
           download: ['admin', 'hr', 'manager'],
@@ -303,17 +336,26 @@ router.post('/folders/:folderId/documents',
       // Add audit log
       await document.addAuditLog('uploaded', req.user._id, 'Document uploaded');
       
+      console.log('Document uploaded successfully:', document._id);
       res.status(201).json(document);
     } catch (error) {
+      console.error('=== Document Upload Error ===');
+      console.error('Error:', error.message);
+      console.error('Stack:', error.stack);
+      
       // Clean up uploaded file if there's an error
       if (req.file) {
         try {
           await fs.unlink(req.file.path);
+          console.log('Cleaned up failed upload file:', req.file.path);
         } catch (cleanupError) {
           console.error('Failed to clean up file:', cleanupError);
         }
       }
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ 
+        message: error.message,
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
 );
