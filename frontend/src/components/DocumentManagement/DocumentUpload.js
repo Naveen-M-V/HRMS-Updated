@@ -153,6 +153,8 @@ const DocumentUpload = ({
         try {
           // Get token from localStorage
           const token = localStorage.getItem('auth_token');
+          console.log('Uploading file - Token available:', !!token);
+          console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
           
           const response = await axios.post(
             `/api/documentManagement/folders/${selectedFolder._id}/documents`,
@@ -174,6 +176,8 @@ const DocumentUpload = ({
               }
             }
           );
+          
+          console.log('Upload successful:', response.data);
 
           uploadedDocuments.push(response.data);
           

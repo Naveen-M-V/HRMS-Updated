@@ -295,10 +295,11 @@ router.post('/folders/:folderId/documents',
       }
       
       // Determine uploader ID and type
-      let uploaderId = req.user._id;
+      // JWT token has userId field, not _id
+      let uploaderId = req.user._id || req.user.userId;
       let uploaderType = 'User';
       
-      console.log('Initial uploader:', { uploaderId, email: req.user.email });
+      console.log('Initial uploader:', { uploaderId, userId: req.user.userId, _id: req.user._id, email: req.user.email });
       
       if (req.user.email) {
         const employee = await EmployeeHub.findOne({ email: req.user.email });
