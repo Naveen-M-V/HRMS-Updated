@@ -338,7 +338,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   username: { type: String, unique: true, sparse: true, trim: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['user', 'admin', 'profile'], default: 'user' }, // Added 'profile' role
+  role: { type: String, enum: ['user', 'admin', 'profile', 'super-admin'], default: 'user' }, // Added 'profile' and 'super-admin' roles
   vtid: { type: String, unique: true, sparse: true, uppercase: true, trim: true, index: true }, // VTID for profiles
   profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', unique: true, sparse: true }, // Link to Profile
   profileType: { type: String, enum: ['intern', 'trainee', 'contract-trainee'], default: 'intern' }, // Profile type
