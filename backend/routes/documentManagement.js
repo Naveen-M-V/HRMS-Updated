@@ -182,9 +182,19 @@ router.get('/folders/:folderId', async (req, res) => {
     
     const documents = await DocumentManagement.getByFolder(req.params.folderId);
     
+    // Get subfolders
+    const subfolders = await Folder.find({ parentId: req.params.folderId, isActive: true });
+    
+    // Format contents with type field for frontend
+    const contents = [
+      ...subfolders.map(f => ({ ...f.toObject(), type: 'folder' })),
+      ...documents.map(d => ({ ...d.toObject(), type: 'document' }))
+    ];
+    
     res.json({
       folder,
-      documents
+      contents,
+      documents // Keep for backwards compatibility
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
