@@ -1,50 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Users, TrendingUp, Clock, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { getLeaveBalances } from '../utils/leaveApi';
+import { toast } from 'react-hot-toast';
 
 const AnnualLeaveBalance = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [error, setError] = useState(null);
 
-  // Mock data - replace with actual API call
+  // Fetch real leave balance data from API
   useEffect(() => {
-    setTimeout(() => {
-      setEmployees([
-        {
-          id: 1,
-          name: 'John Smith',
-          department: 'Engineering',
-          totalLeave: 20,
-          takenLeave: 5,
-          pendingLeave: 2,
-          remainingLeave: 13,
-          status: 'active'
-        },
-        {
-          id: 2,
-          name: 'Sarah Johnson',
-          department: 'HR',
-          totalLeave: 22,
-          takenLeave: 8,
-          pendingLeave: 1,
-          remainingLeave: 13,
-          status: 'active'
-        },
-        {
-          id: 3,
-          name: 'Mike Wilson',
-          department: 'Engineering',
-          totalLeave: 20,
-          takenLeave: 15,
-          pendingLeave: 0,
-          remainingLeave: 5,
-          status: 'active'
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    const fetchLeaveBalances = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getLeaveBalances({ current: true });
+        
+        // Transform API data to match component structure
+        const transformedData = response.data?.map(balance => ({
+          id: balance._id,
+          name: balance.employeeName || `${balance.firstName || ''} ${balance.lastName || ''}`.trim(),
+          department: balance.department || 'N/A',
+          totalLeave: balance.totalDays || 0,
+          takenLeave: balance.usedDays || 0,
+          pendingLeave: balance.pendingDays || 0,
+          remainingLeave: balance.remainingDays || 0,
+          status: balance.isActive ? 'active' : 'inactive',
+          userId: balance.userId,
+          yearStart: balance.yearStart,
+          yearEnd: balance.yearEnd
+        })) || [];
+        
+        setEmployees(transformedData);
+      } catch (err) {
+        console.error('Failed to fetch leave balances:', err);
+        setError(err.message || 'Failed to load leave balances');
+        toast.error('Failed to load leave balances');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaveBalances();
   }, []);
 
   const filteredEmployees = employees.filter(employee => {
@@ -76,6 +76,24 @@ const AnnualLeaveBalance = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error && employees.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Leave Balances</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
