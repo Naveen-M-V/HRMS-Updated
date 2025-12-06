@@ -609,28 +609,28 @@ const Calendar = () => {
         </div>
       </div>
 
-      {/* Day Details Modal - Expanded/Fullscreen */}
+      {/* Day Details Modal - Popup Style */}
       {showDayDetailsModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 animate-fadeIn">
-          <div className="h-full flex flex-col bg-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fadeIn p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col">
             {/* Modal Header - Enhanced */}
-            <div className="flex items-center justify-between p-8 border-b bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 shadow-lg">
-              <div className="flex items-center gap-6">
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
-                  <CalendarDaysIcon className="h-10 w-10 text-white" />
+            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-t-xl shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                  <CalendarDaysIcon className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold text-white">
+                  <h2 className="text-2xl font-bold text-white">
                     {selectedDate.format('dddd, MMMM D, YYYY')}
                   </h2>
-                  <p className="text-blue-100 text-lg mt-1 flex items-center gap-3">
+                  <p className="text-blue-100 text-sm mt-1 flex items-center gap-3">
                     <span className="flex items-center gap-1">
-                      <UserGroupIcon className="h-5 w-5" />
+                      <UserGroupIcon className="h-4 w-4" />
                       {selectedDayEvents.filter(e => e.type === 'shift').length} shift{selectedDayEvents.filter(e => e.type === 'shift').length !== 1 ? 's' : ''}
                     </span>
                     <span className="text-blue-200">•</span>
                     <span className="flex items-center gap-1">
-                      <CalendarOutlineIcon className="h-5 w-5" />
+                      <CalendarOutlineIcon className="h-4 w-4" />
                       {selectedDayEvents.filter(e => e.type === 'leave').length} time off
                     </span>
                   </p>
@@ -638,14 +638,14 @@ const Calendar = () => {
               </div>
               <button
                 onClick={() => setShowDayDetailsModal(false)}
-                className="p-3 hover:bg-white/20 rounded-xl transition-all text-white hover:scale-110"
+                className="p-2 hover:bg-white/20 rounded-lg transition-all text-white hover:scale-110"
               >
-                <XMarkIcon className="h-8 w-8" />
+                <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
 
-            {/* Modal Body - Expanded */}
-            <div className="flex-1 p-8 overflow-y-auto bg-gray-50">
+            {/* Modal Body - Scrollable */}
+            <div className="flex-1 p-6 overflow-y-auto bg-gray-50">
               {selectedDayEvents.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center py-20">
@@ -667,44 +667,44 @@ const Calendar = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {/* Shifts Section */}
                   {selectedDayEvents.filter(e => e.type === 'shift').length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                           <div className="bg-blue-100 p-2 rounded-lg">
-                            <UserGroupIcon className="h-6 w-6 text-blue-600" />
+                            <UserGroupIcon className="h-5 w-5 text-blue-600" />
                           </div>
                           Scheduled Shifts
                         </h3>
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
                           {selectedDayEvents.filter(e => e.type === 'shift').length}
                         </span>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-3 max-h-[350px] overflow-y-auto">
                         {selectedDayEvents.filter(e => e.type === 'shift').map((event, idx) => (
-                          <div key={idx} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-4 hover:shadow-md transition-all">
+                          <div key={idx} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-3 hover:shadow-md transition-all">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-3xl">{event.icon}</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-2xl">{event.icon}</span>
                                   <div>
-                                    <h4 className="font-bold text-gray-900 text-lg">{event.title}</h4>
-                                    <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                                      <ClockIcon className="h-4 w-4 text-blue-600" />
+                                    <h4 className="font-bold text-gray-900">{event.title}</h4>
+                                    <p className="text-xs text-gray-600 flex items-center gap-1 mt-1">
+                                      <ClockIcon className="h-3 w-3 text-blue-600" />
                                       <span className="font-medium">{event.time}</span>
                                     </p>
                                   </div>
                                 </div>
                                 {event.data.location && (
-                                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                                    <span className="font-medium">📍 Location:</span>
+                                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
+                                    <span className="font-medium">📍</span>
                                     <span>{event.data.location}</span>
                                   </div>
                                 )}
                               </div>
-                              <span className={`px-4 py-2 rounded-lg text-sm font-bold ${event.color} shadow-sm`}>
+                              <span className={`px-3 py-1 rounded-lg text-xs font-bold ${event.color} shadow-sm`}>
                                 {event.data.status}
                               </span>
                             </div>
@@ -716,43 +716,43 @@ const Calendar = () => {
 
                   {/* Time Off Section */}
                   {selectedDayEvents.filter(e => e.type === 'leave').length > 0 && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                           <div className="bg-amber-100 p-2 rounded-lg">
-                            <CalendarDaysIcon className="h-6 w-6 text-amber-600" />
+                            <CalendarDaysIcon className="h-5 w-5 text-amber-600" />
                           </div>
                           Time Off Requests
                         </h3>
-                        <span className="px-3 py-1 bg-amber-100 text-amber-800 text-sm font-semibold rounded-full">
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">
                           {selectedDayEvents.filter(e => e.type === 'leave').length}
                         </span>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-3 max-h-[350px] overflow-y-auto">
                         {selectedDayEvents.filter(e => e.type === 'leave').map((event, idx) => (
-                          <div key={idx} className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg p-4 hover:shadow-md transition-all">
+                          <div key={idx} className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg p-3 hover:shadow-md transition-all">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-3xl">{event.icon}</span>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-2xl">{event.icon}</span>
                                   <div>
-                                    <h4 className="font-bold text-gray-900 text-lg">{event.title}</h4>
-                                    <p className="text-sm text-gray-600 mt-1">{event.time}</p>
+                                    <h4 className="font-bold text-gray-900">{event.title}</h4>
+                                    <p className="text-xs text-gray-600 mt-1">{event.time}</p>
                                   </div>
                                 </div>
                                 {event.data.reason && (
-                                  <div className="bg-white rounded-lg p-3 mt-3 border border-amber-200">
-                                    <p className="text-sm text-gray-700 italic">💬 "{event.data.reason}"</p>
+                                  <div className="bg-white rounded-lg p-2 mt-2 border border-amber-200">
+                                    <p className="text-xs text-gray-700 italic">💬 "{event.data.reason}"</p>
                                   </div>
                                 )}
                                 {event.data.days && (
-                                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                                    <span className="font-medium">⏱️ Duration:</span>
+                                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
+                                    <span className="font-medium">⏱️</span>
                                     <span className="font-semibold">{event.data.days} day(s)</span>
                                   </div>
                                 )}
                               </div>
-                              <span className={`px-4 py-2 rounded-lg text-sm font-bold ${event.color} shadow-sm`}>
+                              <span className={`px-3 py-1 rounded-lg text-xs font-bold ${event.color} shadow-sm`}>
                                 {event.data.leaveType || event.data.status}
                               </span>
                             </div>
@@ -766,14 +766,14 @@ const Calendar = () => {
             </div>
 
             {/* Modal Footer - Enhanced */}
-            <div className="border-t border-gray-200 bg-gray-50 p-6">
+            <div className="border-t border-gray-200 bg-white p-4 rounded-b-xl">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600">
                   <span className="font-semibold">{selectedDayEvents.length}</span> total event(s) on this day
                 </div>
                 <button
                   onClick={() => setShowDayDetailsModal(false)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
                 >
                   Close
                 </button>
