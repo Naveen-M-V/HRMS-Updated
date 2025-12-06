@@ -14,6 +14,7 @@ import {
   Clock
 } from 'lucide-react';
 import axios from 'axios';
+import '../../utils/axiosConfig';
 
 const DocumentViewer = ({ document, onClose, onDownload }) => {
   const [loading, setLoading] = useState(false);

@@ -12,6 +12,7 @@ import {
   Plus
 } from 'lucide-react';
 import axios from 'axios';
+import '../../utils/axiosConfig';
 
 const UploadComponent = ({ onClose, onUpload, folderId }) => {
   const [files, setFiles] = useState([]);

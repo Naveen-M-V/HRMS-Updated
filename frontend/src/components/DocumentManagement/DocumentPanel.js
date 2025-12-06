@@ -21,6 +21,7 @@ import {
   Trash2
 } from 'lucide-react';
 import axios from 'axios';
+import '../../utils/axiosConfig';
 import DocumentUpload from './DocumentUpload';
 
 const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
