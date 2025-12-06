@@ -160,8 +160,21 @@ router.get('/folders', async (req, res) => {
     const folders = await Folder.find({ isActive: true })
       .sort({ name: 1 });
     
-    console.log("✅ Folders fetched successfully:", folders.length);
-    res.json(folders);
+    // Add document count to each folder
+    const foldersWithCount = await Promise.all(folders.map(async (folder) => {
+      const documentCount = await DocumentManagement.countDocuments({ 
+        folderId: folder._id,
+        isActive: true,
+        isArchived: false
+      });
+      return {
+        ...folder.toObject(),
+        documentCount
+      };
+    }));
+    
+    console.log("✅ Folders fetched successfully:", foldersWithCount.length);
+    res.json(foldersWithCount);
   } catch (error) {
     console.error("💥 Error fetching folders:", error);
     res.status(500).json({ 

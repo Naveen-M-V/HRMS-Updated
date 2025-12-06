@@ -208,9 +208,9 @@ const Documents = () => {
                       <div className="font-medium text-gray-900 hover:text-blue-600 transition-colors">
                         {folder.name}
                       </div>
-                      {folder.description && (
-                        <div className="text-sm text-gray-500">{folder.description}</div>
-                      )}
+                      <div className="text-sm text-gray-500">
+                        {folder.documentCount || 0} document{folder.documentCount !== 1 ? 's' : ''}
+                      </div>
                     </div>
                   </div>
 
