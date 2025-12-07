@@ -1,0 +1,583 @@
+const Expense = require('../models/Expense');
+const Employee = require('../models/EmployeesHub');
+const User = require('../models/User');
+const mongoose = require('mongoose');
+
+/**
+ * Get all expenses for the logged-in employee
+ */
+exports.getMyExpenses = async (req, res) => {
+  try {
+    const userId = req.session.user._id;
+    
+    // Find employee record
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee record not found' });
+    }
+
+    // Query parameters for filtering
+    const { 
+      status, 
+      category, 
+      tags, 
+      fromDate, 
+      toDate, 
+      page = 1, 
+      limit = 25 
+    } = req.query;
+
+    // Build filter
+    const filter = { employee: employee._id };
+    
+    if (status) {
+      filter.status = status;
+    }
+    if (category) {
+      filter.category = category;
+    }
+    if (tags) {
+      filter.tags = { $in: tags.split(',') };
+    }
+    if (fromDate || toDate) {
+      filter.date = {};
+      if (fromDate) filter.date.$gte = new Date(fromDate);
+      if (toDate) filter.date.$lte = new Date(toDate);
+    }
+
+    const skip = (page - 1) * limit;
+    const total = await Expense.countDocuments(filter);
+
+    const expenses = await Expense.find(filter)
+      .populate('approvedBy', 'firstName lastName')
+      .populate('declinedBy', 'firstName lastName')
+      .populate('paidBy', 'firstName lastName')
+      .populate('submittedBy', 'firstName lastName')
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.json({
+      expenses,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+        limit: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching expenses:', error);
+    res.status(500).json({ message: 'Failed to fetch expenses', error: error.message });
+  }
+};
+
+/**
+ * Get expenses pending approval (for managers)
+ */
+exports.getPendingApprovals = async (req, res) => {
+  try {
+    const userId = req.session.user._id;
+    const user = await User.findById(userId);
+
+    // Check if user is manager or admin
+    if (!user || !['manager', 'admin'].includes(user.role)) {
+      return res.status(403).json({ message: 'Access denied. Manager or Admin role required.' });
+    }
+
+    // Query parameters
+    const { 
+      category, 
+      tags, 
+      fromDate, 
+      toDate, 
+      page = 1, 
+      limit = 25 
+    } = req.query;
+
+    // Build filter - only pending expenses
+    const filter = { status: 'pending' };
+    
+    if (category) {
+      filter.category = category;
+    }
+    if (tags) {
+      filter.tags = { $in: tags.split(',') };
+    }
+    if (fromDate || toDate) {
+      filter.date = {};
+      if (fromDate) filter.date.$gte = new Date(fromDate);
+      if (toDate) filter.date.$lte = new Date(toDate);
+    }
+
+    // TODO: Filter by team/department based on manager's responsibility
+    // For now, show all pending expenses
+
+    const skip = (page - 1) * limit;
+    const total = await Expense.countDocuments(filter);
+
+    const expenses = await Expense.find(filter)
+      .populate('employee', 'firstName lastName employeeId department jobRole')
+      .populate('submittedBy', 'firstName lastName')
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    res.json({
+      expenses,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit),
+        limit: parseInt(limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching pending approvals:', error);
+    res.status(500).json({ message: 'Failed to fetch pending approvals', error: error.message });
+  }
+};
+
+/**
+ * Get single expense by ID
+ */
+exports.getExpenseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user._id;
+
+    const expense = await Expense.findById(id)
+      .populate('employee', 'firstName lastName employeeId department')
+      .populate('approvedBy', 'firstName lastName')
+      .populate('declinedBy', 'firstName lastName')
+      .populate('paidBy', 'firstName lastName')
+      .populate('submittedBy', 'firstName lastName');
+
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Check access: employee can see their own, managers/admins can see all
+    const employee = await Employee.findOne({ user: userId });
+    const user = await User.findById(userId);
+    
+    const isOwnExpense = employee && expense.employee._id.toString() === employee._id.toString();
+    const isManagerOrAdmin = user && ['manager', 'admin'].includes(user.role);
+
+    if (!isOwnExpense && !isManagerOrAdmin) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(expense);
+  } catch (error) {
+    console.error('Error fetching expense:', error);
+    res.status(500).json({ message: 'Failed to fetch expense', error: error.message });
+  }
+};
+
+/**
+ * Create new expense claim
+ */
+exports.createExpense = async (req, res) => {
+  try {
+    const userId = req.session.user._id;
+    
+    // Find employee record
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee record not found' });
+    }
+
+    const expenseData = {
+      ...req.body,
+      employee: employee._id,
+      submittedBy: userId,
+      status: 'pending'
+    };
+
+    // Validate claim type specific fields
+    if (expenseData.claimType === 'receipt') {
+      if (!expenseData.supplier) {
+        return res.status(400).json({ message: 'Supplier is required for receipt claims' });
+      }
+    } else if (expenseData.claimType === 'mileage') {
+      if (!expenseData.mileage || !expenseData.mileage.distance || !expenseData.mileage.ratePerUnit) {
+        return res.status(400).json({ message: 'Distance and rate are required for mileage claims' });
+      }
+      // Auto-calculate total if not provided
+      if (!expenseData.totalAmount) {
+        expenseData.totalAmount = expenseData.mileage.distance * expenseData.mileage.ratePerUnit;
+      }
+    }
+
+    const expense = new Expense(expenseData);
+    await expense.save();
+
+    const populatedExpense = await Expense.findById(expense._id)
+      .populate('employee', 'firstName lastName employeeId')
+      .populate('submittedBy', 'firstName lastName');
+
+    res.status(201).json(populatedExpense);
+  } catch (error) {
+    console.error('Error creating expense:', error);
+    res.status(500).json({ message: 'Failed to create expense', error: error.message });
+  }
+};
+
+/**
+ * Update expense
+ */
+exports.updateExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user._id;
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Only allow updating pending expenses
+    if (expense.status !== 'pending') {
+      return res.status(400).json({ message: 'Cannot update expense that is not pending' });
+    }
+
+    // Check ownership
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee || expense.employee.toString() !== employee._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Update fields
+    Object.keys(req.body).forEach(key => {
+      if (key !== 'employee' && key !== 'status' && key !== 'approvedBy' && key !== 'declinedBy' && key !== 'paidBy') {
+        expense[key] = req.body[key];
+      }
+    });
+
+    await expense.save();
+
+    const updatedExpense = await Expense.findById(expense._id)
+      .populate('employee', 'firstName lastName employeeId')
+      .populate('submittedBy', 'firstName lastName');
+
+    res.json(updatedExpense);
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    res.status(500).json({ message: 'Failed to update expense', error: error.message });
+  }
+};
+
+/**
+ * Delete expense
+ */
+exports.deleteExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user._id;
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Only allow deleting pending expenses
+    if (expense.status !== 'pending') {
+      return res.status(400).json({ message: 'Cannot delete expense that is not pending' });
+    }
+
+    // Check ownership
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee || expense.employee.toString() !== employee._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    await Expense.findByIdAndDelete(id);
+    res.json({ message: 'Expense deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    res.status(500).json({ message: 'Failed to delete expense', error: error.message });
+  }
+};
+
+/**
+ * Approve expense (manager/admin only)
+ */
+exports.approveExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user._id;
+
+    const user = await User.findById(userId);
+    if (!user || !['manager', 'admin'].includes(user.role)) {
+      return res.status(403).json({ message: 'Access denied. Manager or Admin role required.' });
+    }
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    if (expense.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending expenses can be approved' });
+    }
+
+    await expense.approve(userId);
+
+    const updatedExpense = await Expense.findById(expense._id)
+      .populate('employee', 'firstName lastName employeeId')
+      .populate('approvedBy', 'firstName lastName')
+      .populate('submittedBy', 'firstName lastName');
+
+    res.json(updatedExpense);
+  } catch (error) {
+    console.error('Error approving expense:', error);
+    res.status(500).json({ message: 'Failed to approve expense', error: error.message });
+  }
+};
+
+/**
+ * Decline expense (manager/admin only)
+ */
+exports.declineExpense = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.session.user._id;
+
+    const user = await User.findById(userId);
+    if (!user || !['manager', 'admin'].includes(user.role)) {
+      return res.status(403).json({ message: 'Access denied. Manager or Admin role required.' });
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({ message: 'Decline reason is required' });
+    }
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    if (expense.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending expenses can be declined' });
+    }
+
+    await expense.decline(userId, reason);
+
+    const updatedExpense = await Expense.findById(expense._id)
+      .populate('employee', 'firstName lastName employeeId')
+      .populate('declinedBy', 'firstName lastName')
+      .populate('submittedBy', 'firstName lastName');
+
+    res.json(updatedExpense);
+  } catch (error) {
+    console.error('Error declining expense:', error);
+    res.status(500).json({ message: 'Failed to decline expense', error: error.message });
+  }
+};
+
+/**
+ * Mark expense as paid (admin only)
+ */
+exports.markAsPaid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user._id;
+
+    const user = await User.findById(userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    if (expense.status !== 'approved') {
+      return res.status(400).json({ message: 'Only approved expenses can be marked as paid' });
+    }
+
+    await expense.markAsPaid(userId);
+
+    const updatedExpense = await Expense.findById(expense._id)
+      .populate('employee', 'firstName lastName employeeId')
+      .populate('approvedBy', 'firstName lastName')
+      .populate('paidBy', 'firstName lastName')
+      .populate('submittedBy', 'firstName lastName');
+
+    res.json(updatedExpense);
+  } catch (error) {
+    console.error('Error marking expense as paid:', error);
+    res.status(500).json({ message: 'Failed to mark expense as paid', error: error.message });
+  }
+};
+
+/**
+ * Upload attachment to expense
+ */
+exports.uploadAttachment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user._id;
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Check ownership
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee || expense.employee.toString() !== employee._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Check attachment limit
+    if (expense.attachments.length >= 5) {
+      return res.status(400).json({ message: 'Maximum 5 attachments allowed per expense' });
+    }
+
+    const attachment = {
+      fileName: req.file.originalname,
+      fileData: req.file.buffer,
+      mimeType: req.file.mimetype,
+      fileSize: req.file.size,
+      uploadedAt: new Date()
+    };
+
+    expense.attachments.push(attachment);
+    await expense.save();
+
+    res.json({
+      message: 'Attachment uploaded successfully',
+      attachmentId: expense.attachments[expense.attachments.length - 1]._id,
+      attachmentCount: expense.attachments.length
+    });
+  } catch (error) {
+    console.error('Error uploading attachment:', error);
+    res.status(500).json({ message: 'Failed to upload attachment', error: error.message });
+  }
+};
+
+/**
+ * Delete attachment from expense
+ */
+exports.deleteAttachment = async (req, res) => {
+  try {
+    const { id, attachmentId } = req.params;
+    const userId = req.session.user._id;
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Check ownership
+    const employee = await Employee.findOne({ user: userId });
+    if (!employee || expense.employee.toString() !== employee._id.toString()) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Remove attachment
+    expense.attachments = expense.attachments.filter(
+      att => att._id.toString() !== attachmentId
+    );
+
+    await expense.save();
+
+    res.json({
+      message: 'Attachment deleted successfully',
+      attachmentCount: expense.attachments.length
+    });
+  } catch (error) {
+    console.error('Error deleting attachment:', error);
+    res.status(500).json({ message: 'Failed to delete attachment', error: error.message });
+  }
+};
+
+/**
+ * Get attachment file
+ */
+exports.getAttachment = async (req, res) => {
+  try {
+    const { id, attachmentId } = req.params;
+    const userId = req.session.user._id;
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Check access
+    const employee = await Employee.findOne({ user: userId });
+    const user = await User.findById(userId);
+    
+    const isOwnExpense = employee && expense.employee.toString() === employee._id.toString();
+    const isManagerOrAdmin = user && ['manager', 'admin'].includes(user.role);
+
+    if (!isOwnExpense && !isManagerOrAdmin) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Find attachment
+    const attachment = expense.attachments.find(
+      att => att._id.toString() === attachmentId
+    );
+
+    if (!attachment) {
+      return res.status(404).json({ message: 'Attachment not found' });
+    }
+
+    res.setHeader('Content-Type', attachment.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${attachment.fileName}"`);
+    res.send(attachment.fileData);
+  } catch (error) {
+    console.error('Error retrieving attachment:', error);
+    res.status(500).json({ message: 'Failed to retrieve attachment', error: error.message });
+  }
+};
+
+/**
+ * Export expenses to CSV
+ */
+exports.exportToCSV = async (req, res) => {
+  try {
+    const userId = req.session.user._id;
+    const { expenses } = req.body;
+
+    if (!expenses || !Array.isArray(expenses)) {
+      return res.status(400).json({ message: 'Expenses array is required in request body' });
+    }
+
+    // Basic CSV generation (can be enhanced with csvExporter utility)
+    const csvHeader = 'Date,Category,Claim Type,Description,Supplier,Amount,Currency,Tax,Status,Notes\n';
+    const csvRows = expenses.map(exp => {
+      return [
+        exp.date ? new Date(exp.date).toLocaleDateString('en-GB') : '',
+        exp.category || '',
+        exp.claimType || '',
+        exp.notes || '',
+        exp.supplier || '',
+        exp.totalAmount || 0,
+        exp.currency || 'GBP',
+        exp.tax || 0,
+        exp.status || '',
+        (exp.declineReason || '').replace(/,/g, ';')
+      ].join(',');
+    }).join('\n');
+
+    const csv = csvHeader + csvRows;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="expenses_${Date.now()}.csv"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting expenses to CSV:', error);
+    res.status(500).json({ message: 'Failed to export expenses', error: error.message });
+  }
+};

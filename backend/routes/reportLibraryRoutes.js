@@ -47,8 +47,8 @@ router.post('/sensitive-info', reportLibraryController.generateSensitiveInfoRepo
 // Furloughed Employees Report
 router.post('/furloughed', reportLibraryController.generateFurloughedReport);
 
-// Export routes (CSV/PDF)
-router.get('/export/:reportId/csv', reportLibraryController.exportReportCSV);
-router.get('/export/:reportId/pdf', reportLibraryController.exportReportPDF);
+// Export routes (CSV/PDF) - POST to send report data
+router.post('/export/csv', reportLibraryController.exportReportCSV);
+router.post('/export/pdf', reportLibraryController.exportReportPDF);
 
 module.exports = router;

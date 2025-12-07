@@ -3827,6 +3827,10 @@ app.use('/api/reports', authenticateSession, reportingRoutes);
 const reportLibraryRoutes = require('./routes/reportLibraryRoutes');
 app.use('/api/report-library', authenticateSession, reportLibraryRoutes);
 
+// Expense Management routes
+const expenseRoutes = require('./routes/expenseRoutes');
+app.use('/api/expenses', authenticateSession, expenseRoutes);
+
 // Email service handled by utils/emailService.js
 
 // Global Error Handler Middleware (must be after all routes)

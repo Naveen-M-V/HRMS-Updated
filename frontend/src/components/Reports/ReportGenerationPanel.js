@@ -111,24 +111,50 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!reportData) return;
 
     const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
     const filename = `${report.id}_${timestamp}`;
 
-    if (exportFormat === 'json') {
-      const dataStr = JSON.stringify(reportData, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filename}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } else if (exportFormat === 'csv') {
-      // TODO: Implement CSV export
-      alert('CSV export will be implemented soon');
+    try {
+      if (exportFormat === 'json') {
+        const dataStr = JSON.stringify(reportData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = window.document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else if (exportFormat === 'csv') {
+        const response = await axios.post('/api/report-library/export/csv', 
+          { reportData },
+          { responseType: 'blob' }
+        );
+        const blob = new Blob([response.data], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = window.document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else if (exportFormat === 'pdf') {
+        const response = await axios.post('/api/report-library/export/pdf', 
+          { reportData },
+          { responseType: 'blob' }
+        );
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = window.document.createElement('a');
+        link.href = url;
+        link.download = `${filename}.pdf`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      setError('Failed to export report: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -318,9 +344,8 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
                     checked={exportFormat === 'pdf'}
                     onChange={(e) => setExportFormat(e.target.value)}
                     className="w-4 h-4 text-blue-600"
-                    disabled
                   />
-                  <span className="text-sm text-gray-400">PDF (Coming Soon)</span>
+                  <span className="text-sm text-gray-700">PDF</span>
                 </label>
               </div>
             </div>

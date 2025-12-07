@@ -9,6 +9,8 @@ const PayrollException = require('../models/PayrollException');
 const LatenessRecord = require('../models/LatenessRecord');
 const ArchiveEmployee = require('../models/ArchiveEmployee');
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
+const { exportReportToCSV } = require('../utils/csvExporter');
+const { exportReportToPDF } = require('../utils/pdfExporter');
 
 /**
  * Get all available report types with metadata
@@ -1009,8 +1011,24 @@ exports.generateFurloughedReport = async (req, res) => {
  */
 exports.exportReportCSV = async (req, res) => {
   try {
-    // TODO: Implement CSV export logic using json2csv
-    res.status(501).json({ success: false, error: 'CSV export not yet implemented' });
+    const { reportData } = req.body;
+
+    if (!reportData || !reportData.records) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Report data is required' 
+      });
+    }
+
+    // Generate CSV
+    const csv = exportReportToCSV(reportData);
+
+    // Set headers for file download
+    const filename = `${reportData.reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    res.send(csv);
   } catch (error) {
     console.error('Error exporting CSV:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1022,8 +1040,25 @@ exports.exportReportCSV = async (req, res) => {
  */
 exports.exportReportPDF = async (req, res) => {
   try {
-    // TODO: Implement PDF export logic using pdfkit
-    res.status(501).json({ success: false, error: 'PDF export not yet implemented' });
+    const { reportData } = req.body;
+
+    if (!reportData || !reportData.records) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Report data is required' 
+      });
+    }
+
+    // Generate PDF buffer
+    const pdfBuffer = await exportReportToPDF(reportData);
+
+    // Set headers for file download
+    const filename = `${reportData.reportType}_${new Date().toISOString().split('T')[0]}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    res.send(pdfBuffer);
   } catch (error) {
     console.error('Error exporting PDF:', error);
     res.status(500).json({ success: false, error: error.message });

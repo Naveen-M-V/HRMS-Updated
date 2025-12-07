@@ -63,6 +63,8 @@ import ManagerApprovalDashboard from './pages/ManagerApprovalDashboard';
 import Documents from './pages/Documents';
 import FolderView from './pages/FolderView';
 import ReportLibrary from './pages/ReportLibrary';
+import Expenses from './pages/Expenses';
+import AddExpense from './pages/AddExpense';
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -400,6 +402,14 @@ function App() {
                                   <Route
                                     path="/report-library"
                                     element={<ReportLibrary />}
+                                  />
+                                  <Route
+                                    path="/expenses"
+                                    element={<Expenses />}
+                                  />
+                                  <Route
+                                    path="/expenses/add"
+                                    element={<AddExpense />}
                                   />
                                   <Route
                                     path="/documents"
