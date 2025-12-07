@@ -364,7 +364,7 @@ const employeeHubSchema = new mongoose.Schema({
 // Indexes for better query performance
 // Performance indexes
 employeeHubSchema.index({ firstName: 1, lastName: 1 });
-employeeHubSchema.index({ email: 1 });
+// Note: email index is already created by unique: true
 employeeHubSchema.index({ team: 1 });
 employeeHubSchema.index({ department: 1 });
 employeeHubSchema.index({ status: 1 });

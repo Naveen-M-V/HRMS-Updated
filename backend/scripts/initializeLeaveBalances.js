@@ -11,10 +11,7 @@ require('dotenv').config();
 const initializeLeaveBalances = async () => {
   try {
     console.log('🚀 Connecting to MongoDB...');
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/talentshield', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/talentshield');
     console.log('✅ Connected to MongoDB');
 
     // Get all active employees from EmployeesHub

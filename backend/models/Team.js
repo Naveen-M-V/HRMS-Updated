@@ -57,7 +57,6 @@ const teamSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-teamSchema.index({ name: 1 });
 teamSchema.index({ isActive: 1 });
 
 // Pre-save middleware to update member count
