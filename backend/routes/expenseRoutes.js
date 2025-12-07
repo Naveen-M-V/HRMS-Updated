@@ -52,6 +52,9 @@ router.post('/:id/decline', expenseController.declineExpense);
 // Mark expense as paid (admin only)
 router.post('/:id/pay', expenseController.markAsPaid);
 
+// Revert expense to pending (admin only)
+router.post('/:id/revert', expenseController.revertToPending);
+
 // Upload attachment to expense
 router.post('/:id/attachments', upload.single('file'), expenseController.uploadAttachment);
 

@@ -65,6 +65,7 @@ import FolderView from './pages/FolderView';
 import ReportLibrary from './pages/ReportLibrary';
 import Expenses from './pages/Expenses';
 import AddExpense from './pages/AddExpense';
+import ViewExpense from './pages/ViewExpense';
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -410,6 +411,10 @@ function App() {
                                   <Route
                                     path="/expenses/add"
                                     element={<AddExpense />}
+                                  />
+                                  <Route
+                                    path="/expenses/:id"
+                                    element={<ViewExpense />}
                                   />
                                   <Route
                                     path="/documents"

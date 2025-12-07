@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Users, TrendingUp, Clock, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Users, TrendingUp, Clock, AlertCircle, CheckCircle, XCircle, Edit, X } from 'lucide-react';
 import { getLeaveBalances } from '../utils/leaveApi';
+import axios from 'axios';
 
 const AnnualLeaveBalance = () => {
   const [employees, setEmployees] = useState([]);
@@ -9,6 +10,24 @@ const AnnualLeaveBalance = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [error, setError] = useState(null);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [userRole, setUserRole] = useState('user');
+
+  // Fetch user role
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const response = await axios.get('/api/auth/check-session');
+        if (response.data.role) {
+          setUserRole(response.data.role);
+        }
+      } catch (err) {
+        console.error('Error fetching user role:', err);
+      }
+    };
+    fetchUserRole();
+  }, []);
 
   // Fetch real leave balance data from API
   useEffect(() => {
@@ -244,6 +263,11 @@ const AnnualLeaveBalance = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
+                  {userRole === 'admin' && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -285,6 +309,20 @@ const AnnualLeaveBalance = () => {
                           {employee.status}
                         </span>
                       </td>
+                      {userRole === 'admin' && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              setEditingEmployee(employee);
+                              setShowEditModal(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Edit Leave Balance"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
                     </motion.tr>
                   );
                 })}
@@ -292,7 +330,145 @@ const AnnualLeaveBalance = () => {
             </table>
           </div>
         </div>
+
+        {/* Edit Leave Balance Modal */}
+        {showEditModal && editingEmployee && (
+          <EditLeaveBalanceModal
+            employee={editingEmployee}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingEmployee(null);
+            }}
+            onSuccess={() => {
+              setShowEditModal(false);
+              setEditingEmployee(null);
+              window.location.reload();
+            }}
+          />
+        )}
       </div>
+    </div>
+  );
+};
+
+// Edit Leave Balance Modal Component
+const EditLeaveBalanceModal = ({ employee, onClose, onSuccess }) => {
+  const [entitlementDays, setEntitlementDays] = useState(employee.totalLeave);
+  const [carryOverDays, setCarryOverDays] = useState(0);
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      await axios.put(`/api/leave/admin/balance/${employee.userId}`, {
+        entitlementDays: parseInt(entitlementDays),
+        carryOverDays: parseInt(carryOverDays),
+        reason: reason || 'Admin adjustment'
+      });
+
+      onSuccess();
+    } catch (err) {
+      console.error('Error updating leave balance:', err);
+      setError(err.response?.data?.message || 'Failed to update leave balance');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
+      >
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Edit Leave Balance - {employee.name}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Annual Entitlement (days) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={entitlementDays}
+              onChange={(e) => setEntitlementDays(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Current: {employee.totalLeave} days
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Carry Over Days
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={carryOverDays}
+              onChange={(e) => setCarryOverDays(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Reason for Adjustment <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              placeholder="e.g., Additional days granted, Contractual change"
+              required
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              disabled={loading}
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
     </div>
   );
 };

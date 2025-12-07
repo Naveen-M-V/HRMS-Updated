@@ -6,7 +6,8 @@ import {
   UserGroupIcon,
   ClockIcon,
   DocumentTextIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 
 /**
@@ -71,6 +72,7 @@ const AdminDashboard = () => {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: ChartBarIcon },
+    { id: 'attendance', name: 'Attendance Calendar', icon: CalendarIcon },
     { id: 'compliance', name: 'Compliance', icon: DocumentTextIcon }
   ];
 
@@ -255,10 +257,347 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {activeTab === 'attendance' && (
+          <AttendanceCalendar />
+        )}
+
         {activeTab === 'compliance' && (
           <ComplianceDashboard />
         )}
       </div>
+    </div>
+  );
+};
+
+/**
+ * Attendance Calendar Component for Admin Dashboard
+ * Shows employee clock-in/out, lateness, and overtime data
+ */
+const AttendanceCalendar = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [timeEntries, setTimeEntries] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [selectedDateDetails, setSelectedDateDetails] = useState(null);
+
+  useEffect(() => {
+    fetchEmployees();
+    fetchMonthEntries();
+  }, [currentDate, selectedEmployee]);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/employees`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data);
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    }
+  };
+
+  const fetchMonthEntries = async () => {
+    try {
+      setLoading(true);
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      
+      const url = selectedEmployee === 'all'
+        ? `${process.env.REACT_APP_API_BASE_URL}/api/clock/time-entries?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`
+        : `${process.env.REACT_APP_API_BASE_URL}/api/clock/time-entries/${selectedEmployee}?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`;
+
+      const response = await fetch(url, {
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTimeEntries(data.data || data);
+      }
+    } catch (error) {
+      console.error('Error fetching time entries:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDaysInMonth = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days = [];
+    
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(day);
+    }
+    
+    return days;
+  };
+
+  const getEntriesForDate = (day) => {
+    if (!day) return [];
+    
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return timeEntries.filter(entry => {
+      const entryDate = entry.date.split('T')[0];
+      return entryDate === dateStr;
+    });
+  };
+
+  const isLate = (entry) => {
+    if (!entry.clockIn) return false;
+    const clockInTime = new Date(entry.clockIn);
+    const hours = clockInTime.getHours();
+    const minutes = clockInTime.getMinutes();
+    return hours > 9 || (hours === 9 && minutes > 0);
+  };
+
+  const hasOvertime = (entry) => {
+    if (!entry.totalHours) return false;
+    return entry.totalHours > 8;
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const navigateMonth = (direction) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(currentDate.getMonth() + direction);
+    setCurrentDate(newDate);
+  };
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const handleDayClick = (day) => {
+    const entries = getEntriesForDate(day);
+    if (entries.length > 0) {
+      setSelectedDateDetails({ day, entries });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Controls */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigateMonth(-1)}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              ← Previous
+            </button>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+            <button
+              onClick={() => navigateMonth(1)}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Next →
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Filter by Employee:</label>
+            <select
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Employees</option>
+              {employees.map(emp => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.firstName} {emp.lastName} ({emp.employeeId || 'No ID'})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-500 rounded"></div>
+            <span>On Time</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-500 rounded"></div>
+            <span>Late</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-blue-500 rounded"></div>
+            <span>Overtime</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+            <span>On Break</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="bg-white rounded-lg shadow p-6">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <p className="mt-2 text-gray-600">Loading attendance data...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-7 gap-2">
+            {/* Day Headers */}
+            {dayNames.map(day => (
+              <div key={day} className="text-center font-semibold text-gray-700 py-2">
+                {day}
+              </div>
+            ))}
+            
+            {/* Calendar Days */}
+            {getDaysInMonth().map((day, index) => {
+              const entries = getEntriesForDate(day);
+              const hasLate = entries.some(isLate);
+              const hasOT = entries.some(hasOvertime);
+              const hasBreak = entries.some(e => e.breakIn && !e.breakOut);
+              
+              return (
+                <div
+                  key={index}
+                  onClick={() => day && handleDayClick(day)}
+                  className={`min-h-24 p-2 border rounded-lg ${
+                    day ? 'bg-white hover:bg-gray-50 cursor-pointer' : 'bg-gray-100'
+                  } ${entries.length > 0 ? 'border-blue-300' : 'border-gray-200'}`}
+                >
+                  {day && (
+                    <>
+                      <div className="text-sm font-medium text-gray-900 mb-1">{day}</div>
+                      {entries.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-xs text-gray-600">
+                            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {hasLate && (
+                              <div className="w-3 h-3 bg-red-500 rounded-full" title="Late clock-in"></div>
+                            )}
+                            {hasOT && (
+                              <div className="w-3 h-3 bg-blue-500 rounded-full" title="Overtime"></div>
+                            )}
+                            {hasBreak && (
+                              <div className="w-3 h-3 bg-yellow-500 rounded-full" title="On break"></div>
+                            )}
+                            {!hasLate && !hasBreak && entries.length > 0 && (
+                              <div className="w-3 h-3 bg-green-500 rounded-full" title="On time"></div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Details Modal */}
+      {selectedDateDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Attendance Details - {monthNames[currentDate.getMonth()]} {selectedDateDetails.day}, {currentDate.getFullYear()}
+              </h3>
+              <button
+                onClick={() => setSelectedDateDetails(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <ExclamationTriangleIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {selectedDateDetails.entries.map((entry, idx) => {
+                const employee = employees.find(e => e._id === entry.employee);
+                return (
+                  <div key={idx} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">
+                          {employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee'}
+                        </h4>
+                        <p className="text-sm text-gray-500">
+                          {employee?.employeeId || 'No ID'} • {employee?.department || 'No Department'}
+                        </p>
+                      </div>
+                      {isLate(entry) && (
+                        <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                          Late
+                        </span>
+                      )}
+                      {hasOvertime(entry) && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          Overtime
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Clock In:</span>
+                        <span className="ml-2 font-medium">{formatTime(entry.clockIn)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Clock Out:</span>
+                        <span className="ml-2 font-medium">{entry.clockOut ? formatTime(entry.clockOut) : 'Still clocked in'}</span>
+                      </div>
+                      {entry.breakIn && (
+                        <>
+                          <div>
+                            <span className="text-gray-600">Break Start:</span>
+                            <span className="ml-2 font-medium">{formatTime(entry.breakIn)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Break End:</span>
+                            <span className="ml-2 font-medium">{entry.breakOut ? formatTime(entry.breakOut) : 'On break'}</span>
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <span className="text-gray-600">Total Hours:</span>
+                        <span className="ml-2 font-medium">{entry.totalHours?.toFixed(2) || '0.00'} hrs</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Status:</span>
+                        <span className="ml-2 font-medium capitalize">{entry.status?.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

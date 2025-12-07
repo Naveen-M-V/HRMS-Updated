@@ -415,6 +415,50 @@ exports.markAsPaid = async (req, res) => {
 };
 
 /**
+ * Revert expense to pending status (admin only)
+ */
+exports.revertToPending = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session.user._id;
+
+    const user = await User.findById(userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    if (expense.status === 'pending') {
+      return res.status(400).json({ message: 'Expense is already pending' });
+    }
+
+    expense.status = 'pending';
+    expense.approvedBy = null;
+    expense.approvedAt = null;
+    expense.declinedBy = null;
+    expense.declinedAt = null;
+    expense.declineReason = null;
+    expense.paidBy = null;
+    expense.paidAt = null;
+
+    await expense.save();
+
+    const updatedExpense = await Expense.findById(expense._id)
+      .populate('employee', 'firstName lastName employeeId')
+      .populate('submittedBy', 'firstName lastName');
+
+    res.json(updatedExpense);
+  } catch (error) {
+    console.error('Error reverting expense to pending:', error);
+    res.status(500).json({ message: 'Failed to revert expense to pending', error: error.message });
+  }
+};
+
+/**
  * Upload attachment to expense
  */
 exports.uploadAttachment = async (req, res) => {

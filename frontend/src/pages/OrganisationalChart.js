@@ -623,19 +623,41 @@ function OrganisationalChart() {
     try {
       setLoading(true);
 
-      // Store org chart in localStorage for persistence
+      // Extract manager relationships from org chart
+      const managerRelationships = [];
+      const extractRelationships = (node) => {
+        if (node.children && node.children.length > 0) {
+          node.children.forEach(child => {
+            if (child._id && node._id) {
+              managerRelationships.push({
+                employeeId: child._id,
+                managerId: node._id
+              });
+            }
+            extractRelationships(child);
+          });
+        }
+      };
+      extractRelationships(orgData);
+
+      // Save to database
+      await axios.post('/api/employees/org-chart/save', {
+        managerRelationships
+      });
+
+      // Store org chart in localStorage for visual persistence
       localStorage.setItem('customOrgChart', JSON.stringify(orgData));
 
-      console.log('Org chart saved to localStorage');
-      alert('Organizational chart saved successfully! Note: This is stored locally. To persist changes permanently, employee manager relationships need to be updated in the employee profiles.');
+      console.log('Org chart saved to database and localStorage');
+      alert('Organizational chart saved successfully! Manager relationships have been updated in the database.');
 
       setOriginalOrgData(JSON.parse(JSON.stringify(orgData)));
       setHasChanges(false);
       setIsEditable(false);
     } catch (err) {
       console.error('Failed to save org chart:', err);
-      setError("Failed to save org chart");
-      alert('Failed to save org chart. Please try again.');
+      setError(err.response?.data?.message || "Failed to save org chart");
+      alert(err.response?.data?.message || 'Failed to save org chart. Please try again.');
     } finally {
       setLoading(false);
     }

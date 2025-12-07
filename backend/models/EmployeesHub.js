@@ -381,11 +381,37 @@ employeeHubSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Pre-save middleware to generate initials if not provided
-employeeHubSchema.pre('save', function(next) {
+// Pre-save middleware to generate initials and employeeId if not provided
+employeeHubSchema.pre('save', async function(next) {
+  // Generate initials
   if (!this.initials && this.firstName && this.lastName) {
     this.initials = `${this.firstName.charAt(0)}${this.lastName.charAt(0)}`.toUpperCase();
   }
+  
+  // Generate unique employeeId if not provided
+  if (!this.employeeId && this.isNew) {
+    try {
+      // Find the highest existing employee ID
+      const lastEmployee = await this.constructor.findOne({}, { employeeId: 1 })
+        .sort({ employeeId: -1 })
+        .lean();
+      
+      let nextId = 1001; // Start from EMP-1001
+      
+      if (lastEmployee && lastEmployee.employeeId) {
+        // Extract number from format EMP-XXXX
+        const match = lastEmployee.employeeId.match(/EMP-(\d+)/);
+        if (match) {
+          nextId = parseInt(match[1]) + 1;
+        }
+      }
+      
+      this.employeeId = `EMP-${String(nextId).padStart(4, '0')}`;
+    } catch (error) {
+      return next(error);
+    }
+  }
+  
   next();
 });
 

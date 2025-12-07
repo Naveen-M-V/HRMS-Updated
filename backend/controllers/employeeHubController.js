@@ -1259,3 +1259,60 @@ exports.bulkDeleteEmployees = async (req, res) => {
     });
   }
 };
+
+/**
+ * Save organizational chart manager relationships
+ */
+exports.saveOrganizationalChart = async (req, res) => {
+  try {
+    const { managerRelationships } = req.body;
+
+    if (!managerRelationships || !Array.isArray(managerRelationships)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Manager relationships array is required'
+      });
+    }
+
+    // Update each employee's manager
+    const updates = [];
+    for (const relationship of managerRelationships) {
+      const { employeeId, managerId } = relationship;
+      
+      if (employeeId && managerId) {
+        updates.push(
+          EmployeeHub.findByIdAndUpdate(
+            employeeId,
+            { managerId: managerId },
+            { new: true }
+          )
+        );
+      }
+    }
+
+    // Clear manager for employees not in the relationships array
+    const employeeIds = managerRelationships.map(r => r.employeeId);
+    await EmployeeHub.updateMany(
+      { 
+        _id: { $nin: employeeIds },
+        managerId: { $ne: null }
+      },
+      { managerId: null }
+    );
+
+    await Promise.all(updates);
+
+    res.status(200).json({
+      success: true,
+      message: 'Organizational chart saved successfully',
+      updatedCount: updates.length
+    });
+  } catch (error) {
+    console.error('Error saving organizational chart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save organizational chart',
+      error: error.message
+    });
+  }
+};

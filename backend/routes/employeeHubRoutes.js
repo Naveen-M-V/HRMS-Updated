@@ -13,6 +13,7 @@ router.get('/team/:teamName', employeeHubController.getEmployeesByTeam);
 
 // Organizational Chart routes
 router.get('/org-chart', employeeHubController.getOrganizationalChart);
+router.post('/org-chart/save', employeeHubController.saveOrganizationalChart);
 router.get('/direct-reports/:managerId', employeeHubController.getDirectReports);
 router.patch('/:employeeId/manager', employeeHubController.updateEmployeeManager);
 

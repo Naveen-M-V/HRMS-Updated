@@ -701,4 +701,78 @@ router.put('/balance/:userId', async (req, res) => {
   }
 });
 
+// Admin: Update employee annual leave balance
+router.put('/admin/balance/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { entitlementDays, carryOverDays, reason } = req.body;
+    const adminId = req.session.user._id;
+
+    // Check if user is admin
+    const admin = await User.findById(adminId);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    // Find current leave year balance
+    const currentYear = new Date().getFullYear();
+    const leaveYearStart = new Date(currentYear, 3, 1); // April 1st
+    const leaveYearEnd = new Date(currentYear + 1, 2, 31); // March 31st next year
+
+    let balance = await AnnualLeaveBalance.findOne({
+      user: userId,
+      leaveYearStart: leaveYearStart
+    });
+
+    if (!balance) {
+      // Create new balance record
+      balance = new AnnualLeaveBalance({
+        user: userId,
+        leaveYearStart,
+        leaveYearEnd,
+        entitlementDays: entitlementDays || 20,
+        carryOverDays: carryOverDays || 0,
+        usedDays: 0
+      });
+    } else {
+      // Update existing balance
+      const oldEntitlement = balance.entitlementDays;
+      
+      if (entitlementDays !== undefined && entitlementDays !== oldEntitlement) {
+        balance.entitlementDays = entitlementDays;
+        
+        // Add adjustment record
+        if (reason) {
+          balance.adjustments.push({
+            days: entitlementDays - oldEntitlement,
+            reason: reason,
+            adjustedBy: adminId,
+            at: new Date()
+          });
+        }
+      }
+      
+      if (carryOverDays !== undefined) {
+        balance.carryOverDays = carryOverDays;
+      }
+    }
+
+    await balance.save();
+
+    res.json({
+      success: true,
+      message: 'Leave balance updated successfully',
+      balance: {
+        entitlementDays: balance.entitlementDays,
+        carryOverDays: balance.carryOverDays,
+        usedDays: balance.usedDays,
+        remainingDays: balance.remainingDays
+      }
+    });
+  } catch (error) {
+    console.error('Error updating leave balance:', error);
+    res.status(500).json({ message: 'Failed to update leave balance', error: error.message });
+  }
+});
+
 module.exports = router;
