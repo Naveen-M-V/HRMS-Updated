@@ -62,6 +62,7 @@ import AnnualLeaveBalance from './pages/AnnualLeaveBalance';
 import ManagerApprovalDashboard from './pages/ManagerApprovalDashboard';
 import Documents from './pages/Documents';
 import FolderView from './pages/FolderView';
+import ReportLibrary from './pages/ReportLibrary';
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -395,6 +396,10 @@ function App() {
                                   <Route
                                     path="/manager-approvals"
                                     element={<ManagerApprovalDashboard />}
+                                  />
+                                  <Route
+                                    path="/report-library"
+                                    element={<ReportLibrary />}
                                   />
                                   <Route
                                     path="/documents"

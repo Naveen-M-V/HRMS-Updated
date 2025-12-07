@@ -3823,6 +3823,10 @@ app.use('/api/documentManagement', authenticateSession, documentManagementRoutes
 const reportingRoutes = require('./routes/reportingRoutes');
 app.use('/api/reports', authenticateSession, reportingRoutes);
 
+// Report Library routes
+const reportLibraryRoutes = require('./routes/reportLibraryRoutes');
+app.use('/api/report-library', authenticateSession, reportLibraryRoutes);
+
 // Email service handled by utils/emailService.js
 
 // Global Error Handler Middleware (must be after all routes)
