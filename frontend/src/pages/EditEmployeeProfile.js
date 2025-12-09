@@ -34,6 +34,7 @@ export default function EditEmployeeProfile() {
     startDate: "",
     probationEndDate: "",
     employmentType: "Full-time",
+    role: "employee",
     // Pay Details
     salary: "",
     rate: "",
@@ -573,6 +574,26 @@ export default function EditEmployeeProfile() {
                     <SelectItem value="Intern">Intern</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">Role / Authority Level</label>
+                <Select
+                  value={formData.role || 'employee'}
+                  onValueChange={(value) => handleChange({ target: { name: 'role', value } })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="senior-manager">Senior Manager</SelectItem>
+                    <SelectItem value="hr">HR</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="super-admin">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">Determines approval permissions and system access level</p>
               </div>
             </div>
           )}
