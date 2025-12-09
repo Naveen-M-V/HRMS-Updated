@@ -2806,6 +2806,7 @@ const teamRoutes = require('./routes/teamRoutes');
 const employeeHubRoutes = require('./routes/employeeHubRoutes');
 const documentManagementRoutes = require('./routes/documentManagement');
 const employeeProfileRoutes = require('./routes/employeeProfile');
+const approvalRoutes = require('./routes/approvalRoutes');
 
 // Use notification routes (moved after authenticateSession definition)
 // This will be added later after the middleware is defined
@@ -3818,6 +3819,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/employees', employeeHubRoutes);
 app.use('/api/employee-profile', authenticateSession, employeeProfileRoutes);
 app.use('/api/documentManagement', authenticateSession, documentManagementRoutes);
+app.use('/api/approvals', authenticateSession, approvalRoutes);
 
 // NEW: Reporting routes
 const reportingRoutes = require('./routes/reportingRoutes');

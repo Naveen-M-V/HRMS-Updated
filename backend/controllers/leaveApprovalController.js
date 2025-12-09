@@ -4,6 +4,7 @@ const EmployeeHub = require('../models/EmployeesHub');
 const Notification = require('../models/Notification');
 const ShiftAssignment = require('../models/ShiftAssignment');
 const { sendLeaveRequestEmail, sendLeaveApprovalEmail, sendLeaveRejectionEmail } = require('../utils/emailService');
+const hierarchyHelper = require('../utils/hierarchyHelper');
 
 /**
  * Leave Approval Controller
@@ -160,9 +161,9 @@ exports.approveLeaveRequest = async (req, res) => {
       });
     }
 
-    // Verify approver is the manager or admin
-    const approver = await EmployeeHub.findById(req.user._id);
-    if (!approver || (approver.role !== 'admin' && leaveRequest.user.managerId?.toString() !== req.user._id.toString())) {
+    // Verify approver has permission using hierarchy helper
+    const canApprove = await hierarchyHelper.canApproveLeave(req.user._id, leaveRequest.user._id);
+    if (!canApprove) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to approve this leave request'
@@ -275,9 +276,9 @@ exports.rejectLeaveRequest = async (req, res) => {
       });
     }
 
-    // Verify approver is the manager or admin
-    const approver = await EmployeeHub.findById(req.user._id);
-    if (!approver || (approver.role !== 'admin' && leaveRequest.user.managerId?.toString() !== req.user._id.toString())) {
+    // Verify approver has permission using hierarchy helper
+    const canApprove = await hierarchyHelper.canApproveLeave(req.user._id, leaveRequest.user._id);
+    if (!canApprove) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to reject this leave request'

@@ -2,6 +2,7 @@ const Expense = require('../models/Expense');
 const Employee = require('../models/EmployeesHub');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const hierarchyHelper = require('../utils/hierarchyHelper');
 
 /**
  * Get all expenses for the logged-in employee
@@ -308,18 +309,19 @@ exports.approveExpense = async (req, res) => {
     const { id } = req.params;
     const userId = req.session.user._id;
 
-    const user = await User.findById(userId);
-    if (!user || !['manager', 'admin'].includes(user.role)) {
-      return res.status(403).json({ message: 'Access denied. Manager or Admin role required.' });
-    }
-
-    const expense = await Expense.findById(id);
+    const expense = await Expense.findById(id).populate('employee', '_id');
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
     if (expense.status !== 'pending') {
       return res.status(400).json({ message: 'Only pending expenses can be approved' });
+    }
+
+    // Check hierarchy permission (employees only, not profiles)
+    const canApprove = await hierarchyHelper.canApproveExpense(userId, expense.employee._id);
+    if (!canApprove) {
+      return res.status(403).json({ message: 'You do not have permission to approve this expense' });
     }
 
     await expense.approve(userId);
@@ -345,18 +347,19 @@ exports.declineExpense = async (req, res) => {
     const { reason } = req.body;
     const userId = req.session.user._id;
 
-    const user = await User.findById(userId);
-    if (!user || !['manager', 'admin'].includes(user.role)) {
-      return res.status(403).json({ message: 'Access denied. Manager or Admin role required.' });
-    }
-
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({ message: 'Decline reason is required' });
     }
 
-    const expense = await Expense.findById(id);
+    const expense = await Expense.findById(id).populate('employee', '_id');
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Check hierarchy permission (employees only, not profiles)
+    const canApprove = await hierarchyHelper.canApproveExpense(userId, expense.employee._id);
+    if (!canApprove) {
+      return res.status(403).json({ message: 'You do not have permission to decline this expense' });
     }
 
     if (expense.status !== 'pending') {
@@ -385,8 +388,9 @@ exports.markAsPaid = async (req, res) => {
     const { id } = req.params;
     const userId = req.session.user._id;
 
-    const user = await User.findById(userId);
-    if (!user || user.role !== 'admin') {
+    // Check if user has permission to mark as paid (admin/super-admin only)
+    const canMarkPaid = await hierarchyHelper.canMarkExpenseAsPaid(userId);
+    if (!canMarkPaid) {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 

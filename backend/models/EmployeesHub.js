@@ -135,7 +135,16 @@ const employeeHubSchema = new mongoose.Schema({
     default: null
   },
   
-  // User Account Link
+  // Role & Authority (for approval hierarchy)
+  role: {
+    type: String,
+    enum: ['employee', 'manager', 'senior-manager', 'hr', 'admin', 'super-admin'],
+    default: 'employee',
+    required: true,
+    index: true
+  },
+  
+  // User Account Link (optional - only if profile exists)
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

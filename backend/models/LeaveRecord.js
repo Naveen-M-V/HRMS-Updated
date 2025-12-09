@@ -45,14 +45,14 @@ const leaveRecordSchema = new mongoose.Schema({
   },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'EmployeeHub'  // Changed: Only employees can approve, not profiles
   },
   approvedAt: {
     type: Date
   },
   rejectedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'EmployeeHub'  // Changed: Only employees can reject, not profiles
   },
   rejectedAt: {
     type: Date
@@ -60,7 +60,7 @@ const leaveRecordSchema = new mongoose.Schema({
   rejectionReason: String,
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'EmployeeHub'  // Changed: Created by employee
   },
   notes: String
 }, {
