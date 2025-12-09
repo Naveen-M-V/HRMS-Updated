@@ -37,6 +37,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
   const [openClockInOut, setOpenClockInOut] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
   const [openRotaShift, setOpenRotaShift] = useState(false);
+  const [openPerformance, setOpenPerformance] = useState(false);
   const [openEmployees, setOpenEmployees] = useState(false);
   const [openSettings, setOpenSettings] = useState(false);
   const [openDocumentsDrawer, setOpenDocumentsDrawer] = useState(false);
@@ -104,9 +105,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           toggleSidebar();
         }
       }}
-      className={`fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground z-50 transition-all duration-300 flex flex-col shadow-xl ${
-        isOpen ? "w-64" : "w-16"
-      } cursor-pointer`}
+      className={`fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground z-50 transition-all duration-300 flex flex-col shadow-xl ${isOpen ? "w-64" : "w-16"
+        } cursor-pointer`}
     >
       {/* Header */}
       <div className="flex items-center justify-center p-4 border-b border-sidebar-border">
@@ -140,9 +140,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               handleMenuClick();
               setOpenReporting(!openReporting);
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              openReporting ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-            }`}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openReporting ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
           >
             <ClipboardDocumentIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
@@ -161,11 +160,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
               <button
                 onClick={() => handleNavigation("/dashboard")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/dashboard")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/dashboard")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <HomeIcon className="h-4 w-4" />
                 <span>Compliance Dashboard</span>
@@ -181,9 +179,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               handleMenuClick();
               setOpenClockInOut(!openClockInOut);
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              openClockInOut ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-            }`}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openClockInOut ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
           >
             <ClockIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
@@ -202,11 +199,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
               <button
                 onClick={() => handleNavigation("/clock-overview")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/clock-overview")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/clock-overview")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <HomeIcon className="h-4 w-4" />
                 <span>Overview</span>
@@ -214,11 +210,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
 
               <button
                 onClick={() => handleNavigation("/clock-ins")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/clock-ins")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/clock-ins")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <ClockIcon className="h-4 w-4" />
                 <span>Clock-ins</span>
@@ -226,11 +221,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
 
               <button
                 onClick={() => handleNavigation("/time-history")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/time-history")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/time-history")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <DocumentTextIcon className="h-4 w-4" />
                 <span>History</span>
@@ -246,9 +240,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               handleMenuClick();
               setOpenTraining(!openTraining);
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              openTraining ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-            }`}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openTraining ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
           >
             <AcademicCapIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
@@ -267,11 +260,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
               <button
                 onClick={() => handleNavigation("/profiles")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/profiles")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/profiles")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <UserIcon className="h-4 w-4" />
                 <span>Profiles</span>
@@ -281,11 +273,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
 
               <button
                 onClick={() => handleNavigation("/certificates")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/certificates")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/certificates")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <DocumentTextIcon className="h-4 w-4" />
                 <span>Certificates</span>
@@ -301,9 +292,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               handleMenuClick();
               setOpenRotaShift(!openRotaShift);
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              openRotaShift ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-            }`}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openRotaShift ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
           >
             <CalendarDaysIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
@@ -322,11 +312,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
               <button
                 onClick={() => handleNavigation("/rota-shift-management")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/rota-shift-management")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/rota-shift-management")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <CalendarIcon className="h-4 w-4" />
                 <span>Shift Management</span>
@@ -339,11 +328,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         <div className="pt-2 border-t border-sidebar-border">
           <button
             onClick={() => handleNavigation("/calendar")}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              isActive("/calendar")
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/calendar")
                 ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                 : "hover:bg-sidebar-accent/50"
-            }`}
+              }`}
           >
             <CalendarIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
@@ -352,15 +340,68 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           </button>
         </div>
 
+        {/* Performance Section */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenPerformance(!openPerformance);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openPerformance ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Performance</span>
+                {openPerformance ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openPerformance && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/performance/goals")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/goals")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Goals</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/performance/reviews")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/reviews")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <DocumentTextIcon className="h-4 w-4" />
+                <span>Reviews</span>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Manager Approvals Section */}
         <div>
           <button
             onClick={() => handleNavigation("/manager-approvals")}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              isActive("/manager-approvals")
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/manager-approvals")
                 ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                 : "hover:bg-sidebar-accent/50"
-            }`}
+              }`}
           >
             <ClipboardDocumentCheckIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
@@ -392,11 +433,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               handleMenuClick();
               navigate('/report-library');
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              location.pathname === '/report-library'
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname === '/report-library'
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'hover:bg-sidebar-accent/50'
-            }`}
+              }`}
           >
             <svg
               className="h-5 w-5 flex-shrink-0"
@@ -420,11 +460,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               handleMenuClick();
               navigate('/expenses');
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              location.pathname.startsWith('/expenses')
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname.startsWith('/expenses')
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'hover:bg-sidebar-accent/50'
-            }`}
+              }`}
           >
             <svg
               className="h-5 w-5 flex-shrink-0"
@@ -448,9 +487,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               handleMenuClick();
               setOpenEmployees(!openEmployees);
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-              openEmployees ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-            }`}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openEmployees ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
           >
             <UsersIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
@@ -469,11 +507,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
               <button
                 onClick={() => handleNavigation("/employee-hub")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/employee-hub")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/employee-hub")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <UserIcon className="h-4 w-4" />
                 <span>Employees</span>
@@ -481,11 +518,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
 
               <button
                 onClick={() => handleNavigation("/annual-leave-balance")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/annual-leave-balance")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/annual-leave-balance")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <CalendarDaysIcon className="h-4 w-4" />
                 <span>Annual Leave Balance</span>
@@ -493,11 +529,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
 
               <button
                 onClick={() => handleNavigation("/organisational-chart")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/organisational-chart")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/organisational-chart")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <UserGroupIcon className="h-4 w-4" />
                 <span>Organizational Chart</span>
@@ -517,11 +552,10 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
 
               <button
                 onClick={() => handleNavigation("/manage-teams")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/manage-teams")
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/manage-teams")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
-                }`}
+                  }`}
               >
                 <UserGroupIcon className="h-4 w-4" />
                 <span>Manage Teams</span>
@@ -590,9 +624,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                   <button
                     onClick={handleLogout}
                     disabled={loading}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-red-500/10 hover:text-red-400 transition-all ${
-                      loading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-red-500/10 hover:text-red-400 transition-all ${loading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                   >
                     <ArrowRightOnRectangleIcon className="h-4 w-4" />
                     <span>{loading ? "Logging out..." : "Logout"}</span>
@@ -623,9 +656,9 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
       </div>
 
       {/* Documents Drawer */}
-      <DocumentDrawer 
-        isOpen={openDocumentsDrawer} 
-        onClose={() => setOpenDocumentsDrawer(false)} 
+      <DocumentDrawer
+        isOpen={openDocumentsDrawer}
+        onClose={() => setOpenDocumentsDrawer(false)}
       />
     </div>
   );

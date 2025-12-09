@@ -26,21 +26,21 @@ const envConfig = require('./config/environment');
 const config = envConfig.getConfig();
 // Load utilities
 const { generateSimplePassword } = require('./utils/passwordGenerator');
-const { 
-  sendLoginSuccessEmail, 
-  sendCertificateExpiredEmail, 
-  sendNotificationEmail, 
+const {
+  sendLoginSuccessEmail,
+  sendCertificateExpiredEmail,
+  sendNotificationEmail,
   testEmailConfiguration,
   sendTestEmail,
-  sendVerificationEmail, 
-  sendAdminApprovalRequestEmail, 
-  sendUserCredentialsEmail, 
-  sendAdminNewUserCredentialsEmail, 
+  sendVerificationEmail,
+  sendAdminApprovalRequestEmail,
+  sendUserCredentialsEmail,
+  sendAdminNewUserCredentialsEmail,
   sendWelcomeEmailToNewUser
 } = require('./utils/emailService');
 const { startCertificateMonitoring, triggerCertificateCheck } = require('./utils/certificateMonitor');
 const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
-const { 
+const {
   notifyUserCreation,
   notifyProfileUpdate,
   notifyCertificateAdded,
@@ -106,13 +106,13 @@ app.use(cors({
   origin: function (origin, callback) {
     console.log('🔍 CORS Debug - Incoming origin:', origin);
     console.log('🔍 CORS Debug - Allowed origins:', allowedOrigins);
-    
+
     // Allow requests with no origin (like mobile apps, Postman, curl)
     if (!origin) {
       console.log('✅ No origin header - allowing request');
       return callback(null, true);
     }
-    
+
     if (allowedOrigins.includes(origin)) {
       console.log('✅ Origin allowed:', origin);
       callback(null, true);
@@ -134,37 +134,37 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Input validation middleware
 const validateProfileInput = (req, res, next) => {
   const { firstName, lastName, email } = req.body;
-  
+
   if (!firstName || firstName.trim().length < 1) {
     return res.status(400).json({ message: 'First name is required' });
   }
-  
+
   if (!lastName || lastName.trim().length < 1) {
     return res.status(400).json({ message: 'Last name is required' });
   }
-  
+
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ message: 'Valid email is required' });
   }
-  
+
   next();
 };
 
 const validateCertificateInput = (req, res, next) => {
   const { certificate, category } = req.body;
-  
+
   console.log('Certificate validation - received data:', { certificate, category, body: req.body });
-  
+
   if (!certificate || certificate.trim().length < 1) {
     console.log('Certificate validation failed - missing certificate name');
     return res.status(400).json({ message: 'Certificate name is required', received: { certificate, category } });
   }
-  
+
   if (!category || category.trim().length < 1) {
     console.log('Certificate validation failed - missing category');
     return res.status(400).json({ message: 'Certificate category is required', received: { certificate, category } });
   }
-  
+
   console.log('Certificate validation passed');
   next();
 };
@@ -172,11 +172,11 @@ const validateCertificateInput = (req, res, next) => {
 // MongoDB connection
 mongoose.connect(MONGODB_URI).then(() => {
   console.log('MongoDB connected successfully');
-  
+
   // Start certificate monitoring
   const { startAllCertificateSchedulers } = require('./utils/certificateScheduler');
   startAllCertificateSchedulers();
-  
+
 }).catch(err => {
   console.error('MongoDB connection error:', err);
 });
@@ -184,12 +184,12 @@ mongoose.connect(MONGODB_URI).then(() => {
 // Connection event handlers
 mongoose.connection.on('connected', () => {
   console.log('Connected to MongoDB');
-  
+
   // Create default admin if none exists
   User.ensureAdminExists().catch(err => {
     console.error('Error ensuring admin exists:', err);
   });
-  
+
   // Start certificate expiry monitoring schedulers
   console.log('Starting email notification schedulers...');
   startAllCertificateSchedulers();
@@ -207,7 +207,7 @@ mongoose.connection.on('disconnected', () => {
 const profileSchema = new mongoose.Schema({
   // User Reference
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', unique: true, sparse: true, index: true },
-  
+
   // Basic Info
   firstName: { type: String, required: true, index: true },
   lastName: { type: String, required: true, index: true },
@@ -219,7 +219,7 @@ const profileSchema = new mongoose.Schema({
   profilePictureData: Buffer, // Store profile picture data in database
   profilePictureSize: Number, // Store file size in bytes
   profilePictureMimeType: String, // Store file MIME type
-  
+
   // Job Details
   role: { type: String, default: 'User' },
   staffType: { type: String, default: 'Direct' },
@@ -230,7 +230,7 @@ const profileSchema = new mongoose.Schema({
   department: String, // Department field
   language: { type: String, default: 'English' },
   startDate: Date,
-  
+
   // System IDs
   vtid: { type: Number, unique: true, sparse: true, index: true }, // VTID field
   skillkoId: { type: Number, unique: true, index: true },
@@ -238,23 +238,23 @@ const profileSchema = new mongoose.Schema({
   extThirdPartySystemId: String,
   nopsID: String,
   insuranceNumber: String,
-  
+
   // Additional Employee Details
-  poc: String, 
+  poc: String,
   nationality: String,
   circetUIN: String,
   circetSCID: String,
   morrisonsIDNumber: String,
   morrisonsUIN: String,
   status: { type: String, default: 'Onboarding' }, // Onboarded, Onboarding, Dropped Out, Left
-  
+
   // Emergency Contact
   emergencyContact: {
     name: String,
     relationship: String,
     phone: String,
   },
-  
+
   // Address
   address: {
     line1: String,
@@ -263,50 +263,50 @@ const profileSchema = new mongoose.Schema({
     postCode: String,
     country: { type: String, default: '' },
   },
-  
+
   // Metadata
   createdOn: { type: Date, default: Date.now },
   lastSeen: { type: Date, default: Date.now },
   isActive: { type: Boolean, default: true },
   emailVerified: { type: Boolean, default: true },
   mobileVerified: { type: Boolean, default: false },
-  
+
   // Bio and other info
   bio: String,
   otherInformation: String,
 });
 
 // Auto-generate VTID as sequential number from 1000-9000
-profileSchema.pre('save', async function(next) {
+profileSchema.pre('save', async function (next) {
   if (!this.vtid) {
     // Find the highest existing VTID
     const lastProfile = await this.constructor.findOne({ vtid: { $exists: true } })
       .sort({ vtid: -1 })
       .select('vtid')
       .lean();
-    
+
     let newVtid = 1000; // Start from 1000
-    
+
     if (lastProfile && lastProfile.vtid) {
       newVtid = lastProfile.vtid + 1;
     }
-    
+
     // Ensure we don't exceed 9000
     if (newVtid > 9000) {
       throw new Error('VTID limit exceeded. Maximum VTID is 9000.');
     }
-    
+
     this.vtid = newVtid;
   }
   next();
 });
 
 // Auto-generate skillkoId as random 4-digit number
-profileSchema.pre('save', async function(next) {
+profileSchema.pre('save', async function (next) {
   if (!this.skillkoId) {
     let newId;
     let isUnique = false;
-    
+
     // Generate random 4-digit number until we find a unique one
     while (!isUnique) {
       newId = Math.floor(Math.random() * 9000) + 1000; // Generates 1000-9999
@@ -315,10 +315,10 @@ profileSchema.pre('save', async function(next) {
         isUnique = true;
       }
     }
-    
+
     this.skillkoId = newId;
-   }
-  next();
+  }
+  next();
 });
 
 // Add compound indexes for better query performance
@@ -342,30 +342,30 @@ const userSchema = new mongoose.Schema({
   vtid: { type: String, unique: true, sparse: true, uppercase: true, trim: true, index: true }, // VTID for profiles
   profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile', unique: true, sparse: true }, // Link to Profile
   profileType: { type: String, enum: ['intern', 'trainee', 'contract-trainee'], default: 'intern' }, // Profile type
-  
+
   // Contact & Personal Info
   phone: { type: String, trim: true },
   dateOfBirth: { type: Date },
   gender: { type: String, enum: ['Male', 'Female', 'Other', 'Unspecified'], default: 'Unspecified' },
-  
+
   // Institution & Course (for profiles)
   institution: { type: String, trim: true },
   course: { type: String, trim: true },
   startDate: { type: Date },
   endDate: { type: Date },
-  
+
   // Status & Verification
   isActive: { type: Boolean, default: true },
   isEmailVerified: { type: Boolean, default: false },
   isAdminApproved: { type: Boolean, default: false }, // Changed from adminApprovalStatus
   status: { type: String, enum: ['active', 'completed', 'terminated'], default: 'active' },
-  
+
   // Security & Tokens
   verificationToken: { type: String },
   adminApprovalToken: { type: String },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
-  
+
   // Login Tracking
   loginAttempts: { type: Number, default: 0 },
   lockUntil: { type: Date },
@@ -375,10 +375,10 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   // Only hash the password if it has been modified (or is new)
   if (!this.isModified('password')) return next();
-  
+
   try {
     // Hash password with salt rounds of 10
     this.password = await bcrypt.hash(this.password, 10);
@@ -390,7 +390,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Password comparison method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   try {
     return await bcrypt.compare(candidatePassword, this.password);
   } catch (error) {
@@ -399,12 +399,12 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 // Virtual for account lock status
-userSchema.virtual('isLocked').get(function() {
+userSchema.virtual('isLocked').get(function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
 // Increment login attempts
-userSchema.methods.incLoginAttempts = function() {
+userSchema.methods.incLoginAttempts = function () {
   // If we have a previous lock that has expired, restart at 1
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
@@ -412,23 +412,23 @@ userSchema.methods.incLoginAttempts = function() {
       $unset: { lockUntil: 1 }
     });
   }
-  
+
   // Otherwise we're incrementing
   const updates = { $inc: { loginAttempts: 1 } };
-  
+
   // Lock the account after 5 failed attempts for 2 hours
   const maxAttempts = 5;
   const lockTime = 2 * 60 * 60 * 1000; // 2 hours
-  
+
   if (this.loginAttempts + 1 >= maxAttempts && !this.isLocked) {
     updates.$set = { lockUntil: Date.now() + lockTime };
   }
-  
+
   return this.updateOne(updates);
 };
 
 // Reset login attempts
-userSchema.methods.resetLoginAttempts = function() {
+userSchema.methods.resetLoginAttempts = function () {
   return this.updateOne({
     $set: { loginAttempts: 0 },
     $unset: { lockUntil: 1 }
@@ -436,7 +436,7 @@ userSchema.methods.resetLoginAttempts = function() {
 };
 
 // Static method for authentication (used by authController)
-userSchema.statics.authenticate = async function(identifier, password) {
+userSchema.statics.authenticate = async function (identifier, password) {
   // Find user by email or VTID
   const user = await this.findOne({
     $or: [
@@ -482,7 +482,7 @@ userSchema.statics.authenticate = async function(identifier, password) {
 };
 
 // Add method to create default admin if none exists
-userSchema.statics.ensureAdminExists = async function() {
+userSchema.statics.ensureAdminExists = async function () {
   try {
     const adminCount = await this.countDocuments({ role: { $in: ['admin', 'super-admin'] } });
     if (adminCount === 0) {
@@ -527,8 +527,8 @@ const certificateSchema = new mongoose.Schema({
   active: { type: String, default: 'Yes' },
   status: { type: String, default: 'Approved', index: true },
   cost: { type: Number, default: 0 }, // Changed to Number
-  category: { type: String, required: true, index: true }, 
-  jobRole: String, 
+  category: { type: String, required: true, index: true },
+  jobRole: String,
   approvalStatus: String,
   isInterim: { type: Boolean, default: false }, // Changed to Boolean
   timeLogged: {
@@ -538,13 +538,13 @@ const certificateSchema = new mongoose.Schema({
   },
   supplier: String,
   totalCost: { type: Number, default: 0 }, // Changed to Number
-  
+
   // File storage fields - store in database
   certificateFile: String, // Store original filename
   fileData: Buffer, // Store actual file data in database
   fileSize: Number, // Store file size in bytes
   mimeType: String, // Store file MIME type
-  
+
   archived: { type: String, default: 'Unarchived' },
   createdOn: { type: Date, default: Date.now, index: true },
   updatedOn: { type: Date, default: Date.now }
@@ -554,11 +554,11 @@ const certificateSchema = new mongoose.Schema({
 const parseDateString = (dateString) => {
   if (!dateString) return null;
   if (dateString instanceof Date) return dateString;
-  
+
   try {
     const cleanDate = dateString.toString().trim();
     let date;
-    
+
     // Try ISO format first (YYYY-MM-DD)
     if (cleanDate.match(/^\d{4}-\d{2}-\d{2}/)) {
       date = new Date(cleanDate);
@@ -572,7 +572,7 @@ const parseDateString = (dateString) => {
     else {
       date = new Date(cleanDate);
     }
-    
+
     return isNaN(date.getTime()) ? null : date;
   } catch (error) {
     return null;
@@ -580,39 +580,39 @@ const parseDateString = (dateString) => {
 };
 
 // Pre-save hook to convert string dates to Date objects
-certificateSchema.pre('save', function(next) {
+certificateSchema.pre('save', function (next) {
   // Convert issueDate if it's a string
   if (this.issueDate && typeof this.issueDate === 'string') {
     this.issueDate = parseDateString(this.issueDate);
   }
-  
+
   // Convert expiryDate if it's a string
   if (this.expiryDate && typeof this.expiryDate === 'string') {
     this.expiryDate = parseDateString(this.expiryDate);
   }
-  
+
   // Validate expiryDate is after issueDate
   if (this.issueDate && this.expiryDate && this.expiryDate <= this.issueDate) {
     return next(new Error('Expiry date must be after issue date'));
   }
-  
+
   // Convert cost strings to numbers
   if (typeof this.cost === 'string') {
     this.cost = parseFloat(this.cost) || 0;
   }
-  
+
   if (typeof this.totalCost === 'string') {
     this.totalCost = parseFloat(this.totalCost) || 0;
   }
-  
+
   // Convert isInterim string to boolean
   if (typeof this.isInterim === 'string') {
     this.isInterim = this.isInterim.toLowerCase() === 'true' || this.isInterim.toLowerCase() === 'yes';
   }
-  
+
   // Update updatedOn timestamp
   this.updatedOn = Date.now();
-  
+
   next();
 });
 
@@ -674,12 +674,12 @@ const CertificateName = mongoose.model('CertificateName', certificateNameSchema)
 // Notification Schema - REQUIRED for in-app notifications
 const notificationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { 
-    type: String, 
+  type: {
+    type: String,
     required: true,
     enum: [
       'profile_created',
-      'profile_updated', 
+      'profile_updated',
       'profile_deleted',
       'certificate_created',
       'certificate_updated',
@@ -691,10 +691,10 @@ const notificationSchema = new mongoose.Schema({
       'general'
     ]
   },
-  priority: { 
-    type: String, 
-    enum: ['low', 'medium', 'high', 'urgent'], 
-    default: 'medium' 
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'urgent'],
+    default: 'medium'
   },
   message: { type: String, required: true },
   title: { type: String },
@@ -714,17 +714,17 @@ const Notification = mongoose.model('Notification', notificationSchema);
 // Multer configuration for file uploads with 10MB limit
 const storage = multer.memoryStorage(); // Store in memory for database storage
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
     // Allow PDF files for certificates and images for profile pictures
-    if (file.mimetype === 'application/pdf' || 
-        file.mimetype === 'image/jpeg' || 
-        file.mimetype === 'image/png' || 
-        file.mimetype === 'image/jpg') {
+    if (file.mimetype === 'application/pdf' ||
+      file.mimetype === 'image/jpeg' ||
+      file.mimetype === 'image/png' ||
+      file.mimetype === 'image/jpg') {
       cb(null, true);
     } else {
       cb(new Error('Only PDF, JPEG, PNG files are allowed'), false);
@@ -737,19 +737,19 @@ const upload = multer({
 // Helper function to parse date strings in various formats
 const parseExpiryDate = (dateString) => {
   if (!dateString) return null;
-  
+
   try {
     // Handle different date formats
     let date;
-    
+
     // Check if it's already a valid Date object
     if (dateString instanceof Date) {
       return dateString;
     }
-    
+
     // Convert to string and clean up
     const cleanDate = dateString.toString().trim();
-    
+
     // Try ISO format first (YYYY-MM-DD)
     if (cleanDate.match(/^\d{4}-\d{2}-\d{2}/)) {
       date = new Date(cleanDate);
@@ -772,13 +772,13 @@ const parseExpiryDate = (dateString) => {
     else {
       date = new Date(cleanDate);
     }
-    
+
     // Validate the date
     if (isNaN(date.getTime())) {
       console.warn(`Invalid date format: ${dateString}`);
       return null;
     }
-    
+
     return date;
   } catch (error) {
     console.warn(`Error parsing date: ${dateString}`, error);
@@ -804,7 +804,7 @@ app.get('/api/profiles', async (req, res) => {
       .sort({ createdOn: -1 })
       .populate('userId', 'email role firstName lastName') // Add populate like certificates do
       .lean(); // Returns plain JavaScript objects instead of Mongoose documents
-    
+
     console.log(`Fetched ${profiles.length} profiles (admins excluded)`);
     res.json(profiles);
   } catch (error) {
@@ -820,7 +820,7 @@ app.get('/api/profiles/complete', async (req, res) => {
     const profiles = await Profile.find()
       .sort({ createdOn: -1 })
       .lean();
-    
+
     console.log(`Fetched ${profiles.length} profiles (complete data)`);
     res.json(profiles);
   } catch (error) {
@@ -836,7 +836,7 @@ app.get('/api/profiles/paginated', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-    
+
     // Exclude admin and super_admin profiles
     const query = {
       $and: [
@@ -844,17 +844,17 @@ app.get('/api/profiles/paginated', async (req, res) => {
         { staffType: { $ne: 'Admin' } }
       ]
     };
-    
+
     const profiles = await Profile.find(query)
       .select('-profilePictureData -profilePictureSize -profilePictureMimeType')
       .sort({ createdOn: -1 })
       .skip(skip)
       .limit(limit)
       .lean();
-    
+
     const total = await Profile.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
-    
+
     res.json({
       profiles,
       pagination: {
@@ -891,7 +891,7 @@ app.get('/api/auth/verify-email', async (req, res) => {
   try {
     const { token } = req.query;
     console.log('Email verification request received');
-    
+
     if (!token) {
       console.log('Verification failed: Missing token');
       return res.status(400).send('Missing verification token');
@@ -908,24 +908,24 @@ app.get('/api/auth/verify-email', async (req, res) => {
 
     // First try to find user with matching email and token
     let user = await User.findOne({ email: payload.email, verificationToken: token });
-    
+
     // If not found with exact token match, try just by email
     if (!user) {
       console.log('User not found with exact token match, trying by email only...');
       user = await User.findOne({ email: payload.email });
-      
+
       if (!user) {
         console.log('User not found at all for email:', payload.email);
         return res.status(404).send('User not found. The verification link may have expired or the account may have been deleted.');
       }
-      
+
       // Check if already verified
       if (user.emailVerified) {
         console.log('User email already verified:', payload.email);
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         return res.redirect(`${frontendUrl}/login?verified=true&message=already_verified`);
       }
-      
+
       // Token doesn't match but user exists - could be expired or wrong token
       console.log('Token mismatch for user. Stored token:', user.verificationToken ? 'exists' : 'missing');
     }
@@ -934,12 +934,12 @@ app.get('/api/auth/verify-email', async (req, res) => {
     user.emailVerified = true;
     user.verificationToken = undefined;
     await user.save();
-    
+
     console.log('Email verified successfully for:', user.email);
 
     // Get frontend URL for redirect
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    
+
     // If user is admin, redirect to login
     if (user.role === 'admin') {
       console.log('Admin user verified, redirecting to login');
@@ -961,7 +961,7 @@ app.get('/api/auth/approve-admin', async (req, res) => {
   try {
     const { token } = req.query;
     console.log('Admin approval request received');
-    
+
     if (!token) {
       console.log('Approval failed: Missing token');
       return res.status(400).send('Missing approval token');
@@ -978,7 +978,7 @@ app.get('/api/auth/approve-admin', async (req, res) => {
 
     // Find user with matching email and token
     const user = await User.findOne({ email: payload.email, adminApprovalToken: token });
-    
+
     if (!user) {
       console.log('User not found for approval:', payload.email);
       return res.status(404).send('User not found or approval link has expired');
@@ -995,7 +995,7 @@ app.get('/api/auth/approve-admin', async (req, res) => {
     user.isAdminApproved = true;
     user.adminApprovalToken = undefined; // Clear the token
     await user.save();
-    
+
     console.log('Admin approved successfully:', user.email);
 
     // Send notification to the new admin
@@ -1014,7 +1014,7 @@ app.get('/api/auth/approve-admin', async (req, res) => {
     // Redirect to frontend
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     return res.redirect(`${frontendUrl}/login?approved=true&message=admin_approved`);
-    
+
   } catch (error) {
     console.error('Admin approval error:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -1045,19 +1045,19 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       // If array, take first element or join with comma
       profileData.jobTitle = profileData.jobTitle.length > 0 ? profileData.jobTitle[0] : '';
     }
-    
+
     const profile = new Profile(profileData);
     const savedProfile = await profile.save();
-    
+
     // Create user account for the profile
     try {
       // Check if user account already exists
       const existingUser = await User.findOne({ email: savedProfile.email });
-      
+
       if (!existingUser) {
         // Generate a secure 8-character password
         const generatedPassword = generateSimplePassword(8);
-        
+
         // Create user account
         const newUser = new User({
           firstName: savedProfile.firstName,
@@ -1073,22 +1073,22 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
           profileId: savedProfile._id,
           startDate: savedProfile.startDate || new Date()
         });
-        
+
         await newUser.save();
         console.log('User account created for profile:', savedProfile.email);
-        
+
         // Update profile with user reference
         savedProfile.userId = newUser._id;
         await savedProfile.save();
-        
+
         // Store the generated password for email notifications
         savedProfile.generatedPassword = generatedPassword;
-        
+
         // Send credentials email to user
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const loginUrl = `${frontendUrl}/login`;
         const userName = `${savedProfile.firstName} ${savedProfile.lastName}`;
-        
+
         await sendUserCredentialsEmail(savedProfile.email, userName, generatedPassword, loginUrl);
         console.log('Credentials email sent to:', savedProfile.email);
       }
@@ -1096,16 +1096,16 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
       console.error('Error creating user account:', userCreationError);
       // Don't fail the profile creation if user account creation fails
     }
-    
+
     // Send comprehensive email notifications
     try {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       const loginUrl = `${frontendUrl}/login`;
-      
+
       // Check if a new user was created
       const wasNewUserCreated = await User.findOne({ profileId: savedProfile._id });
       console.log('New user created:', !!wasNewUserCreated);
-      
+
       // 1. Send profile creation email to user (without credentials - credentials sent separately above)
       console.log('Sending profile creation email...');
       await sendNotificationEmail(
@@ -1116,11 +1116,11 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         'success'
       );
       console.log('Profile creation email sent to user:', savedProfile.email);
-      
+
       // 2. Send notification to all admins
       const adminUsers = await EmployeesHub.find({ role: 'admin' });
       console.log(`Found ${adminUsers.length} admin users for notification`);
-      
+
       for (const admin of adminUsers) {
         console.log('Sending admin notification to:', admin.email);
         // Send general admin notification (without user credentials for security)
@@ -1133,12 +1133,12 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
         );
       }
       console.log('Admin notifications sent for profile creation');
-      
+
     } catch (emailError) {
       console.error('Error sending profile creation emails:', emailError);
       console.error('Email error stack:', emailError.stack);
     }
-    
+
     // Create in-app notifications using new notification service
     try {
       const newUser = await User.findOne({ profileId: savedProfile._id });
@@ -1149,7 +1149,7 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
     } catch (notificationError) {
       console.error('Error creating user creation notifications:', notificationError);
     }
-    
+
     res.status(201).json(savedProfile);
   } catch (error) {
     if (error.code === 11000) {
@@ -1163,48 +1163,48 @@ app.post('/api/profiles', validateProfileInput, async (req, res) => {
 app.put('/api/profiles/:id', async (req, res) => {
   try {
     const profileId = req.params.id;
-    
+
     // Get original profile for comparison
     const originalProfile = await Profile.findById(profileId);
     if (!originalProfile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    
+
     // Handle jobTitle array from frontend - convert to string
     const updateData = { ...req.body };
     if (Array.isArray(updateData.jobTitle)) {
       updateData.jobTitle = updateData.jobTitle.length > 0 ? updateData.jobTitle[0] : '';
     }
-    
+
     const updatedProfile = await Profile.findByIdAndUpdate(
       profileId,
       { ...updateData, lastSeen: new Date() },
       { new: true, runValidators: true }
     );
-    
+
     // CRITICAL FIX: Update associated certificates if profile name changed
     const nameChanged = (
       originalProfile.firstName !== updatedProfile.firstName ||
       originalProfile.lastName !== updatedProfile.lastName
     );
-    
+
     if (nameChanged) {
       const newProfileName = `${updatedProfile.firstName} ${updatedProfile.lastName}`;
-      
+
       // Update all certificates with the new profile name to maintain sync
       await Certificate.updateMany(
         { profileId: profileId },
         { profileName: newProfileName }
       );
-      
+
       console.log(`Updated certificate profile names for profile ${profileId} to: ${newProfileName}`);
     }
-    
+
     // Update associated user account if email changed
     if (originalProfile.email !== updatedProfile.email) {
       await User.findOneAndUpdate(
         { profileId: profileId },
-        { 
+        {
           email: updatedProfile.email,
           firstName: updatedProfile.firstName,
           lastName: updatedProfile.lastName
@@ -1212,9 +1212,9 @@ app.put('/api/profiles/:id', async (req, res) => {
       );
       console.log(`Updated user account email from ${originalProfile.email} to ${updatedProfile.email}`);
     }
-    
+
     // Profile update email notifications disabled
-    
+
     // Create in-app notifications using new notification service
     try {
       const updatedFields = {};
@@ -1223,7 +1223,7 @@ app.put('/api/profiles/:id', async (req, res) => {
           updatedFields[key] = updatedProfile[key];
         }
       });
-      
+
       if (Object.keys(updatedFields).length > 0) {
         await notifyProfileUpdate(updatedProfile, updatedFields, req.session?.user?.userId);
         console.log('Profile update notifications sent');
@@ -1231,7 +1231,7 @@ app.put('/api/profiles/:id', async (req, res) => {
     } catch (notificationError) {
       console.error('Error creating profile update notifications:', notificationError);
     }
-    
+
     res.json(updatedProfile);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -1244,22 +1244,22 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
     console.log('Profile picture upload endpoint called');
     console.log('Profile ID:', req.params.id);
     console.log('File received:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
-    
+
     if (!req.file) {
       console.log('No file uploaded');
       return res.status(400).json({ message: 'No file uploaded' });
     }
-    
+
     if (req.file.size > 10 * 1024 * 1024) {
       console.log('File size exceeds limit:', req.file.size);
       return res.status(400).json({ message: 'File size exceeds 10MB limit' });
     }
-    
+
     console.log('File validation passed, updating profile...');
-    
+
     const profile = await Profile.findByIdAndUpdate(
       req.params.id,
-      { 
+      {
         profilePicture: `/api/profiles/${req.params.id}/picture`,
         profilePictureData: req.file.buffer,
         profilePictureSize: req.file.size,
@@ -1267,15 +1267,15 @@ app.post('/api/profiles/:id/upload-picture', upload.single('profilePicture'), as
       },
       { new: true }
     );
-    
+
     if (!profile) {
       console.log('Profile not found for ID:', req.params.id);
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'Profile not found',
         details: 'The profile ID does not exist in the database. Please ensure you have a profile created first.'
       });
     }
-    
+
     console.log('Profile picture uploaded successfully');
     res.json({ profilePicture: profile.profilePicture });
   } catch (error) {
@@ -1289,10 +1289,10 @@ app.delete('/api/profiles/:id/delete-picture', async (req, res) => {
   try {
     console.log('Profile picture delete endpoint called');
     console.log('Profile ID:', req.params.id);
-    
+
     const profile = await Profile.findByIdAndUpdate(
       req.params.id,
-      { 
+      {
         $unset: {
           profilePicture: 1,
           profilePictureData: 1,
@@ -1302,12 +1302,12 @@ app.delete('/api/profiles/:id/delete-picture', async (req, res) => {
       },
       { new: true }
     );
-    
+
     if (!profile) {
       console.log('Profile not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Profile not found' });
     }
-    
+
     console.log('Profile picture deleted successfully');
     res.json({ message: 'Profile picture deleted successfully', profilePicture: null });
   } catch (error) {
@@ -1320,22 +1320,22 @@ app.delete('/api/profiles/:id/delete-picture', async (req, res) => {
 app.get('/api/profiles/:id/picture', async (req, res) => {
   try {
     const profile = await Profile.findById(req.params.id);
-    
+
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    
+
     if (!profile.profilePictureData) {
       return res.status(404).json({ message: 'No profile picture found for this profile' });
     }
-    
+
     res.set({
       'Content-Type': profile.profilePictureMimeType || 'image/jpeg',
       'Content-Length': profile.profilePictureSize,
       'Content-Disposition': `inline; filename="profile-${profile._id}.jpg"`,
       'Cache-Control': 'public, max-age=31536000' // Cache for 1 year
     });
-    
+
     res.send(profile.profilePictureData);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1346,16 +1346,16 @@ app.get('/api/profiles/:id/picture', async (req, res) => {
 app.get('/api/profiles/:id/stats', async (req, res) => {
   try {
     const profileId = req.params.id;
-    
+
     // Count certificates associated with this profile
     const certificateCount = await Certificate.countDocuments({ profileId: profileId });
-    
+
     // Get profile basic info
     const profile = await Profile.findById(profileId, 'firstName lastName email');
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    
+
     res.json({
       profile: {
         id: profile._id,
@@ -1387,19 +1387,19 @@ app.delete('/api/profiles/:id', async (req, res) => {
   try {
     console.log('Delete profile endpoint called with ID:', req.params.id);
     console.log('Request headers:', req.headers);
-    
+
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       console.log('Invalid ObjectId format:', req.params.id);
       return res.status(400).json({ message: 'Invalid profile ID format' });
     }
-    
+
     const profile = await Profile.findById(req.params.id);
     if (!profile) {
       console.log('Profile not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Profile not found' });
     }
-    
+
     console.log('Profile found:', profile.firstName, profile.lastName);
 
     // Send comprehensive email notifications BEFORE deletion
@@ -1413,7 +1413,7 @@ app.delete('/api/profiles/:id', async (req, res) => {
         'warning'
       );
       console.log('Profile deletion email sent to user:', profile.email);
-      
+
       // Send notification to all admins
       const adminUsers = await User.find({ role: 'admin' });
       for (const admin of adminUsers) {
@@ -1426,7 +1426,7 @@ app.delete('/api/profiles/:id', async (req, res) => {
         );
       }
       console.log('Admin notifications sent for profile deletion');
-      
+
     } catch (emailError) {
       console.error('Error sending profile deletion emails:', emailError);
     }
@@ -1437,11 +1437,11 @@ app.delete('/api/profiles/:id', async (req, res) => {
 
     // Find and delete the associated user account (if exists)
     // Users are created with email matching the profile email
-    const associatedUser = await User.findOne({ 
-      email: profile.email, 
+    const associatedUser = await User.findOne({
+      email: profile.email,
       role: 'user'
     });
-    
+
     if (associatedUser) {
       await User.findByIdAndDelete(associatedUser._id);
       console.log(`Deleted associated user account ${associatedUser._id} for profile ${profile.email}`);
@@ -1450,7 +1450,7 @@ app.delete('/api/profiles/:id', async (req, res) => {
     // Delete the profile
     await Profile.findByIdAndDelete(req.params.id);
     console.log(`Deleted profile ${req.params.id}`);
-    
+
     // Create notifications for admins
     try {
       const adminUsers = await User.find({ role: 'admin' });
@@ -1480,9 +1480,9 @@ app.delete('/api/profiles/:id', async (req, res) => {
     } catch (notificationError) {
       console.error('Error creating delete notifications:', notificationError);
     }
-    
+
     console.log('Profile deletion completed successfully');
-    res.json({ 
+    res.json({
       message: 'Profile and associated data deleted successfully',
       details: {
         profileDeleted: true,
@@ -1534,8 +1534,8 @@ app.get('/api/certificates/dashboard-stats', async (req, res) => {
         status: 1,
       }
     )
-    .populate('profileId', 'firstName lastName')
-    .lean();
+      .populate('profileId', 'firstName lastName')
+      .lean();
 
     const categoryCounts = {};
     const expiring = [];
@@ -1546,7 +1546,7 @@ app.get('/api/certificates/dashboard-stats', async (req, res) => {
       // Expiry date parsing
       const expiryDate = parseExpiryDate(cert.expiryDate);
       if (!expiryDate) continue;
-      
+
       // Set to end of day for proper comparison
       expiryDate.setHours(23, 59, 59, 999);
 
@@ -1621,31 +1621,31 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
     console.log('Request body:', req.body);
     console.log('File uploaded:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
     console.log('Headers:', req.headers['content-type']);
-    
+
     const certificateData = { ...req.body };
-    
+
     // Validate profileId if provided
     if (certificateData.profileId) {
       if (!mongoose.Types.ObjectId.isValid(certificateData.profileId)) {
         return res.status(400).json({ message: 'Invalid profileId format' });
       }
-      
+
       const profile = await Profile.findById(certificateData.profileId);
       if (!profile) {
         return res.status(404).json({ message: 'Profile not found' });
       }
-      
+
       // Auto-set profileName from profile
       certificateData.profileName = `${profile.firstName} ${profile.lastName}`;
     }
-    
+
     // Handle file upload if present - store in database
     if (req.file) {
       // Check file size (10MB limit already enforced by multer)
       if (req.file.size > 10 * 1024 * 1024) {
         return res.status(400).json({ message: 'File size exceeds 10MB limit' });
       }
-      
+
       certificateData.certificateFile = req.file.originalname;
       certificateData.fileData = req.file.buffer; // Store file data in database
       certificateData.fileSize = req.file.size;
@@ -1654,7 +1654,7 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
 
     const certificate = new Certificate(certificateData);
     const savedCertificate = await certificate.save();
-    
+
     // Send comprehensive email notifications
     if (certificateData.profileId) {
       try {
@@ -1662,7 +1662,7 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
         const profile = await Profile.findById(certificateData.profileId);
         if (profile) {
           console.log('Profile found for email notification:', profile.email);
-          
+
           // Send notification to user
           console.log('Sending certificate added email...');
           await sendNotificationEmail(
@@ -1673,11 +1673,11 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
             'success'
           );
           console.log('Certificate added email sent to user:', profile.email);
-          
+
           // Send notification to admins
           const adminUsers = await User.find({ role: 'admin' });
           console.log(`Found ${adminUsers.length} admin users for notification`);
-          
+
           for (const admin of adminUsers) {
             console.log('Sending admin notification to:', admin.email);
             await sendNotificationEmail(
@@ -1699,7 +1699,7 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
     } else {
       console.log('No profileId provided, skipping email notifications');
     }
-    
+
     // Create in-app notifications using new notification service
     try {
       if (certificateData.profileId) {
@@ -1712,7 +1712,7 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
     } catch (notificationError) {
       console.error('Error creating certificate added notifications:', notificationError);
     }
-    
+
     res.status(201).json(savedCertificate);
   } catch (error) {
     console.error('Certificate creation error:', error);
@@ -1729,34 +1729,34 @@ app.post('/api/certificates', upload.single('certificateFile'), validateCertific
 app.put('/api/certificates/:id', async (req, res) => {
   try {
     const certificateId = req.params.id;
-    
+
     // Get original certificate for comparison
     const originalCertificate = await Certificate.findById(certificateId).populate('profileId');
     if (!originalCertificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
-    
-    const updateData = { 
+
+    const updateData = {
       ...req.body,
       updatedOn: new Date()
     };
-    
+
     const certificate = await Certificate.findByIdAndUpdate(
       certificateId,
       updateData,
       { new: true, runValidators: true }
     ).populate('profileId').select('-fileData');
-    
+
     // Send email notifications if significant changes occurred
     try {
       const profile = certificate.profileId;
       if (profile) {
         // Determine what fields were updated
         const significantFields = ['certificate', 'expiryDate', 'status', 'approvalStatus'];
-        const hasSignificantChanges = significantFields.some(field => 
+        const hasSignificantChanges = significantFields.some(field =>
           originalCertificate[field] !== certificate[field]
         );
-        
+
         if (hasSignificantChanges) {
           // Send update notification to user
           await sendNotificationEmail(
@@ -1767,7 +1767,7 @@ app.put('/api/certificates/:id', async (req, res) => {
             'info'
           );
           console.log('Certificate update email sent to user:', profile.email);
-          
+
           // Send notification to admins
           const adminUsers = await User.find({ role: 'admin' });
           for (const admin of adminUsers) {
@@ -1785,7 +1785,7 @@ app.put('/api/certificates/:id', async (req, res) => {
     } catch (emailError) {
       console.error('Error sending certificate update emails:', emailError);
     }
-    
+
     // Create in-app notifications using new notification service
     try {
       const profile = certificate.profileId;
@@ -1797,7 +1797,7 @@ app.put('/api/certificates/:id', async (req, res) => {
             updatedFields[field] = certificate[field];
           }
         });
-        
+
         if (Object.keys(updatedFields).length > 0) {
           await notifyCertificateUpdated(certificate, profile, updatedFields, req.session?.user?.userId);
           console.log('✅ Certificate update notifications sent');
@@ -1806,7 +1806,7 @@ app.put('/api/certificates/:id', async (req, res) => {
     } catch (notificationError) {
       console.error('❌ Error creating certificate update notifications:', notificationError);
     }
-    
+
     res.json(certificate);
   } catch (error) {
     console.error('❌ Certificate update error:', error);
@@ -1828,14 +1828,14 @@ app.put('/api/certificates/:id/upload', upload.single('certificateFile'), async 
     console.log('Request body:', req.body);
 
     const updateData = { updatedOn: new Date() };
-    
+
     // If file is uploaded, store in database
     if (req.file) {
       // Check file size (10MB limit already enforced by multer)
       if (req.file.size > 10 * 1024 * 1024) {
         return res.status(400).json({ message: 'File size exceeds 10MB limit' });
       }
-      
+
       updateData.certificateFile = req.file.originalname;
       updateData.fileData = req.file.buffer; // Store file data in database
       updateData.fileSize = req.file.size;
@@ -1844,21 +1844,21 @@ app.put('/api/certificates/:id/upload', upload.single('certificateFile'), async 
     } else {
       console.log('No file received in request');
     }
-    
+
     // Add any other fields from request body
     Object.assign(updateData, req.body);
-    
+
     const certificate = await Certificate.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true }
     );
-    
+
     if (!certificate) {
       console.log('Certificate not found with ID:', req.params.id);
       return res.status(404).json({ message: 'Certificate not found' });
     }
-    
+
     console.log('Certificate updated successfully:', certificate._id);
     res.json(certificate);
   } catch (error) {
@@ -1874,11 +1874,11 @@ app.get('/api/certificates/:id/file', async (req, res) => {
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
-    
+
     if (!certificate.fileData) {
       return res.status(404).json({ message: 'No file found for this certificate' });
     }
-    
+
     // Set appropriate headers
     res.set({
       'Content-Type': certificate.mimeType || 'application/octet-stream',
@@ -1886,7 +1886,7 @@ app.get('/api/certificates/:id/file', async (req, res) => {
       'Content-Disposition': `inline; filename="${certificate.certificateFile}"`,
       'Cache-Control': 'public, max-age=31536000' // Cache for 1 year
     });
-    
+
     res.send(certificate.fileData);
   } catch (error) {
     console.error('Error serving certificate file:', error);
@@ -1898,26 +1898,26 @@ app.get('/api/certificates/:id/file', async (req, res) => {
 app.delete('/api/certificates/:id/file', async (req, res) => {
   try {
     console.log('Delete certificate file request for ID:', req.params.id);
-    
+
     const certificate = await Certificate.findById(req.params.id);
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
-    
+
     // Remove file data from certificate
     certificate.certificateFile = null;
     certificate.fileData = null;
     certificate.fileSize = null;
     certificate.mimeType = null;
     certificate.updatedOn = new Date();
-    
+
     await certificate.save();
-    
+
     console.log('Certificate file deleted successfully for ID:', req.params.id);
-    
+
     // Return updated certificate without binary data
     const updatedCert = await Certificate.findById(req.params.id).select('-fileData');
-    res.json({ 
+    res.json({
       message: 'Certificate file deleted successfully',
       certificate: updatedCert
     });
@@ -1933,17 +1933,17 @@ app.delete('/api/certificates/:id/file', async (req, res) => {
 app.delete('/api/certificates/:id', async (req, res) => {
   try {
     const certificateId = req.params.id;
-    
+
     const certificate = await Certificate.findById(certificateId).populate('profileId');
     if (!certificate) {
       return res.status(404).json({ message: 'Certificate not found' });
     }
-    
+
     const profile = certificate.profileId;
-    
+
     // Delete certificate
     await Certificate.findByIdAndDelete(certificateId);
-    
+
     // Send email notifications
     if (profile) {
       try {
@@ -1956,7 +1956,7 @@ app.delete('/api/certificates/:id', async (req, res) => {
           'warning'
         );
         console.log('Certificate deletion email sent to user:', profile.email);
-        
+
         // Send notification to admins
         const adminUsers = await User.find({ role: 'admin' });
         for (const admin of adminUsers) {
@@ -1969,12 +1969,12 @@ app.delete('/api/certificates/:id', async (req, res) => {
           );
         }
         console.log('Admin notifications sent for certificate deletion');
-        
+
       } catch (emailError) {
         console.error('Error sending certificate deletion emails:', emailError);
       }
     }
-    
+
     // Create in-app notifications using new notification service
     try {
       if (profile) {
@@ -1984,7 +1984,7 @@ app.delete('/api/certificates/:id', async (req, res) => {
     } catch (notificationError) {
       console.error('❌ Error creating certificate deletion notifications:', notificationError);
     }
-    
+
     res.json({ message: 'Certificate deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2007,16 +2007,16 @@ app.get('/api/suppliers', async (req, res) => {
 app.post('/api/suppliers', async (req, res) => {
   try {
     const { name } = req.body;
-    
+
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ message: 'Supplier name is required' });
     }
-    
+
     const trimmedName = name.trim();
-    
+
     // Check if supplier already exists
     let supplier = await Supplier.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
-    
+
     if (supplier) {
       // Increment usage count
       supplier.usageCount += 1;
@@ -2030,7 +2030,7 @@ app.post('/api/suppliers', async (req, res) => {
       });
       await supplier.save();
     }
-    
+
     res.json(supplier);
   } catch (error) {
     if (error.code === 11000) {
@@ -2044,18 +2044,18 @@ app.post('/api/suppliers', async (req, res) => {
 app.get('/api/suppliers/search', async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q) {
       // Return more suppliers when no search query (increased from 10 to 50)
       const suppliers = await Supplier.find().sort({ usageCount: -1, name: 1 }).limit(50);
       return res.json(suppliers);
     }
-    
+
     // Return all matching suppliers (no limit for search results)
     const suppliers = await Supplier.find({
       name: { $regex: q, $options: 'i' }
     }).sort({ usageCount: -1, name: 1 });
-    
+
     res.json(suppliers);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2092,20 +2092,20 @@ app.get('/api/job-titles/search', async (req, res) => {
 app.post('/api/job-titles', async (req, res) => {
   try {
     const { name, description } = req.body;
-    
+
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ message: 'Job title name is required' });
     }
-    
+
     const trimmedName = name.trim();
-    
+
     // Check if job title already exists
     let jobTitle = await JobTitle.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
-    
+
     if (jobTitle) {
       return res.json(jobTitle);
     }
-    
+
     // Create new job title
     jobTitle = new JobTitle({
       name: trimmedName,
@@ -2113,7 +2113,7 @@ app.post('/api/job-titles', async (req, res) => {
       createdBy: req.user?.userId
     });
     await jobTitle.save();
-    
+
     res.status(201).json(jobTitle);
   } catch (error) {
     if (error.code === 11000) {
@@ -2139,16 +2139,16 @@ app.get('/api/job-levels', async (req, res) => {
 app.post('/api/job-levels', async (req, res) => {
   try {
     const { name } = req.body;
-    
+
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ message: 'Job level name is required' });
     }
-    
+
     const trimmedName = name.trim();
-    
+
     // Check if job level already exists
     let jobLevel = await JobLevel.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
-    
+
     if (jobLevel) {
       // Increment usage count
       jobLevel.usageCount += 1;
@@ -2162,7 +2162,7 @@ app.post('/api/job-levels', async (req, res) => {
       });
       await jobLevel.save();
     }
-    
+
     res.json(jobLevel);
   } catch (error) {
     if (error.code === 11000) {
@@ -2176,18 +2176,18 @@ app.post('/api/job-levels', async (req, res) => {
 app.get('/api/job-levels/search', async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q) {
       // Return more job levels when no search query (increased from 10 to 50)
       const jobLevels = await JobLevel.find().sort({ usageCount: -1, name: 1 }).limit(50);
       return res.json(jobLevels);
     }
-    
+
     // Return all matching job levels (no limit for search results)
     const jobLevels = await JobLevel.find({
       name: { $regex: q, $options: 'i' }
     }).sort({ usageCount: -1, name: 1 });
-    
+
     res.json(jobLevels);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2210,16 +2210,16 @@ app.get('/api/certificate-names', async (req, res) => {
 app.post('/api/certificate-names', async (req, res) => {
   try {
     const { name } = req.body;
-    
+
     if (!name || name.trim().length === 0) {
       return res.status(400).json({ message: 'Certificate name is required' });
     }
-    
+
     const trimmedName = name.trim();
-    
+
     // Check if certificate name already exists
     let certificateName = await CertificateName.findOne({ name: { $regex: new RegExp(`^${trimmedName}$`, 'i') } });
-    
+
     if (certificateName) {
       // Increment usage count
       certificateName.usageCount += 1;
@@ -2233,7 +2233,7 @@ app.post('/api/certificate-names', async (req, res) => {
       });
       await certificateName.save();
     }
-    
+
     res.json(certificateName);
   } catch (error) {
     if (error.code === 11000) {
@@ -2247,18 +2247,18 @@ app.post('/api/certificate-names', async (req, res) => {
 app.get('/api/certificate-names/search', async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q) {
       // Return all certificate names when no search query
       const certificateNames = await CertificateName.find().sort({ usageCount: -1, name: 1 });
       return res.json(certificateNames);
     }
-    
+
     // Return all matching certificate names (no limit)
     const certificateNames = await CertificateName.find({
       name: { $regex: q, $options: 'i' }
     }).sort({ usageCount: -1, name: 1 });
-    
+
     res.json(certificateNames);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2360,29 +2360,29 @@ app.put('/api/notifications/user/:userId/read-all', async (req, res) => {
 app.get('/api/certificates/analytics/stats', async (req, res) => {
   try {
     const totalCertificates = await Certificate.countDocuments();
-    const activeCertificates = await Certificate.countDocuments({ 
-      active: 'Yes', 
-      status: 'Approved' 
+    const activeCertificates = await Certificate.countDocuments({
+      active: 'Yes',
+      status: 'Approved'
     });
-    
+
     // Calculate expiring certificates (within 30 days)
     const today = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(today.getDate() + 30);
-    
+
     const expiringCertificates = await Certificate.find({
       active: 'Yes',
       status: 'Approved',
       expiryDate: { $exists: true, $ne: null }
     });
-    
+
     let expiringCount = 0;
     let expiredCount = 0;
-    
+
     expiringCertificates.forEach(cert => {
       if (cert.expiryDate) {
         const expiryDate = parseExpiryDate(cert.expiryDate);
-        
+
         if (expiryDate) {
           if (expiryDate < today) {
             expiredCount++;
@@ -2392,7 +2392,7 @@ app.get('/api/certificates/analytics/stats', async (req, res) => {
         }
       }
     });
-    
+
     res.json({
       total: totalCertificates,
       active: activeCertificates,
@@ -2407,17 +2407,17 @@ app.get('/api/certificates/analytics/stats', async (req, res) => {
 // Get certificates by category
 app.get('/api/certificates/analytics/by-category', async (req, res) => {
   try {
-    const certificates = await Certificate.find({ 
-      active: 'Yes', 
-      status: 'Approved' 
+    const certificates = await Certificate.find({
+      active: 'Yes',
+      status: 'Approved'
     });
-    
+
     const categoryCounts = {};
     certificates.forEach(cert => {
       const category = cert.category || 'Other';
       categoryCounts[category] = (categoryCounts[category] || 0) + 1;
     });
-    
+
     res.json(categoryCounts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2427,17 +2427,17 @@ app.get('/api/certificates/analytics/by-category', async (req, res) => {
 // Get certificates by job role
 app.get('/api/certificates/analytics/by-job-role', async (req, res) => {
   try {
-    const certificates = await Certificate.find({ 
-      active: 'Yes', 
-      status: 'Approved' 
+    const certificates = await Certificate.find({
+      active: 'Yes',
+      status: 'Approved'
     });
-    
+
     const jobRoleCounts = {};
     certificates.forEach(cert => {
       const jobRole = cert.jobRole || 'Unspecified';
       jobRoleCounts[jobRole] = (jobRoleCounts[jobRole] || 0) + 1;
     });
-    
+
     res.json(jobRoleCounts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2451,21 +2451,21 @@ app.get('/api/certificates/expiring/:days?', async (req, res) => {
     const today = new Date();
     const futureDate = new Date();
     futureDate.setDate(today.getDate() + days);
-    
+
     const certificates = await Certificate.find({
       active: 'Yes',
       status: 'Approved',
       expiryDate: { $exists: true, $ne: null }
     }).populate('profileId');
-    
+
     const expiringCertificates = certificates.filter(cert => {
       if (!cert.expiryDate) return false;
-      
+
       const expiryDate = parseExpiryDate(cert.expiryDate);
-      
+
       return expiryDate && expiryDate >= today && expiryDate <= futureDate;
     });
-    
+
     res.json(expiringCertificates);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2476,20 +2476,20 @@ app.get('/api/certificates/expiring/:days?', async (req, res) => {
 app.get('/api/certificates/expired', async (req, res) => {
   try {
     const today = new Date();
-    
+
     const certificates = await Certificate.find({
       active: 'Yes',
       expiryDate: { $exists: true, $ne: null }
     }).populate('profileId');
-    
+
     const expiredCertificates = certificates.filter(cert => {
       if (!cert.expiryDate) return false;
-      
+
       const expiryDate = parseExpiryDate(cert.expiryDate);
-      
+
       return expiryDate && expiryDate < today;
     });
-    
+
     res.json(expiredCertificates);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -2502,7 +2502,7 @@ app.get('/api/certificates/debug-dates', async (req, res) => {
     const certificates = await Certificate.find({
       expiryDate: { $exists: true, $ne: null }
     }).limit(10);
-    
+
     const today = new Date();
     const debugInfo = certificates.map(cert => {
       const parsedDate = parseExpiryDate(cert.expiryDate);
@@ -2516,7 +2516,7 @@ app.get('/api/certificates/debug-dates', async (req, res) => {
         daysFromNow: parsedDate ? Math.ceil((parsedDate - today) / (1000 * 60 * 60 * 24)) : null
       };
     });
-    
+
     res.json({
       today: today,
       certificates: debugInfo
@@ -2543,17 +2543,17 @@ app.get('/api/profiles/by-email/:email', async (req, res) => {
   try {
     // Normalize email to lowercase for consistent lookup
     const email = (req.params.email || '').toLowerCase().trim();
-    
+
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
-    
+
     const profile = await Profile.findOne({ email });
-    
+
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    
+
     res.json(profile);
   } catch (error) {
     console.error('Error fetching profile by email:', error);
@@ -2567,17 +2567,17 @@ app.get('/api/employees/by-email/:email', async (req, res) => {
     const EmployeeHub = require('./models/EmployeesHub');
     // Normalize email to lowercase for consistent lookup
     const email = (req.params.email || '').toLowerCase().trim();
-    
+
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
-    
+
     const employee = await EmployeeHub.findOne({ email, isActive: true });
-    
+
     if (!employee) {
       return res.status(404).json({ message: 'Employee not found' });
     }
-    
+
     res.json(employee);
   } catch (error) {
     console.error('Error fetching employee by email:', error);
@@ -2590,28 +2590,28 @@ app.put('/api/employees/:id', async (req, res) => {
   try {
     const EmployeeHub = require('./models/EmployeesHub');
     const employeeId = req.params.id;
-    
+
     console.log('Updating employee:', employeeId, 'with data:', req.body);
-    
+
     // Get original employee for comparison
     const originalEmployee = await EmployeeHub.findById(employeeId);
     if (!originalEmployee) {
       return res.status(404).json({ message: 'Employee not found' });
     }
-    
+
     // Remove sensitive fields that shouldn't be updated via this endpoint
     const updateData = { ...req.body };
     delete updateData.password;
     delete updateData.role;
     delete updateData.isActive;
     delete updateData.terminatedDate;
-    
+
     const updatedEmployee = await EmployeeHub.findByIdAndUpdate(
       employeeId,
       { ...updateData, lastLogin: new Date() },
       { new: true, runValidators: true }
     );
-    
+
     console.log('Employee updated successfully:', updatedEmployee.email);
     res.json(updatedEmployee);
   } catch (error) {
@@ -2623,10 +2623,10 @@ app.put('/api/employees/:id', async (req, res) => {
 app.post('/api/certificates/delete-request', async (req, res) => {
   try {
     const { certificateId, certificateName, userEmail, userName, profileId } = req.body;
-    
+
     // Get admin email from environment or use default
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@talentshield.com';
-    
+
     // Create email content
     const subject = `Certificate Deletion Request - ${certificateName}`;
     const htmlContent = `
@@ -2655,10 +2655,10 @@ app.post('/api/certificates/delete-request', async (req, res) => {
         </div>
       </div>
     `;
-    
+
     // Send email to admin
     await sendNotificationEmail(adminEmail, 'Super Admin', subject, `Certificate deletion requested by ${userName} for: ${certificateName}`, 'warning');
-    
+
     res.json({ message: 'Delete request sent successfully' });
   } catch (error) {
     console.error('Error sending delete request email:', error);
@@ -2706,7 +2706,7 @@ app.post('/api/auth/signup', async (req, res) => {
       console.log('Admin approval token generated for:', email);
     }
 
-    
+
     await user.save();
     console.log('User saved to database:', {
       email: user.email,
@@ -2723,12 +2723,12 @@ app.post('/api/auth/signup', async (req, res) => {
         const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
         const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(user.verificationToken)}`;
         const name = `${user.firstName} ${user.lastName}`.trim();
-        
+
         console.log('=== SENDING VERIFICATION EMAIL ===');
         console.log('Recipient:', user.email);
         console.log('Recipient Name:', name);
         console.log('Verify URL:', verifyUrl);
-        
+
         const result = await sendVerificationEmail(user.email, verifyUrl, name);
         if (result.success) {
           console.log(`✅ Verification email sent successfully to ${user.email}`);
@@ -2748,14 +2748,14 @@ app.post('/api/auth/signup', async (req, res) => {
         const baseUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_URL || `https://talentshield.co.uk`;
         const approveUrl = `${baseUrl}/api/auth/approve-admin?token=${encodeURIComponent(user.adminApprovalToken)}`;
         const applicantName = `${user.firstName} ${user.lastName}`.trim();
-        
+
         // Get super admin emails from environment
         const superAdminEmails = process.env.SUPER_ADMIN_EMAIL?.split(',').map(e => e.trim()) || [];
-        
+
         console.log('=== SENDING ADMIN APPROVAL REQUESTS ===');
         console.log('New admin applicant:', user.email);
         console.log('Super admins to notify:', superAdminEmails.length);
-        
+
         for (const superAdminEmail of superAdminEmails) {
           const result = await sendAdminApprovalRequestEmail(
             superAdminEmail,
@@ -2763,7 +2763,7 @@ app.post('/api/auth/signup', async (req, res) => {
             user.email,
             approveUrl
           );
-          
+
           if (result.success) {
             console.log(`✅ Admin approval request sent to ${superAdminEmail}`);
           } else {
@@ -2775,10 +2775,10 @@ app.post('/api/auth/signup', async (req, res) => {
       }
     }
 
-    
-    res.status(201).json({ 
-      message: isAdminSignup 
-        ? 'Admin account created. Pending super-admin approval.' 
+
+    res.status(201).json({
+      message: isAdminSignup
+        ? 'Admin account created. Pending super-admin approval.'
         : 'User created successfully',
       requiresApproval: isAdminSignup,
       user: {
@@ -2821,7 +2821,7 @@ app.post('/api/auth/login', async (req, res) => {
       email: req.body.email,
       body: { ...req.body, password: req.body.password ? '[REDACTED]' : undefined }
     });
-    
+
     const { identifier, email, password, rememberMe } = req.body;
     const loginIdentifier = (identifier || email || '').trim().toLowerCase();
 
@@ -2834,48 +2834,48 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Check EmployeesHub first (for employees and admins)
     const EmployeeHub = require('./models/EmployeesHub');
-    
+
     try {
-      const employee = await EmployeeHub.findOne({ 
+      const employee = await EmployeeHub.findOne({
         email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') },
         isActive: true
       }).select('+password');
-      
+
       if (employee) {
-        console.log('👤 Employee found:', { 
-          email: employee.email, 
+        console.log('👤 Employee found:', {
+          email: employee.email,
           role: employee.role,
-          isActive: employee.isActive 
+          isActive: employee.isActive
         });
-        
+
         // Check if employee is terminated
         if (employee.status === 'Terminated') {
           console.log('❌ Employee account terminated');
           return res.status(403).json({ message: 'Access denied: Employee account has been terminated' });
         }
-        
+
         // Check if account is locked
         if (employee.isLocked && employee.isLocked()) {
           console.log('❌ Employee account locked');
           return res.status(403).json({ message: 'Account is temporarily locked due to too many failed login attempts' });
         }
-        
+
         // Compare password
         const isValidPassword = await employee.comparePassword(password);
         console.log('🔐 Employee password comparison result:', isValidPassword);
-        
+
         if (isValidPassword) {
           console.log('✅ Employee login successful');
-          
+
           // Reset login attempts on successful login
           if (employee.resetLoginAttempts) {
             await employee.resetLoginAttempts();
           }
-          
+
           // Update last login
           employee.lastLogin = new Date();
           await employee.save();
-          
+
           // Create session data for employee
           const sessionUser = {
             userId: employee._id,
@@ -2894,7 +2894,7 @@ app.post('/api/auth/login', async (req, res) => {
 
           // Store in session
           req.session.user = sessionUser;
-          
+
           if (rememberMe) {
             req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
           }
@@ -2912,21 +2912,21 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // Check User model (for profiles - interns, trainees, contract trainees)
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
         { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
         { vtid: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }
       ]
     }).select('+password');
-    
-    console.log('👤 Profile user search result:', { 
-      found: !!user, 
-      email: user?.email, 
+
+    console.log('👤 Profile user search result:', {
+      found: !!user,
+      email: user?.email,
       role: user?.role,
-      isActive: user?.isActive 
+      isActive: user?.isActive
     });
-    
+
     if (!user) {
       console.log('❌ User not found in database (neither Employee nor Profile)');
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -2940,18 +2940,18 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Check password
     console.log('🔐 Comparing passwords for profile...');
-    
+
     const isValidPassword = await bcrypt.compare(password, user.password);
     console.log('🔐 Profile password comparison result:', isValidPassword);
-    
+
     if (!isValidPassword) {
       console.log('❌ Invalid password for profile:', user.email);
-      
+
       // Increment login attempts
       if (user.incLoginAttempts) {
         await user.incLoginAttempts();
       }
-      
+
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
@@ -2963,16 +2963,16 @@ app.post('/api/auth/login', async (req, res) => {
     // Check email verification for profiles
     const isVerified = user.isEmailVerified ?? user.emailVerified ?? false;
     if (!isVerified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Email not verified. Please check your email and click the verification link to continue.',
         requiresVerification: true
       });
     }
-    
+
     // Check admin approval for profiles (if explicitly set to false)
     // BUT SKIP this check for super-admin accounts
     if (user.isAdminApproved === false && user.role !== 'super-admin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Your profile is pending admin approval',
         requiresApproval: true
       });
@@ -3006,7 +3006,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Store in session
     req.session.user = sessionUser;
-    
+
     if (rememberMe) {
       req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
     }
@@ -3038,38 +3038,38 @@ app.post('/api/auth/logout', (req, res) => {
 app.post('/api/test-email', async (req, res) => {
   try {
     const { email, name } = req.body;
-    
+
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ success: false, message: 'Valid email is required' });
     }
-    
+
     console.log(`=== TESTING EMAIL CONFIGURATION ===`);
     console.log(`Sending test email to: ${email}`);
     console.log(`Name: ${name || 'Test User'}`);
-    
+
     const result = await sendTestEmail(email, name || 'Test User');
-    
+
     if (result.success) {
       console.log(`✅ Test email sent successfully`);
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Test email sent successfully! Please check your inbox.',
-        messageId: result.messageId 
+        messageId: result.messageId
       });
     } else {
       console.error(`❌ Test email failed:`, result.error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: 'Failed to send test email',
-        error: result.error 
+        error: result.error
       });
     }
   } catch (error) {
     console.error('❌ Test email endpoint exception:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to send test email',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -3082,7 +3082,7 @@ app.get('/api/auth/validate-session', (req, res) => {
     sessionId: req.sessionID,
     cookies: req.headers.cookie
   });
-  
+
   if (req.session && req.session.user) {
     return res.json({
       isAuthenticated: true,
@@ -3098,10 +3098,10 @@ app.get('/api/auth/validate-session', (req, res) => {
       }
     });
   }
-  
-  return res.status(401).json({ 
-    isAuthenticated: false, 
-    message: 'No active session' 
+
+  return res.status(401).json({
+    isAuthenticated: false,
+    message: 'No active session'
   });
 });
 
@@ -3134,7 +3134,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     // Send reset email
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-    
+
     try {
       // Import email service
       const { sendPasswordResetEmail } = require('./utils/emailService');
@@ -3177,8 +3177,8 @@ app.post('/api/auth/reset-password-token', async (req, res) => {
     }
 
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-      return res.status(400).json({ 
-        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
+      return res.status(400).json({
+        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
       });
     }
 
@@ -3227,8 +3227,8 @@ app.post('/api/auth/reset-password', async (req, res) => {
     }
 
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-      return res.status(400).json({ 
-        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number' 
+      return res.status(400).json({
+        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
       });
     }
 
@@ -3260,7 +3260,7 @@ const authenticateSession = async (req, res, next) => {
     const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
     const authHeader = req.headers['authorization'];
     const queryToken = req.query.token; // Check for token in query params
-    
+
     console.log('=== Authentication Debug ===');
     console.log('Path:', req.path);
     console.log('Is Multipart:', isMultipart);
@@ -3268,12 +3268,12 @@ const authenticateSession = async (req, res, next) => {
     console.log('Query Token:', queryToken ? 'Present' : 'Missing');
     console.log('Has Session:', !!req.session);
     console.log('Session User:', !!req.session?.user);
-    
+
     // Check JWT token first - from header, query param, or for multipart
     if (authHeader || queryToken || isMultipart) {
       const token = queryToken || (authHeader && authHeader.split(' ')[1]);
       console.log('Token extracted:', token ? 'Yes' : 'No');
-      
+
       if (token) {
         try {
           const decoded = await jwt.verify(token, JWT_SECRET);
@@ -3322,7 +3322,7 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
     console.log('===== FORCE FIX PROFILE REQUEST =====');
     console.log('User email:', req.user?.email);
     console.log('User role:', req.user?.role);
-    
+
     if (!req.user || !req.user.email) {
       console.error('❌ User not authenticated');
       return res.status(401).json({ message: 'User not authenticated' });
@@ -3338,7 +3338,7 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
       role: user.role,
       profileId: user.profileId
     } : 'null');
-    
+
     if (!user) {
       console.error('❌ User not found in database');
       return res.status(404).json({ message: 'User not found in database' });
@@ -3349,7 +3349,7 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
       console.error('❌ Missing required fields');
       console.error('firstName:', user.firstName);
       console.error('lastName:', user.lastName);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Cannot create profile: First name and last name are required in User record',
         userData: {
           email: user.email,
@@ -3370,8 +3370,8 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
         } else {
           console.log('ProfileId is valid, profile exists');
           // Profile exists, just return it
-          return res.json({ 
-            success: true, 
+          return res.json({
+            success: true,
             message: 'Profile already exists',
             profileId: oldProfile._id.toString(),
             profile: {
@@ -3391,7 +3391,7 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
     // Check if profile already exists by email
     let profile = await Profile.findOne({ email: user.email });
     console.log('Profile found by email:', !!profile);
-    
+
     if (!profile) {
       // Create new profile
       console.log('Creating new profile with data:', {
@@ -3401,14 +3401,14 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
         company: user.company || 'VitruX Ltd',
         staffType: user.staffType || 'Direct'
       });
-      
+
       try {
         // jobTitle in Profile schema is a STRING, not array
         // jobRole in Profile schema is an ARRAY
-        const jobTitleValue = Array.isArray(user.jobTitle) 
-          ? (user.jobTitle.length > 0 ? user.jobTitle[0] : '') 
+        const jobTitleValue = Array.isArray(user.jobTitle)
+          ? (user.jobTitle.length > 0 ? user.jobTitle[0] : '')
           : (user.jobTitle || '');
-        
+
         profile = await Profile.create({
           email: user.email,
           firstName: user.firstName,
@@ -3429,7 +3429,7 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
       } catch (createError) {
         console.error('❌ Error creating profile:', createError);
         console.error('Validation errors:', createError.errors);
-        return res.status(500).json({ 
+        return res.status(500).json({
           message: 'Failed to create profile: ' + createError.message,
           errors: createError.errors
         });
@@ -3447,8 +3447,8 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
     }
 
     console.log('===== FIX COMPLETE =====');
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Profile fixed successfully',
       profileId: profile._id.toString(),
       profile: {
@@ -3461,7 +3461,7 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
   } catch (error) {
     console.error('❌ CRITICAL ERROR in /api/fix-my-profile:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Internal server error: ' + error.message,
       error: error.toString()
     });
@@ -3475,7 +3475,7 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
     console.log('User email:', req.user?.email);
     console.log('User role:', req.user?.role);
     console.log('===================================');
-    
+
     if (!req.user || !req.user.email) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
@@ -3485,10 +3485,10 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
       const user = await User.findOne({ email: req.user.email })
         .select('-password -__v')
         .lean();
-      
+
       console.log('Admin user found:', !!user);
       console.log('User has profileId:', user?.profileId);
-      
+
       if (!user) {
         return res.status(404).json({ message: 'Admin profile not found' });
       }
@@ -3498,24 +3498,24 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
       try {
         let prof = await Profile.findOne({ email: req.user.email })
           .select('-profilePictureData -profilePictureSize -profilePictureMimeType -__v');
-        
+
         // If no profile exists for admin, create one
         if (!prof) {
           console.log('===== NO PROFILE FOUND, CREATING NEW =====');
           console.log('Admin email:', req.user.email);
           console.log('Admin has stale profileId:', user.profileId);
-          
+
           // Clear any stale profileId from User record
           if (user.profileId) {
             console.log('Clearing stale profileId from User:', user.profileId);
             await User.findByIdAndUpdate(user._id, { $unset: { profileId: 1 } });
           }
-          
+
           // Ensure required fields are present
           if (!user.firstName || !user.lastName) {
             console.error('❌ Cannot create profile: Missing required firstName or lastName');
             console.error('User data:', { firstName: user.firstName, lastName: user.lastName });
-            return res.status(400).json({ 
+            return res.status(400).json({
               message: 'Profile creation failed: First name and last name are required.',
               missingFields: {
                 firstName: !user.firstName,
@@ -3523,12 +3523,12 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
               }
             });
           }
-          
+
           // jobTitle in Profile schema is a STRING, not array
-          const jobTitleValue = Array.isArray(user.jobTitle) 
-            ? (user.jobTitle.length > 0 ? user.jobTitle[0] : '') 
+          const jobTitleValue = Array.isArray(user.jobTitle)
+            ? (user.jobTitle.length > 0 ? user.jobTitle[0] : '')
             : (user.jobTitle || '');
-          
+
           const newProfileData = {
             email: req.user.email,
             firstName: user.firstName,
@@ -3545,14 +3545,14 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
             address: user.address || {},
             emergencyContact: user.emergencyContact || {}
           };
-          
+
           console.log('Creating profile with data:', newProfileData);
           prof = await Profile.create(newProfileData);
           console.log('✅ Profile created successfully! ID:', prof._id);
-          
+
           // Update User record with new profileId
           const updated = await User.findByIdAndUpdate(
-            user._id, 
+            user._id,
             { profileId: prof._id },
             { new: true }
           );
@@ -3561,7 +3561,7 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
         } else {
           console.log('✅ Profile found for admin:', prof._id);
         }
-        
+
         if (prof) {
           const profData = prof.toObject ? prof.toObject() : prof;
           profileExtras = {
@@ -3592,18 +3592,18 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
         isAdmin: true,
         permissions: ['all']
       };
-      
+
       return res.json(adminData);
     } else {
       // For regular users, get from Profile collection
       const profile = await Profile.findOne({ email: req.user.email })
         .select('-profilePictureData -profilePictureSize -profilePictureMimeType') // Exclude binary data
         .lean();
-      
+
       if (!profile) {
         return res.status(404).json({ message: 'Profile not found' });
       }
-      
+
       res.json(profile);
     }
   } catch (error) {
@@ -3728,7 +3728,7 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
     // Without this, the user cannot login since login now uses User collection only
     try {
       const existingUser = await User.findOne({ email: savedProfile.email });
-      
+
       if (!existingUser) {
         // Create User with VTID as password (pre-save hook will hash it)
         const newUser = new User({
@@ -3742,13 +3742,13 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
           emailVerified: true,
           profileId: savedProfile._id
         });
-        
+
         await newUser.save();
-        
+
         // Link back to profile
         savedProfile.userId = newUser._id;
         await savedProfile.save();
-        
+
         console.log('User account created and linked for:', savedProfile.email);
       }
     } catch (userCreationError) {
@@ -3760,14 +3760,14 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
 
     const loginUrl = `${process.env.FRONTEND_URL || 'https://talentshield.co.uk'}/login`;
     const userName = `${firstName} ${lastName}`;
-    
+
     // Send credentials to the admin who created the user
     try {
       await sendAdminNewUserCredentialsEmail(
-        req.user.email, 
-        userName, 
-        email, 
-        generatedPassword, 
+        req.user.email,
+        userName,
+        email,
+        generatedPassword,
         loginUrl
       );
       console.log(`Credentials email sent to admin: ${req.user.email}`);
@@ -3803,9 +3803,9 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
 
   } catch (error) {
     console.error('Error creating user:', error);
-    res.status(500).json({ 
-      message: 'Failed to create user', 
-      error: error.message 
+    res.status(500).json({
+      message: 'Failed to create user',
+      error: error.message
     });
   }
 });
@@ -3839,7 +3839,7 @@ app.use('/api/expenses', authenticateSession, expenseRoutes);
 app.use((err, req, res, next) => {
   console.error("🔥 Unhandled server error:", err);
   if (res.headersSent) return next(err);
-  
+
   res.status(500).json({
     success: false,
     message: err.message || "Internal server error",
@@ -3861,12 +3861,12 @@ process.on('uncaughtException', (error) => {
 // Function to calculate days until expiry
 const calculateDaysUntilExpiry = (expiryDate) => {
   if (!expiryDate) return null;
-  
+
   const today = new Date();
   const expiry = new Date(expiryDate);
   const diffTime = expiry - today;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   return diffDays;
 };
 
@@ -3900,15 +3900,15 @@ const sendEmailNotification = async (userEmail, subject, body) => {
 const checkCertificateExpiry = async () => {
   try {
     console.log('Checking certificate expiry...');
-    
+
     const certificates = await Certificate.find({});
     const users = await User.find({});
-    
+
     for (const cert of certificates) {
       if (!cert.expiryDate) continue;
-      
+
       const daysUntilExpiry = calculateDaysUntilExpiry(cert.expiryDate);
-      
+
       // Find user via profileId relationship
       let user = null;
       if (cert.profileId) {
@@ -3918,11 +3918,11 @@ const checkCertificateExpiry = async () => {
         }
       }
       if (!user) continue;
-      
+
       let shouldNotify = false;
       let priority = 'low';
       let message = '';
-      
+
       // Check if we should create a notification (only 15 and 30 days)
       if (daysUntilExpiry <= 0) {
         priority = 'critical';
@@ -3937,7 +3937,7 @@ const checkCertificateExpiry = async () => {
         message = `Certificate "${cert.certificate}" expires in 30 days`;
         shouldNotify = true;
       }
-      
+
       if (shouldNotify) {
         // Check if notification already exists for this certificate and timeframe
         const existingNotification = await Notification.findOne({
@@ -3946,7 +3946,7 @@ const checkCertificateExpiry = async () => {
           type: daysUntilExpiry <= 0 ? 'certificate_expired' : 'certificate_expiry',
           createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Within last 24 hours
         });
-        
+
         if (!existingNotification) {
           // Create notification
           const notification = new Notification({
@@ -3956,13 +3956,13 @@ const checkCertificateExpiry = async () => {
             message: message,
             certificateId: cert._id
           });
-          
+
           await notification.save();
-          
+
           // Send email notification
           let subject = '';
           let body = '';
-          
+
           if (daysUntilExpiry <= 0) {
             subject = `URGENT: Certificate "${cert.certificate}" has expired`;
             body = `Dear ${user.firstName} ${user.lastName},\n\nYour certificate "${cert.certificate}" has expired as of ${cert.expiryDate}.\n\nPlease renew this certificate immediately to maintain compliance.\n\nBest regards,\nTalent Shield HRMS Team`;
@@ -3970,14 +3970,14 @@ const checkCertificateExpiry = async () => {
             subject = `${daysUntilExpiry <= 15 ? 'URGENT: ' : ''}Certificate "${cert.certificate}" expires in ${daysUntilExpiry} days`;
             body = `Dear ${user.firstName} ${user.lastName},\n\nYour certificate "${cert.certificate}" will expire in ${daysUntilExpiry} days on ${cert.expiryDate}.\n\nPlease ${daysUntilExpiry <= 15 ? 'take immediate action' : 'plan'} to renew this certificate before it expires.\n\nBest regards,\nTalent Shield HRMS Team`;
           }
-          
+
           const emailSent = await sendEmailNotification(user.email, subject, body);
-          
+
           if (emailSent) {
             notification.emailSent = true;
             await notification.save();
           }
-          
+
           console.log(`Created notification for user ${user.email}: ${message}`);
         }
       }
@@ -3997,12 +3997,12 @@ cron.schedule('0 9 * * *', () => {
 app.get('/api/notifications/:userId', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     const notifications = await Notification.find({ userId })
       .populate('certificateId')
       .sort({ createdAt: -1 })
       .limit(50);
-    
+
     res.json(notifications);
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -4014,9 +4014,9 @@ app.get('/api/notifications/:userId', authenticateToken, async (req, res) => {
 app.put('/api/notifications/:notificationId/read', authenticateToken, async (req, res) => {
   try {
     const { notificationId } = req.params;
-    
+
     await Notification.findByIdAndUpdate(notificationId, { read: true });
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -4045,18 +4045,18 @@ const createDefaultUser = async () => {
         { position: { $exists: true } }
       ]
     });
-    
+
     // Create super admin accounts from SUPER_ADMIN_EMAIL env variable
     const superAdminEmails = process.env.SUPER_ADMIN_EMAIL?.split(',').map(e => e.trim()) || [];
-    
+
     console.log(`Creating ${superAdminEmails.length} super admin accounts...`);
-    
+
     for (const email of superAdminEmails) {
       if (!email || !email.includes('@')) {
         console.warn(`Skipping invalid email: ${email}`);
         continue;
       }
-      
+
       const existingUser = await User.findOne({ email: email.toLowerCase() });
       if (!existingUser) {
         // Extract name from email
@@ -4064,10 +4064,10 @@ const createDefaultUser = async () => {
         const nameParts = emailPrefix.split('.');
         const firstName = nameParts[0] ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1) : 'Admin';
         const lastName = nameParts[1] ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : 'User';
-        
+
         // Generate a secure temporary password
         const tempPassword = 'TalentShield@2025'; // They should change this after first login
-        
+
         const superAdmin = new User({
           firstName,
           lastName,
@@ -4078,18 +4078,18 @@ const createDefaultUser = async () => {
           emailVerified: true,
           adminApprovalStatus: 'approved'
         });
-        
+
         await superAdmin.save();
         console.log(`✅ Super admin created: ${email}`);
       } else {
         console.log(`⏭️  Super admin already exists: ${email}`);
       }
     }
-    
+
     if (superAdminEmails.length === 0) {
       console.warn('⚠️  No super admin emails found in SUPER_ADMIN_EMAIL environment variable');
     }
-    
+
     // REMOVED: Test user creation
     // Test users should not be created automatically
     // Only real employees should exist in production
@@ -4132,27 +4132,27 @@ const createDefaultSuppliers = async () => {
 const enhancedCertificateExpiryMonitoring = async () => {
   try {
     console.log('Running enhanced certificate expiry monitoring...');
-    
+
     const today = new Date();
     const certificates = await Certificate.find({
       active: 'Yes',
       status: 'Approved',
       expiryDate: { $exists: true, $ne: null }
     }).populate('profileId');
-    
+
     for (const certificate of certificates) {
       if (!certificate.profileId || !certificate.expiryDate) continue;
-      
+
       const profile = certificate.profileId;
       const expiryDate = new Date(certificate.expiryDate);
       const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-      
+
       // Send expiry reminders
       if (daysUntilExpiry === 30 || daysUntilExpiry === 14 || daysUntilExpiry === 7 || daysUntilExpiry === 1) {
         try {
           // Send to user
           await sendCertificateExpiryReminderEmail(profile, certificate, daysUntilExpiry);
-          
+
           // Send to admins
           const adminUsers = await User.find({ role: 'admin' });
           for (const admin of adminUsers) {
@@ -4164,19 +4164,19 @@ const enhancedCertificateExpiryMonitoring = async () => {
               daysUntilExpiry <= 7 ? 'error' : 'warning'
             );
           }
-          
+
           console.log(`Expiry reminder sent for certificate ${certificate.certificate} (${daysUntilExpiry} days)`);
         } catch (emailError) {
           console.error('Error sending expiry reminder:', emailError);
         }
       }
-      
+
       // Send expired notifications
       if (daysUntilExpiry < 0 && daysUntilExpiry >= -7) { // Send for first week after expiry
         try {
           // Send to user
           await sendCertificateExpiredEmail(profile, certificate);
-          
+
           // Send to admins
           const adminUsers = await User.find({ role: 'admin' });
           for (const admin of adminUsers) {
@@ -4188,14 +4188,14 @@ const enhancedCertificateExpiryMonitoring = async () => {
               'error'
             );
           }
-          
+
           console.log(`Expired notification sent for certificate ${certificate.certificate}`);
         } catch (emailError) {
           console.error('Error sending expired notification:', emailError);
         }
       }
     }
-    
+
     console.log('Certificate expiry monitoring completed');
   } catch (error) {
     console.error('Error in certificate expiry monitoring:', error);
@@ -4214,18 +4214,30 @@ cron.schedule('0 9 * * *', async () => {
 });
 console.log('📅 Scheduled document expiry checks to run daily at 9 AM');
 
+// ==================== PERFORMANCE MODULE ROUTES ====================
+// Load Performance Models
+const Goal = require('./models/Goal');
+const Review = require('./models/Review');
+const EmployeesHub = require('./models/EmployeesHub');
+
+// Performance Routes
+const performanceRoutes = require('./routes/performanceRoutes');
+app.use('/api/performance', performanceRoutes);
+
+console.log('✅ Performance module routes registered');
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  
+
   // Create default user on startup
   setTimeout(() => {
     createDefaultUser();
     createDefaultSuppliers();
   }, 2000);
-  
+
   // Start certificate monitoring
   startCertificateMonitoring();
-  
+
   // Run initial certificate expiry check on startup
   setTimeout(() => {
     console.log('Running initial certificate expiry check...');
@@ -4237,9 +4249,9 @@ app.listen(PORT, () => {
 // Serve React app for all other routes (disabled in development)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/build')));
-  
+
   app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
   });
 } else {
   // In development, just return a simple message for unmatched routes
