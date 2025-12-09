@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { goalsApi } from '../../utils/performanceApi';
 import { toast } from 'react-toastify';
+import ModernDatePicker from '../ModernDatePicker';
+import SearchableDropdown from '../SearchableDropdown';
 
 export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees }) {
     const [formData, setFormData] = useState({
@@ -22,6 +24,13 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
         'Milestones',
     ];
 
+    // Convert employees array to format expected by SearchableDropdown
+    const employeeOptions = Array.isArray(employees) ? employees.map(emp => ({
+        _id: emp._id,
+        name: `${emp.firstName} ${emp.lastName}`,
+        value: emp._id
+    })) : [];
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -31,11 +40,27 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
         }
     };
 
+    const handleEmployeeSelect = (e) => {
+        const selectedName = e.target.value;
+        // Find the employee ID from the name
+        const selectedEmployee = employees.find(emp =>
+            `${emp.firstName} ${emp.lastName}` === selectedName
+        );
+        if (selectedEmployee) {
+            setFormData((prev) => ({ ...prev, assignee: selectedEmployee._id }));
+            if (errors.assignee) {
+                setErrors((prev) => ({ ...prev, assignee: '' }));
+            }
+        }
+    };
+
     const validate = () => {
         const newErrors = {};
         if (!formData.goalName.trim()) newErrors.goalName = 'Goal name is required';
-        if (!formData.description.trim()) newErrors.description = 'Description is required';
-        if (formData.description.length > 500) newErrors.description = 'Description must be 500 characters or less';
+        // Description is now optional
+        if (formData.description && formData.description.length > 500) {
+            newErrors.description = 'Description must be 500 characters or less';
+        }
         if (!formData.assignee) newErrors.assignee = 'Please select an assignee';
         if (!formData.startDate) newErrors.startDate = 'Start date is required';
         if (!formData.dueDate) newErrors.dueDate = 'Due date is required';
@@ -94,6 +119,10 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
 
     if (!isOpen) return null;
 
+    // Get selected employee name for display
+    const selectedEmployee = employees.find(emp => emp._id === formData.assignee);
+    const selectedEmployeeName = selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '';
+
     return (
         <>
             {/* Backdrop */}
@@ -137,10 +166,10 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
                         )}
                     </div>
 
-                    {/* Description */}
+                    {/* Description - Now Optional */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Description <span className="text-red-500">*</span>
+                            Description
                         </label>
                         <textarea
                             name="description"
@@ -150,7 +179,7 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
                             maxLength={500}
                             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors.description ? 'border-red-500' : 'border-gray-300'
                                 }`}
-                            placeholder="Describe the goal..."
+                            placeholder="Describe the goal... (optional)"
                         />
                         <div className="flex justify-between mt-1">
                             {errors.description ? (
@@ -163,65 +192,50 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
                         </div>
                     </div>
 
-                    {/* Assign to */}
+                    {/* Assign to - Using SearchableDropdown */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Assign to <span className="text-red-500">*</span>
                         </label>
-                        <select
+                        <SearchableDropdown
                             name="assignee"
-                            value={formData.assignee}
-                            onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors.assignee ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                        >
-                            <option value="">Select employee</option>
-                            {employees.map((emp) => (
-                                <option key={emp._id} value={emp._id}>
-                                    {emp.firstName} {emp.lastName}
-                                </option>
-                            ))}
-                        </select>
+                            value={selectedEmployeeName}
+                            onChange={handleEmployeeSelect}
+                            options={employeeOptions}
+                            placeholder="Search employee..."
+                            className={errors.assignee ? 'border-red-500' : ''}
+                        />
                         {errors.assignee && (
                             <p className="mt-1 text-sm text-red-500">{errors.assignee}</p>
                         )}
                     </div>
 
-                    {/* Start Date */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Start date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="date"
-                            name="startDate"
-                            value={formData.startDate}
-                            onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors.startDate ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                        />
-                        {errors.startDate && (
-                            <p className="mt-1 text-sm text-red-500">{errors.startDate}</p>
-                        )}
-                    </div>
+                    {/* Start Date - Using ModernDatePicker */}
+                    <ModernDatePicker
+                        name="startDate"
+                        value={formData.startDate}
+                        onChange={handleChange}
+                        label="Start date"
+                        required={true}
+                        placeholder="Select start date"
+                    />
+                    {errors.startDate && (
+                        <p className="mt-1 text-sm text-red-500">{errors.startDate}</p>
+                    )}
 
-                    {/* Due Date */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Due date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="date"
-                            name="dueDate"
-                            value={formData.dueDate}
-                            onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors.dueDate ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                        />
-                        {errors.dueDate && (
-                            <p className="mt-1 text-sm text-red-500">{errors.dueDate}</p>
-                        )}
-                    </div>
+                    {/* Due Date - Using ModernDatePicker */}
+                    <ModernDatePicker
+                        name="dueDate"
+                        value={formData.dueDate}
+                        onChange={handleChange}
+                        label="Due date"
+                        required={true}
+                        placeholder="Select due date"
+                        min={formData.startDate}
+                    />
+                    {errors.dueDate && (
+                        <p className="mt-1 text-sm text-red-500">{errors.dueDate}</p>
+                    )}
 
                     {/* Measurement Types */}
                     <div>

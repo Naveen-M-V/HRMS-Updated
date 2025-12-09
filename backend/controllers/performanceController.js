@@ -85,9 +85,9 @@ exports.createGoal = async (req, res) => {
     try {
         const { goalName, description, assignee, startDate, dueDate, measurementType } = req.body;
 
-        // Validate required fields
-        if (!goalName || !description || !assignee || !startDate || !dueDate || !measurementType) {
-            return res.status(400).json({ message: 'All fields are required' });
+        // Validate required fields (description is now optional)
+        if (!goalName || !assignee || !startDate || !dueDate || !measurementType) {
+            return res.status(400).json({ message: 'Goal name, assignee, start date, due date, and measurement type are required' });
         }
 
         // Create goal
