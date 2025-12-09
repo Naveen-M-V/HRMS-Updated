@@ -498,14 +498,14 @@ export default function EditEmployeeProfile() {
               <div>
                 <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 mb-2">Manager</label>
                 <Select
-                  value={formData.managerId}
-                  onValueChange={(value) => handleChange({ target: { name: 'managerId', value } })}
+                  value={formData.managerId || "none"}
+                  onValueChange={(value) => handleChange({ target: { name: 'managerId', value: value === "none" ? "" : value } })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Manager" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Manager</SelectItem>
+                    <SelectItem value="none">No Manager</SelectItem>
                     {managers.map((manager) => (
                       <SelectItem key={manager._id} value={manager._id}>
                         {manager.firstName} {manager.lastName} - {manager.jobTitle}
