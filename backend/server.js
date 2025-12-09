@@ -4215,11 +4215,6 @@ cron.schedule('0 9 * * *', async () => {
 console.log('📅 Scheduled document expiry checks to run daily at 9 AM');
 
 // ==================== PERFORMANCE MODULE ROUTES ====================
-// Load Performance Models
-const Goal = require('./models/Goal');
-const Review = require('./models/Review');
-const EmployeesHub = require('./models/EmployeesHub');
-
 // Performance Routes
 const performanceRoutes = require('./routes/performanceRoutes');
 app.use('/api/performance', performanceRoutes);
