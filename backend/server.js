@@ -4226,6 +4226,12 @@ app.use('/api/performance', performanceRoutes);
 
 console.log('✅ Performance module routes registered');
 
+// Employee Hub Routes
+const employeeHubRoutes = require('./routes/employeeHubRoutes');
+app.use('/api/employee-hub', employeeHubRoutes);
+
+console.log('✅ Employee Hub routes registered');
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 
