@@ -20,10 +20,17 @@ export default function Reviews() {
                     status: subTab === 'not-complete' ? 'Not complete' : 'Completed',
                 });
             }
-            setReviews(data || []);
+            // Ensure data is always an array
+            if (Array.isArray(data)) {
+                setReviews(data);
+            } else {
+                console.warn('Reviews data is not an array:', data);
+                setReviews([]);
+            }
         } catch (error) {
             console.error('Error fetching reviews:', error);
             toast.error('Failed to fetch reviews');
+            setReviews([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
@@ -55,13 +62,13 @@ export default function Reviews() {
     };
 
     // Filter reviews by sub-tab
-    const filteredReviews = reviews.filter((review) => {
+    const filteredReviews = Array.isArray(reviews) ? reviews.filter((review) => {
         if (subTab === 'not-complete') {
             return review.status === 'Not complete';
         } else {
             return review.status === 'Completed';
         }
-    });
+    }) : [];
 
     return (
         <div className="min-h-screen bg-gray-50">

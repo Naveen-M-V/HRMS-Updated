@@ -21,12 +21,22 @@ export default function Goals() {
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
-                const response = await axios.get(`${API_BASE_URL}/employees`, {
+                const response = await axios.get(`${API_BASE_URL}/employee-hub`, {
                     withCredentials: true,
                 });
-                setEmployees(response.data || []);
+                // Ensure we always set an array
+                const employeeData = response.data;
+                if (Array.isArray(employeeData)) {
+                    setEmployees(employeeData);
+                } else if (employeeData && Array.isArray(employeeData.employees)) {
+                    setEmployees(employeeData.employees);
+                } else {
+                    console.warn('Employees data is not in expected format:', employeeData);
+                    setEmployees([]);
+                }
             } catch (error) {
                 console.error('Error fetching employees:', error);
+                setEmployees([]); // Set empty array on error
             }
         };
         fetchEmployees();
@@ -46,10 +56,17 @@ export default function Goals() {
                     search: searchTerm,
                 });
             }
-            setGoals(data || []);
+            // Ensure data is always an array
+            if (Array.isArray(data)) {
+                setGoals(data);
+            } else {
+                console.warn('Goals data is not an array:', data);
+                setGoals([]);
+            }
         } catch (error) {
             console.error('Error fetching goals:', error);
             toast.error('Failed to fetch goals');
+            setGoals([]); // Set empty array on error
         } finally {
             setLoading(false);
         }
@@ -154,7 +171,7 @@ export default function Goals() {
                     </select>
 
                     {/* Assignee Filter */}
-                    {activeTab === 'all' && (
+                    {activeTab === 'all' && Array.isArray(employees) && employees.length > 0 && (
                         <select
                             value={assigneeFilter}
                             onChange={(e) => setAssigneeFilter(e.target.value)}
