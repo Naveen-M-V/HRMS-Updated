@@ -68,6 +68,7 @@ import AddExpense from './pages/AddExpense';
 import ViewExpense from './pages/ViewExpense';
 import Goals from './pages/Goals';
 import Reviews from './pages/Reviews';
+import ELearningPage from './pages/ELearningPage';
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -432,6 +433,10 @@ function App() {
                                     <Route
                                       path="/performance/reviews"
                                       element={<Reviews />}
+                                    />
+                                    <Route
+                                      path="/e-learning"
+                                      element={<ELearningPage />}
                                     />
                                   </Routes>
                                 </div>

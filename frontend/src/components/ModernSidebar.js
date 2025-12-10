@@ -19,6 +19,7 @@ import {
   CalendarIcon,
   UsersIcon,
   UserGroupIcon,
+  BookOpenIcon,
 } from "@heroicons/react/24/outline";
 import DocumentDrawer from "./DocumentManagement/DocumentDrawer";
 
@@ -283,6 +284,22 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               </button>
             </div>
           )}
+        </div>
+
+        {/* E-Learning Section */}
+        <div>
+          <button
+            onClick={() => handleNavigation("/e-learning")}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/e-learning")
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <BookOpenIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">E-Learning</span>
+            )}
+          </button>
         </div>
 
         {/* Rota Shift Management - Separate Section */}
