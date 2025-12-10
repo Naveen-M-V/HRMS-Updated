@@ -7,17 +7,17 @@ const TodoCompletedToggle = ({ viewMode, onViewModeChange }) => {
         onClick={() => onViewModeChange('todo')}
         className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
           viewMode === 'todo'
-            ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+            ? 'bg-white text-blue-600 shadow-sm border border-gray-200'
             : 'text-gray-500 hover:text-gray-700'
         }`}
       >
-        To do
+        To-do
       </button>
       <button
         onClick={() => onViewModeChange('completed')}
         className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
           viewMode === 'completed'
-            ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+            ? 'bg-white text-blue-600 shadow-sm border border-gray-200'
             : 'text-gray-500 hover:text-gray-700'
         }`}
       >

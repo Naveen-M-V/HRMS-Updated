@@ -6,7 +6,7 @@ const EmptyState = ({ viewMode }) => {
       {/* Illustration */}
       <div className="mb-8">
         <svg
-          className="w-64 h-64 text-gray-300"
+          className="w-32 h-32 text-gray-300"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

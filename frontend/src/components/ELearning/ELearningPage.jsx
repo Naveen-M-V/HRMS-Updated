@@ -1,24 +1,32 @@
 import React, { useState } from 'react';
-import ELearningTabs from './ELearningTabs';
-import TodoCompletedToggle from './TodoCompletedToggle';
-import SearchBar from './SearchBar';
-import CourseList from './CourseList';
-import EmptyState from './EmptyState';
-import ProgressBar from './ProgressBar';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import Tabs from './Tabs';
+import AssignedPage from './AssignedPage';
+import AllCoursesPage from './AllCoursesPage';
+import AssignmentPage from './AssignmentPage';
+import ReportingPage from './ReportingPage';
+import PermissionsPage from './PermissionsPage';
 
 const ELearningPage = () => {
-  const [activeTab, setActiveTab] = useState('assigned');
-  const [viewMode, setViewMode] = useState('todo'); // 'todo' or 'completed'
-  const [searchQuery, setSearchQuery] = useState('');
-  const [courses] = useState([]); // Empty array for demo
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const tabs = [
-    { id: 'assigned', label: 'Assigned to me' },
-    { id: 'all', label: 'All courses' },
-    { id: 'assignment', label: 'Assignment' },
-    { id: 'reporting', label: 'Reporting' },
-    { id: 'permissions', label: 'Permissions' }
+    { id: 'assigned', label: 'Assigned to me', path: '/e-learning/assigned' },
+    { id: 'all-courses', label: 'All courses', path: '/e-learning/all-courses' },
+    { id: 'assignment', label: 'Assignment', path: '/e-learning/assignment' },
+    { id: 'reporting', label: 'Reporting', path: '/e-learning/reporting' },
+    { id: 'permissions', label: 'Permissions', path: '/e-learning/permissions' }
   ];
+
+  const activeTab = tabs.find(tab => location.pathname === tab.path)?.id || 'assigned';
+
+  const handleTabChange = (tabId) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab) {
+      navigate(tab.path);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -28,40 +36,22 @@ const ELearningPage = () => {
       </div>
 
       {/* Tabs */}
-      <ELearningTabs 
+      <Tabs 
         tabs={tabs} 
         activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+        onTabChange={handleTabChange} 
       />
 
       {/* Main Content */}
-      <div className="flex-1 px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
-          {/* Todo/Completed Toggle */}
-          <TodoCompletedToggle 
-            viewMode={viewMode} 
-            onViewModeChange={setViewMode} 
-          />
-
-          {/* Search Bar */}
-          <div className="flex-1 max-w-md ml-6">
-            <SearchBar 
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search courses..."
-            />
-          </div>
-
-          {/* Progress Bar */}
-          <ProgressBar completed={0} total={0} />
-        </div>
-
-        {/* Course List or Empty State */}
-        {courses.length === 0 ? (
-          <EmptyState viewMode={viewMode} />
-        ) : (
-          <CourseList courses={courses} viewMode={viewMode} />
-        )}
+      <div className="flex-1">
+        <Routes>
+          <Route path="/assigned" element={<AssignedPage />} />
+          <Route path="/all-courses" element={<AllCoursesPage />} />
+          <Route path="/assignment" element={<AssignmentPage />} />
+          <Route path="/reporting" element={<ReportingPage />} />
+          <Route path="/permissions" element={<PermissionsPage />} />
+          <Route path="/" element={<AssignedPage />} />
+        </Routes>
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ const ProgressBar = ({ completed, total }) => {
             cx="24"
             cy="24"
             r="20"
-            stroke="#3B82F6"
+            stroke="#003087"
             strokeWidth="4"
             fill="none"
             strokeDasharray={`${2 * Math.PI * 20}`}

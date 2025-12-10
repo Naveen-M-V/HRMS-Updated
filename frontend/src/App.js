@@ -435,7 +435,7 @@ function App() {
                                       element={<Reviews />}
                                     />
                                     <Route
-                                      path="/e-learning"
+                                      path="/e-learning/*"
                                       element={<ELearningPage />}
                                     />
                                   </Routes>
