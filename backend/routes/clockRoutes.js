@@ -546,14 +546,16 @@ router.get('/entries', async (req, res) => {
     
     let query = {};
     
-    // Date range filter
+    // Date range filter - use string comparison since date is stored as YYYY-MM-DD string
     if (startDate || endDate) {
       query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
+      if (startDate) {
+        // startDate is already in YYYY-MM-DD format
+        query.date.$gte = startDate;
+      }
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.date.$lte = end;
+        // endDate is already in YYYY-MM-DD format
+        query.date.$lte = endDate;
       }
     }
     
@@ -562,14 +564,18 @@ router.get('/entries', async (req, res) => {
       query.employee = employeeId;
     }
 
+    console.log('📋 Time entries query:', query);
+
     const timeEntries = await TimeEntry.find(query)
       .populate('employee', 'firstName lastName email department vtid')
       .populate('createdBy', 'firstName lastName')
       .populate('shiftId', 'startTime endTime location')
-      .sort({ date: -1, clockIn: -1 })
+      .sort({ date: -1, createdAt: -1 })
       .lean();
 
-    // Process entries to add shift hours
+    console.log(`📋 Found ${timeEntries.length} time entries`);
+
+    // Process entries to add shift hours and format for frontend
     const processedEntries = timeEntries.map(entry => {
       let shiftHours = null;
       let shiftStartTime = null;
@@ -581,8 +587,24 @@ router.get('/entries', async (req, res) => {
         shiftEndTime = entry.shiftId.endTime;
       }
 
+      // Format clockIn and clockOut for display (convert ISO to HH:MM format)
+      let clockInTime = null;
+      let clockOutTime = null;
+      
+      if (entry.clockIn) {
+        const clockInDate = new Date(entry.clockIn);
+        clockInTime = clockInDate.toTimeString().slice(0, 5);
+      }
+      
+      if (entry.clockOut) {
+        const clockOutDate = new Date(entry.clockOut);
+        clockOutTime = clockOutDate.toTimeString().slice(0, 5);
+      }
+
       return {
         ...entry,
+        clockIn: clockInTime,
+        clockOut: clockOutTime,
         shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
         shiftStartTime: shiftStartTime,
         shiftEndTime: shiftEndTime

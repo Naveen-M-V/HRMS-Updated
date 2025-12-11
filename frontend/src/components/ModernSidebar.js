@@ -134,7 +134,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         className="flex-1 overflow-y-auto py-4 space-y-1 px-2"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {/* Reporting Section */}
+        {/* Home Section */}
         <div>
           <button
             onClick={() => {
@@ -144,7 +144,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openReporting ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
               }`}
           >
-            <ClipboardDocumentIcon className="h-5 w-5 flex-shrink-0" />
+            <HomeIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
               <>
                 <span className="text-sm font-medium flex-1 text-left">Home</span>
@@ -166,69 +166,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                     : "hover:bg-sidebar-accent/50"
                   }`}
               >
-                <HomeIcon className="h-4 w-4" />
+                <ClipboardDocumentIcon className="h-4 w-4" />
                 <span>Compliance Dashboard</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Clock In/Out Section */}
-        <div>
-          <button
-            onClick={() => {
-              handleMenuClick();
-              setOpenClockInOut(!openClockInOut);
-            }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openClockInOut ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-              }`}
-          >
-            <ClockIcon className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <>
-                <span className="text-sm font-medium flex-1 text-left">Clock In/Out</span>
-                {openClockInOut ? (
-                  <ChevronDownIcon className="h-4 w-4" />
-                ) : (
-                  <ChevronRightIcon className="h-4 w-4" />
-                )}
-              </>
-            )}
-          </button>
-
-          {openClockInOut && isOpen && (
-            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
-              <button
-                onClick={() => handleNavigation("/clock-overview")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/clock-overview")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <HomeIcon className="h-4 w-4" />
-                <span>Overview</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigation("/clock-ins")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/clock-ins")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <ClockIcon className="h-4 w-4" />
-                <span>Clock-ins</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigation("/time-history")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/time-history")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                <span>History</span>
               </button>
             </div>
           )}
@@ -284,217 +223,6 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               </button>
             </div>
           )}
-        </div>
-
-        {/* E-Learning Section */}
-        <div>
-          <button
-            onClick={() => handleNavigation("/e-learning")}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/e-learning")
-                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                : "hover:bg-sidebar-accent/50"
-              }`}
-          >
-            <BookOpenIcon className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <span className="text-sm font-medium flex-1 text-left">E-Learning</span>
-            )}
-          </button>
-        </div>
-
-        {/* Rota Shift Management - Separate Section */}
-        <div className="pt-2 border-t border-sidebar-border">
-          <button
-            onClick={() => {
-              handleMenuClick();
-              setOpenRotaShift(!openRotaShift);
-            }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openRotaShift ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-              }`}
-          >
-            <CalendarDaysIcon className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <>
-                <span className="text-sm font-medium flex-1 text-left">Rota & Shifts</span>
-                {openRotaShift ? (
-                  <ChevronDownIcon className="h-4 w-4" />
-                ) : (
-                  <ChevronRightIcon className="h-4 w-4" />
-                )}
-              </>
-            )}
-          </button>
-
-          {openRotaShift && isOpen && (
-            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
-              <button
-                onClick={() => handleNavigation("/rota-shift-management")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/rota-shift-management")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <CalendarIcon className="h-4 w-4" />
-                <span>Shift Management</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Calendar Section */}
-        <div className="pt-2 border-t border-sidebar-border">
-          <button
-            onClick={() => handleNavigation("/calendar")}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/calendar")
-                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                : "hover:bg-sidebar-accent/50"
-              }`}
-          >
-            <CalendarIcon className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <span className="text-sm font-medium flex-1 text-left">Calendar</span>
-            )}
-          </button>
-        </div>
-
-        {/* Performance Section */}
-        <div>
-          <button
-            onClick={() => {
-              handleMenuClick();
-              setOpenPerformance(!openPerformance);
-            }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openPerformance ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
-              }`}
-          >
-            <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            {isOpen && (
-              <>
-                <span className="text-sm font-medium flex-1 text-left">Performance</span>
-                {openPerformance ? (
-                  <ChevronDownIcon className="h-4 w-4" />
-                ) : (
-                  <ChevronRightIcon className="h-4 w-4" />
-                )}
-              </>
-            )}
-          </button>
-
-          {openPerformance && isOpen && (
-            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
-              <button
-                onClick={() => handleNavigation("/performance/goals")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/goals")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Goals</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigation("/performance/reviews")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/reviews")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                <span>Reviews</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Manager Approvals Section */}
-        <div>
-          <button
-            onClick={() => handleNavigation("/manager-approvals")}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/manager-approvals")
-                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                : "hover:bg-sidebar-accent/50"
-              }`}
-          >
-            <ClipboardDocumentCheckIcon className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <span className="text-sm font-medium flex-1 text-left">Leave Approvals</span>
-            )}
-          </button>
-        </div>
-
-        {/* Documents Section */}
-        <div>
-          <button
-            onClick={() => {
-              // Don't expand sidebar, just open drawer
-              setOpenDocumentsDrawer(true);
-            }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all hover:bg-sidebar-accent/50`}
-          >
-            <DocumentDuplicateIcon className="h-5 w-5 flex-shrink-0" />
-            {isOpen && (
-              <span className="text-sm font-medium flex-1 text-left">Documents</span>
-            )}
-          </button>
-        </div>
-
-        {/* Report Library */}
-        <div>
-          <button
-            onClick={() => {
-              handleMenuClick();
-              navigate('/report-library');
-            }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname === '/report-library'
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'hover:bg-sidebar-accent/50'
-              }`}
-          >
-            <svg
-              className="h-5 w-5 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {isOpen && (
-              <span className="text-sm font-medium flex-1 text-left">Report Library</span>
-            )}
-          </button>
-        </div>
-
-        {/* Expenses */}
-        <div>
-          <button
-            onClick={() => {
-              handleMenuClick();
-              navigate('/expenses');
-            }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname.startsWith('/expenses')
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'hover:bg-sidebar-accent/50'
-              }`}
-          >
-            <svg
-              className="h-5 w-5 flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
-            </svg>
-            {isOpen && (
-              <span className="text-sm font-medium flex-1 text-left">Expenses</span>
-            )}
-          </button>
         </div>
 
         {/* Employees Section */}
@@ -579,6 +307,262 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Rota Shift Management - Separate Section */}
+        <div className="pt-2 border-t border-sidebar-border">
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenRotaShift(!openRotaShift);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openRotaShift ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <CalendarDaysIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Rota Shifts</span>
+                {openRotaShift ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openRotaShift && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/rota-shift-management")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/rota-shift-management")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span>Shift Management</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Clock In/Out Section */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenClockInOut(!openClockInOut);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openClockInOut ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <ClockIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">ClockIns</span>
+                {openClockInOut ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openClockInOut && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/clock-overview")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/clock-overview")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <HomeIcon className="h-4 w-4" />
+                <span>Overview</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/clock-ins")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/clock-ins")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <ClockIcon className="h-4 w-4" />
+                <span>Clock-ins</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/time-history")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/time-history")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <DocumentTextIcon className="h-4 w-4" />
+                <span>History</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Performance Section */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              setOpenPerformance(!openPerformance);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openPerformance ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            {isOpen && (
+              <>
+                <span className="text-sm font-medium flex-1 text-left">Performance</span>
+                {openPerformance ? (
+                  <ChevronDownIcon className="h-4 w-4" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {openPerformance && isOpen && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
+              <button
+                onClick={() => handleNavigation("/performance/goals")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/goals")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Goals</span>
+              </button>
+
+              <button
+                onClick={() => handleNavigation("/performance/reviews")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/reviews")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <DocumentTextIcon className="h-4 w-4" />
+                <span>Reviews</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Documents Section */}
+        <div>
+          <button
+            onClick={() => {
+              // Don't expand sidebar, just open drawer
+              setOpenDocumentsDrawer(true);
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all hover:bg-sidebar-accent/50`}
+          >
+            <DocumentDuplicateIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">Documents</span>
+            )}
+          </button>
+        </div>
+
+        {/* E-Learning Section */}
+        <div>
+          <button
+            onClick={() => handleNavigation("/e-learning")}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/e-learning")
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <BookOpenIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">E Learning</span>
+            )}
+          </button>
+        </div>
+
+        {/* Manager Approvals Section */}
+        <div>
+          <button
+            onClick={() => handleNavigation("/manager-approvals")}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/manager-approvals")
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <ClipboardDocumentCheckIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">Leave approvals</span>
+            )}
+          </button>
+        </div>
+
+        {/* Expenses */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              navigate('/expenses');
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname.startsWith('/expenses')
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'hover:bg-sidebar-accent/50'
+              }`}
+          >
+            <svg
+              className="h-5 w-5 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+            </svg>
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">Expenses</span>
+            )}
+          </button>
+        </div>
+
+        {/* Report Library */}
+        <div>
+          <button
+            onClick={() => {
+              handleMenuClick();
+              navigate('/report-library');
+            }}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname === '/report-library'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'hover:bg-sidebar-accent/50'
+              }`}
+          >
+            <svg
+              className="h-5 w-5 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {isOpen && (
+              <span className="text-sm font-medium flex-1 text-left">Report Library</span>
+            )}
+          </button>
         </div>
 
         {/* Footer - Profile Section with Dropdown */}

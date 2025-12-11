@@ -227,8 +227,8 @@ exports.getAllEmployees = async (req, res) => {
   try {
     const { team, department, status, search } = req.query;
     
-    // Build query
-    let query = {};
+    // Build query - default to active employees only
+    let query = { isActive: true, status: { $ne: 'Terminated' } };
     
     if (team) query.team = team;
     if (department) query.department = department;
