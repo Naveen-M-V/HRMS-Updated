@@ -91,14 +91,48 @@ function AdminProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
+  // Only admin and super-admin can access admin dashboard
   if (user?.role !== "admin" && user?.role !== "super-admin") {
+    // Redirect employees to their dashboard, profiles to user dashboard
+    const employeeRoles = ['employee', 'manager', 'senior-manager', 'hr'];
+    if (employeeRoles.includes(user?.role)) {
+      return <Navigate to="/dashboard" replace />;
+    }
     return <Navigate to="/user-dashboard" replace />;
   }
 
   return children;
 }
 
-// User Protected Route Component
+// Employee Protected Route Component (for EmployeeHub users)
+function EmployeeProtectedRoute({ children }) {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Allow employees and admins (admins can view as employees)
+  const allowedRoles = ['employee', 'manager', 'senior-manager', 'hr', 'admin', 'super-admin'];
+  if (!allowedRoles.includes(user?.role)) {
+    return <Navigate to="/user-dashboard" replace />;
+  }
+
+  return children;
+}
+
+// User Protected Route Component (for Profile users - interns/trainees)
 function UserProtectedRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -117,7 +151,13 @@ function UserProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
+  // Redirect non-profile users to their appropriate dashboards
   if (user?.role === "admin" || user?.role === "super-admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const employeeRoles = ['employee', 'manager', 'senior-manager', 'hr'];
+  if (employeeRoles.includes(user?.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 

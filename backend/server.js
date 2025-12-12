@@ -2794,7 +2794,8 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// Import notification routes
+// Import all route modules
+const authRoutes = require('./routes/auth');
 const notificationRoutes = require('./routes/notifications');
 const bulkJobRolesRoutes = require('./routes/bulkJobRoles');
 const jobRolesRoutes = require('./routes/jobRoles');
@@ -2807,452 +2808,10 @@ const employeeHubRoutes = require('./routes/employeeHubRoutes');
 const documentManagementRoutes = require('./routes/documentManagement');
 const employeeProfileRoutes = require('./routes/employeeProfile');
 const approvalRoutes = require('./routes/approvalRoutes');
-
-// Use notification routes (moved after authenticateSession definition)
-// This will be added later after the middleware is defined
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    console.log('🔐 Login request received:', {
-      hasIdentifier: !!req.body.identifier,
-      hasEmail: !!req.body.email,
-      hasPassword: !!req.body.password,
-      identifier: req.body.identifier,
-      email: req.body.email,
-      body: { ...req.body, password: req.body.password ? '[REDACTED]' : undefined }
-    });
-
-    const { identifier, email, password, rememberMe } = req.body;
-    const loginIdentifier = (identifier || email || '').trim().toLowerCase();
-
-    if (!loginIdentifier || !password) {
-      console.log('❌ Login validation failed: missing credentials', { loginIdentifier, hasPassword: !!password });
-      return res.status(400).json({ message: 'Email/username and password are required' });
-    }
-
-    console.log('🔍 Searching for user with identifier:', loginIdentifier);
-
-    // Check EmployeesHub first (for employees and admins)
-    const EmployeeHub = require('./models/EmployeesHub');
-
-    try {
-      const employee = await EmployeeHub.findOne({
-        email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') },
-        isActive: true
-      }).select('+password');
-
-      if (employee) {
-        console.log('👤 Employee found:', {
-          email: employee.email,
-          role: employee.role,
-          isActive: employee.isActive
-        });
-
-        // Check if employee is terminated
-        if (employee.status === 'Terminated') {
-          console.log('❌ Employee account terminated');
-          return res.status(403).json({ message: 'Access denied: Employee account has been terminated' });
-        }
-
-        // Check if account is locked
-        if (employee.isLocked && employee.isLocked()) {
-          console.log('❌ Employee account locked');
-          return res.status(403).json({ message: 'Account is temporarily locked due to too many failed login attempts' });
-        }
-
-        // Compare password
-        const isValidPassword = await employee.comparePassword(password);
-        console.log('🔐 Employee password comparison result:', isValidPassword);
-
-        if (isValidPassword) {
-          console.log('✅ Employee login successful');
-
-          // Reset login attempts on successful login
-          if (employee.resetLoginAttempts) {
-            await employee.resetLoginAttempts();
-          }
-
-          // Update last login
-          employee.lastLogin = new Date();
-          await employee.save();
-
-          // Create session data for employee
-          const sessionUser = {
-            userId: employee._id,
-            email: employee.email,
-            role: employee.role,
-            firstName: employee.firstName,
-            lastName: employee.lastName,
-            userType: 'employee',
-            employeeId: employee.employeeId || null,
-            department: employee.department,
-            jobTitle: employee.jobTitle
-          };
-
-          // Generate JWT token
-          const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
-
-          // Store in session
-          req.session.user = sessionUser;
-
-          if (rememberMe) {
-            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
-          }
-
-          return res.json({ user: sessionUser, token });
-        } else {
-          // Increment login attempts
-          if (employee.incLoginAttempts) {
-            await employee.incLoginAttempts();
-          }
-        }
-      }
-    } catch (employeeError) {
-      console.log('Employee lookup error (continuing to profile lookup):', employeeError.message);
-    }
-
-    // Check User model (for profiles - interns, trainees, contract trainees)
-    const user = await User.findOne({
-      $or: [
-        { email: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
-        { username: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } },
-        { vtid: { $regex: new RegExp(`^${loginIdentifier}$`, 'i') } }
-      ]
-    }).select('+password');
-
-    console.log('👤 Profile user search result:', {
-      found: !!user,
-      email: user?.email,
-      role: user?.role,
-      isActive: user?.isActive
-    });
-
-    if (!user) {
-      console.log('❌ User not found in database (neither Employee nor Profile)');
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Check if account is locked
-    if (user.isLocked && user.isLocked()) {
-      console.log('❌ Profile account locked');
-      return res.status(403).json({ message: 'Account is temporarily locked due to too many failed login attempts' });
-    }
-
-    // Check password
-    console.log('🔐 Comparing passwords for profile...');
-
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log('🔐 Profile password comparison result:', isValidPassword);
-
-    if (!isValidPassword) {
-      console.log('❌ Invalid password for profile:', user.email);
-
-      // Increment login attempts
-      if (user.incLoginAttempts) {
-        await user.incLoginAttempts();
-      }
-
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Check if account is active
-    if (!user.isActive) {
-      return res.status(400).json({ message: 'Account is deactivated' });
-    }
-
-    // Check email verification for profiles
-    const isVerified = user.isEmailVerified ?? user.emailVerified ?? false;
-    if (!isVerified) {
-      return res.status(403).json({
-        message: 'Email not verified. Please check your email and click the verification link to continue.',
-        requiresVerification: true
-      });
-    }
-
-    // Check admin approval for profiles (if explicitly set to false)
-    // BUT SKIP this check for super-admin accounts
-    if (user.isAdminApproved === false && user.role !== 'super-admin') {
-      return res.status(403).json({
-        message: 'Your profile is pending admin approval',
-        requiresApproval: true
-      });
-    }
-
-    console.log('✅ Login successful for profile:', user.email);
-
-    // Reset login attempts on successful login
-    if (user.resetLoginAttempts) {
-      await user.resetLoginAttempts();
-    }
-
-    // Update last login time
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Create session data for profile
-    const sessionUser = {
-      userId: user._id,
-      email: user.email,
-      role: user.role || 'profile',
-      firstName: user.firstName,
-      lastName: user.lastName,
-      vtid: user.vtid,
-      userType: 'profile',
-      profileType: user.profileType
-    };
-
-    // Generate JWT token
-    const token = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: rememberMe ? '30d' : '24h' });
-
-    // Store in session
-    req.session.user = sessionUser;
-
-    if (rememberMe) {
-      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
-    }
-
-    return res.json({ user: sessionUser, token });
-
-  } catch (error) {
-    console.error('❌ Login error:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Logout endpoint
-app.post('/api/auth/logout', (req, res) => {
-  if (req.session) {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: 'Could not log out' });
-      }
-      res.clearCookie('talentshield.sid'); // Clear session cookie
-      return res.json({ message: 'Logout successful' });
-    });
-  } else {
-    return res.json({ message: 'No active session' });
-  }
-});
-
-// Test email endpoint - for debugging email configuration
-app.post('/api/test-email', async (req, res) => {
-  try {
-    const { email, name } = req.body;
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ success: false, message: 'Valid email is required' });
-    }
-
-    console.log(`=== TESTING EMAIL CONFIGURATION ===`);
-    console.log(`Sending test email to: ${email}`);
-    console.log(`Name: ${name || 'Test User'}`);
-
-    const result = await sendTestEmail(email, name || 'Test User');
-
-    if (result.success) {
-      console.log(`✅ Test email sent successfully`);
-      res.json({
-        success: true,
-        message: 'Test email sent successfully! Please check your inbox.',
-        messageId: result.messageId
-      });
-    } else {
-      console.error(`❌ Test email failed:`, result.error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to send test email',
-        error: result.error
-      });
-    }
-  } catch (error) {
-    console.error('❌ Test email endpoint exception:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send test email',
-      error: error.message
-    });
-  }
-});
-
-// Session validation endpoint
-app.get('/api/auth/validate-session', (req, res) => {
-  console.log('Session validation request:', {
-    sessionExists: !!req.session,
-    sessionUser: req.session?.user ? 'exists' : 'missing',
-    sessionId: req.sessionID,
-    cookies: req.headers.cookie
-  });
-
-  if (req.session && req.session.user) {
-    return res.json({
-      isAuthenticated: true,
-      user: {
-        id: req.session.user.userId,
-        firstName: req.session.user.firstName,
-        lastName: req.session.user.lastName,
-        email: req.session.user.email,
-        role: req.session.user.role,
-        userType: req.session.user.userType || 'profile',
-        employeeId: req.session.user.employeeId || null,
-        profileId: req.session.user.profileId || null
-      }
-    });
-  }
-
-  return res.status(401).json({
-    isAuthenticated: false,
-    message: 'No active session'
-  });
-});
-
-// Forgot Password - Send Reset Email (True forgot password without old password)
-app.post('/api/auth/forgot-password', async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
-
-    // Find user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      // Don't reveal if email exists or not for security
-      return res.json({ message: 'If an account with this email exists, a password reset link has been sent.' });
-    }
-
-    // Generate secure reset token using crypto
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
-
-    // Save reset token to user
-    await User.findByIdAndUpdate(user._id, {
-      resetPasswordToken: resetToken,
-      resetPasswordExpires: resetTokenExpiry
-    });
-
-    // Send reset email
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
-
-    try {
-      // Import email service
-      const { sendPasswordResetEmail } = require('./utils/emailService');
-      const userName = `${user.firstName} ${user.lastName}`;
-      await sendPasswordResetEmail(user.email, userName, resetUrl, resetToken);
-      console.log('Password reset email sent to:', user.email);
-    } catch (emailError) {
-      console.error('Failed to send reset email:', emailError);
-      // Continue anyway - don't reveal email sending failure
-    }
-    res.json({ message: 'If an account with this email exists, a password reset link has been sent.' });
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({ message: 'An error occurred. Please try again.' });
-  }
-});
-
-// Reset Password with Token (from email link)
-app.post('/api/auth/reset-password-token', async (req, res) => {
-  try {
-    const { token, newPassword } = req.body;
-
-    if (!token || !newPassword) {
-      return res.status(400).json({ message: 'Token and new password are required' });
-    }
-
-    // Find user by reset token
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: new Date() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired reset token' });
-    }
-
-    // Validate new password
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
-    }
-
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-      return res.status(400).json({
-        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-      });
-    }
-
-    // Hash new password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
-    // Update user password and clear reset token
-    await User.findByIdAndUpdate(user._id, {
-      password: hashedPassword,
-      resetPasswordToken: undefined,
-      resetPasswordExpires: undefined
-    });
-
-    res.json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error('Reset password with token error:', error);
-    res.status(500).json({ message: 'An error occurred. Please try again.' });
-  }
-});
-
-// Reset Password with Old Password Verification (Change Password)
-app.post('/api/auth/reset-password', async (req, res) => {
-  try {
-    const { email, oldPassword, newPassword } = req.body;
-
-    if (!email || !oldPassword || !newPassword) {
-      return res.status(400).json({ message: 'Email, old password, and new password are required' });
-    }
-
-    // Find user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: 'No account found with this email address' });
-    }
-
-    // Verify old password
-    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
-    if (!isOldPasswordValid) {
-      return res.status(400).json({ message: 'Old password is incorrect' });
-    }
-
-    // Validate new password
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
-    }
-
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-      return res.status(400).json({
-        message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-      });
-    }
-
-    // Check if new password is different from old password
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({ message: 'New password must be different from the old password' });
-    }
-
-    // Hash new password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
-    // Update user password
-    await User.findByIdAndUpdate(user._id, {
-      password: hashedPassword
-    });
-
-    res.json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({ message: 'An error occurred. Please try again.' });
-  }
-});
+const reportingRoutes = require('./routes/reportingRoutes');
+const reportLibraryRoutes = require('./routes/reportLibraryRoutes');
+const expenseRoutes = require('./routes/expenseRoutes');
+const performanceRoutes = require('./routes/performanceRoutes');
 
 // Session-based authentication middleware
 const authenticateSession = async (req, res, next) => {
@@ -3809,9 +3368,17 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
     });
   }
 });
+
+// ==================== ROUTE MOUNTING ====================
+// Mount auth routes (login, logout, password reset, etc.)
+app.use('/api/auth', authRoutes);
+
+// Bulk operations and job management
 app.use('/api', bulkJobRolesRoutes);
 app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
+
+// Core HR features
 app.use('/api/rota', authenticateSession, rotaRoutes);
 app.use('/api/clock', authenticateSession, clockRoutes);
 app.use('/api/leave', authenticateSession, leaveRoutes);
@@ -3821,21 +3388,16 @@ app.use('/api/employee-profile', authenticateSession, employeeProfileRoutes);
 app.use('/api/documentManagement', authenticateSession, documentManagementRoutes);
 app.use('/api/approvals', authenticateSession, approvalRoutes);
 
-// NEW: Reporting routes
-const reportingRoutes = require('./routes/reportingRoutes');
+// Reporting and expenses
 app.use('/api/reports', authenticateSession, reportingRoutes);
-
-// Report Library routes
-const reportLibraryRoutes = require('./routes/reportLibraryRoutes');
 app.use('/api/report-library', authenticateSession, reportLibraryRoutes);
-
-// Expense Management routes
-const expenseRoutes = require('./routes/expenseRoutes');
 app.use('/api/expenses', authenticateSession, expenseRoutes);
 
-// Email service handled by utils/emailService.js
+// Performance management
+app.use('/api/performance', performanceRoutes);
 
 // Global Error Handler Middleware (must be after all routes)
+
 app.use((err, req, res, next) => {
   console.error("🔥 Unhandled server error:", err);
   if (res.headersSent) return next(err);
@@ -4214,29 +3776,7 @@ cron.schedule('0 9 * * *', async () => {
 });
 console.log('📅 Scheduled document expiry checks to run daily at 9 AM');
 
-// ==================== PERFORMANCE MODULE ROUTES ====================
-// Performance Routes
-const performanceRoutes = require('./routes/performanceRoutes');
-app.use('/api/performance', performanceRoutes);
-
-console.log('✅ Performance module routes registered');
-
-// Employee Hub Routes
-const employeeHubRoutes = require('./routes/employeeHubRoutes');
-app.use('/api/employee-hub', employeeHubRoutes);
-
-console.log('✅ Employee Hub routes registered');
-
-// Clock and Rota Routes
-const clockRoutes = require('./routes/clockRoutes');
-app.use('/api/clock', clockRoutes);
-console.log('✅ Clock routes registered');
-
-// Leave Management Routes
-const leaveRoutes = require('./routes/leaveRoutes');
-app.use('/api/leave', leaveRoutes);
-console.log('✅ Leave routes registered');
-
+// ==================== SERVER START ====================
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 

@@ -126,11 +126,22 @@ export default function Login() {
           localStorage.removeItem('rememberedEmail');
         }
         
-        // Role-based routing using returned user role
-        const userRole = result.user?.role || 'user';
-        const redirectPath = (userRole === 'admin' || userRole === 'super-admin')
-          ? (location.state?.from?.pathname || "/dashboard")
-          : "/user-dashboard";
+        // Role-based routing
+        const userRole = result.user?.role || 'profile';
+        let redirectPath;
+        
+        // Admin and Super-Admin → Admin Dashboard
+        if (userRole === 'admin' || userRole === 'super-admin') {
+          redirectPath = location.state?.from?.pathname || "/dashboard";
+        }
+        // Employees (from EmployeeHub) → Employee Dashboard (same as admin dashboard but with role restrictions)
+        else if (['employee', 'manager', 'senior-manager', 'hr'].includes(userRole)) {
+          redirectPath = "/dashboard";
+        }
+        // Profiles (interns, trainees) → User Dashboard
+        else {
+          redirectPath = "/user-dashboard";
+        }
         
         navigate(redirectPath, { replace: true });
       } else {
