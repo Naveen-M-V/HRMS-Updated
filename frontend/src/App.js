@@ -93,11 +93,7 @@ function AdminProtectedRoute({ children }) {
 
   // Only admin and super-admin can access admin dashboard
   if (user?.role !== "admin" && user?.role !== "super-admin") {
-    // Redirect employees to their dashboard, profiles to user dashboard
-    const employeeRoles = ['employee', 'manager', 'senior-manager', 'hr'];
-    if (employeeRoles.includes(user?.role)) {
-      return <Navigate to="/dashboard" replace />;
-    }
+    // Redirect everyone else (employees and profiles) to user dashboard
     return <Navigate to="/user-dashboard" replace />;
   }
 
@@ -132,7 +128,7 @@ function EmployeeProtectedRoute({ children }) {
   return children;
 }
 
-// User Protected Route Component (for Profile users - interns/trainees)
+// User Protected Route Component (for all non-admin users: profiles and employees)
 function UserProtectedRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -151,16 +147,12 @@ function UserProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  // Redirect non-profile users to their appropriate dashboards
+  // Redirect admins to their dashboard
   if (user?.role === "admin" || user?.role === "super-admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const employeeRoles = ['employee', 'manager', 'senior-manager', 'hr'];
-  if (employeeRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  // Allow employees and profiles to access user dashboard
   return children;
 }
 

@@ -9,6 +9,8 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  CalendarDaysIcon,
+  FolderIcon,
 } from '@heroicons/react/24/outline';
 
 const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user }) => {
@@ -22,6 +24,8 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
     { id: 'overview', name: 'Overview', icon: HomeIcon, showForProfile: false },
     { id: 'profile', name: 'My Profile', icon: UserCircleIcon, showForProfile: true },
     { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon, showForProfile: false },
+    { id: 'shifts', name: 'My Shifts', icon: CalendarDaysIcon, showForProfile: false },
+    { id: 'documents', name: 'Documents', icon: FolderIcon, showForProfile: false },
     { id: 'certificates', name: 'Certificates', icon: DocumentTextIcon, showForProfile: true },
     { id: 'notifications', name: 'Notifications', icon: BellIcon, badge: notifications?.length || 0, showForProfile: true },
   ].filter(item => isEmployeeUser || item.showForProfile);

@@ -134,9 +134,9 @@ export default function Login() {
         if (userRole === 'admin' || userRole === 'super-admin') {
           redirectPath = location.state?.from?.pathname || "/dashboard";
         }
-        // Employees (from EmployeeHub) → Employee Dashboard (same as admin dashboard but with role restrictions)
+        // Employees (from EmployeeHub) → User Dashboard with clock in/out, shifts, documents
         else if (['employee', 'manager', 'senior-manager', 'hr'].includes(userRole)) {
-          redirectPath = "/dashboard";
+          redirectPath = "/user-dashboard";
         }
         // Profiles (interns, trainees) → User Dashboard
         else {
