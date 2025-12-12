@@ -1,0 +1,2278 @@
+const express = require('express');
+const router = express.Router();
+const moment = require('moment-timezone');
+const TimeEntry = require('../models/TimeEntry');
+const User = require('../models/User');
+const EmployeesHub = require('../models/EmployeesHub');
+const LeaveRecord = require('../models/LeaveRecord');
+const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
+const {
+  findMatchingShift,
+  validateClockIn,
+  calculateHoursWorked,
+  calculateScheduledHours,
+  updateShiftStatus
+} = require('../utils/shiftTimeLinker');
+const crypto = require('crypto');
+
+// Import asyncHandler from server.js
+const asyncHandler = require("express-async-handler");
+
+// Import authentication middleware
+const { authenticateSession } = require('../middleware/auth');
+
+/**
+ * Clock Routes
+ * Handles time tracking and attendance functionality
+ * Integrated with leave management system
+ */
+
+/**
+ * Reverse Geocoding Helper Function
+ * Converts GPS coordinates to human-readable address using OpenStreetMap Nominatim API
+ * @param {Number} latitude - GPS latitude
+ * @param {Number} longitude - GPS longitude
+ * @returns {Promise<String>} - Formatted address or null if failed
+ */
+async function reverseGeocode(latitude, longitude) {
+  try {
+    const https = require('https');
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+    
+    return new Promise((resolve, reject) => {
+      https.get(url, {
+        headers: {
+          'User-Agent': 'HRMS-App/1.0' // Required by OpenStreetMap
+        }
+      }, (response) => {
+        let data = '';
+        
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        response.on('end', () => {
+          try {
+            const result = JSON.parse(data);
+            if (result && result.display_name) {
+              resolve(result.display_name);
+            } else {
+              resolve(null);
+            }
+          } catch (e) {
+            console.error('Error parsing geocoding response:', e);
+            resolve(null);
+          }
+        });
+      }).on('error', (err) => {
+        console.error('Reverse geocoding error:', err);
+        resolve(null);
+      });
+    });
+  } catch (error) {
+    console.error('Reverse geocoding failed:', error);
+    return null;
+  }
+}
+
+// @route   POST /api/clock/in
+// @desc    Clock in an employee with multi-session support
+// @access  Private (Admin)
+router.post('/in', asyncHandler(async (req, res) => {
+  const { employeeId, location, workType, latitude, longitude, accuracy } = req.body;
+
+  console.log('Clock In Request:', { employeeId, location, workType, latitude, longitude, accuracy });
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee ID is required'
+    });
+  }
+
+  // Validate employee exists and is active
+  const employee = await EmployeesHub.findById(employeeId);
+  if (!employee) {
+    return res.status(404).json({
+      success: false,
+      message: 'Employee not found'
+    });
+  }
+
+  if (employee.status !== 'Active' || employee.isActive === false || employee.deleted === true) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee is not active or has been terminated'
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format (UTC)
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Find or create TimeEntry for today
+  let entry = await TimeEntry.findOne({ employee: employeeId, date: today });
+  
+  if (!entry) {
+    entry = new TimeEntry({
+      employee: employeeId,
+      date: today,
+      status: 'clocked_in',
+      sessions: [],
+      location: location || 'Office',
+      workType: workType || 'Regular',
+      createdBy: req.user?._id || req.user?.userId || req.user?.id
+    });
+  } else {
+    // Check if there's an active session (clocked in but not clocked out)
+    if (entry.sessions && entry.sessions.length > 0) {
+      const lastSession = entry.sessions[entry.sessions.length - 1];
+      if (!lastSession.clockOut) {
+        return res.status(400).json({
+          success: false,
+          message: 'Employee is already clocked in. Please clock out first.'
+        });
+      }
+    }
+    entry.status = 'clocked_in';
+  }
+
+  // Always push a new session with UTC timestamp
+  const newSession = {
+    clockIn: new Date().toISOString(), // ALWAYS UTC ISO
+    location: location || 'Office',
+    workType: workType || 'Regular',
+    notes: ''
+  };
+
+  // Add GPS location if provided
+  if (latitude && longitude) {
+    newSession.gpsLocationIn = {
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      accuracy: accuracy ? parseFloat(accuracy) : null,
+      capturedAt: new Date().toISOString()
+    };
+  }
+
+  // Add the new session
+  entry.sessions.push(newSession);
+  
+  await entry.save();
+  console.log('✅ Clock in saved successfully for employee:', employeeId);
+
+  // Create notification
+  try {
+    const Notification = require('../models/Notification');
+    const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
+    const adminUser = await User.findById(adminUserId);
+    const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+    
+    await Notification.create({
+      userId: employeeId,
+      type: 'system',
+      title: 'Clocked In by Admin',
+      message: `${adminName} clocked you in at ${new Date().toLocaleTimeString()}`,
+      priority: 'medium'
+    });
+  } catch (notifError) {
+    console.error('Failed to create notification:', notifError);
+    // Don't fail the clock-in if notification fails
+  }
+
+  res.json({ 
+    success: true, 
+    message: 'Employee clocked in successfully',
+    entry: entry
+  });
+}));
+
+// @route   POST /api/clock/out
+// @desc    Clock out an employee with proper validation
+// @access  Private (Admin)
+router.post('/out', asyncHandler(async (req, res) => {
+  const { employeeId, latitude, longitude, accuracy } = req.body;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee ID is required'
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format (UTC)
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  
+  const entry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today
+  });
+
+  // 🟥 VALIDATION CHECKS - Prevent server crashes
+  if (!entry) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No TimeEntry found for today" 
+    });
+  }
+
+  if (!entry.sessions || entry.sessions.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No active session found" 
+    });
+  }
+
+  const last = entry.sessions[entry.sessions.length - 1];
+
+  if (!last.clockIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Session corrupted" 
+    });
+  }
+
+  if (last.clockOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Session already closed" 
+    });
+  }
+
+  // 🟦 UTC TIMESTAMP - Store current UTC time
+  const now = new Date();
+  last.clockOut = now.toISOString();
+  
+  // Update GPS location if provided
+  if (latitude && longitude) {
+    last.gpsLocationOut = {
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      accuracy: accuracy ? parseFloat(accuracy) : null,
+      capturedAt: now.toISOString()
+    };
+  }
+
+  // Update entry status
+  entry.status = 'clocked_out';
+  
+  // 🟩 SAFE SAVE OPERATION - Prevent server crashes
+  await entry.save();
+  console.log('✅ Clock out saved successfully for employee:', employeeId);
+
+  // Create notification
+  try {
+    const Notification = require('../models/Notification');
+    const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
+    const User = require('../models/User');
+    const adminUser = adminUserId ? await User.findById(adminUserId) : null;
+    const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+    
+    await Notification.create({
+      userId: employeeId,
+      type: 'system',
+      title: 'Clocked Out by Admin',
+      message: `${adminName} clocked you out at ${now.toLocaleTimeString()}`,
+      priority: 'medium'
+    });
+  } catch (notifError) {
+    console.error('⚠️ Failed to create notification:', notifError);
+    // Don't fail the clock out if notification fails
+  }
+
+  return res.json({ 
+    success: true, 
+    message: 'Employee clocked out successfully',
+    entry: entry
+  });
+}));
+
+// @route   GET /api/clock/dashboard
+// @desc    Get dashboard statistics (includes admins by default)
+// @access  Private (Admin)
+router.get('/dashboard', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Get EmployeeHub model to count total active employees with userType='employee'
+    const ShiftAssignment = require('../models/ShiftAssignment');
+    
+    // Get only ACTIVE employees with valid user accounts (userType='employee')
+    const employees = await EmployeesHub.find({
+      userId: { $exists: true, $ne: null }
+    })
+      .populate({
+        path: 'userId',
+        match: { userType: 'employee', isActive: { $ne: false }, deleted: { $ne: true } }
+      })
+      .lean();
+
+    // Filter out employees without valid userId
+    const validEmployees = employees.filter(emp => 
+      emp.userId && 
+      emp.userId._id &&
+      emp.userId.userType === 'employee'
+    );
+
+    // Also include admin users for clock-in tracking
+    const employeeUserIds = validEmployees.map(e => e.userId._id.toString()).filter(Boolean);
+    const adminUsers = await User.find({
+      role: 'admin',
+      _id: { $nin: employeeUserIds },
+      isActive: { $ne: false },
+      deleted: { $ne: true }
+    }).select('_id').lean();
+
+    const totalEmployees = validEmployees.length + adminUsers.length;
+    const allUserIds = [
+      ...validEmployees.map(e => e.userId._id),
+      ...adminUsers.map(a => a._id)
+    ];
+
+    // Get today's time entries for ALL users (employees + admins)
+    const timeEntries = await TimeEntry.find({
+      date: { $gte: today },
+      employee: { $in: allUserIds }
+    }).sort({ createdAt: -1 }); // Sort by most recent first
+
+    // Get today's shift assignments
+    const shiftAssignments = await ShiftAssignment.find({
+      date: { $gte: today, $lt: tomorrow },
+      employeeId: { $in: allUserIds }
+    }).lean();
+
+    // Create a map of shift assignments by employee ID
+    const shiftMap = new Map();
+    shiftAssignments.forEach(shift => {
+      shiftMap.set(shift.employeeId.toString(), shift);
+    });
+
+    // Count only CURRENT status - each user counted once based on latest entry
+    const employeeStatusMap = new Map();
+    
+    timeEntries.forEach(entry => {
+      const empId = entry.employee.toString();
+      // Only set if not already set (since we sorted by most recent first)
+      if (!employeeStatusMap.has(empId)) {
+        employeeStatusMap.set(empId, entry.status);
+      }
+    });
+
+    // Count statuses from the map
+    let clockedIn = 0;
+    let onBreak = 0;
+    let clockedOut = 0;
+    let absent = 0;
+    
+    employeeStatusMap.forEach(status => {
+      if (status === 'clocked_in') clockedIn++;
+      else if (status === 'on_break') onBreak++;
+      else if (status === 'clocked_out') clockedOut++;
+    });
+
+    // Calculate absent: only count as absent if they have a shift today and haven't clocked in
+    // after their shift start time has passed
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    allUserIds.forEach(userId => {
+      const empId = userId.toString();
+      const hasTimeEntry = employeeStatusMap.has(empId);
+      const shift = shiftMap.get(empId);
+      
+      // Only mark as absent if:
+      // 1. They have a shift assigned today
+      // 2. They haven't clocked in yet
+      // 3. Current time is past their shift start time
+      if (shift && !hasTimeEntry && currentTime > shift.startTime) {
+        absent++;
+      }
+    });
+
+    const stats = {
+      clockedIn,
+      onBreak,
+      clockedOut,
+      absent,
+      total: totalEmployees
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Get dashboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching dashboard data'
+    });
+  }
+});
+
+// @route   GET /api/clock/status
+// @desc    Get current clock status for all active employees (multi-session support)
+// @access  Private (Admin)
+router.get('/status', asyncHandler(async (req, res) => {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+
+  // Step 1: Fetch only valid, active employees from EmployeesHub
+  const validEmployees = await EmployeesHub.find({
+    status: 'Active',
+    isActive: true,
+    deleted: { $ne: true }
+  })
+  .select('firstName lastName email department jobTitle employeeId team office role')
+  .lean();
+
+  console.log(`📊 Found ${validEmployees.length} active employees`);
+
+  // Step 2: Get today's time entries for these employees
+  const employeeIds = validEmployees.map(emp => emp._id);
+  const timeEntries = await TimeEntry.find({
+    employee: { $in: employeeIds },
+    date: today
+  }).lean();
+
+  // Step 3: Calculate clock status for each employee
+  const allEmployees = [];
+  const clockedIn = [];
+  const clockedOut = [];
+  const onBreak = [];
+
+  // Create a map of time entries by employee ID
+  const timeEntryMap = new Map();
+  timeEntries.forEach(entry => {
+    timeEntryMap.set(entry.employee.toString(), entry);
+  });
+
+  // Process each employee
+  validEmployees.forEach(employee => {
+    const empId = employee._id.toString();
+    const timeEntry = timeEntryMap.get(empId);
+    
+    let status = 'clocked_out'; // Default status
+    let clockIn = null;
+    let clockOut = null;
+    let breakIn = null;
+    let breakOut = null;
+
+    // Calculate status based on multi-session TimeEntry
+    if (timeEntry && timeEntry.sessions && timeEntry.sessions.length > 0) {
+      const lastSession = timeEntry.sessions[timeEntry.sessions.length - 1];
+      
+      clockIn = lastSession.clockIn;
+      clockOut = lastSession.clockOut;
+      breakIn = lastSession.breakIn;
+      breakOut = lastSession.breakOut;
+
+      // Apply the status calculation logic
+      if (!clockIn) {
+        // No clock in today
+        status = 'clocked_out';
+      } else if (clockIn && !clockOut) {
+        // Clocked in but not clocked out
+        if (breakIn && !breakOut) {
+          // Currently on break
+          status = 'on_break';
+        } else {
+          // Clocked in and working
+          status = 'clocked_in';
+        }
+      } else {
+        // Both clock in and clock out exist
+        status = 'clocked_out';
+      }
+    }
+
+    const employeeWithStatus = {
+      _id: employee._id,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      department: employee.department,
+      jobTitle: employee.jobTitle,
+      employeeId: employee.employeeId,
+      team: employee.team,
+      office: employee.office || '-',
+      role: employee.role || 'employee',
+      status: status,
+      clockIn: clockIn,
+      clockOut: clockOut,
+      breakIn: breakIn,
+      breakOut: breakOut,
+      timeEntryId: timeEntry?._id || null
+    };
+
+    // Add to appropriate arrays
+    allEmployees.push(employeeWithStatus);
+    
+    if (status === 'clocked_in') {
+      clockedIn.push(employeeWithStatus);
+    } else if (status === 'on_break') {
+      onBreak.push(employeeWithStatus);
+    } else {
+      clockedOut.push(employeeWithStatus);
+    }
+  });
+
+  console.log(`📊 Status summary: ${clockedIn.length} clocked in, ${onBreak.length} on break, ${clockedOut.length} clocked out`);
+
+  // Step 4: Return the response in the new format
+  const responseData = {
+    success: true,
+    data: {
+      allEmployees,
+      clockedIn,
+      clockedOut,
+      break: onBreak, // Using 'break' as requested
+      employees: allEmployees // For backward compatibility
+    }
+  };
+
+  console.log('✅ Clock status fetch completed successfully');
+  return res.json(responseData);
+}));
+
+// @route   GET /api/clock/entries
+// @desc    Get time entries with optional filters
+// @access  Private (Admin)
+router.get('/entries', async (req, res) => {
+  try {
+    const { startDate, endDate, employeeId } = req.query;
+    
+    let query = {};
+    
+    // Date range filter
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
+    }
+    
+    // Employee filter
+    if (employeeId) {
+      query.employee = employeeId;
+    }
+
+    const timeEntries = await TimeEntry.find(query)
+      .populate('employee', 'firstName lastName email department vtid')
+      .populate('createdBy', 'firstName lastName')
+      .populate('shiftId', 'startTime endTime location')
+      .sort({ date: -1, clockIn: -1 })
+      .lean();
+
+    // Process entries to add shift hours
+    const processedEntries = timeEntries.map(entry => {
+      let shiftHours = null;
+      let shiftStartTime = null;
+      let shiftEndTime = null;
+      
+      if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+        shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
+        shiftStartTime = entry.shiftId.startTime;
+        shiftEndTime = entry.shiftId.endTime;
+      }
+
+      return {
+        ...entry,
+        shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
+        shiftStartTime: shiftStartTime,
+        shiftEndTime: shiftEndTime
+      };
+    });
+
+    res.json({
+      success: true,
+      data: processedEntries
+    });
+
+  } catch (error) {
+    console.error('Get time entries error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching time entries'
+    });
+  }
+});
+
+// @route   POST /api/clock/entry
+// @desc    Add manual time entry
+// @access  Private (Admin)
+router.post('/entry', async (req, res) => {
+  try {
+    const { employeeId, location, workType, clockIn, clockOut, breaks } = req.body;
+
+    if (!employeeId || !clockIn) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID and clock in time are required'
+      });
+    }
+
+    // Check if employee exists
+    const employee = await User.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    // Parse date and time from clockIn
+    const clockInDate = new Date(clockIn);
+    const clockInTime = clockInDate.toTimeString().slice(0, 5);
+    
+    let clockOutTime = null;
+    if (clockOut) {
+      const clockOutDate = new Date(clockOut);
+      clockOutTime = clockOutDate.toTimeString().slice(0, 5);
+    }
+
+    // Process breaks
+    const processedBreaks = (breaks || []).map(breakItem => ({
+      startTime: breakItem.startTime || '12:00',
+      endTime: breakItem.endTime || '12:30',
+      duration: breakItem.duration || 30,
+      type: breakItem.type || 'other'
+    }));
+
+    const timeEntry = new TimeEntry({
+      employee: employeeId,
+      date: clockInDate,
+      clockIn: clockInTime,
+      clockOut: clockOutTime,
+      location: location || 'Office - Main',
+      workType: workType || 'Regular Shift',
+      breaks: processedBreaks,
+      status: clockOutTime ? 'clocked_out' : 'clocked_in',
+      isManualEntry: true,
+      createdBy: req.user.id
+    });
+
+    await timeEntry.save();
+
+    res.json({
+      success: true,
+      message: 'Time entry added successfully',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('Add time entry error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error adding time entry'
+    });
+  }
+});
+
+// @route   PUT /api/clock/entry/:id
+// @desc    Update time entry
+// @access  Private (Admin)
+router.put('/entry/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const timeEntry = await TimeEntry.findByIdAndUpdate(
+      id,
+      { ...updates, updatedAt: new Date() },
+      { new: true }
+    ).populate('employee', 'firstName lastName email department');
+
+    if (!timeEntry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Time entry not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Time entry updated successfully',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('Update time entry error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error updating time entry'
+    });
+  }
+});
+
+// @route   DELETE /api/clock/entry/:id
+// @desc    Delete time entry
+// @access  Private (Admin)
+router.delete('/entry/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const timeEntry = await TimeEntry.findById(id);
+
+    if (!timeEntry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Time entry not found'
+      });
+    }
+
+    // If this time entry is linked to a shift, reset the shift status
+    if (timeEntry.shiftId) {
+      const ShiftAssignment = require('../models/ShiftAssignment');
+      const shift = await ShiftAssignment.findById(timeEntry.shiftId);
+      
+      if (shift) {
+        shift.status = 'Scheduled';
+        shift.actualStartTime = null;
+        shift.actualEndTime = null;
+        shift.timeEntryId = null;
+        await shift.save();
+        console.log(`Shift ${shift._id} reset to Scheduled after time entry deletion`);
+      }
+    }
+
+    await TimeEntry.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: 'Time entry deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete time entry error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error deleting time entry'
+    });
+  }
+});
+
+// @route   POST /api/clock/entry/:id/break
+// @desc    Add break to time entry
+// @access  Private (Admin)
+router.post('/entry/:id/break', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { startTime, endTime, duration, type } = req.body;
+
+  const timeEntry = await TimeEntry.findById(id);
+
+  if (!timeEntry) {
+    return res.status(404).json({
+      success: false,
+      message: 'Time entry not found'
+    });
+  }
+
+  const newBreak = {
+    startTime: startTime || '12:00',
+    endTime: endTime || '12:30',
+    duration: duration || 30,
+    type: type || 'other'
+  };
+
+  timeEntry.breaks.push(newBreak);
+  await timeEntry.save();
+
+  res.json({
+    success: true,
+    message: 'Break added successfully',
+    data: timeEntry
+  });
+}));
+
+// @route   POST /api/clock/onbreak
+// @desc    Set employee on break
+// @access  Private (Admin)
+router.post('/onbreak', asyncHandler(async (req, res) => {
+  const { employeeId } = req.body;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee ID is required'
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const entry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today
+  });
+
+  // VALIDATION CHECKS
+  if (!entry) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No TimeEntry found for today. Employee must clock in first." 
+    });
+  }
+
+  if (!entry.sessions || entry.sessions.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No active session found" 
+    });
+  }
+
+  const last = entry.sessions[entry.sessions.length - 1];
+
+  if (!last.clockIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Invalid session. Employee must clock in first." 
+    });
+  }
+
+  if (last.clockOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Session already closed. Cannot start break." 
+    });
+  }
+
+  if (last.breakIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Already on break" 
+    });
+  }
+
+  // Set break start time (UTC)
+  last.breakIn = new Date().toISOString();
+  entry.status = 'on_break';
+  
+  await entry.save();
+  console.log('✅ Break started successfully for employee:', employeeId);
+
+  // Create notification
+  try {
+    const Notification = require('../models/Notification');
+    const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
+    const User = require('../models/User');
+    const adminUser = adminUserId ? await User.findById(adminUserId) : null;
+    const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+    
+    await Notification.create({
+      userId: employeeId,
+      type: 'system',
+      title: 'Break Started by Admin',
+      message: `${adminName} started your break at ${new Date().toLocaleTimeString()}`,
+      priority: 'low'
+    });
+  } catch (notifError) {
+    console.error('❌ Failed to create notification:', notifError);
+  }
+
+  return res.json({ 
+    success: true, 
+    message: 'Break started successfully',
+    entry: entry
+  });
+}));
+
+// @route   POST /api/clock/endbreak
+// @desc    End employee break (resume work)
+// @access  Private (Admin)
+router.post('/endbreak', asyncHandler(async (req, res) => {
+  const { employeeId } = req.body;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee ID is required'
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().slice(0, 10);
+  
+  const entry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today
+  });
+
+  // VALIDATION CHECKS
+  if (!entry) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No TimeEntry found for today" 
+    });
+  }
+
+  if (!entry.sessions || entry.sessions.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No active session found" 
+    });
+  }
+
+  const last = entry.sessions[entry.sessions.length - 1];
+
+  if (!last.clockIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Invalid session" 
+    });
+  }
+
+  if (last.clockOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Session already closed" 
+    });
+  }
+
+  if (!last.breakIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Not on break" 
+    });
+  }
+
+  if (last.breakOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Break already ended" 
+    });
+  }
+
+  // End break (UTC timestamp)
+  last.breakOut = new Date().toISOString();
+  entry.status = 'clocked_in';
+  
+  await entry.save();
+  console.log('✅ Break ended successfully for employee:', employeeId);
+
+  // Create notification
+  try {
+    const Notification = require('../models/Notification');
+    const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
+    const User = require('../models/User');
+    const adminUser = adminUserId ? await User.findById(adminUserId) : null;
+    const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+    
+    await Notification.create({
+      userId: employeeId,
+      type: 'system',
+      title: 'Break Ended by Admin',
+      message: `${adminName} ended your break at ${new Date().toLocaleTimeString()}`,
+      priority: 'medium'
+    });
+  } catch (notifError) {
+    console.error('❌ Failed to create notification:', notifError);
+  }
+
+  return res.json({ 
+    success: true, 
+    message: 'Break ended successfully',
+    entry: entry
+  });
+}));
+
+// @route   POST /api/clock/resume
+// @desc    Resume work (end break) for employee
+// @access  Private (Admin)
+router.post('/resume', asyncHandler(async (req, res) => {
+  const { employeeId } = req.body;
+
+  if (!employeeId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Employee ID is required'
+    });
+  }
+
+  // Get today's date in YYYY-MM-DD format (UTC)
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  
+  const entry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today
+  });
+
+  // VALIDATION CHECKS
+  if (!entry) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No TimeEntry found for today" 
+    });
+  }
+
+  if (!entry.sessions || entry.sessions.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "No active session found" 
+    });
+  }
+
+  const last = entry.sessions[entry.sessions.length - 1];
+
+  if (!last.clockIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Invalid session" 
+    });
+  }
+
+  if (last.clockOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Session already closed" 
+    });
+  }
+
+  if (!last.breakIn) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Not on break" 
+    });
+  }
+
+  if (last.breakOut) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Break already ended" 
+    });
+  }
+
+  // UTC TIMESTAMP - End break
+  last.breakOut = new Date().toISOString();
+  entry.status = 'clocked_in';
+  
+  await entry.save();
+  console.log(' Break ended successfully for employee:', employeeId);
+
+  // Create notification
+  try {
+    const Notification = require('../models/Notification');
+    const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
+    const User = require('../models/User');
+    const adminUser = adminUserId ? await User.findById(adminUserId) : null;
+    const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+    
+    await Notification.create({
+      userId: employeeId,
+      type: 'system',
+      title: 'Break Ended by Admin',
+      message: `${adminName} ended your break at ${new Date().toLocaleTimeString()}`,
+      priority: 'medium'
+    });
+  } catch (notifError) {
+    console.error(' Failed to create notification:', notifError);
+  }
+
+  return res.json({ 
+    success: true, 
+    message: 'Break ended successfully',
+    entry: entry
+  });
+}));
+
+// @route   POST /api/clock/admin/status
+// @desc    Admin change employee status (clocked_in, clocked_out, on_break, absent, on_leave)
+// @access  Private (Admin)
+router.post('/admin/status', async (req, res) => {
+  try {
+    const { employeeId, status, location, workType, reason } = req.body;
+
+    if (!employeeId || !status) {
+      return res.status(400).json({
+        success: false,
+        message: 'employeeId and status are required'
+      });
+    }
+
+    // Check if employee exists
+    const employee = await User.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let result;
+
+    switch (status) {
+      case 'clocked_in':
+        // Check if employee is currently on break - if so, resume work
+        const breakEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today },
+          status: 'on_break'
+        });
+
+        if (breakEntry) {
+          // Resume work from break
+          const currentTime = new Date().toTimeString().slice(0, 5);
+          
+          // End the current break
+          if (breakEntry.breaks && breakEntry.breaks.length > 0) {
+            const lastBreak = breakEntry.breaks[breakEntry.breaks.length - 1];
+            if (!lastBreak.endTime || lastBreak.endTime === lastBreak.startTime) {
+              lastBreak.endTime = currentTime;
+              // Calculate actual break duration
+              const startParts = lastBreak.startTime.split(':');
+              const endParts = currentTime.split(':');
+              const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+              const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+              lastBreak.duration = Math.max(0, endMinutes - startMinutes);
+            }
+          }
+          
+          breakEntry.status = 'clocked_in';
+          await breakEntry.save();
+          
+          // Update shift status to In Progress when resuming work
+          if (breakEntry.shiftId) {
+            console.log('Resume work: Updating shift to In Progress:', breakEntry.shiftId._id);
+            await updateShiftStatus(breakEntry.shiftId._id, 'In Progress');
+          }
+          
+          result = { message: 'Employee resumed work successfully', data: breakEntry };
+          break;
+        }
+
+        // Check if employee already has any time entry for today
+        const existingEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today }
+        });
+
+        if (existingEntry) {
+          return res.status(400).json({
+            success: false,
+            message: `Employee already has a time entry for today. Current status: ${existingEntry.status.replace('_', ' ')}`
+          });
+        }
+
+        // Create new time entry
+        const currentTime = new Date().toTimeString().slice(0, 5);
+        const timeEntry = new TimeEntry({
+          employee: employeeId,
+          date: new Date(),
+          clockIn: currentTime,
+          location: location || 'Work From Office',
+          workType: workType || 'Regular',
+          status: 'clocked_in',
+          isManualEntry: true,
+          createdBy: req.user.id
+        });
+
+        await timeEntry.save();
+        result = { message: 'Employee clocked in successfully', data: timeEntry };
+        break;
+
+      case 'clocked_out':
+        // Find active entry
+        const activeEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today },
+          status: { $in: ['clocked_in', 'on_break'] }
+        });
+
+        if (!activeEntry) {
+          return res.status(400).json({
+            success: false,
+            message: 'No active clock-in found for today'
+          });
+        }
+
+        activeEntry.clockOut = new Date().toTimeString().slice(0, 5);
+        activeEntry.status = 'clocked_out';
+        await activeEntry.save();
+        result = { message: 'Employee clocked out successfully', data: activeEntry };
+        break;
+
+      case 'on_break':
+        // Find today's entry
+        const clockedInEntry = await TimeEntry.findOne({
+          employee: employeeId,
+          date: { $gte: today },
+          status: 'clocked_in'
+        });
+
+        if (!clockedInEntry) {
+          return res.status(400).json({
+            success: false,
+            message: 'Employee must be clocked in to take a break'
+          });
+        }
+
+        const breakStartTime = new Date().toTimeString().slice(0, 5);
+        const breakEndTime = new Date(Date.now() + 30 * 60000).toTimeString().slice(0, 5);
+
+        clockedInEntry.breaks.push({
+          startTime: breakStartTime,
+          endTime: breakEndTime,
+          duration: 30,
+          type: 'other'
+        });
+        clockedInEntry.status = 'on_break';
+        await clockedInEntry.save();
+        
+        // Update shift status to On Break
+        if (clockedInEntry.shiftId) {
+          console.log('Break started: Updating shift to On Break:', clockedInEntry.shiftId._id);
+          await updateShiftStatus(clockedInEntry.shiftId._id, 'On Break');
+        }
+        
+        result = { message: 'Break started successfully', data: clockedInEntry };
+        break;
+
+      case 'absent':
+      case 'on_leave':
+        // Create a leave record for today
+        const leaveRecord = new LeaveRecord({
+          user: employeeId,
+          type: status === 'absent' ? 'absent' : 'annual',
+          status: 'approved',
+          startDate: today,
+          endDate: today,
+          days: 1,
+          reason: reason || 'Admin marked',
+          createdBy: req.user.id,
+          approvedBy: req.user.id,
+          approvedAt: new Date()
+        });
+
+        await leaveRecord.save();
+        result = { message: `Employee marked as ${status} successfully`, data: leaveRecord };
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid status. Must be: clocked_in, clocked_out, on_break, absent, or on_leave'
+        });
+    }
+
+    res.json({
+      success: true,
+      ...result
+    });
+
+  } catch (error) {
+    console.error('Admin change status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error changing employee status'
+    });
+  }
+});
+
+// @route   GET /api/clock/export
+// @desc    Export time entries to CSV
+// @access  Private (Admin)
+router.get('/export', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    let query = {};
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
+    }
+
+    const timeEntries = await TimeEntry.find(query)
+      .populate('employee', 'firstName lastName email department vtid')
+      .sort({ date: -1 });
+
+    // Generate CSV
+    let csv = 'Date,Employee Name,VTID,Clock In,Clock Out,Total Hours,Breaks,Location\n';
+    
+    timeEntries.forEach(entry => {
+      const employeeName = entry.employee ? 
+        `${entry.employee.firstName} ${entry.employee.lastName}` : 'Unknown';
+      const vtid = entry.employee?.vtid || '';
+      const date = entry.date.toLocaleDateString();
+      const clockIn = entry.clockIn || '';
+      const clockOut = entry.clockOut || '';
+      const totalHours = entry.totalHours.toFixed(2);
+      const breakTime = entry.breaks.reduce((total, b) => total + b.duration, 0);
+      const breakHours = (breakTime / 60).toFixed(2);
+      const location = entry.location || '';
+      
+      csv += `${date},"${employeeName}",${vtid},${clockIn},${clockOut},${totalHours},${breakHours},"${location}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="time-entries-${startDate}-to-${endDate}.csv"`);
+    res.send(csv);
+
+  } catch (error) {
+    console.error('Export time entries error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error exporting time entries'
+    });
+  }
+});
+
+// User-specific routes (employees can only manage their own time)
+
+// @route   GET /api/clock/user/status
+// @desc    Get current user's clock status
+// @access  Private (User)
+
+// User-specific routes (employees can only manage their own time)
+
+// @route   GET /api/clock/user/status
+// @desc    Get current user's clock status
+// @access  Private (User)
+router.get('/user/status', authenticateSession, async (req, res) => {
+  try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/status. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const userId = req.user.id || req.user._id || req.user.userId;
+
+    // Use UK timezone for date comparison
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const dateString = ukNow.toISOString().slice(0, 10);
+
+    // (keep your existing logic below this line)
+    
+    console.log('📊 User status query - userId:', userId, 'dateString:', dateString);
+    
+    // Query for today's entry (supports both employee and admin users)
+    const timeEntry = await TimeEntry.findOne({
+      $or: [
+        { employee: userId },
+        { employee: userId }
+      ],
+      date: dateString,
+      status: { $in: ['clocked_in', 'clocked_out', 'on_break'] }
+    })
+    .sort({ clockIn: -1 }) // Get the most recent entry
+    .populate('employee', 'firstName lastName email vtid');
+    
+    console.log('📊 Found time entry:', timeEntry ? {
+      status: timeEntry.status,
+      clockIn: timeEntry.clockIn,
+      clockOut: timeEntry.clockOut,
+      date: timeEntry.date
+    } : 'NO ENTRY FOUND');
+
+    if (!timeEntry) {
+      return res.json({
+        success: true,
+        data: {
+          status: 'not_clocked_in',
+          clockIn: null,
+          clockOut: null,
+          location: null,
+          workType: null
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        status: timeEntry.status,
+        clockIn: timeEntry.clockIn,
+        clockOut: timeEntry.clockOut,
+        location: timeEntry.location,
+        workType: timeEntry.workType,
+        breaks: timeEntry.breaks
+      }
+    });
+
+  } catch (error) {
+    console.error('Get user clock status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching clock status'
+    });
+  }
+});
+
+// @route   POST /api/clock/user/in
+// @desc    Clock in current user (employee or admin)
+// @access  Private (User)
+router.post('/user/in', authenticateSession, async (req, res) => {
+  try {
+    console.log('🔵 Clock-in request received');
+    console.log('req.user:', req.user);
+    console.log('AUTH HEADER (user/in):', req.headers.authorization);
+    
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/in. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    const userId = req.user._id || req.user.userId || req.user.id;
+    // Extract GPS coordinates from request body
+    const { workType, location, latitude, longitude, accuracy } = req.body;
+
+    console.log('📍 Clock-in parameters:', { userId, workType, location, latitude, longitude });
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Allow multiple clock-ins per day for split shifts or multiple work sessions
+    // Check only if there's an ACTIVE clock-in (not clocked out)
+    // Use UK timezone for date comparison
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const today = new Date(ukNow);
+    today.setHours(0, 0, 0, 0);
+    
+    // Format date as YYYY-MM-DD string (required by schema)
+    const dateString = ukNow.toISOString().slice(0, 10);
+    
+    // For admins, use userId directly; for employees, use employee field
+    const employeeId = userId;
+    
+    const existingEntry = await TimeEntry.findOne({
+      $or: [
+        { employee: employeeId },
+        { employee: userId }
+      ],
+      date: dateString,
+      status: { $in: ['clocked_in', 'on_break'] }
+    });
+
+    if (existingEntry) {
+      console.log('❌ User already has active clock-in:', {
+        userId: userId,
+        status: existingEntry.status,
+        clockIn: existingEntry.clockIn,
+        date: existingEntry.date,
+        entryId: existingEntry._id
+      });
+      return res.status(400).json({
+        success: false,
+        message: `You are currently ${existingEntry.status.replace('_', ' ')}. Please clock out or end break before clocking in again.`,
+        currentStatus: {
+          status: existingEntry.status,
+          clockIn: existingEntry.clockIn,
+          clockOut: existingEntry.clockOut,
+          location: existingEntry.location,
+          workType: existingEntry.workType
+        }
+      });
+    }
+    
+    // User can clock in again after clocking out (creates a new time entry for the same day)
+
+    // Get current UK time
+    const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format for display
+    
+    // Find matching shift (non-blocking for admins)
+    let shift = null;
+    try {
+      shift = await findMatchingShift(userId, ukNow, location);
+    } catch (shiftError) {
+      console.warn('Shift lookup failed (non-blocking):', shiftError.message);
+      // Continue without shift - admins may not have shifts
+    }
+    
+    let timeEntryData = {
+      employee: employeeId,
+      date: dateString,
+      clockIn: ukNow, // Use Date object, not string
+      location: location || 'Work From Office',
+      workType: workType || 'Regular',
+      status: 'clocked_in',
+      createdBy: userId
+    };
+    
+    // ========== GPS LOCATION PROCESSING ==========
+    // If GPS coordinates are provided, save them and attempt reverse geocoding
+    if (latitude && longitude) {
+      console.log('GPS coordinates received:', { latitude, longitude, accuracy });
+      
+      // Initialize GPS location object (use gpsLocationIn for clock-in)
+      timeEntryData.gpsLocationIn = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        accuracy: accuracy ? parseFloat(accuracy) : null,
+        timestamp: new Date()
+      };
+      
+      // Attempt reverse geocoding to get address (non-blocking)
+      try {
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) {
+          console.log('Reverse geocoded address:', address);
+          // Store address in notes if needed
+          timeEntryData.notes = (timeEntryData.notes || '') + ` Location: ${address}`;
+        }
+      } catch (geocodeError) {
+        console.error('Reverse geocoding failed, continuing without address:', geocodeError);
+        // Don't fail the clock-in if geocoding fails
+      }
+    }
+    // ============================================
+    
+    let attendanceStatus = 'Unscheduled';
+    let validationResult = null;
+    
+    if (shift) {
+      try {
+        validationResult = validateClockIn(currentTime, shift);
+        attendanceStatus = validationResult.status;
+        
+        timeEntryData.shiftId = shift._id;
+        timeEntryData.attendanceStatus = attendanceStatus;
+        timeEntryData.scheduledHours = calculateScheduledHours(shift) || 0;
+      } catch (shiftCalcError) {
+        console.warn('Shift calculation failed (non-blocking):', shiftCalcError.message);
+        timeEntryData.attendanceStatus = 'Unscheduled';
+        timeEntryData.notes = 'Shift validation failed but clock-in allowed';
+      }
+    } else {
+      timeEntryData.attendanceStatus = 'Unscheduled';
+      timeEntryData.notes = 'No scheduled shift found for today';
+    }
+    
+    console.log('📝 Creating TimeEntry with data:', {
+      employee: timeEntryData.employee,
+      date: timeEntryData.date,
+      status: timeEntryData.status,
+      location: timeEntryData.location,
+      workType: timeEntryData.workType
+    });
+    
+    const timeEntry = new TimeEntry(timeEntryData);
+    await timeEntry.save();
+    
+    console.log('✅ TimeEntry saved successfully:', timeEntry._id);
+    
+    if (shift) {
+      console.log('User clock-in: Updating shift to In Progress:', shift._id);
+      await updateShiftStatus(shift._id, 'In Progress', {
+        actualStartTime: currentTime,
+        timeEntryId: timeEntry._id
+      });
+      // updateShiftStatus returns null on error - doesn't throw
+    }
+
+    // Create notification for clock-in
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Clocked In',
+        message: `You clocked in at ${currentTime} - ${location}`,
+        priority: 'medium'
+      });
+    } catch (notifError) {
+      console.error('Failed to create clock-in notification:', notifError);
+    }
+
+    res.json({
+      success: true,
+      message: validationResult ? validationResult.message : 'Clocked in successfully',
+      data: {
+        timeEntry,
+        shift: shift ? { _id: shift._id, startTime: shift.startTime, endTime: shift.endTime } : null,
+        attendanceStatus,
+        validation: validationResult
+      }
+    });
+
+  } catch (error) {
+    console.error('User clock in error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      code: error.code
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Server error during clock in',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/clock/user/out
+// @desc    Clock out current user (employee or admin)
+// @access  Private (User)
+router.post('/user/out', authenticateSession, async (req, res) => {
+  try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/out. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    const userId = req.user._id || req.user.userId || req.user.id;
+    // Extract GPS coordinates from request body for clock-out
+    const { latitude, longitude, accuracy } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find today's active time entry using UK timezone
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const today = new Date(ukNow);
+    today.setHours(0, 0, 0, 0);
+    
+    // Format date as YYYY-MM-DD string (required by schema)
+    const dateString = ukNow.toISOString().slice(0, 10);
+    
+    // For admins, use userId directly; for employees, use employee field
+    const employeeId = userId;
+    
+    const timeEntry = await TimeEntry.findOne({
+      $or: [
+        { employee: employeeId },
+        { employee: userId }
+      ],
+      date: dateString,
+      status: { $in: ['clocked_in', 'on_break'] }
+    }).populate('shiftId');
+
+    if (!timeEntry) {
+      console.log('Clock-out failed: No active entry found for user:', userId, 'after date:', today);
+      return res.status(400).json({
+        success: false,
+        message: 'No active clock-in found for today'
+      });
+    }
+
+    // Update clock out time using UK timezone
+    const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format for display
+    timeEntry.clockOut = ukNow; // Use Date object, not string
+    timeEntry.status = 'clocked_out';
+    
+    // ========== GPS LOCATION PROCESSING FOR CLOCK-OUT ==========
+    // If GPS coordinates are provided, save them and attempt reverse geocoding
+    if (latitude && longitude) {
+      console.log('GPS coordinates received for clock-out:', { latitude, longitude, accuracy });
+      
+      // Initialize GPS location object for clock-out
+      timeEntry.gpsLocationOut = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        accuracy: accuracy ? parseFloat(accuracy) : null,
+        capturedAt: new Date()
+      };
+      
+      // Attempt reverse geocoding to get address (non-blocking)
+      try {
+        const address = await reverseGeocode(latitude, longitude);
+        if (address) {
+          timeEntry.gpsLocationOut.address = address;
+          console.log('Reverse geocoded address for clock-out:', address);
+        }
+      } catch (geocodeError) {
+        console.error('Reverse geocoding failed for clock-out, continuing without address:', geocodeError);
+        // Don't fail the clock-out if geocoding fails
+      }
+    }
+    // ===========================================================
+    
+    const hoursWorked = calculateHoursWorked(timeEntry.clockIn, currentTime, timeEntry.breaks);
+    timeEntry.hoursWorked = hoursWorked;
+    timeEntry.totalHours = hoursWorked;
+    
+    if (timeEntry.scheduledHours > 0) {
+      timeEntry.variance = hoursWorked - timeEntry.scheduledHours;
+    }
+    
+    await timeEntry.save();
+    
+    if (timeEntry.shiftId) {
+      console.log('User clock-out: Marking shift as Completed');
+      await updateShiftStatus(timeEntry.shiftId._id, 'Completed', {
+        actualEndTime: currentTime
+      });
+      // updateShiftStatus returns null on error - doesn't throw
+    }
+
+    // Create notification for clock-out
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Clocked Out',
+        message: `You clocked out at ${currentTime}. Hours worked: ${hoursWorked.toFixed(2)}h`,
+        priority: 'medium'
+      });
+    } catch (notifError) {
+      console.error('Failed to create clock-out notification:', notifError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Clocked out successfully',
+      data: {
+        timeEntry,
+        hoursWorked,
+        variance: timeEntry.variance
+      }
+    });
+
+  } catch (error) {
+    console.error('User clock out error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during clock out'
+    });
+  }
+});
+
+// @route   POST /api/clock/user/break
+// @desc    Add break for current user
+// @access  Private (User)
+router.post('/user/break', authenticateSession, async (req, res) => {
+  try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/break. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    const userId = req.user._id || req.user.userId || req.user.id;
+    const { duration = 30, type = 'other' } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find today's active time entry
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today },
+      status: 'clocked_in'
+    }).populate('shiftId');
+
+    if (!timeEntry) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must be clocked in to add a break'
+      });
+    }
+
+    // Add break
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    const breakEndTime = new Date();
+    breakEndTime.setMinutes(breakEndTime.getMinutes() + duration);
+    const endTime = breakEndTime.toTimeString().slice(0, 5);
+
+    const newBreak = {
+      startTime: currentTime,
+      endTime: endTime,
+      duration: duration,
+      type: type
+    };
+
+    timeEntry.breaks.push(newBreak);
+    timeEntry.status = 'on_break';
+    await timeEntry.save();
+    
+    // Note: Shift status stays "In Progress" during break
+    // (not changing to "On Break" to keep it simple)
+
+    res.json({
+      success: true,
+      message: 'Break added successfully',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('Add user break error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error adding break'
+    });
+  }
+});
+
+// @route   POST /api/clock/user/start-break
+// @desc    Start break for current user
+// @access  Private (User)
+router.post('/user/start-break', authenticateSession, async (req, res) => {
+  try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/start-break. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    const userId = req.user._id || req.user.userId || req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find today's active time entry
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today },
+      status: 'clocked_in'
+    }).populate('employee', 'firstName lastName email');
+
+    if (!timeEntry) {
+      return res.status(400).json({
+        success: false,
+        message: 'You must be clocked in to start a break'
+      });
+    }
+
+    // Set break status
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    timeEntry.status = 'on_break';
+    timeEntry.onBreakStart = currentTime;
+    
+    await timeEntry.save();
+
+    // Create notification
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Break Started',
+        message: `Break started at ${currentTime}`,
+        priority: 'low'
+      });
+    } catch (notifError) {
+      console.error('Failed to create break notification:', notifError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Break started successfully',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('Start break error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error starting break'
+    });
+  }
+});
+
+// @route   POST /api/clock/user/resume-work
+// @desc    Resume work from break for current user
+// @access  Private (User)
+router.post('/user/resume-work', authenticateSession, async (req, res) => {
+  try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/resume-work. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    const userId = req.user._id || req.user.userId || req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Find today's active time entry
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const timeEntry = await TimeEntry.findOne({
+      employee: userId,
+      date: { $gte: today },
+      status: 'on_break'
+    }).populate('employee', 'firstName lastName email');
+
+    if (!timeEntry) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are not currently on break'
+      });
+    }
+
+    // Calculate break duration
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    const breakStart = timeEntry.onBreakStart;
+    
+    if (breakStart) {
+      const [startHour, startMin] = breakStart.split(':').map(Number);
+      const [endHour, endMin] = currentTime.split(':').map(Number);
+      const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      
+      // Add break to breaks array
+      timeEntry.breaks.push({
+        startTime: breakStart,
+        endTime: currentTime,
+        duration: duration > 0 ? duration : 0,
+        type: 'other'
+      });
+    }
+
+    // Resume work status
+    timeEntry.status = 'clocked_in';
+    timeEntry.onBreakStart = null;
+    
+    await timeEntry.save();
+
+    // Create notification
+    try {
+      const Notification = require('../models/Notification');
+      await Notification.create({
+        userId: userId,
+        type: 'system',
+        title: 'Work Resumed',
+        message: `Work resumed at ${currentTime}`,
+        priority: 'low'
+      });
+    } catch (notifError) {
+      console.error('Failed to create resume notification:', notifError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Work resumed successfully',
+      data: timeEntry
+    });
+
+  } catch (error) {
+    console.error('Resume work error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error starting break'
+    });
+  }
+});
+
+// @route   GET /api/clock/user/entries
+// @desc    Get current user's time entries
+// @access  Private (User)
+router.get('/user/entries', authenticateSession, async (req, res) => {
+  try {
+    // Defensive check for req.user
+    if (!req.user) {
+      console.error('❌ req.user is undefined in /api/clock/user/entries. Authentication is missing or auth middleware not applied.');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
+    const userId = req.user._id || req.user.userId || req.user.id;
+    const { startDate, endDate } = req.query;
+    
+    let query = { employee: userId };
+    
+    // Date range filter
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.date.$lte = end;
+      }
+    }
+
+    const timeEntries = await TimeEntry.find(query)
+      .populate('employee', 'firstName lastName email vtid')
+      .populate('shiftId', 'startTime endTime location')
+      .sort({ date: -1, clockIn: -1 })
+      .limit(50) // Limit to recent entries
+      .lean();
+
+    // Process entries to add shift hours
+    const processedEntries = timeEntries.map(entry => {
+      let shiftHours = null;
+      let shiftStartTime = null;
+      let shiftEndTime = null;
+      
+      if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+        shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
+        shiftStartTime = entry.shiftId.startTime;
+        shiftEndTime = entry.shiftId.endTime;
+      }
+
+      return {
+        ...entry,
+        shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
+        shiftStartTime: shiftStartTime,
+        shiftEndTime: shiftEndTime
+      };
+    });
+
+    res.json({
+      success: true,
+      data: processedEntries
+    });
+
+  } catch (error) {
+    console.error('Get user time entries error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching time entries'
+    });
+  }
+});
+
+// @route   DELETE /api/clock/entries/:id
+// @desc    Delete a time entry (Admin only)
+// @access  Private (Admin)
+router.delete('/entries/:id', async (req, res) => {
+  try {
+    const entryId = req.params.id;
+    
+    // Find the time entry
+    const timeEntry = await TimeEntry.findById(entryId);
+    
+    if (!timeEntry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Time entry not found'
+      });
+    }
+    
+    // Delete the time entry
+    await TimeEntry.findByIdAndDelete(entryId);
+    
+    res.json({
+      success: true,
+      message: 'Time entry deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Delete time entry error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error deleting time entry'
+    });
+  }
+});
+
+// @route   GET /api/clock/timesheet/:employeeId
+// @desc    Get weekly timesheet data for an employee
+// @access  Private (Admin)
+router.get('/timesheet/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    console.log('📊 Fetching timesheet for employee:', employeeId);
+    console.log('📅 Date range:', startDate, 'to', endDate);
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date and end date are required'
+      });
+    }
+
+    // Parse dates - TimeEntry.date is stored as String (YYYY-MM-DD format)
+    const startDateStr = startDate; // Already in YYYY-MM-DD format
+    const endDateStr = endDate;     // Already in YYYY-MM-DD format
+
+    console.log('📅 Querying with date strings:', startDateStr, 'to', endDateStr);
+
+    // Fetch time entries for the employee within the date range
+    const timeEntries = await TimeEntry.find({
+      employee: employeeId,
+      date: {
+        $gte: startDateStr,
+        $lte: endDateStr
+      }
+    })
+    .sort({ date: 1, clockIn: 1 }) // Sort by date, then by clock-in time for multiple sessions
+    .lean();
+
+    console.log(`✅ Found ${timeEntries.length} time entries`);
+    
+    // Manually populate employee data from EmployeesHub
+    const employeeData = await EmployeesHub.findById(employeeId).select('firstName lastName email vtid').lean();
+    
+    if (!employeeData) {
+      // Fallback to User model if not found in EmployeesHub
+      const userData = await User.findById(employeeId).select('firstName lastName email vtid').lean();
+      if (userData) {
+        timeEntries.forEach(entry => {
+          entry.employee = userData;
+        });
+      }
+    } else {
+      timeEntries.forEach(entry => {
+        entry.employee = employeeData;
+      });
+    }
+    
+    // Populate shift data
+    for (let entry of timeEntries) {
+      if (entry.shiftId) {
+        const Shift = require('../models/Shift');
+        const shiftData = await Shift.findById(entry.shiftId).select('startTime endTime location').lean();
+        entry.shiftId = shiftData;
+      }
+    }
+
+    // Calculate statistics
+    let totalHoursWorked = 0;
+    let totalOvertime = 0;
+    let totalNegativeHours = 0;
+
+    const processedEntries = timeEntries.map(entry => {
+      let hoursWorked = 0;
+      let overtime = 0;
+      let negativeHours = 0;
+
+      // Calculate hours worked using the utility function
+      if (entry.clockIn && entry.clockOut) {
+        // Use the calculateHoursWorked utility which properly handles HH:mm format
+        hoursWorked = parseFloat(calculateHoursWorked(entry.clockIn, entry.clockOut, entry.breaks || []));
+
+        totalHoursWorked += hoursWorked;
+
+        // Calculate overtime (if worked more than 8 hours)
+        if (hoursWorked > 8) {
+          overtime = hoursWorked - 8;
+          totalOvertime += overtime;
+        }
+
+        // Calculate negative hours (if worked less than expected shift hours)
+        if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+          const expectedHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
+          
+          if (hoursWorked < expectedHours) {
+            negativeHours = expectedHours - hoursWorked;
+            totalNegativeHours += negativeHours;
+          }
+        }
+      } else if (entry.clockIn && !entry.clockOut) {
+        // Employee is still clocked in - calculate hours up to now
+        const currentTime = new Date().toTimeString().slice(0, 5);
+        hoursWorked = parseFloat(calculateHoursWorked(entry.clockIn, currentTime, entry.breaks || []));
+      }
+
+      // Calculate shift hours if shift data is available
+      let shiftHours = null;
+      let shiftStartTime = null;
+      let shiftEndTime = null;
+      
+      if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
+        shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
+        shiftStartTime = entry.shiftId.startTime;
+        shiftEndTime = entry.shiftId.endTime;
+      }
+
+      return {
+        ...entry,
+        hoursWorked: hoursWorked.toFixed(2),
+        overtime: overtime.toFixed(2),
+        negativeHours: negativeHours.toFixed(2),
+        shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
+        shiftStartTime: shiftStartTime,
+        shiftEndTime: shiftEndTime
+      };
+    });
+
+    res.json({
+      success: true,
+      entries: processedEntries,
+      statistics: {
+        totalHoursWorked: totalHoursWorked.toFixed(2),
+        totalOvertime: totalOvertime.toFixed(2),
+        totalNegativeHours: totalNegativeHours.toFixed(2),
+        totalDays: timeEntries.length
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Fetch timesheet error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/employees/count
+ * Get total count of employees in the system
+ */
+router.get('/employees/count', async (req, res) => {
+  try {
+    const totalCount = await User.countDocuments({ role: 'employee' });
+    
+    res.json({
+      success: true,
+      total: totalCount
+    });
+  } catch (error) {
+    console.error('Error fetching employee count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch employee count',
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;
