@@ -1,4 +1,11 @@
 const mongoose = require('mongoose');
+const path = require('path');
+
+// Change to backend directory before loading config
+// This ensures environment files are found correctly
+const backendDir = path.join(__dirname, '..');
+process.chdir(backendDir);
+
 const EmployeeHub = require('../models/EmployeesHub');
 const User = require('../models/User');
 const config = require('../config/environment');
