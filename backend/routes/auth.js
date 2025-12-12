@@ -25,4 +25,10 @@ router.post('/logout', authController.logout);
 // POST /api/auth/change-password - Change Password
 router.post('/change-password', authController.changePassword);
 
+// POST /api/auth/forgot-password - Request Password Reset
+router.post('/forgot-password', authController.forgotPassword);
+
+// POST /api/auth/reset-password - Reset Password with Token
+router.post('/reset-password', authController.resetPassword);
+
 module.exports = router;

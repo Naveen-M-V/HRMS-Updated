@@ -1,6 +1,8 @@
 const EmployeeHub = require('../models/EmployeesHub');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../utils/emailService');
 
 /**
  * Unified Authentication Controller
@@ -483,6 +485,175 @@ exports.changePassword = async (req, res) => {
 
   } catch (error) {
     console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Forgot Password (for both employees and profiles)
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    let user = null;
+    let userType = null;
+
+    // Try to find in EmployeeHub first
+    user = await EmployeeHub.findOne({ email: normalizedEmail, isActive: true });
+    if (user) {
+      userType = 'employee';
+    } else {
+      // Try User model
+      user = await User.findOne({ email: normalizedEmail });
+      if (user) {
+        userType = 'profile';
+      }
+    }
+
+    // Always return success message for security (don't reveal if email exists)
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    }
+
+    // Generate reset token (valid for 1 hour)
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Handle different field names between models
+    if (userType === 'employee') {
+      user.passwordResetToken = resetTokenHash;
+      user.passwordResetExpires = Date.now() + 3600000;
+    } else {
+      user.resetPasswordToken = resetTokenHash;
+      user.resetPasswordExpires = Date.now() + 3600000;
+    }
+    await user.save();
+
+    // Send password reset email
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://hrms.talentshield.co.uk'}/reset-password?token=${resetToken}&email=${email}`;
+    
+    try {
+      await sendPasswordResetEmail(
+        user.email,
+        user.firstName || 'User',
+        resetUrl,
+        resetToken
+      );
+      
+      console.log(`✅ Password reset email sent to: ${user.email}`);
+    } catch (emailError) {
+      console.error('❌ Failed to send reset email:', emailError.message);
+      // Don't fail the request if email fails - user can still use the link if logged
+      console.log('📧 Reset URL (for debugging):', resetUrl);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'If an account with that email exists, a password reset link has been sent to your email address.',
+      // Only include resetUrl in development for debugging
+      ...(process.env.NODE_ENV === 'development' && { resetUrl })
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Reset Password (for both employees and profiles)
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, email, newPassword } = req.body;
+
+    if (!token || !email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token, email, and new password are required'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    let user = null;
+    let userType = null;
+
+    // Try to find user in EmployeeHub
+    user = await EmployeeHub.findOne({
+      email: normalizedEmail,
+      passwordResetToken: resetTokenHash,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (user) {
+      userType = 'employee';
+    } else {
+      // Try User model (different field names)
+      user = await User.findOne({
+        email: normalizedEmail,
+        resetPasswordToken: resetTokenHash,
+        resetPasswordExpires: { $gt: Date.now() }
+      });
+      if (user) {
+        userType = 'profile';
+      }
+    }
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Update password and clear reset tokens
+    user.password = newPassword;
+    
+    // Clear reset tokens based on model type
+    if (userType === 'employee') {
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+    } else {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+    }
+    
+    await user.save();
+
+    console.log(`✅ Password reset successful for: ${user.email}`);
+    console.log(`   User Type: ${userType}`);
+    console.log(`   Name: ${user.firstName} ${user.lastName}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. You can now login with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

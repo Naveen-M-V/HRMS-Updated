@@ -2812,6 +2812,7 @@ const reportingRoutes = require('./routes/reportingRoutes');
 const reportLibraryRoutes = require('./routes/reportLibraryRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
+const certificatesRoutes = require('./routes/certificates');
 
 // Session-based authentication middleware
 const authenticateSession = async (req, res, next) => {
@@ -3382,11 +3383,12 @@ app.use('/api/job-levels', jobLevelsRoutes);
 app.use('/api/rota', authenticateSession, rotaRoutes);
 app.use('/api/clock', authenticateSession, clockRoutes);
 app.use('/api/leave', authenticateSession, leaveRoutes);
-app.use('/api/teams', teamRoutes);
+app.use('/api/teams', authenticateSession, teamRoutes);
 app.use('/api/employees', employeeHubRoutes);
 app.use('/api/employee-profile', authenticateSession, employeeProfileRoutes);
 app.use('/api/documentManagement', authenticateSession, documentManagementRoutes);
 app.use('/api/approvals', authenticateSession, approvalRoutes);
+app.use('/api/certificates', authenticateSession, certificatesRoutes);
 
 // Reporting and expenses
 app.use('/api/reports', authenticateSession, reportingRoutes);
@@ -3394,7 +3396,7 @@ app.use('/api/report-library', authenticateSession, reportLibraryRoutes);
 app.use('/api/expenses', authenticateSession, expenseRoutes);
 
 // Performance management
-app.use('/api/performance', performanceRoutes);
+app.use('/api/performance', authenticateSession, performanceRoutes);
 
 // Global Error Handler Middleware (must be after all routes)
 
