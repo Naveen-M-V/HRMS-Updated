@@ -51,6 +51,6 @@ pm2 logs hrms-backend --lines 20
 Write-Host ""
 Write-Host "📝 After deployment, remember to:" -ForegroundColor Yellow
 Write-Host "   1. Press Ctrl + Shift + R in browser (hard reload)" -ForegroundColor White
-Write-Host "   2. Check https://hrms.athryan.com/edit-employee/69198924de99808c907fa087" -ForegroundColor White
+Write-Host "   2. Check https://hrms.talentshield.co.uk/edit-employee/69198924de99808c907fa087" -ForegroundColor White
 Write-Host "   3. Click Employment tab - should show Role field now!" -ForegroundColor White
 Write-Host ""

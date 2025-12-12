@@ -1,12 +1,12 @@
 /**
  * API Configuration Utility
  * Handles API URL construction to avoid duplicate /api paths
- * Auto-detects environment: localhost uses localhost:5003, production uses hrms.athryan.com
+ * Auto-detects environment: localhost uses localhost:5003, production uses hrms.talentshield.co.uk
  */
 
 /**
  * Get the base API URL without /api suffix
- * @returns {string} Base URL (e.g., 'https://hrms.athryan.com' or 'http://localhost:5003')
+ * @returns {string} Base URL (e.g., 'https://hrms.talentshield.co.uk' or 'http://localhost:5003')
  */
 export const getApiBaseUrl = () => {
   // Check if we have an environment variable set
@@ -37,8 +37,8 @@ export const getApiBaseUrl = () => {
   }
   
   // If running on production domain, use production backend
-  if (hostname === 'hrms.athryan.com' || hostname === 'www.hrms.athryan.com') {
-    return 'https://hrms.athryan.com';
+  if (hostname === 'hrms.talentshield.co.uk' || hostname === 'www.hrms.talentshield.co.uk') {
+    return 'https://hrms.talentshield.co.uk';
   }
   
   // Default fallback to localhost for development
@@ -48,7 +48,7 @@ export const getApiBaseUrl = () => {
 /**
  * Build full API URL with path
  * @param {string} path - API path (e.g., '/certificates' or 'certificates')
- * @returns {string} Full API URL (e.g., 'https://hrms.athryan.com/api/certificates')
+ * @returns {string} Full API URL (e.g., 'https://hrms.talentshield.co.uk/api/certificates')
  */
 export const buildApiUrl = (path) => {
   const baseUrl = getApiBaseUrl();
@@ -107,7 +107,7 @@ export const logApiConfig = () => {
 if (process.env.NODE_ENV === 'development') {
   console.log('🔧 API Config loaded');
   console.log('   Hostname:', window.location.hostname);
-  console.log('   Will use API:', window.location.hostname === 'localhost' ? 'http://localhost:5004' : 'https://hrms.athryan.com');
+  console.log('   Will use API:', window.location.hostname === 'localhost' ? 'http://localhost:5004' : 'https://hrms.talentshield.co.uk');
 }
 
 // Export default object with all utilities

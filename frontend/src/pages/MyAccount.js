@@ -33,7 +33,7 @@ export default function MyAccount() {
         if (!token) {
           throw new Error('Authentication required');
         }
-        const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+        const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
         const response = await fetch(`${apiUrl}/api/my-profile?t=${Date.now()}`, {
           credentials: 'include',
           headers: {
@@ -129,7 +129,7 @@ export default function MyAccount() {
       setSavingImage(true);
 
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
 
       // Fetch fresh profile data with cache busting
       const response = await fetch(`${apiUrl}/api/my-profile?t=${Date.now()}`, {

@@ -30,7 +30,7 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
   const loadDocumentPreview = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
       // For now, we'll use the file URL directly
       // In production, you might want to fetch through the API

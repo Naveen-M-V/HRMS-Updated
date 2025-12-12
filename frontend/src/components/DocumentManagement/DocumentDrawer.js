@@ -45,7 +45,7 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
       const token = localStorage.getItem('auth_token');
       console.log('Fetching folders - Token available:', !!token);
       
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       const response = await fetch(`${apiUrl}/api/documentManagement/folders?t=${Date.now()}`, {
         credentials: 'include',
         headers: {
@@ -78,7 +78,7 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
       console.log('Token available:', !!token);
       console.log('Folder data:', folderData);
       
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       const response = await fetch(`${apiUrl}/api/documentManagement/folders`, {
         method: 'POST',
         credentials: 'include',

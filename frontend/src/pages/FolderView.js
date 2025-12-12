@@ -53,7 +53,7 @@ const FolderView = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
       const response = await axios.get(`${apiUrl}/api/documentManagement/folders/${folderId}`, {
         headers: {
@@ -84,7 +84,7 @@ const FolderView = () => {
   const handleDownload = async (document) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
       const response = await axios.get(
         `${apiUrl}/api/documentManagement/documents/${document._id}/download`,
@@ -117,7 +117,7 @@ const FolderView = () => {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
       if (item.type === 'folder') {
         await axios.delete(`${apiUrl}/api/documentManagement/folders/${item._id}`, {

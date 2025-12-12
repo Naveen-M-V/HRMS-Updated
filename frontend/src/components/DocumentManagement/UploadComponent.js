@@ -112,7 +112,7 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.athryan.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
 
       for (const fileItem of files) {
         const formData = new FormData();

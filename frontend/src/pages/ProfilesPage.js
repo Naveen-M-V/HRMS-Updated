@@ -19,7 +19,7 @@ import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 // Get API URL - same logic as ProfileContext
 const getApiUrl = () => {
-  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://hrms.athryan.com";
+  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://hrms.talentshield.co.uk";
 };
 
 // Safely get VTID for a profile row
