@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
 const EmployeeHub = require('../models/EmployeesHub');
-require('dotenv').config();
+const config = require('../config/environment');
 
 const createTestEmployee = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/hrms';
+    const mongoUri = config.getConfig().database.uri;
+    console.log('🔗 Environment:', config.environment);
     console.log('🔗 Connecting to:', mongoUri);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
@@ -93,7 +94,7 @@ const createTestEmployee = async () => {
 // Also create a manager account
 const createTestManager = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/hrms';
+    const mongoUri = config.getConfig().database.uri;
     await mongoose.connect(mongoUri);
 
     const existingManager = await EmployeeHub.findOne({ email: 'test.manager@talentshield.co.uk' });

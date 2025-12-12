@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 const EmployeeHub = require('../models/EmployeesHub');
 const User = require('../models/User');
-require('dotenv').config();
+const config = require('../config/environment');
 
 const diagnosticCheck = async () => {
   try {
-    // Connect to MongoDB
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/hrms';
+    // Connect to MongoDB using environment config
+    const mongoUri = config.getConfig().database.uri;
+    console.log('🔗 Environment:', config.environment);
     console.log('🔗 Connecting to:', mongoUri);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
