@@ -8,9 +8,9 @@ const timeEntrySchema = new mongoose.Schema({
   // Employee/User Reference (supports both EmployeeHub and User/Admin)
   employee: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: 'EmployeeHub',
     required: false,
     index: true
-    // Note: Can reference either EmployeeHub or User model
   },
   
   // Date Information (YYYY-MM-DD format for consistency)
