@@ -19,7 +19,7 @@ cd ..
 Write-Host ""
 Write-Host "📤 Pushing to GitHub..." -ForegroundColor Cyan
 git add .
-git commit -m "Fix: Added role field to Employment tab"
+git commit -m "Fix: Resolved 502 Errors and Dashboard Data Fetching issues"
 git push origin main
 if ($LASTEXITCODE -ne 0) {
     Write-Host "⚠️  Git push failed or nothing to commit" -ForegroundColor Yellow

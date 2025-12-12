@@ -8,6 +8,7 @@ import AdminClockOutModal from './AdminClockOutModal';
 import EmployeeMap from './employeeLiveMap';
 import { ClockIcon } from '@heroicons/react/24/outline';
 import { getUserClockStatus, userClockOut, userStartBreak, userResumeWork } from '../utils/clockApi';
+import { getCurrentUserLeaveBalance, getNextUpcomingLeave } from '../utils/leaveApi';
 import { toast } from 'react-toastify';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
@@ -42,81 +43,98 @@ const ComplianceDashboard = () => {
   const [gpsCoordinates, setGpsCoordinates] = useState(null);
   const [locationAccuracy, setLocationAccuracy] = useState(null);
 
- useEffect(() => {
-  fetchClockStatus();
-  captureCurrentLocation();
-}, []);
+  useEffect(() => {
+    fetchClockStatus();
+    fetchLeaveData();
+    captureCurrentLocation();
+  }, []);
 
- // Capture current GPS location for map display
- const captureCurrentLocation = () => {
-   if (navigator.geolocation) {
-     navigator.geolocation.getCurrentPosition(
-       (position) => {
-         setGpsCoordinates({
-           latitude: position.coords.latitude,
-           longitude: position.coords.longitude
-         });
-         setLocationAccuracy(position.coords.accuracy);
-       },
-       (error) => {
-         // Don't show error to user, just leave map empty
-       },
-       {
-         enableHighAccuracy: true,
-         timeout: 10000,
-         maximumAge: 300000 // Cache for 5 minutes
-       }
-     );
-   }
- };
-
- const fetchClockStatus = async () => {
-  try {
-    const response = await getUserClockStatus();
-    if (response.success && response.data) {
-      setClockStatus(response.data);
-    }
-  } catch (error) {
-  }
-};
-
- useEffect(() => {
-  const getDashboardData = async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats?days=${selectedTimeframe}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache'
+  // Capture current GPS location for map display
+  const captureCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsCoordinates({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          setLocationAccuracy(position.coords.accuracy);
+        },
+        (error) => {
+          // Don't show error to user, just leave map empty
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // Cache for 5 minutes
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setDashboardData({
-        activeCount: data.activeCount,
-        expiringCertificates: data.expiringCertificates,
-        expiredCertificates: data.expiredCertificates,
-        categoryCounts: data.categoryCounts,
-        jobRoleCounts: getCertificatesByJobRole()
-      });
-    } catch (error) {
-      // Set empty data on error so UI doesn't hang
-      setDashboardData({
-        activeCount: 0,
-        expiringCertificates: [],
-        expiredCertificates: [],
-        categoryCounts: {},
-        jobRoleCounts: {}
-      });
+      );
     }
   };
 
-  getDashboardData();
-}, [selectedTimeframe, certificates]);
+  const fetchClockStatus = async () => {
+    try {
+      const response = await getUserClockStatus();
+      if (response.success && response.data) {
+        setClockStatus(response.data);
+      }
+    } catch (error) {
+    }
+  };
+
+  const fetchLeaveData = async () => {
+    try {
+      const balanceResponse = await getCurrentUserLeaveBalance();
+      if (balanceResponse.success) {
+        setLeaveBalance(balanceResponse.data);
+      }
+
+      const nextLeaveResponse = await getNextUpcomingLeave();
+      if (nextLeaveResponse.success) {
+        setNextLeave(nextLeaveResponse.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch leave data:', error);
+    }
+  };
+
+  useEffect(() => {
+    const getDashboardData = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/certificates/dashboard-stats?days=${selectedTimeframe}`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setDashboardData({
+          activeCount: data.activeCount,
+          expiringCertificates: data.expiringCertificates,
+          expiredCertificates: data.expiredCertificates,
+          categoryCounts: data.categoryCounts,
+          jobRoleCounts: getCertificatesByJobRole()
+        });
+      } catch (error) {
+        // Set empty data on error so UI doesn't hang
+        setDashboardData({
+          activeCount: 0,
+          expiringCertificates: [],
+          expiredCertificates: [],
+          categoryCounts: {},
+          jobRoleCounts: {}
+        });
+      }
+    };
+
+    getDashboardData();
+  }, [selectedTimeframe, certificates]);
 
 
   const formatDate = (dateString) => {
@@ -276,9 +294,9 @@ const ComplianceDashboard = () => {
           }}>
             📍 Your Live Location
           </h3>
-          <EmployeeMap 
-            latitude={gpsCoordinates.latitude} 
-            longitude={gpsCoordinates.longitude} 
+          <EmployeeMap
+            latitude={gpsCoordinates.latitude}
+            longitude={gpsCoordinates.longitude}
           />
         </div>
       )}
