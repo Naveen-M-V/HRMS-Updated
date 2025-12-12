@@ -212,20 +212,26 @@ export const AuthProvider = ({ children }) => {
       });
 
       // Backend returns: { success: true, data: { user, token, userType } }
-      const { token, user: userData } = response.data.data || response.data;
+      const { token, user: userData, userType } = response.data.data || response.data;
 
       if (!userData) {
         throw new Error('Invalid response from server');
       }
 
+      // Add userType to userData if it exists
+      const userWithType = {
+        ...userData,
+        userType: userType || userData.userType
+      };
+
       // Store session data using our session storage utility
-      sessionStorage.setUserSession(userData, token);
+      sessionStorage.setUserSession(userWithType, token);
 
       // Update state - session is automatically handled by cookies
-      setUser(userData);
+      setUser(userWithType);
       setIsAuthenticated(true);
 
-      return { success: true, user: userData };
+      return { success: true, user: userWithType };
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
