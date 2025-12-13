@@ -109,53 +109,40 @@ router.post('/in', asyncHandler(async (req, res) => {
   // Get today's date in YYYY-MM-DD format (UTC)
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-  // Find or create TimeEntry for today
-  let entry = await TimeEntry.findOne({ employee: employeeId, date: today });
-  
-  if (!entry) {
-    entry = new TimeEntry({
-      employee: employeeId,
-      date: today,
-      status: 'clocked_in',
-      sessions: [],
-      location: location || 'Office',
-      workType: workType || 'Regular',
-      createdBy: req.user?._id || req.user?.userId || req.user?.id
+  // Check for existing entry with active status
+  const existingEntry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today,
+    status: { $in: ['clocked_in', 'on_break'] }
+  });
+
+  if (existingEntry) {
+    return res.status(400).json({
+      success: false,
+      message: `Employee is currently ${existingEntry.status.replace('_', ' ')}. Please clock out first.`
     });
-  } else {
-    // Check if there's an active session (clocked in but not clocked out)
-    if (entry.sessions && entry.sessions.length > 0) {
-      const lastSession = entry.sessions[entry.sessions.length - 1];
-      if (!lastSession.clockOut) {
-        return res.status(400).json({
-          success: false,
-          message: 'Employee is already clocked in. Please clock out first.'
-        });
-      }
-    }
-    entry.status = 'clocked_in';
   }
 
-  // Always push a new session with UTC timestamp
-  const newSession = {
-    clockIn: new Date().toISOString(), // ALWAYS UTC ISO
+  // Create new time entry using legacy fields
+  const entry = new TimeEntry({
+    employee: employeeId,
+    date: today,
+    status: 'clocked_in',
+    clockIn: new Date(),
     location: location || 'Office',
     workType: workType || 'Regular',
-    notes: ''
-  };
+    createdBy: req.user?._id || req.user?.userId || req.user?.id
+  });
 
   // Add GPS location if provided
   if (latitude && longitude) {
-    newSession.gpsLocationIn = {
+    entry.gpsLocationIn = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
       accuracy: accuracy ? parseFloat(accuracy) : null,
-      capturedAt: new Date().toISOString()
+      timestamp: new Date()
     };
   }
-
-  // Add the new session
-  entry.sessions.push(newSession);
   
   await entry.save();
   console.log('✅ Clock in saved successfully for employee:', employeeId);
@@ -207,7 +194,7 @@ router.post('/out', asyncHandler(async (req, res) => {
     date: today
   });
 
-  // 🟥 VALIDATION CHECKS - Prevent server crashes
+  // VALIDATION CHECKS
   if (!entry) {
     return res.status(400).json({ 
       success: false, 
@@ -215,45 +202,39 @@ router.post('/out', asyncHandler(async (req, res) => {
     });
   }
 
-  if (!entry.sessions || entry.sessions.length === 0) {
+  if (!entry.clockIn) {
     return res.status(400).json({ 
       success: false, 
-      message: "No active session found" 
+      message: "Employee not clocked in" 
     });
   }
 
-  const last = entry.sessions[entry.sessions.length - 1];
-
-  if (!last.clockIn) {
+  if (entry.clockOut) {
     return res.status(400).json({ 
       success: false, 
-      message: "Session corrupted" 
+      message: "Already clocked out" 
     });
   }
 
-  if (last.clockOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Session already closed" 
-    });
-  }
-
-  // 🟦 UTC TIMESTAMP - Store current UTC time
+  // Set clock out time
   const now = new Date();
-  last.clockOut = now.toISOString();
+  entry.clockOut = now;
+  entry.status = 'clocked_out';
+  
+  // Clear break status if on break
+  if (entry.onBreakStart) {
+    entry.onBreakStart = null;
+  }
   
   // Update GPS location if provided
   if (latitude && longitude) {
-    last.gpsLocationOut = {
+    entry.gpsLocationOut = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
       accuracy: accuracy ? parseFloat(accuracy) : null,
-      capturedAt: now.toISOString()
+      timestamp: now
     };
   }
-
-  // Update entry status
-  entry.status = 'clocked_out';
   
   // 🟩 SAFE SAVE OPERATION - Prevent server crashes
   await entry.save();
@@ -853,38 +834,29 @@ router.post('/onbreak', asyncHandler(async (req, res) => {
     });
   }
 
-  if (!entry.sessions || entry.sessions.length === 0) {
+  if (!entry.clockIn) {
     return res.status(400).json({ 
       success: false, 
-      message: "No active session found" 
+      message: "Employee must clock in first." 
     });
   }
 
-  const last = entry.sessions[entry.sessions.length - 1];
-
-  if (!last.clockIn) {
+  if (entry.clockOut) {
     return res.status(400).json({ 
       success: false, 
-      message: "Invalid session. Employee must clock in first." 
+      message: "Already clocked out. Cannot start break." 
     });
   }
 
-  if (last.clockOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Session already closed. Cannot start break." 
-    });
-  }
-
-  if (last.breakIn) {
+  if (entry.onBreakStart) {
     return res.status(400).json({ 
       success: false, 
       message: "Already on break" 
     });
   }
 
-  // Set break start time (UTC)
-  last.breakIn = new Date().toISOString();
+  // Set break start time
+  entry.onBreakStart = new Date();
   entry.status = 'on_break';
   
   await entry.save();
@@ -945,45 +917,43 @@ router.post('/endbreak', asyncHandler(async (req, res) => {
     });
   }
 
-  if (!entry.sessions || entry.sessions.length === 0) {
+  if (!entry.clockIn) {
     return res.status(400).json({ 
       success: false, 
-      message: "No active session found" 
+      message: "Employee not clocked in" 
     });
   }
 
-  const last = entry.sessions[entry.sessions.length - 1];
-
-  if (!last.clockIn) {
+  if (entry.clockOut) {
     return res.status(400).json({ 
       success: false, 
-      message: "Invalid session" 
+      message: "Already clocked out" 
     });
   }
 
-  if (last.clockOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Session already closed" 
-    });
-  }
-
-  if (!last.breakIn) {
+  if (!entry.onBreakStart) {
     return res.status(400).json({ 
       success: false, 
       message: "Not on break" 
     });
   }
 
-  if (last.breakOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Break already ended" 
-    });
+  // Calculate break duration and add to breaks array
+  const breakEnd = new Date();
+  const breakDuration = (breakEnd - entry.onBreakStart) / 1000 / 60; // minutes
+  
+  if (!entry.breaks) {
+    entry.breaks = [];
   }
-
-  // End break (UTC timestamp)
-  last.breakOut = new Date().toISOString();
+  
+  entry.breaks.push({
+    start: entry.onBreakStart,
+    end: breakEnd,
+    duration: breakDuration
+  });
+  
+  // Clear break status and resume work
+  entry.onBreakStart = null;
   entry.status = 'clocked_in';
   
   await entry.save();
