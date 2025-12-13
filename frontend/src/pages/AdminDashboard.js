@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
 import ComplianceDashboard from '../components/ComplianceDashboard';
-import Calendar from '../pages/Calendar';
+// import Calendar from '../pages/Calendar'; // Temporarily commented out to debug
 import { 
   ChartBarIcon, 
   UserGroupIcon,
@@ -273,7 +273,9 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'attendance' && (
-          <Calendar />
+          <div className="p-8 text-center">
+            <p className="text-gray-500">Calendar component temporarily disabled for debugging</p>
+          </div>
         )}
 
         {activeTab === 'compliance' && (
