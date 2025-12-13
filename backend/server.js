@@ -2842,9 +2842,17 @@ const authenticateSession = async (req, res, next) => {
           const decoded = await jwt.verify(token, JWT_SECRET);
           console.log('JWT verified successfully for user:', decoded.email);
           req.user = decoded;
-          // Update session with token data
+          // Update session with token data and save it
           if (req.session) {
             req.session.user = decoded;
+            // Save the session to persist user data
+            req.session.save((err) => {
+              if (err) {
+                console.error('❌ Session save error in middleware:', err);
+              } else {
+                console.log('✅ Session updated in middleware for:', decoded.email);
+              }
+            });
           }
           return next();
         } catch (tokenError) {
