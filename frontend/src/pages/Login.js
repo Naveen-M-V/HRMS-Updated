@@ -126,23 +126,33 @@ export default function Login() {
           localStorage.removeItem('rememberedEmail');
         }
         
-        // Role-based routing
+        // Role-based routing with debug logging
+        console.log('🔍 Login Debug - Full result:', result);
+        console.log('🔍 Login Debug - User object:', result.user);
+        console.log('🔍 Login Debug - User role:', result.user?.role);
+        console.log('🔍 Login Debug - User type:', result.user?.userType);
+        
         const userRole = result.user?.role || 'profile';
+        const userType = result.user?.userType;
         let redirectPath;
         
         // Admin and Super-Admin → Admin Dashboard
         if (userRole === 'admin' || userRole === 'super-admin') {
+          console.log('✅ Routing to: /dashboard (Admin)');
           redirectPath = location.state?.from?.pathname || "/dashboard";
         }
         // Employees (from EmployeeHub) → User Dashboard with clock in/out, shifts, documents
         else if (['employee', 'manager', 'senior-manager', 'hr'].includes(userRole)) {
+          console.log('✅ Routing to: /user-dashboard (Employee)');
           redirectPath = "/user-dashboard";
         }
         // Profiles (interns, trainees) → User Dashboard
         else {
+          console.log('✅ Routing to: /user-dashboard (Profile/Default)');
           redirectPath = "/user-dashboard";
         }
         
+        console.log('🎯 Final redirect path:', redirectPath);
         navigate(redirectPath, { replace: true });
       } else {
         setErrors({ general: result.error || "Invalid email or password" });
