@@ -59,8 +59,8 @@ const ClockIns = () => {
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [showTimesheetModal, setShowTimesheetModal] = useState(false);
   const [selectedFromSearch, setSelectedFromSearch] = useState(false); // Track if employee was selected from search bar
-  const [showTimelineInModal, setShowTimelineInModal] = useState(false);
-  const [timelineStartTime, setTimelineStartTime] = useState('');
+  const [clockInGeoLocation, setClockInGeoLocation] = useState(null);
+  const [clockInHistory, setClockInHistory] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -331,14 +331,30 @@ const ClockIns = () => {
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked in successfully' : 'Employee clocked in successfully');
         
-        // Show timeline in modal
-        const currentTime = new Date().toLocaleTimeString('en-GB', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        });
-        setTimelineStartTime(currentTime);
-        setShowTimelineInModal(true);
+        // Store geolocation data
+        if (gpsData.latitude && gpsData.longitude) {
+          setClockInGeoLocation({
+            latitude: gpsData.latitude,
+            longitude: gpsData.longitude,
+            accuracy: gpsData.accuracy,
+            timestamp: new Date().toLocaleTimeString('en-GB', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            })
+          });
+        }
+        
+        // Add to clock-in history
+        const historyEntry = {
+          employeeName: `${clockInEmployee.firstName} ${clockInEmployee.lastName}`,
+          date: new Date().toLocaleDateString('en-GB'),
+          day: new Date().toLocaleDateString('en-GB', { weekday: 'long' }),
+          clockInTime: response.data?.timeEntry?.clockIn || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          location: gpsData.latitude ? `${gpsData.latitude.toFixed(4)}, ${gpsData.longitude.toFixed(4)}` : 'N/A',
+          accuracy: gpsData.accuracy ? `±${Math.round(gpsData.accuracy)}m` : 'N/A'
+        };
+        setClockInHistory(prev => [historyEntry, ...prev]);
         
         // Immediately update the employee status in the list for instant UI feedback
         setEmployees(prevEmployees => 
@@ -1896,34 +1912,36 @@ const ClockIns = () => {
                     lineHeight: '1.6',
                     marginBottom: '32px'
                   }}>
-                    <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong> has been clocked in at {timelineStartTime}.
+                    <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong> has been clocked in successfully.
                   </p>
 
-                  {/* Timeline Section */}
-                  <div style={{ marginBottom: '32px' }}>
-                    <h3 style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '16px',
-                      textAlign: 'center'
+                  {/* Geolocation Section */}
+                  {clockInGeoLocation && (
+                    <div style={{
+                      background: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      marginBottom: '24px'
                     }}>
-                      Today's Timeline
-                    </h3>
-                    <TimelineBar 
-                      segments={[
-                        {
-                          type: 'working',
-                          startTime: timelineStartTime,
-                          endTime: 'Present',
-                          label: 'Working'
-                        }
-                      ]}
-                      clockInTime={timelineStartTime}
-                      clockOutTime={null}
-                      isToday={true}
-                    />
-                  </div>
+                      <h3 style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#166534',
+                        marginBottom: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        📍 Location Captured
+                      </h3>
+                      <div style={{ fontSize: '13px', color: '#166534', lineHeight: '1.8' }}>
+                        <div><strong>Coordinates:</strong> {clockInGeoLocation.latitude.toFixed(6)}, {clockInGeoLocation.longitude.toFixed(6)}</div>
+                        <div><strong>Accuracy:</strong> ±{Math.round(clockInGeoLocation.accuracy)}m</div>
+                        <div><strong>Time:</strong> {clockInGeoLocation.timestamp}</div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Close Button */}
                   <div style={{
@@ -1933,8 +1951,6 @@ const ClockIns = () => {
                     <button
                       onClick={() => {
                         setShowClockInModal(false);
-                        setShowTimelineInModal(false);
-                        setTimelineStartTime('');
                       }}
                       style={{
                         padding: '14px 32px',
@@ -1963,6 +1979,82 @@ const ClockIns = () => {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clock-In History Table */}
+      {clockInHistory.length > 0 && (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px',
+          marginTop: '32px',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e5e7eb'
+        }}>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#111827',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            📋 Clock-In History
+          </h2>
+          
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '14px'
+            }}>
+              <thead>
+                <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Employee Name</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Date</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Day</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Clock-In Time</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Location (GPS)</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '600', color: '#374151' }}>Accuracy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clockInHistory.map((entry, index) => (
+                  <tr 
+                    key={index}
+                    style={{
+                      borderBottom: '1px solid #e5e7eb',
+                      background: index % 2 === 0 ? '#ffffff' : '#f9fafb',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = index % 2 === 0 ? '#ffffff' : '#f9fafb'}
+                  >
+                    <td style={{ padding: '12px 16px', color: '#111827', fontWeight: '500' }}>
+                      {entry.employeeName}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                      {entry.date}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                      {entry.day}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#111827', fontWeight: '500' }}>
+                      {entry.clockInTime}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#0284c7', fontFamily: 'monospace', fontSize: '12px' }}>
+                      {entry.location}
+                    </td>
+                    <td style={{ padding: '12px 16px', color: '#6b7280' }}>
+                      {entry.accuracy}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

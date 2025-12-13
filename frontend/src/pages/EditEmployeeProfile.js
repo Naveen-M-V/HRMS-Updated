@@ -254,7 +254,10 @@ export default function EditEmployeeProfile() {
         }
       }
       
-      if (response.data.success) {
+      if (response.status === 200 && response.data.success) {
+        success('Employee updated successfully!');
+        navigate(`/employee/${id}`);
+      } else if (response.status === 200) {
         success('Employee updated successfully!');
         navigate(`/employee/${id}`);
       } else {

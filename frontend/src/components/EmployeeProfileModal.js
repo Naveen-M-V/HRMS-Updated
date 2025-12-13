@@ -14,16 +14,21 @@ import {
   AcademicCapIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  UserMinusIcon
 } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '../utils/apiConfig';
 import { formatDateDDMMYY, getDayName } from '../utils/dateFormatter';
+import TerminationFlowModal from './TerminationFlowModal';
+import { useAuth } from '../context/AuthContext';
 
 const EmployeeProfileModal = ({ employee, onClose }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [certificates, setCertificates] = useState([]);
   const [timeEntries, setTimeEntries] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showTerminationModal, setShowTerminationModal] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (employee) {
@@ -89,6 +94,25 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
     if (daysUntilExpiry < 0) return { status: 'expired', color: '#ef4444', label: 'Expired' };
     if (daysUntilExpiry <= 30) return { status: 'expiring', color: '#f59e0b', label: `${daysUntilExpiry}d left` };
     return { status: 'valid', color: '#10b981', label: 'Valid' };
+  };
+
+  // Check if current user has HR or Admin role
+  const canTerminateEmployee = () => {
+    if (!user) return false;
+    const userRole = user.role?.toLowerCase();
+    return userRole === 'hr' || userRole === 'admin' || userRole === 'super-admin';
+  };
+
+  // Handle successful termination
+  const handleTerminationSuccess = (terminatedEmployee) => {
+    // Update the employee data to reflect termination
+    if (employee) {
+      employee.status = 'Terminated';
+      employee.isActive = false;
+      employee.terminatedDate = terminatedEmployee.terminatedDate;
+    }
+    // Show success message (you could use a toast notification here)
+    alert('Employee terminated successfully');
   };
 
   return (
@@ -208,6 +232,31 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                    employee.status === 'clocked_out' ? '🔵 Clocked Out' : '⚪ Absent'}
                 </div>
               </div>
+              {canTerminateEmployee() && employee.status !== 'Terminated' && (
+                <button
+                  onClick={() => setShowTerminationModal(true)}
+                  style={{
+                    background: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    marginTop: '12px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#b91c1c'}
+                  onMouseLeave={(e) => e.target.style.background = '#dc2626'}
+                >
+                  <UserMinusIcon style={{ width: '16px', height: '16px' }} />
+                  Terminate Employee
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -596,6 +645,14 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
           )}
         </div>
       </div>
+
+      {/* Termination Flow Modal */}
+      <TerminationFlowModal
+        employee={employee}
+        isOpen={showTerminationModal}
+        onClose={() => setShowTerminationModal(false)}
+        onSuccess={handleTerminationSuccess}
+      />
 
       <style>{`
         @keyframes slideUp {

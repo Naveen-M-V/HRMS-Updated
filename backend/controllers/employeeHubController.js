@@ -1088,9 +1088,17 @@ exports.getEmployeesWithoutTeam = async (req, res) => {
 exports.terminateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const { terminationNote } = req.body;
+    const { 
+      terminationType,
+      noticePeriod,
+      lastWorkingDay,
+      exitDate,
+      terminationReason,
+      managerComments,
+      terminationNote
+    } = req.body;
     
-    console.log('🔍 Termination request:', { id, terminationNote });
+    console.log('🔍 Termination request:', { id, terminationType, terminationReason });
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -1110,16 +1118,17 @@ exports.terminateEmployee = async (req, res) => {
     console.log('🔍 Employee found:', employee.firstName, employee.lastName);
 
     // Update employee status to terminated
-    employee.status = 'Terminated';  // Use 'Terminated' (capital T) to match schema enum
+    employee.status = 'Terminated';
     employee.isActive = false;
-    employee.terminatedDate = new Date();
-    employee.endDate = new Date();  // Set endDate to current date as per requirements
+    employee.terminatedDate = exitDate ? new Date(exitDate) : new Date();
+    employee.endDate = lastWorkingDay ? new Date(lastWorkingDay) : new Date();
     
-    // Add termination note if provided - use set() to handle schema changes gracefully
-    if (terminationNote) {
-      console.log('🔍 Adding termination note:', terminationNote);
-      employee.set('terminationNote', terminationNote);
-    }
+    // Store detailed termination information
+    if (terminationType) employee.set('terminationType', terminationType);
+    if (noticePeriod) employee.set('noticePeriod', parseInt(noticePeriod));
+    if (terminationReason) employee.set('terminationReason', terminationReason);
+    if (managerComments) employee.set('managerComments', managerComments);
+    if (terminationNote) employee.set('terminationNote', terminationNote);
     
     console.log('🔍 Saving employee...');
     await employee.save();
@@ -1128,7 +1137,8 @@ exports.terminateEmployee = async (req, res) => {
     console.log('✅ Employee terminated successfully:', {
       id: employee._id,
       name: `${employee.firstName} ${employee.lastName}`,
-      terminationNote: terminationNote || 'No reason provided'
+      terminationType,
+      terminationReason
     });
 
     res.status(200).json({
