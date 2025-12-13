@@ -17,10 +17,6 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
 
-// Get API URL - same logic as ProfileContext
-const getApiUrl = () => {
-  return process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://hrms.talentshield.co.uk";
-};
 
 // Safely get VTID for a profile row
 function generateVTID(profile) {
@@ -167,7 +163,7 @@ export default function ProfilesPage() {
     setLoading(true);
     try {
       const profileIds = Array.from(selectedProfiles);
-      const API_BASE_URL = getApiUrl();
+      const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://hrms.talentshield.co.uk";
       
       const response = await fetch(`${API_BASE_URL}/api/profiles/bulk-delete`, {
         method: 'DELETE',
