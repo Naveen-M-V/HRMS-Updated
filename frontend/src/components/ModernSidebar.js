@@ -169,17 +169,6 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                 <ClipboardDocumentIcon className="h-4 w-4" />
                 <span>Compliance Dashboard</span>
               </button>
-              
-              <button
-                onClick={() => handleNavigation("/calendar")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/calendar")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <CalendarDaysIcon className="h-4 w-4" />
-                <span>Calendar</span>
-              </button>
             </div>
           )}
         </div>
@@ -354,6 +343,17 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               >
                 <CalendarIcon className="h-4 w-4" />
                 <span>Shift Management</span>
+              </button>
+              
+              <button
+                onClick={() => handleNavigation("/calendar")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/calendar")
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                    : "hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <CalendarDaysIcon className="h-4 w-4" />
+                <span>Calendar</span>
               </button>
             </div>
           )}

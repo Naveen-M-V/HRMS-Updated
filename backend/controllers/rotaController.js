@@ -613,10 +613,18 @@ exports.getAllShiftAssignments = async (req, res) => {
     const query = {};
 
     if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // Validate dates before querying
+      if (!isNaN(start.valueOf()) && !isNaN(end.valueOf())) {
+        query.date = {
+          $gte: start,
+          $lte: end
+        };
+      } else {
+        console.error('Invalid date range:', { startDate, endDate });
+      }
     }
 
     if (employeeId) query.employeeId = employeeId;

@@ -143,6 +143,14 @@ function EmployeeProtectedRoute({ children }) {
 function UserProtectedRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
 
+  console.log('🛡️ UserProtectedRoute check:', { 
+    isAuthenticated, 
+    loading, 
+    userRole: user?.role,
+    userType: user?.userType,
+    hasUser: !!user 
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -155,14 +163,17 @@ function UserProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
+    console.log('❌ Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   // Redirect admins to their dashboard
   if (user?.role === "admin" || user?.role === "super-admin") {
+    console.log('⚠️ Admin user, redirecting to admin dashboard. Role:', user?.role);
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log('✅ User dashboard access granted');
   // Allow employees and profiles to access user dashboard
   return children;
 }
