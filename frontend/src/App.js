@@ -76,6 +76,14 @@ import ELearningPage from './pages/ELearningPage';
 function AdminProtectedRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
 
+  console.log('🛡️ AdminProtectedRoute check:', { 
+    isAuthenticated, 
+    loading, 
+    userRole: user?.role,
+    userType: user?.userType,
+    hasUser: !!user 
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -88,15 +96,18 @@ function AdminProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
+    console.log('❌ Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
   // Only admin and super-admin can access admin dashboard
   if (user?.role !== "admin" && user?.role !== "super-admin") {
+    console.log('⚠️ Not an admin, redirecting to user-dashboard. Role:', user?.role);
     // Redirect everyone else (employees and profiles) to user dashboard
     return <Navigate to="/user-dashboard" replace />;
   }
 
+  console.log('✅ Admin access granted');
   return children;
 }
 

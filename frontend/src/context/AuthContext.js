@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
     // Store user session data
     setUserSession: (userData, token = null) => {
       try {
+        console.log('💾 Storing session:', { userData, hasToken: !!token });
         localStorage.setItem('user_session', JSON.stringify({
           user: userData,
           timestamp: Date.now(),
@@ -48,9 +49,19 @@ export const AuthProvider = ({ children }) => {
         }));
         if (token) {
           localStorage.setItem('auth_token', token);
+          console.log('✅ Token stored in localStorage');
         }
+        // Verify storage
+        const stored = localStorage.getItem('user_session');
+        const storedToken = localStorage.getItem('auth_token');
+        console.log('✅ Session stored successfully:', { 
+          hasSession: !!stored, 
+          hasToken: !!storedToken,
+          userRole: userData?.role,
+          userType: userData?.userType
+        });
       } catch (error) {
-        console.error('Error storing session:', error);
+        console.error('❌ Error storing session:', error);
       }
     },
 
@@ -58,17 +69,28 @@ export const AuthProvider = ({ children }) => {
     getUserSession: () => {
       try {
         const sessionData = localStorage.getItem('user_session');
+        console.log('🔍 Getting user session:', { hasData: !!sessionData });
+        
         if (sessionData) {
           const parsed = JSON.parse(sessionData);
+          console.log('📦 Session data:', {
+            hasUser: !!parsed.user,
+            userRole: parsed.user?.role,
+            userType: parsed.user?.userType
+          });
+          
           // Check if session is expired
           if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+            console.log('⏰ Session expired');
             sessionStorage.clearSession();
             return null;
           }
           return parsed;
+        } else {
+          console.log('❌ No session data in localStorage');
         }
       } catch (error) {
-        console.error('Error reading session:', error);
+        console.error('❌ Error reading session:', error);
         sessionStorage.clearSession();
       }
       return null;
