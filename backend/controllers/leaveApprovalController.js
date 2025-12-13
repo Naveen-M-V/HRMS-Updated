@@ -192,6 +192,8 @@ exports.approveLeaveRequest = async (req, res) => {
 
     // Send notification to employee
     try {
+      const approver = await EmployeeHub.findById(req.user._id);
+      
       await Notification.create({
         userId: leaveRequest.user._id,
         type: 'leave_approved',
@@ -200,7 +202,7 @@ exports.approveLeaveRequest = async (req, res) => {
         priority: 'high',
         metadata: {
           leaveRequestId: leaveRequest._id,
-          approvedBy: `${approver.firstName} ${approver.lastName}`,
+          approvedBy: approver ? `${approver.firstName} ${approver.lastName}` : 'Manager',
           type: leaveRequest.type,
           startDate: leaveRequest.startDate,
           endDate: leaveRequest.endDate,
@@ -209,7 +211,7 @@ exports.approveLeaveRequest = async (req, res) => {
       });
 
       // Send email to employee
-      if (leaveRequest.user.email) {
+      if (leaveRequest.user.email && approver) {
         await sendLeaveApprovalEmail(
           leaveRequest.user.email,
           `${leaveRequest.user.firstName} ${leaveRequest.user.lastName}`,
@@ -295,6 +297,8 @@ exports.rejectLeaveRequest = async (req, res) => {
 
     // Send notification to employee
     try {
+      const approver = await EmployeeHub.findById(req.user._id);
+      
       await Notification.create({
         userId: leaveRequest.user._id,
         type: 'leave_rejected',
@@ -303,7 +307,7 @@ exports.rejectLeaveRequest = async (req, res) => {
         priority: 'high',
         metadata: {
           leaveRequestId: leaveRequest._id,
-          rejectedBy: `${approver.firstName} ${approver.lastName}`,
+          rejectedBy: approver ? `${approver.firstName} ${approver.lastName}` : 'Manager',
           type: leaveRequest.type,
           startDate: leaveRequest.startDate,
           endDate: leaveRequest.endDate,
@@ -313,7 +317,7 @@ exports.rejectLeaveRequest = async (req, res) => {
       });
 
       // Send email to employee
-      if (leaveRequest.user.email) {
+      if (leaveRequest.user.email && approver) {
         await sendLeaveRejectionEmail(
           leaveRequest.user.email,
           `${leaveRequest.user.firstName} ${leaveRequest.user.lastName}`,

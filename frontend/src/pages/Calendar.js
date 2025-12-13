@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon, 
@@ -18,12 +19,14 @@ import isBetween from 'dayjs/plugin/isBetween';
 import axios from '../utils/axiosConfig';
 import { DatePicker } from '../components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { toast } from 'react-toastify';
 
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isBetween);
 
 const Calendar = () => {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [showTimeOffModal, setShowTimeOffModal] = useState(false);
@@ -31,11 +34,14 @@ const Calendar = () => {
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [leaveType, setLeaveType] = useState('annual');
+  const [leaveReason, setLeaveReason] = useState('');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [startHalfDay, setStartHalfDay] = useState('full');
   const [endHalfDay, setEndHalfDay] = useState('full');
   const [weekendWarning, setWeekendWarning] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   
   // NEW: Real data from API
   const [leaveRecords, setLeaveRecords] = useState([]);
@@ -486,6 +492,8 @@ const Calendar = () => {
   const closeTimeOffModal = () => {
     setShowTimeOffModal(false);
     setSelectedEmployee('');
+    setLeaveType('annual');
+    setLeaveReason('');
     setStartDate(null);
     setEndDate(null);
     setStartHalfDay('full');
@@ -493,9 +501,62 @@ const Calendar = () => {
     setWeekendWarning('');
   };
 
+  // Submit time off request
+  const handleSubmitTimeOff = async () => {
+    if (!isFormValid()) return;
+
+    setSubmitting(true);
+    try {
+      // Determine employee ID - either selected or current user
+      const employeeId = selectedEmployee || user?.id || user?._id;
+      
+      if (!employeeId) {
+        toast.error('Unable to identify employee');
+        return;
+      }
+
+      const workingDays = calculateWorkingDays(startDate, endDate);
+
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/leave/requests/submit`,
+        {
+          employeeId,
+          type: leaveType,
+          startDate: startDate.format('YYYY-MM-DD'),
+          endDate: endDate.format('YYYY-MM-DD'),
+          days: workingDays,
+          reason: leaveReason,
+          startHalfDay,
+          endHalfDay
+        }
+      );
+
+      if (response.data.success) {
+        toast.success(
+          user?.userType === 'admin' 
+            ? 'Leave request submitted successfully!'
+            : 'Leave request submitted and awaiting approval'
+        );
+        closeTimeOffModal();
+        fetchCalendarEvents(); // Refresh calendar
+      }
+    } catch (error) {
+      console.error('Submit time off error:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to submit leave request';
+      toast.error(errorMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Check if form is valid for submission
   const isFormValid = () => {
-    return selectedEmployee && startDate && endDate && !weekendWarning;
+    // For admin users, they must select an employee
+    if (user?.userType === 'admin') {
+      return selectedEmployee && startDate && endDate && !weekendWarning;
+    }
+    // For employee users, just need dates
+    return startDate && endDate && !weekendWarning;
   };
 
   return (
@@ -822,23 +883,60 @@ const Calendar = () => {
 
             {/* Modal Body */}
             <div className="p-6">
-              {/* Employee Selection */}
+              {/* Employee Selection - Only for admins */}
+              {user?.userType === 'admin' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Employee <span className="text-red-500">*</span>
+                  </label>
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select an employee..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Leave Type Selection */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Employee <span className="text-red-500">*</span>
+                  Leave Type <span className="text-red-500">*</span>
                 </label>
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                <Select value={leaveType} onValueChange={setLeaveType}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select an employee..." />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="annual">Annual Leave</SelectItem>
+                    <SelectItem value="sick">Sick Leave</SelectItem>
+                    <SelectItem value="unpaid">Unpaid Leave</SelectItem>
+                    <SelectItem value="maternity">Maternity Leave</SelectItem>
+                    <SelectItem value="paternity">Paternity Leave</SelectItem>
+                    <SelectItem value="bereavement">Bereavement Leave</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Reason */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason (Optional)
+                </label>
+                <textarea
+                  value={leaveReason}
+                  onChange={(e) => setLeaveReason(e.target.value)}
+                  placeholder="Enter reason for leave request..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
 
               {/* Date Selection */}
@@ -911,19 +1009,21 @@ const Calendar = () => {
               <div className="flex justify-end gap-3">
                 <button
                   onClick={closeTimeOffModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={submitting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
+                  onClick={handleSubmitTimeOff}
+                  disabled={!isFormValid() || submitting}
                   className={`px-4 py-2 rounded-lg transition-colors ${
-                    isFormValid()
+                    isFormValid() && !submitting
                       ? 'bg-green-600 text-white hover:bg-green-700'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
-                  disabled={!isFormValid()}
                 >
-                  Add Absence
+                  {submitting ? 'Submitting...' : user?.userType === 'admin' ? 'Add Absence' : 'Submit Request'}
                 </button>
               </div>
             </div>
