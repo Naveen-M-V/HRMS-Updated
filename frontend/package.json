@@ -6,6 +6,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@heroicons/react": "^2.1.5",
+    "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.4",
     "@mui/x-date-pickers": "^8.19.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
