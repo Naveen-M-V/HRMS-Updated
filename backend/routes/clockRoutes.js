@@ -1107,8 +1107,8 @@ router.post('/admin/status', async (req, res) => {
       });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().slice(0, 10);
     let result;
 
     switch (status) {
@@ -1116,26 +1116,30 @@ router.post('/admin/status', async (req, res) => {
         // Check if employee is currently on break - if so, resume work
         const breakEntry = await TimeEntry.findOne({
           employee: employeeId,
-          date: { $gte: today },
+          date: today,
           status: 'on_break'
         });
 
         if (breakEntry) {
           // Resume work from break
-          const currentTime = new Date().toTimeString().slice(0, 5);
+          const now = new Date();
           
-          // End the current break
-          if (breakEntry.breaks && breakEntry.breaks.length > 0) {
-            const lastBreak = breakEntry.breaks[breakEntry.breaks.length - 1];
-            if (!lastBreak.endTime || lastBreak.endTime === lastBreak.startTime) {
-              lastBreak.endTime = currentTime;
-              // Calculate actual break duration
-              const startParts = lastBreak.startTime.split(':');
-              const endParts = currentTime.split(':');
-              const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-              const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
-              lastBreak.duration = Math.max(0, endMinutes - startMinutes);
+          // Calculate break duration and add to breaks array
+          if (breakEntry.onBreakStart) {
+            const breakDuration = (now - breakEntry.onBreakStart) / 1000 / 60; // minutes
+            
+            if (!breakEntry.breaks) {
+              breakEntry.breaks = [];
             }
+            
+            breakEntry.breaks.push({
+              start: breakEntry.onBreakStart,
+              end: now,
+              duration: breakDuration
+            });
+            
+            // Clear break status
+            breakEntry.onBreakStart = null;
           }
           
           breakEntry.status = 'clocked_in';
@@ -1154,22 +1158,22 @@ router.post('/admin/status', async (req, res) => {
         // Check if employee already has any time entry for today
         const existingEntry = await TimeEntry.findOne({
           employee: employeeId,
-          date: { $gte: today }
+          date: today,
+          status: { $in: ['clocked_in', 'on_break'] }
         });
 
         if (existingEntry) {
           return res.status(400).json({
             success: false,
-            message: `Employee already has a time entry for today. Current status: ${existingEntry.status.replace('_', ' ')}`
+            message: `Employee already has an active time entry. Current status: ${existingEntry.status.replace('_', ' ')}`
           });
         }
 
-        // Create new time entry
-        const currentTime = new Date().toTimeString().slice(0, 5);
+        // Create new time entry using legacy fields
         const timeEntry = new TimeEntry({
           employee: employeeId,
-          date: new Date(),
-          clockIn: currentTime,
+          date: today,
+          clockIn: new Date(),
           location: location || 'Work From Office',
           workType: workType || 'Regular',
           status: 'clocked_in',
@@ -1185,7 +1189,7 @@ router.post('/admin/status', async (req, res) => {
         // Find active entry
         const activeEntry = await TimeEntry.findOne({
           employee: employeeId,
-          date: { $gte: today },
+          date: today,
           status: { $in: ['clocked_in', 'on_break'] }
         });
 
@@ -1196,8 +1200,13 @@ router.post('/admin/status', async (req, res) => {
           });
         }
 
-        activeEntry.clockOut = new Date().toTimeString().slice(0, 5);
+        activeEntry.clockOut = new Date();
         activeEntry.status = 'clocked_out';
+        
+        // Clear break status if on break
+        if (activeEntry.onBreakStart) {
+          activeEntry.onBreakStart = null;
+        }
         await activeEntry.save();
         result = { message: 'Employee clocked out successfully', data: activeEntry };
         break;
@@ -1206,7 +1215,7 @@ router.post('/admin/status', async (req, res) => {
         // Find today's entry
         const clockedInEntry = await TimeEntry.findOne({
           employee: employeeId,
-          date: { $gte: today },
+          date: today,
           status: 'clocked_in'
         });
 
@@ -1217,15 +1226,14 @@ router.post('/admin/status', async (req, res) => {
           });
         }
 
-        const breakStartTime = new Date().toTimeString().slice(0, 5);
-        const breakEndTime = new Date(Date.now() + 30 * 60000).toTimeString().slice(0, 5);
+        if (clockedInEntry.onBreakStart) {
+          return res.status(400).json({
+            success: false,
+            message: 'Employee is already on break'
+          });
+        }
 
-        clockedInEntry.breaks.push({
-          startTime: breakStartTime,
-          endTime: breakEndTime,
-          duration: 30,
-          type: 'other'
-        });
+        clockedInEntry.onBreakStart = new Date();
         clockedInEntry.status = 'on_break';
         await clockedInEntry.save();
         
@@ -1241,12 +1249,15 @@ router.post('/admin/status', async (req, res) => {
       case 'absent':
       case 'on_leave':
         // Create a leave record for today
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+        
         const leaveRecord = new LeaveRecord({
           user: employeeId,
           type: status === 'absent' ? 'absent' : 'annual',
           status: 'approved',
-          startDate: today,
-          endDate: today,
+          startDate: todayDate,
+          endDate: todayDate,
           days: 1,
           reason: reason || 'Admin marked',
           createdBy: req.user.id,
