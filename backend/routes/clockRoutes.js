@@ -1805,13 +1805,16 @@ router.post('/user/break', authenticateSession, async (req, res) => {
       });
     }
 
-    // Find today's active time entry
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Find today's active time entry using UK timezone
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
     
     const timeEntry = await TimeEntry.findOne({
-      employee: userId,
-      date: { $gte: today },
+      $or: [
+        { employee: userId },
+        { employee: userId }
+      ],
+      date: dateString,
       status: 'clocked_in'
     }).populate('shiftId');
 
@@ -1880,13 +1883,16 @@ router.post('/user/start-break', authenticateSession, async (req, res) => {
       });
     }
 
-    // Find today's active time entry
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Find today's active time entry using UK timezone
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
     
     const timeEntry = await TimeEntry.findOne({
-      employee: userId,
-      date: { $gte: today },
+      $or: [
+        { employee: userId },
+        { employee: userId }
+      ],
+      date: dateString,
       status: 'clocked_in'
     }).populate('employee', 'firstName lastName email');
 
@@ -1956,13 +1962,16 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
       });
     }
 
-    // Find today's active time entry
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Find today's time entry that's on break using UK timezone
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
     
     const timeEntry = await TimeEntry.findOne({
-      employee: userId,
-      date: { $gte: today },
+      $or: [
+        { employee: userId },
+        { employee: userId }
+      ],
+      date: dateString,
       status: 'on_break'
     }).populate('employee', 'firstName lastName email');
 
