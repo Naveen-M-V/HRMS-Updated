@@ -460,31 +460,43 @@ router.get('/status', asyncHandler(async (req, res) => {
     let breakIn = null;
     let breakOut = null;
 
-    // Calculate status based on multi-session TimeEntry
-    if (timeEntry && timeEntry.sessions && timeEntry.sessions.length > 0) {
-      const lastSession = timeEntry.sessions[timeEntry.sessions.length - 1];
-      
-      clockIn = lastSession.clockIn;
-      clockOut = lastSession.clockOut;
-      breakIn = lastSession.breakIn;
-      breakOut = lastSession.breakOut;
+    if (timeEntry) {
+      // First, try to use the direct status field if available
+      if (timeEntry.status) {
+        // Normalize status values
+        const normalizedStatus = timeEntry.status.replace(/-/g, '_');
+        status = normalizedStatus;
+        clockIn = timeEntry.clockIn;
+        clockOut = timeEntry.clockOut;
+        breakIn = timeEntry.onBreakStart || null;
+        breakOut = null;
+      }
+      // Fallback: Calculate status based on multi-session TimeEntry
+      else if (timeEntry.sessions && timeEntry.sessions.length > 0) {
+        const lastSession = timeEntry.sessions[timeEntry.sessions.length - 1];
+        
+        clockIn = lastSession.clockIn;
+        clockOut = lastSession.clockOut;
+        breakIn = lastSession.breakIn;
+        breakOut = lastSession.breakOut;
 
-      // Apply the status calculation logic
-      if (!clockIn) {
-        // No clock in today
-        status = 'clocked_out';
-      } else if (clockIn && !clockOut) {
-        // Clocked in but not clocked out
-        if (breakIn && !breakOut) {
-          // Currently on break
-          status = 'on_break';
+        // Apply the status calculation logic
+        if (!clockIn) {
+          // No clock in today
+          status = 'clocked_out';
+        } else if (clockIn && !clockOut) {
+          // Clocked in but not clocked out
+          if (breakIn && !breakOut) {
+            // Currently on break
+            status = 'on_break';
+          } else {
+            // Clocked in and working
+            status = 'clocked_in';
+          }
         } else {
-          // Clocked in and working
-          status = 'clocked_in';
+          // Both clock in and clock out exist
+          status = 'clocked_out';
         }
-      } else {
-        // Both clock in and clock out exist
-        status = 'clocked_out';
       }
     }
 
