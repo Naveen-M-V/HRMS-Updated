@@ -277,6 +277,9 @@ router.get('/dashboard', async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    // Format today's date as YYYY-MM-DD string for TimeEntry query
+    const todayString = today.toISOString().slice(0, 10);
+
     // Get EmployeeHub model to count total active employees with userType='employee'
     const ShiftAssignment = require('../models/ShiftAssignment');
     
@@ -313,8 +316,9 @@ router.get('/dashboard', async (req, res) => {
     ];
 
     // Get today's time entries for ALL users (employees + admins)
+    // Note: date field in TimeEntry is stored as YYYY-MM-DD string
     const timeEntries = await TimeEntry.find({
-      date: { $gte: today },
+      date: todayString,
       employee: { $in: allUserIds }
     }).sort({ createdAt: -1 }); // Sort by most recent first
 
