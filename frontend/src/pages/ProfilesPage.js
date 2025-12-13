@@ -147,14 +147,44 @@ export default function ProfilesPage() {
     });
   }, []);
 
+
+  // Filtered profiles with memoization for performance
+  const filteredProfiles = useMemo(() => {
+    return profiles.filter((p) => {
+      const matchesSearch = `${p.firstName} ${p.lastName}`
+        .toLowerCase()
+        .includes(search.toLowerCase());
+      const matchesRole = !selectedRole || selectedRole === 'all' || p.role === selectedRole;
+      const matchesStaffType = !selectedStaffType || selectedStaffType === 'all' || p.staffType === selectedStaffType;
+      const matchesCompany = !selectedCompany || selectedCompany === 'all' || p.company === selectedCompany;
+      const matchesManager = !selectedManager || selectedManager === 'all' || p.poc === selectedManager;
+
+      return matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
+    });
+  }, [profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
+
+         // Pagination logic
+  const itemsPerPage = 10; // Fixed at 10 as per requirement
+  const totalPages = Math.ceil(filteredProfiles.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedProfiles = filteredProfiles.slice(startIndex, endIndex);
+
+
   // Handle select all
-  const handleSelectAll = useCallback(() => {
-    if (selectedProfiles.size === displayedProfiles.length) {
-      setSelectedProfiles(new Set());
-    } else {
-      setSelectedProfiles(new Set(displayedProfiles.map(p => p._id)));
-    }
-  }, [selectedProfiles.size, displayedProfiles]);
+ const handleSelectAll = useCallback(() => {
+  if (!displayedProfiles.length) {
+    setSelectedProfiles(new Set());
+    return;
+  }
+
+  if (selectedProfiles.size === displayedProfiles.length) {
+    setSelectedProfiles(new Set());
+  } else {
+    setSelectedProfiles(new Set(displayedProfiles.map(p => p._id)));
+  }
+}, [selectedProfiles.size, displayedProfiles]);
+
 
   // Handle bulk delete
   const handleBulkDelete = useCallback(async () => {
@@ -227,27 +257,7 @@ export default function ProfilesPage() {
     };
   }, []); // Remove fetchProfiles dependency to prevent infinite loop
 
-  // Filtered profiles with memoization for performance
-  const filteredProfiles = useMemo(() => {
-    return profiles.filter((p) => {
-      const matchesSearch = `${p.firstName} ${p.lastName}`
-        .toLowerCase()
-        .includes(search.toLowerCase());
-      const matchesRole = !selectedRole || selectedRole === 'all' || p.role === selectedRole;
-      const matchesStaffType = !selectedStaffType || selectedStaffType === 'all' || p.staffType === selectedStaffType;
-      const matchesCompany = !selectedCompany || selectedCompany === 'all' || p.company === selectedCompany;
-      const matchesManager = !selectedManager || selectedManager === 'all' || p.poc === selectedManager;
-
-      return matchesSearch && matchesRole && matchesStaffType && matchesCompany && matchesManager;
-    });
-  }, [profiles, search, selectedRole, selectedStaffType, selectedCompany, selectedManager]);
-
-  // Pagination logic
-  const itemsPerPage = 10; // Fixed at 10 as per requirement
-  const totalPages = Math.ceil(filteredProfiles.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const displayedProfiles = filteredProfiles.slice(startIndex, endIndex);
+  
 
   // Reset to page 1 when filters change
   useEffect(() => {
