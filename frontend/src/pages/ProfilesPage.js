@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useProfiles } from '../context/ProfileContext';
-import { EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useAlert } from "../components/AlertNotification";
 import {
   Pagination,
@@ -43,6 +43,8 @@ export default function ProfilesPage() {
   const [loading, setLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [profileToDelete, setProfileToDelete] = useState({ id: null, name: '' });
+  const [selectedProfiles, setSelectedProfiles] = useState(new Set());
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const navigate = useNavigate();
 
   // Get unique values for filter dropdowns
@@ -74,6 +76,7 @@ export default function ProfilesPage() {
     setSelectedStaffType("all");
     setSelectedCompany("all");
     setSelectedManager("all");
+    setSelectedProfiles(new Set());
   }, []);
 
   // Handle profile deletion
@@ -134,6 +137,82 @@ export default function ProfilesPage() {
         setLoading(false);
       }
   }, [deleteProfile, profiles, fetchProfiles]);
+
+  // Handle profile selection
+  const handleProfileSelect = useCallback((profileId) => {
+    setSelectedProfiles(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(profileId)) {
+        newSelection.delete(profileId);
+      } else {
+        newSelection.add(profileId);
+      }
+      return newSelection;
+    });
+  }, []);
+
+  // Handle select all
+  const handleSelectAll = useCallback(() => {
+    if (selectedProfiles.size === displayedProfiles.length) {
+      setSelectedProfiles(new Set());
+    } else {
+      setSelectedProfiles(new Set(displayedProfiles.map(p => p._id)));
+    }
+  }, [selectedProfiles.size, displayedProfiles]);
+
+  // Handle bulk delete
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedProfiles.size === 0) return;
+    
+    setLoading(true);
+    try {
+      const profileIds = Array.from(selectedProfiles);
+      const API_BASE_URL = getApiUrl();
+      
+      const response = await fetch(`${API_BASE_URL}/api/profiles/bulk-delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({ profileIds })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        let successMessage = `${selectedProfiles.size} profile(s) deleted successfully!`;
+        
+        if (result.details) {
+          const details = [];
+          if (result.details.certificatesDeleted > 0) {
+            details.push(`${result.details.certificatesDeleted} certificate(s)`);
+          }
+          if (result.details.userAccountsDeleted > 0) {
+            details.push(`${result.details.userAccountsDeleted} user account(s)`);
+          }
+          
+          if (details.length > 0) {
+            successMessage += `\n\nAlso deleted: ${details.join(' and ')}`;
+          }
+        }
+
+        success(successMessage);
+        setSelectedProfiles(new Set());
+        await fetchProfiles();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete profiles');
+      }
+    } catch (err) {
+      console.error('Error bulk deleting profiles:', err);
+      error(`Failed to delete profiles: ${err.message || 'Please try again.'}`);
+    } finally {
+      setLoading(false);
+      setShowBulkDeleteDialog(false);
+    }
+  }, [selectedProfiles, fetchProfiles]);
 
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {
@@ -324,12 +403,48 @@ export default function ProfilesPage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table Header with Bulk Actions */}
+        <div className="bg-white rounded-lg shadow-sm border mb-6">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-600">
+                  {selectedProfiles.size > 0 
+                    ? `${selectedProfiles.size} profile${selectedProfiles.size === 1 ? '' : 's'} selected`
+                    : 'No profiles selected'
+                  }
+                </span>
+                {selectedProfiles.size > 0 && (
+                  <button
+                    onClick={() => setShowBulkDeleteDialog(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    Delete Selected ({selectedProfiles.size})
+                  </button>
+                )}
+              </div>
+              <div className="text-sm text-gray-600">
+                Total: {filteredProfiles.length} profiles
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={selectedProfiles.size === displayedProfiles.length && displayedProfiles.length > 0}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      disabled={displayedProfiles.length === 0}
+                    />
+                  </th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">SI No.</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">VTID</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
@@ -344,7 +459,15 @@ export default function ProfilesPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {displayedProfiles.map((p, index) => (
-                  <tr key={p._id} className="hover:bg-gray-50">
+                  <tr key={p._id} className={`hover:bg-gray-50 ${selectedProfiles.has(p._id) ? 'bg-blue-50' : ''}`}>
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedProfiles.has(p._id)}
+                        onChange={() => handleProfileSelect(p._id)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">{startIndex + index + 1}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{generateVTID(p)}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{p.role}</td>
@@ -457,9 +580,21 @@ export default function ProfilesPage() {
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         title="Delete Profile"
-        description={`Are you sure you want to delete the profile for ${profileToDelete.name}? This will also delete any associated certificates and user account. This action cannot be undone.`}
+        description={`Are you sure you want to delete profile for ${profileToDelete.name}? This will also delete any associated certificates and user account. This action cannot be undone.`}
         onConfirm={() => handleDeleteProfile(profileToDelete.id, profileToDelete.name)}
         confirmText="Delete Profile"
+        cancelText="Cancel"
+        variant="destructive"
+      />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showBulkDeleteDialog}
+        onOpenChange={setShowBulkDeleteDialog}
+        title="Delete Multiple Profiles"
+        description={`Are you sure you want to delete ${selectedProfiles.size} profile${selectedProfiles.size === 1 ? '' : 's'}? This will also delete any associated certificates and user accounts. This action cannot be undone.`}
+        onConfirm={handleBulkDelete}
+        confirmText={`Delete ${selectedProfiles.size} Profile${selectedProfiles.size === 1 ? '' : 's'}`}
         cancelText="Cancel"
         variant="destructive"
       />

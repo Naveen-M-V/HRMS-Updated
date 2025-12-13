@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
 import ComplianceDashboard from '../components/ComplianceDashboard';
+import Calendar from '../pages/Calendar';
 import { 
   ChartBarIcon, 
   UserGroupIcon,
@@ -272,7 +273,7 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'attendance' && (
-          <AttendanceCalendar />
+          <Calendar />
         )}
 
         {activeTab === 'compliance' && (
