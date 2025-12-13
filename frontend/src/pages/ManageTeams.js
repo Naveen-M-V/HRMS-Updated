@@ -7,6 +7,18 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAlert } from "../components/AlertNotification";
 import ConfirmDialog from "../components/ConfirmDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 export default function ManageTeams() {
   const navigate = useNavigate();
@@ -24,6 +36,9 @@ export default function ManageTeams() {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [availableEmployees, setAvailableEmployees] = useState([]);
   const [selectedNewMembers, setSelectedNewMembers] = useState([]);
+  const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedTargetTeam, setSelectedTargetTeam] = useState('');
 
   // Employees data from API
   const [allEmployees, setAllEmployees] = useState([]);
@@ -343,26 +358,34 @@ export default function ManageTeams() {
       return;
     }
 
-    const choices = otherTeams.map((team) => team.name).join(', ');
-    const targetName = window.prompt(`Enter target team name (${choices}):`, otherTeams[0].name);
-    if (!targetName) return;
-    const targetTeam = otherTeams.find((team) => team.name.toLowerCase() === targetName.trim().toLowerCase());
+    setSelectedMember(member);
+    setSelectedTargetTeam(otherTeams[0].id);
+    setSwitchDialogOpen(true);
+  };
+
+  const handleSwitchConfirm = async () => {
+    if (!selectedMember || !selectedTargetTeam) return;
+    
+    const targetTeam = teams.find((team) => team.id === selectedTargetTeam);
     if (!targetTeam) {
-      showError('Team not found. Please enter a valid team name.');
+      showError('Target team not found.');
       return;
     }
 
     try {
       await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${editingTeam.id}/members/remove`, {
-        employeeId: member._id,
+        employeeId: selectedMember._id,
       });
       await axios.post(`${process.env.REACT_APP_API_BASE_URL}/teams/${targetTeam.id}/members/add`, {
-        employeeId: member._id,
+        employeeId: selectedMember._id,
       });
       await fetchEmployees();
       await fetchTeams();
       await loadEditingTeam(editingTeam.id);
-      showSuccess(`${member.firstName} ${member.lastName} moved to ${targetTeam.name}.`);
+      showSuccess(`${selectedMember.firstName} ${selectedMember.lastName} moved to ${targetTeam.name}.`);
+      setSwitchDialogOpen(false);
+      setSelectedMember(null);
+      setSelectedTargetTeam('');
     } catch (error) {
       console.error('Error switching member:', error);
       showError('Unable to switch member. Please try again.');
@@ -1123,6 +1146,41 @@ export default function ManageTeams() {
         }}
         onCancel={closeConfirmDialog}
       />
+
+      {/* Switch Member Dialog */}
+      <AlertDialog open={switchDialogOpen} onOpenChange={setSwitchDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Switch Team Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Move {selectedMember?.firstName} {selectedMember?.lastName} from "{editingTeam?.name}" to another team.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Target Team
+            </label>
+            <Select value={selectedTargetTeam} onValueChange={setSelectedTargetTeam}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a team" />
+              </SelectTrigger>
+              <SelectContent>
+                {teams.filter(team => team.id !== editingTeam?.id).map(team => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSwitchConfirm}>
+              Switch Member
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

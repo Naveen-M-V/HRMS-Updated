@@ -191,45 +191,39 @@ export default function ProfilesPage() {
     if (selectedProfiles.size === 0) return;
     
     setLoading(true);
+    const profileIds = Array.from(selectedProfiles);
+    let successCount = 0;
+    let errorCount = 0;
+    let errorMessage = '';
+    
     try {
-      const profileIds = Array.from(selectedProfiles);
-      const API_BASE_URL = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || "https://hrms.talentshield.co.uk";
-      
-      const response = await fetch(`${API_BASE_URL}/api/profiles/bulk-delete`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        credentials: 'include',
-        body: JSON.stringify({ profileIds })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        
-        let successMessage = `${selectedProfiles.size} profile(s) deleted successfully!`;
-        
-        if (result.details) {
-          const details = [];
-          if (result.details.certificatesDeleted > 0) {
-            details.push(`${result.details.certificatesDeleted} certificate(s)`);
-          }
-          if (result.details.userAccountsDeleted > 0) {
-            details.push(`${result.details.userAccountsDeleted} user account(s)`);
-          }
+      // Delete profiles one by one using the existing deleteProfile function
+      for (const profileId of profileIds) {
+        try {
+          const profile = profiles.find(p => p._id === profileId);
+          const profileName = profile ? `${profile.firstName} ${profile.lastName}` : 'Unknown';
           
-          if (details.length > 0) {
-            successMessage += `\n\nAlso deleted: ${details.join(' and ')}`;
+          await deleteProfile(profileId);
+          successCount++;
+        } catch (err) {
+          errorCount++;
+          if (!errorMessage) {
+            errorMessage = err.message || 'Failed to delete some profiles';
           }
+          console.error(`Error deleting profile ${profileId}:`, err);
         }
-
+      }
+      
+      if (successCount > 0) {
+        let successMessage = `${successCount} profile(s) deleted successfully!`;
+        if (errorCount > 0) {
+          successMessage += `\n${errorCount} profile(s) failed to delete.`;
+        }
         success(successMessage);
         setSelectedProfiles(new Set());
         await fetchProfiles();
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete profiles');
+        throw new Error(errorMessage || 'Failed to delete any profiles');
       }
     } catch (err) {
       console.error('Error bulk deleting profiles:', err);
@@ -238,7 +232,7 @@ export default function ProfilesPage() {
       setLoading(false);
       setShowBulkDeleteDialog(false);
     }
-  }, [selectedProfiles]);
+  }, [selectedProfiles, profiles, deleteProfile]);
 
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {
