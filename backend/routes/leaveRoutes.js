@@ -775,4 +775,237 @@ router.put('/admin/balance/:userId', async (req, res) => {
   }
 });
 
+// ============================================
+// LEAVE REQUEST ROUTES (NEW)
+// ============================================
+
+const LeaveRequest = require('../models/LeaveRequest');
+
+// @route   POST /api/leave/requests
+// @desc    Create a new leave request
+// @access  Private (Employee)
+router.post('/requests', async (req, res) => {
+  try {
+    const { approverId, leaveType, startDate, endDate, reason, status } = req.body;
+    const employeeId = req.session?.user?._id || req.user?.id;
+
+    if (!employeeId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    if (!approverId || !leaveType || !startDate || !endDate || !reason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    if (start > end) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date must be before end date'
+      });
+    }
+
+    const leaveRequest = new LeaveRequest({
+      employeeId,
+      approverId,
+      leaveType,
+      startDate: start,
+      endDate: end,
+      reason,
+      status: status === 'Draft' ? 'Draft' : 'Pending'
+    });
+
+    await leaveRequest.save();
+    await leaveRequest.populate('employeeId', 'firstName lastName email');
+    await leaveRequest.populate('approverId', 'firstName lastName email');
+
+    res.status(201).json({
+      success: true,
+      message: leaveRequest.status === 'Draft' ? 'Leave request saved as draft' : 'Leave request submitted successfully',
+      data: leaveRequest
+    });
+  } catch (error) {
+    console.error('Create leave request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating leave request',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/leave/requests/pending
+// @desc    Get pending leave requests for approval (manager/admin)
+// @access  Private (Manager/Admin)
+router.get('/requests/pending', async (req, res) => {
+  try {
+    const approverId = req.session?.user?._id || req.user?.id;
+
+    if (!approverId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const pendingRequests = await LeaveRequest.find({
+      approverId,
+      status: 'Pending'
+    })
+      .populate('employeeId', 'firstName lastName email vtid department')
+      .populate('approverId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: pendingRequests
+    });
+  } catch (error) {
+    console.error('Get pending requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching pending requests',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/leave/requests/employee/:employeeId
+// @desc    Get all leave requests for an employee
+// @access  Private
+router.get('/requests/employee/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const requests = await LeaveRequest.find({ employeeId })
+      .populate('approverId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: requests
+    });
+  } catch (error) {
+    console.error('Get employee requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching leave requests',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/leave/requests/:id/approve
+// @desc    Approve a leave request
+// @access  Private (Manager/Admin)
+router.post('/requests/:id/approve', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approvalNotes } = req.body;
+
+    const leaveRequest = await LeaveRequest.findById(id);
+    if (!leaveRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave request not found'
+      });
+    }
+
+    if (leaveRequest.status !== 'Pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve a ${leaveRequest.status} leave request`
+      });
+    }
+
+    leaveRequest.status = 'Approved';
+    leaveRequest.adminComment = approvalNotes || '';
+    leaveRequest.approvedAt = new Date();
+    await leaveRequest.save();
+
+    // Update leave balance if applicable
+    if (leaveRequest.leaveType !== 'Unpaid') {
+      const balance = await AnnualLeaveBalance.findOne({
+        user: leaveRequest.employeeId
+      });
+
+      if (balance) {
+        balance.daysUsed = (balance.daysUsed || 0) + leaveRequest.numberOfDays;
+        await balance.save();
+      }
+    }
+
+    await leaveRequest.populate('employeeId', 'firstName lastName email');
+    await leaveRequest.populate('approverId', 'firstName lastName email');
+
+    res.json({
+      success: true,
+      message: 'Leave request approved successfully',
+      data: leaveRequest
+    });
+  } catch (error) {
+    console.error('Approve leave request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error approving leave request',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/leave/requests/:id/reject
+// @desc    Reject a leave request
+// @access  Private (Manager/Admin)
+router.post('/requests/:id/reject', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+
+    if (!rejectionReason || rejectionReason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required'
+      });
+    }
+
+    const leaveRequest = await LeaveRequest.findById(id);
+    if (!leaveRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave request not found'
+      });
+    }
+
+    if (leaveRequest.status !== 'Pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot reject a ${leaveRequest.status} leave request`
+      });
+    }
+
+    leaveRequest.status = 'Rejected';
+    leaveRequest.rejectionReason = rejectionReason;
+    leaveRequest.rejectedAt = new Date();
+    await leaveRequest.save();
+
+    await leaveRequest.populate('employeeId', 'firstName lastName email');
+    await leaveRequest.populate('approverId', 'firstName lastName email');
+
+    res.json({
+      success: true,
+      message: 'Leave request rejected successfully',
+      data: leaveRequest
+    });
+  } catch (error) {
+    console.error('Reject leave request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error rejecting leave request',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

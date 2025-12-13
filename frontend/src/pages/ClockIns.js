@@ -1811,172 +1811,113 @@ const ClockIns = () => {
 
             {/* Content Section */}
             <div style={{ padding: '32px' }}>
-              {!showTimelineInModal ? (
-                <>
-                  <h2 style={{
-                    fontSize: '28px',
-                    fontWeight: '700',
-                    color: '#111827',
-                    marginBottom: '12px',
-                    textAlign: 'center'
-                  }}>
-                    Clock In Confirmation
-                  </h2>
-                  <p style={{
+              <h2 style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#111827',
+                marginBottom: '12px',
+                textAlign: 'center'
+              }}>
+                Clock In Confirmation
+              </h2>
+              <p style={{
+                fontSize: '15px',
+                color: '#6b7280',
+                textAlign: 'center',
+                lineHeight: '1.6',
+                marginBottom: '32px'
+              }}>
+                You are about to clock in <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong>.
+                <br />
+                This action will be recorded with a timestamp.
+              </p>
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'center'
+              }}>
+                <button
+                  onClick={() => setShowClockInModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '14px 24px',
+                    borderRadius: '12px',
+                    border: '2px solid #e5e7eb',
+                    background: '#ffffff',
+                    color: '#374151',
                     fontSize: '15px',
-                    color: '#6b7280',
-                    textAlign: 'center',
-                    lineHeight: '1.6',
-                    marginBottom: '32px'
-                  }}>
-                    You are about to clock in <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong>.
-                    <br />
-                    This action will be recorded with a timestamp.
-                  </p>
-
-                  {/* Action Buttons */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    justifyContent: 'center'
-                  }}>
-                    <button
-                      onClick={() => setShowClockInModal(false)}
-                      style={{
-                        flex: 1,
-                        padding: '14px 24px',
-                        borderRadius: '12px',
-                        border: '2px solid #e5e7eb',
-                        background: '#ffffff',
-                        color: '#374151',
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#f9fafb';
-                        e.target.style.borderColor = '#d1d5db';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = '#ffffff';
-                        e.target.style.borderColor = '#e5e7eb';
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={confirmClockIn}
-                      style={{
-                        flex: 1,
-                        padding: '14px 24px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                        color: '#ffffff',
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.5)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
-                      }}
-                    >
-                      Confirm Clock In
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h2 style={{
-                    fontSize: '28px',
-                    fontWeight: '700',
-                    color: '#111827',
-                    marginBottom: '12px',
-                    textAlign: 'center'
-                  }}>
-                    Clock In Successful!
-                  </h2>
-                  <p style={{
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#f9fafb';
+                    e.target.style.borderColor = '#d1d5db';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#ffffff';
+                    e.target.style.borderColor = '#e5e7eb';
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmClockIn}
+                  style={{
+                    flex: 1,
+                    padding: '14px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                    color: '#ffffff',
                     fontSize: '15px',
-                    color: '#6b7280',
-                    textAlign: 'center',
-                    lineHeight: '1.6',
-                    marginBottom: '32px'
-                  }}>
-                    <strong style={{ color: '#111827' }}>{clockInEmployee.firstName} {clockInEmployee.lastName}</strong> has been clocked in successfully.
-                  </p>
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+                  }}
+                >
+                  Confirm Clock In
+                </button>
+              </div>
 
-                  {/* Geolocation Section */}
-                  {clockInGeoLocation && (
-                    <div style={{
-                      background: '#f0fdf4',
-                      border: '1px solid #bbf7d0',
-                      borderRadius: '12px',
-                      padding: '16px',
-                      marginBottom: '24px'
-                    }}>
-                      <h3 style={{
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#166534',
-                        marginBottom: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        📍 Location Captured
-                      </h3>
-                      <div style={{ fontSize: '13px', color: '#166534', lineHeight: '1.8' }}>
-                        <div><strong>Coordinates:</strong> {clockInGeoLocation.latitude.toFixed(6)}, {clockInGeoLocation.longitude.toFixed(6)}</div>
-                        <div><strong>Accuracy:</strong> ±{Math.round(clockInGeoLocation.accuracy)}m</div>
-                        <div><strong>Time:</strong> {clockInGeoLocation.timestamp}</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Close Button */}
-                  <div style={{
+              {/* Geolocation Section - Shown after successful clock in */}
+              {clockInGeoLocation && (
+                <div style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginTop: '24px'
+                }}>
+                  <h3 style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#166534',
+                    marginBottom: '12px',
                     display: 'flex',
-                    justifyContent: 'center'
+                    alignItems: 'center',
+                    gap: '8px'
                   }}>
-                    <button
-                      onClick={() => {
-                        setShowClockInModal(false);
-                      }}
-                      style={{
-                        padding: '14px 32px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        color: '#ffffff',
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.5)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
-                      }}
-                    >
-                      Close
-                    </button>
+                    📍 Location Captured
+                  </h3>
+                  <div style={{ fontSize: '13px', color: '#166534', lineHeight: '1.8' }}>
+                    <div><strong>Coordinates:</strong> {clockInGeoLocation.latitude.toFixed(6)}, {clockInGeoLocation.longitude.toFixed(6)}</div>
+                    <div><strong>Accuracy:</strong> ±{Math.round(clockInGeoLocation.accuracy)}m</div>
+                    <div><strong>Time:</strong> {clockInGeoLocation.timestamp}</div>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
