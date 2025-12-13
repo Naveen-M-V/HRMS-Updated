@@ -71,6 +71,12 @@ exports.employeeLogin = async (req, res) => {
       lastLogin: employee.lastLogin
     };
 
+    // Set session
+    req.session.user = {
+      ...employeeResponse,
+      userType: 'employee'
+    };
+
     res.status(200).json({
       success: true,
       message: `Welcome back, ${employee.firstName}!`,
@@ -145,6 +151,12 @@ exports.profileLogin = async (req, res) => {
       lastLogin: profile.lastLogin
     };
 
+    // Set session
+    req.session.user = {
+      ...profileResponse,
+      userType: 'profile'
+    };
+
     res.status(200).json({
       success: true,
       message: `Welcome back, ${profile.firstName}!`,
@@ -212,6 +224,12 @@ exports.unifiedLogin = async (req, res) => {
           lastLogin: employee.lastLogin
         };
 
+        // Set session for employee
+        req.session.user = {
+          ...employeeResponse,
+          userType: 'employee'
+        };
+
         return res.status(200).json({
           success: true,
           message: `Welcome back, ${employee.firstName}!`,
@@ -255,6 +273,12 @@ exports.unifiedLogin = async (req, res) => {
           course: profile.course,
           isActive: profile.isActive,
           lastLogin: profile.lastLogin
+        };
+
+        // Set session for profile
+        req.session.user = {
+          ...profileResponse,
+          userType: 'profile'
         };
 
         return res.status(200).json({
