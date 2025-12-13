@@ -123,9 +123,11 @@ const UserDashboard = () => {
 
         // Fetch user notifications from session-based endpoint
         try {
+          const token = localStorage.getItem('auth_token');
           const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications?limit=10`, {
             credentials: 'include',
             headers: {
+              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             }
           });

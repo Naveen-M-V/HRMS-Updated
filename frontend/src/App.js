@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  Outlet,
 } from "react-router-dom";
 import { useState, useEffect } from "react";
 import ModernSidebar from "./components/ModernSidebar";
@@ -207,306 +208,166 @@ function App() {
     };
   }, []);
 
+  // Inline AdminLayout component with Outlet for nested routes
+  function AdminLayout() {
+    return (
+      <ProfileProvider>
+        <CertificateProvider>
+          <div className="flex min-h-screen bg-gray-50">
+            <ModernSidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+            <div
+              className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarOpen ? "ml-64" : "ml-16"}`}
+            >
+              <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+              <div className="p-6 flex-1">
+                <Outlet />
+              </div>
+            </div>
+          </div>
+        </CertificateProvider>
+      </ProfileProvider>
+    );
+  }
+
   return (
     <AuthProvider>
-      <AlertProvider>
-        <AdminClockInWrapper>
-          <Router>
-            <Routes>
-              {/* Authentication routes without layout */}
-              <Route
-                path="/login"
-                element={
-                  <ErrorBoundary>
-                    <Login />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/signup"
-                element={
-                  <ErrorBoundary>
-                    <Signup />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/forgot-password"
-                element={
-                  <ErrorBoundary>
-                    <ForgotPassword />
-                  </ErrorBoundary>
-                }
-              />
-              <Route
-                path="/reset-password"
-                element={
-                  <ErrorBoundary>
-                    <ResetPassword />
-                  </ErrorBoundary>
-                }
-              />
-
-              {/* User Dashboard Routes - No Sidebar */}
-              <Route
-                path="/user-dashboard"
-                element={
-                  <UserProtectedRoute>
-                    <ClockStatusProvider>
+      <ClockStatusProvider>
+        <NotificationProvider>
+          <AlertProvider>
+            <AdminClockInWrapper>
+              <Router>
+                <Routes>
+                  {/* Authentication routes without layout */}
+                  <Route
+                    path="/login"
+                    element={
                       <ErrorBoundary>
-                        <UserDashboard />
+                        <Login />
                       </ErrorBoundary>
-                    </ClockStatusProvider>
-                  </UserProtectedRoute>
-                }
-              />
+                    }
+                  />
+                  <Route
+                    path="/signup"
+                    element={
+                      <ErrorBoundary>
+                        <Signup />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/forgot-password"
+                    element={
+                      <ErrorBoundary>
+                        <ForgotPassword />
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/reset-password"
+                    element={
+                      <ErrorBoundary>
+                        <ResetPassword />
+                      </ErrorBoundary>
+                    }
+                  />
 
-              {/* User Certificate Routes */}
-              <Route
-                path="/user/certificates/create"
-                element={
-                  <UserProtectedRoute>
-                    <ErrorBoundary>
-                      <UserCertificateCreate />
-                    </ErrorBoundary>
-                  </UserProtectedRoute>
-                }
-              />
+                  {/* User Dashboard Routes - No Sidebar */}
+                  <Route
+                    path="/user-dashboard"
+                    element={
+                      <UserProtectedRoute>
+                        <ErrorBoundary>
+                          <UserDashboard />
+                        </ErrorBoundary>
+                      </UserProtectedRoute>
+                    }
+                  />
 
-              <Route
-                path="/user/certificates/:id"
-                element={
-                  <UserProtectedRoute>
-                    <ErrorBoundary>
-                      <UserCertificateView />
-                    </ErrorBoundary>
-                  </UserProtectedRoute>
-                }
-              />
+                  {/* User Certificate Routes */}
+                  <Route
+                    path="/user/certificates/create"
+                    element={
+                      <UserProtectedRoute>
+                        <ErrorBoundary>
+                          <UserCertificateCreate />
+                        </ErrorBoundary>
+                      </UserProtectedRoute>
+                    }
+                  />
 
-              {/* Admin routes with layout - Protected */}
-              <Route
-                path="/*"
-                element={
-                  <AdminProtectedRoute>
-                    <ProfileProvider>
-                      <CertificateProvider>
-                        <NotificationProvider>
-                          <ClockStatusProvider>
-                            <div className="flex min-h-screen bg-gray-50">
-                              <ModernSidebar isOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-                              <div
-                                className={`flex-1 flex flex-col transition-all duration-300 ${isSidebarOpen ? "ml-64" : "ml-16"
-                                  }`}
-                              >
-                                <Topbar
-                                  toggleSidebar={() =>
-                                    setIsSidebarOpen(!isSidebarOpen)
-                                  }
-                                />
-                                <div className="p-6 flex-1">
-                                  <Routes>
-                                    <Route path="/" element={<Dashboard />} />
-                                    <Route
-                                      path="/dashboard"
-                                      element={<Dashboard />}
-                                    />
-                                    <Route
-                                      path="/myaccount/profiles"
-                                      element={<MyAccount />}
-                                    />
-                                    <Route
-                                      path="/myaccount/notifications"
-                                      element={<Notifications />}
-                                    />
-                                    <Route
-                                      path="/clients"
-                                      element={<Clients />}
-                                    />
-                                    <Route
-                                      path="/profiles"
-                                      element={<ProfilesPage />}
-                                    />
-                                    <Route
-                                      path="/dashboard/profilescreate"
-                                      element={<ProfilesCreate />}
-                                    />
-                                    {/* <Route
-                                    path="/create-user"
-                                    element={<CreateUser />}
-                                  /> */}
-                                    {/* Removed - employees should be created via Employee Hub */}
-                                    <Route
-                                      path="/profiles/:id"
-                                      element={<ProfileDetailView />}
-                                    />
-                                    <Route
-                                      path="/profiles/edit/:id"
-                                      element={<EditUserProfile />}
-                                    />
-                                    <Route
-                                      path="/edit-user-profile/:id"
-                                      element={<EditUserProfile />}
-                                    />
-                                    <Route
-                                      path="/edit-employee/:id"
-                                      element={<EditEmployeeProfile />}
-                                    />
-                                    <Route
-                                      path="/profile"
-                                      element={<Profile />}
-                                    />
-                                    <Route
-                                      path="/noaccess"
-                                      element={<NoAccess />}
-                                    />
-                                    <Route
-                                      path="/editprofile"
-                                      element={<EditProfile />}
-                                    />
-                                    <Route
-                                      path="/sharestaff"
-                                      element={<Sharestaff />}
-                                    />
-                                    <Route
-                                      path="/staffdetail"
-                                      element={<StaffDetail />}
-                                    />
-                                    <Route
-                                      path="/dashboard/createcertificate"
-                                      element={<CreateCertificate />}
-                                    />
-                                    <Route
-                                      path="/reporting/certificates"
-                                      element={<CertificatesPage />}
-                                    />
-                                    <Route
-                                      path="/certificates"
-                                      element={<CertificateManagement />}
-                                    />
-                                    <Route
-                                      path="/editcertificate/:id"
-                                      element={<EditCertificate />}
-                                    />
-                                    <Route
-                                      path="/viewcertificate/:id"
-                                      element={<ViewCertificate />}
-                                    />
-                                    <Route
-                                      path="/reporting/profiles"
-                                      element={<ProfilesPage />}
-                                    />
-                                    <Route
-                                      path="/dashboard/admin-details"
-                                      element={<AdminDetailsModal />}
-                                    />
-                                    <Route
-                                      path="/rota-management"
-                                      element={<RotaShiftManagement />}
-                                    />
-                                    <Route
-                                      path="/rota-shift-management"
-                                      element={<RotaShiftManagement />}
-                                    />
-                                    <Route
-                                      path="/clock-overview"
-                                      element={<ClockInOut />}
-                                    />
-                                    <Route
-                                      path="/clock-ins"
-                                      element={<ClockIns />}
-                                    />
-                                    <Route
-                                      path="/time-history"
-                                      element={<TimeHistory />}
-                                    />
-                                    <Route
-                                      path="/manage-teams"
-                                      element={<ManageTeams />}
-                                    />
-                                    <Route
-                                      path="/employee-hub"
-                                      element={<EmployeeHub />}
-                                    />
-                                    <Route
-                                      path="/archive-employees"
-                                      element={<ArchiveEmployees />}
-                                    />
-                                    <Route
-                                      path="/organisational-chart"
-                                      element={<OrganisationalChart />}
-                                    />
-                                    <Route
-                                      path="/add-employee"
-                                      element={<AddEmployee />}
-                                    />
-                                    <Route
-                                      path="/calendar"
-                                      element={<Calendar />}
-                                    />
-                                    <Route
-                                      path="/employee/:employeeId"
-                                      element={<EmployeeProfile />}
-                                    />
-                                    <Route
-                                      path="/annual-leave-balance"
-                                      element={<AnnualLeaveBalance />}
-                                    />
-                                    <Route
-                                      path="/manager-approvals"
-                                      element={<ManagerApprovalDashboard />}
-                                    />
-                                    <Route
-                                      path="/report-library"
-                                      element={<ReportLibrary />}
-                                    />
-                                    <Route
-                                      path="/expenses"
-                                      element={<Expenses />}
-                                    />
-                                    <Route
-                                      path="/expenses/add"
-                                      element={<AddExpense />}
-                                    />
-                                    <Route
-                                      path="/expenses/:id"
-                                      element={<ViewExpense />}
-                                    />
-                                    <Route
-                                      path="/documents"
-                                      element={<Documents />}
-                                    />
-                                    <Route
-                                      path="/documents/:folderId"
-                                      element={<FolderView />}
-                                    />
-                                    <Route
-                                      path="/performance/goals"
-                                      element={<Goals />}
-                                    />
-                                    <Route
-                                      path="/performance/reviews"
-                                      element={<Reviews />}
-                                    />
-                                    <Route
-                                      path="/e-learning/*"
-                                      element={<ELearningPage />}
-                                    />
-                                  </Routes>
-                                </div>
-                              </div>
-                            </div>
-                          </ClockStatusProvider>
-                        </NotificationProvider>
-                      </CertificateProvider>
-                    </ProfileProvider>
-                  </AdminProtectedRoute>
-                }
-              />
-            </Routes>
-          </Router>
-        </AdminClockInWrapper>
-      </AlertProvider>
+                  <Route
+                    path="/user/certificates/:id"
+                    element={
+                      <UserProtectedRoute>
+                        <ErrorBoundary>
+                          <UserCertificateView />
+                        </ErrorBoundary>
+                      </UserProtectedRoute>
+                    }
+                  />
+
+                  {/* Admin routes with layout - Protected - React Router v6 compliant */}
+                  <Route
+                    path="/"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminLayout />
+                      </AdminProtectedRoute>
+                    }
+                  >
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/myaccount/profiles" element={<MyAccount />} />
+                    <Route path="/myaccount/notifications" element={<Notifications />} />
+                    <Route path="/clients" element={<Clients />} />
+                    <Route path="/profiles" element={<ProfilesPage />} />
+                    <Route path="/dashboard/profilescreate" element={<ProfilesCreate />} />
+                    <Route path="/profiles/:id" element={<ProfileDetailView />} />
+                    <Route path="/profiles/edit/:id" element={<EditUserProfile />} />
+                    <Route path="/edit-user-profile/:id" element={<EditUserProfile />} />
+                    <Route path="/edit-employee/:id" element={<EditEmployeeProfile />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/noaccess" element={<NoAccess />} />
+                    <Route path="/editprofile" element={<EditProfile />} />
+                    <Route path="/sharestaff" element={<Sharestaff />} />
+                    <Route path="/staffdetail" element={<StaffDetail />} />
+                    <Route path="/dashboard/createcertificate" element={<CreateCertificate />} />
+                    <Route path="/reporting/certificates" element={<CertificatesPage />} />
+                    <Route path="/certificates" element={<CertificateManagement />} />
+                    <Route path="/editcertificate/:id" element={<EditCertificate />} />
+                    <Route path="/viewcertificate/:id" element={<ViewCertificate />} />
+                    <Route path="/reporting/profiles" element={<ProfilesPage />} />
+                    <Route path="/dashboard/admin-details" element={<AdminDetailsModal />} />
+                    <Route path="/rota-management" element={<RotaShiftManagement />} />
+                    <Route path="/rota-shift-management" element={<RotaShiftManagement />} />
+                    <Route path="/clock-overview" element={<ClockInOut />} />
+                    <Route path="/clock-ins" element={<ClockIns />} />
+                    <Route path="/time-history" element={<TimeHistory />} />
+                    <Route path="/manage-teams" element={<ManageTeams />} />
+                    <Route path="/employee-hub" element={<EmployeeHub />} />
+                    <Route path="/archive-employees" element={<ArchiveEmployees />} />
+                    <Route path="/organisational-chart" element={<OrganisationalChart />} />
+                    <Route path="/add-employee" element={<AddEmployee />} />
+                    <Route path="/calendar" element={<Calendar />} />
+                    <Route path="/employee/:employeeId" element={<EmployeeProfile />} />
+                    <Route path="/annual-leave-balance" element={<AnnualLeaveBalance />} />
+                    <Route path="/manager-approvals" element={<ManagerApprovalDashboard />} />
+                    <Route path="/report-library" element={<ReportLibrary />} />
+                    <Route path="/expenses" element={<Expenses />} />
+                    <Route path="/expenses/add" element={<AddExpense />} />
+                    <Route path="/expenses/:id" element={<ViewExpense />} />
+                    <Route path="/documents" element={<Documents />} />
+                    <Route path="/documents/:folderId" element={<FolderView />} />
+                    <Route path="/performance/goals" element={<Goals />} />
+                    <Route path="/performance/reviews" element={<Reviews />} />
+                    <Route path="/e-learning/*" element={<ELearningPage />} />
+                  </Route>
+                </Routes>
+              </Router>
+            </AdminClockInWrapper>
+          </AlertProvider>
+        </NotificationProvider>
+      </ClockStatusProvider>
     </AuthProvider>
   );
 }
