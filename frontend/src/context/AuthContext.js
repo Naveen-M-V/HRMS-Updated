@@ -129,13 +129,20 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize state from session storage
   const getInitialState = () => {
+    console.log('🚀 Initializing auth state...');
     const sessionData = sessionStorage.getUserSession();
     if (sessionData && sessionData.user) {
+      console.log('✅ Found session data on init:', {
+        userRole: sessionData.user.role,
+        userType: sessionData.user.userType,
+        email: sessionData.user.email
+      });
       return {
         user: sessionData.user,
         isAuthenticated: true
       };
     }
+    console.log('❌ No session data found on init');
     return {
       user: null,
       isAuthenticated: false
@@ -147,6 +154,17 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(initialState.isAuthenticated);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Debug: Track user state changes
+  useEffect(() => {
+    console.log('👤 User state changed:', {
+      isAuthenticated,
+      hasUser: !!user,
+      userRole: user?.role,
+      userType: user?.userType,
+      userEmail: user?.email
+    });
+  }, [user, isAuthenticated]);
 
   // Note: Session cookies are httpOnly and managed by the server
   // This function is deprecated and should not be used
@@ -180,6 +198,8 @@ export const AuthProvider = ({ children }) => {
   // Check for existing session on app start
   useEffect(() => {
     let isMounted = true;
+
+    console.log('🔄 useEffect running - checking session', { hasUser: !!user });
 
     // Only run background validation if user is not already set
     if (!user && isMounted) {
@@ -236,6 +256,14 @@ export const AuthProvider = ({ children }) => {
       // Backend returns: { success: true, data: { user, token, userType } }
       const { token, user: userData, userType } = response.data.data || response.data;
 
+      console.log('🔍 Login response received:', {
+        hasToken: !!token,
+        hasUserData: !!userData,
+        userType,
+        userRole: userData?.role,
+        userEmail: userData?.email
+      });
+
       if (!userData) {
         throw new Error('Invalid response from server');
       }
@@ -246,12 +274,21 @@ export const AuthProvider = ({ children }) => {
         userType: userType || userData.userType
       };
 
+      console.log('📦 User object prepared for storage:', {
+        role: userWithType.role,
+        userType: userWithType.userType,
+        email: userWithType.email,
+        id: userWithType.id
+      });
+
       // Store session data using our session storage utility
       sessionStorage.setUserSession(userWithType, token);
 
       // Update state - session is automatically handled by cookies
       setUser(userWithType);
       setIsAuthenticated(true);
+
+      console.log('✅ Login complete, state updated');
 
       return { success: true, user: userWithType };
     } catch (err) {
