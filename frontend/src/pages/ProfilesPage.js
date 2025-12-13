@@ -208,7 +208,7 @@ export default function ProfilesPage() {
       setLoading(false);
       setShowBulkDeleteDialog(false);
     }
-  }, [selectedProfiles, fetchProfiles]);
+  }, [selectedProfiles]);
 
   // Load profiles on mount and refresh when component becomes visible
   useEffect(() => {
