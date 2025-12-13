@@ -160,7 +160,8 @@ const Calendar = () => {
         
         events.push({
           type: 'shift',
-          title: `${employeeName} - ${shift.location || 'Shift'}`,
+          title: employeeName,
+          subtitle: shift.location || 'Shift',
           time: `${shift.startTime || ''} - ${shift.endTime || ''}`,
           color: shift.status === 'Completed' 
             ? 'bg-green-100 text-green-800 border-green-200'
@@ -168,6 +169,7 @@ const Calendar = () => {
             ? 'bg-red-100 text-red-800 border-red-200'
             : 'bg-blue-100 text-blue-800 border-blue-200',
           icon: '👔',
+          employeeName,
           data: shift
         });
       }
@@ -593,10 +595,17 @@ const Calendar = () => {
                   {events.slice(0, 2).map((event, eventIndex) => (
                     <div
                       key={eventIndex}
-                      className={`text-xs p-1 rounded border ${event.color} truncate`}
-                      title={event.title}
+                      className={`text-xs p-1 rounded border ${event.color}`}
+                      title={`${event.employeeName || event.title}${event.time ? ` (${event.time})` : ''}`}
                     >
-                      {event.title}
+                      <div className="font-semibold truncate">
+                        {event.employeeName || event.title}
+                      </div>
+                      {event.time && event.type === 'shift' && (
+                        <div className="text-[10px] opacity-75 truncate">
+                          {event.time}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {events.length > 2 && (
@@ -684,29 +693,35 @@ const Calendar = () => {
                       </div>
                       <div className="space-y-3 max-h-[350px] overflow-y-auto">
                         {selectedDayEvents.filter(e => e.type === 'shift').map((event, idx) => (
-                          <div key={idx} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-3 hover:shadow-md transition-all">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-2xl">{event.icon}</span>
-                                  <div>
-                                    <h4 className="font-bold text-gray-900">{event.title}</h4>
-                                    <p className="text-xs text-gray-600 flex items-center gap-1 mt-1">
-                                      <ClockIcon className="h-3 w-3 text-blue-600" />
-                                      <span className="font-medium">{event.time}</span>
+                          <div key={idx} className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-4 hover:shadow-md transition-all">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{event.icon}</span>
+                                <div>
+                                  <h4 className="font-bold text-gray-900 text-base">{event.employeeName || event.title}</h4>
+                                  {event.subtitle && (
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      📍 {event.subtitle}
                                     </p>
-                                  </div>
+                                  )}
                                 </div>
-                                {event.data.location && (
-                                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
-                                    <span className="font-medium">📍</span>
-                                    <span>{event.data.location}</span>
-                                  </div>
-                                )}
                               </div>
                               <span className={`px-3 py-1 rounded-lg text-xs font-bold ${event.color} shadow-sm`}>
-                                {event.data.status}
+                                {event.data.status || 'Scheduled'}
                               </span>
+                            </div>
+                            
+                            <div className="space-y-2 ml-11">
+                              <div className="flex items-center gap-2 text-sm">
+                                <ClockIcon className="h-4 w-4 text-blue-600" />
+                                <span className="font-semibold text-gray-800">{event.time}</span>
+                              </div>
+                              
+                              {event.data.notes && (
+                                <div className="bg-white rounded-lg p-2 border border-blue-200">
+                                  <p className="text-xs text-gray-700">💬 {event.data.notes}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}

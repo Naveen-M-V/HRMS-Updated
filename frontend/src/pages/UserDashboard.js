@@ -6,7 +6,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
 import UserClockIns from './UserClockIns';
-import Calendar from './Calendar';
+import MyShifts from '../components/MyShifts';
 import Documents from './Documents';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
@@ -1216,7 +1216,7 @@ const UserDashboard = () => {
         {/* Shifts/Calendar Tab - Only for Employee Users */}
         {activeTab === 'shifts' && isEmployeeUser && (
           <div style={{ margin: '-32px', padding: '0' }}>
-            <Calendar />
+            <MyShifts />
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { userClockOut, getUserClockStatus } from '../utils/clockApi';
 import { toast } from 'react-toastify';
+import { useClockStatus } from '../context/ClockStatusContext';
 
 /**
  * Admin Clock-Out Modal
@@ -8,6 +9,7 @@ import { toast } from 'react-toastify';
  */
 
 const AdminClockOutModal = ({ user, onClose, onClockOut }) => {
+  const { triggerClockRefresh } = useClockStatus();
   const [loading, setLoading] = useState(true);
   const [notClockedIn, setNotClockedIn] = useState(false);
   const [clockStatus, setClockStatus] = useState(null);
@@ -49,6 +51,14 @@ const AdminClockOutModal = ({ user, onClose, onClockOut }) => {
       
       if (response.success) {
         toast.success('You have successfully clocked out!');
+        
+        // Trigger clock status refresh across all tabs
+        triggerClockRefresh({
+          action: 'admin_clock_out',
+          userId: user?.id || user?._id,
+          timestamp: Date.now()
+        });
+        
         if (onClockOut) onClockOut(response.data);
         setTimeout(() => onClose(), 1500);
       } else {

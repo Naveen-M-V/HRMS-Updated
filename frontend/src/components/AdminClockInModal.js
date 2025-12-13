@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { userClockIn, getUserClockStatus } from '../utils/clockApi';
 import { toast } from 'react-toastify';
 import MUITimePicker from './MUITimePicker';
+import { useClockStatus } from '../context/ClockStatusContext';
 
 /**
  * Admin Clock-In Floating Modal
@@ -9,6 +10,7 @@ import MUITimePicker from './MUITimePicker';
  */
 
 const AdminClockInModal = ({ user, onClose, onClockIn }) => {
+  const { triggerClockRefresh } = useClockStatus();
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState('Work From Office');
   const [workType, setWorkType] = useState('Regular');
@@ -91,6 +93,14 @@ const AdminClockInModal = ({ user, onClose, onClockIn }) => {
       
       if (response.success) {
         toast.success('You have successfully clocked in!');
+        
+        // Trigger global clock refresh to update all components
+        triggerClockRefresh({ 
+          action: 'admin_clock_in', 
+          userId: user?.id || user?._id,
+          timestamp: Date.now()
+        });
+        
         // Call onClockIn callback to update parent component
         if (onClockIn) {
           await onClockIn(response.data);
