@@ -77,14 +77,27 @@ exports.employeeLogin = async (req, res) => {
       userType: 'employee'
     };
 
-    res.status(200).json({
-      success: true,
-      message: `Welcome back, ${employee.firstName}!`,
-      data: {
-        user: employeeResponse,
-        token,
-        userType: 'employee'
+    // Force session save before sending response
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to save session'
+        });
       }
+
+      console.log('✅ Session saved successfully for employee:', employee.email);
+      
+      res.status(200).json({
+        success: true,
+        message: `Welcome back, ${employee.firstName}!`,
+        data: {
+          user: employeeResponse,
+          token,
+          userType: 'employee'
+        }
+      });
     });
 
   } catch (error) {
@@ -157,14 +170,27 @@ exports.profileLogin = async (req, res) => {
       userType: 'profile'
     };
 
-    res.status(200).json({
-      success: true,
-      message: `Welcome back, ${profile.firstName}!`,
-      data: {
-        user: profileResponse,
-        token,
-        userType: 'profile'
+    // Force session save before sending response
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to save session'
+        });
       }
+
+      console.log('✅ Session saved successfully for profile:', profile.email);
+      
+      res.status(200).json({
+        success: true,
+        message: `Welcome back, ${profile.firstName}!`,
+        data: {
+          user: profileResponse,
+          token,
+          userType: 'profile'
+        }
+      });
     });
 
   } catch (error) {
@@ -230,14 +256,27 @@ exports.unifiedLogin = async (req, res) => {
           userType: 'employee'
         };
 
-        return res.status(200).json({
-          success: true,
-          message: `Welcome back, ${employee.firstName}!`,
-          data: {
-            user: employeeResponse,
-            token,
-            userType: 'employee'
+        // Force session save before sending response
+        return req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+            return res.status(500).json({
+              success: false,
+              message: 'Failed to save session'
+            });
           }
+
+          console.log('✅ Session saved successfully (unified) for employee:', employee.email);
+          
+          return res.status(200).json({
+            success: true,
+            message: `Welcome back, ${employee.firstName}!`,
+            data: {
+              user: employeeResponse,
+              token,
+              userType: 'employee'
+            }
+          });
         });
       }
     } catch (employeeError) {
@@ -281,14 +320,27 @@ exports.unifiedLogin = async (req, res) => {
           userType: 'profile'
         };
 
-        return res.status(200).json({
-          success: true,
-          message: `Welcome back, ${profile.firstName}!`,
-          data: {
-            user: profileResponse,
-            token,
-            userType: 'profile'
+        // Force session save before sending response
+        return req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+            return res.status(500).json({
+              success: false,
+              message: 'Failed to save session'
+            });
           }
+
+          console.log('✅ Session saved successfully (unified) for profile:', profile.email);
+          
+          return res.status(200).json({
+            success: true,
+            message: `Welcome back, ${profile.firstName}!`,
+            data: {
+              user: profileResponse,
+              token,
+              userType: 'profile'
+            }
+          });
         });
       }
     } catch (profileError) {

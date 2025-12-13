@@ -1494,7 +1494,10 @@ router.post('/user/in', authenticateSession, async (req, res) => {
         status: existingEntry.status,
         clockIn: existingEntry.clockIn,
         date: existingEntry.date,
-        entryId: existingEntry._id
+        dateString: dateString,
+        entryId: existingEntry._id,
+        breaks: existingEntry.breaks,
+        onBreakStart: existingEntry.onBreakStart
       });
       return res.status(400).json({
         success: false,
@@ -1973,6 +1976,12 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
     
+    console.log('🔵 Resume work request:', {
+      userId,
+      dateString,
+      ukNow: ukNow.toISOString()
+    });
+    
     const timeEntry = await TimeEntry.findOne({
       $or: [
         { employee: userId },
@@ -1983,11 +1992,18 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
     }).populate('employee', 'firstName lastName email');
 
     if (!timeEntry) {
+      console.log('❌ No on_break entry found for user:', userId, 'date:', dateString);
       return res.status(400).json({
         success: false,
         message: 'You are not currently on break'
       });
     }
+
+    console.log('✅ Found on_break entry:', {
+      entryId: timeEntry._id,
+      status: timeEntry.status,
+      onBreakStart: timeEntry.onBreakStart
+    });
 
     // Calculate break duration
     const currentTime = new Date().toTimeString().slice(0, 5);
@@ -2012,6 +2028,11 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
     timeEntry.onBreakStart = null;
     
     await timeEntry.save();
+    
+    console.log('✅ Work resumed successfully:', {
+      entryId: timeEntry._id,
+      newStatus: timeEntry.status
+    });
 
     // Create notification
     try {
@@ -2368,6 +2389,88 @@ router.get('/dashboard-stats', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard stats',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/clock/force-reset/:employeeId
+ * Force reset an employee's clock status (admin only)
+ */
+router.post('/force-reset/:employeeId', authenticateSession, async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    
+    // Use UK timezone for today's date
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const dateString = ukNow.toISOString().slice(0, 10);
+    
+    console.log('🔧 Force reset requested for employee:', employeeId, 'date:', dateString);
+    
+    // Find and reset today's time entry
+    const timeEntry = await TimeEntry.findOne({
+      $or: [
+        { employee: employeeId },
+        { employee: employeeId }
+      ],
+      date: dateString,
+      status: { $in: ['clocked_in', 'on_break'] }
+    });
+    
+    if (!timeEntry) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active time entry found for this employee today'
+      });
+    }
+    
+    console.log('✅ Found time entry to reset:', {
+      entryId: timeEntry._id,
+      currentStatus: timeEntry.status,
+      clockIn: timeEntry.clockIn
+    });
+    
+    // Force clock out
+    const currentTime = ukNow.toTimeString().slice(0, 5);
+    timeEntry.clockOut = ukNow;
+    timeEntry.status = 'clocked_out';
+    timeEntry.onBreakStart = null;
+    
+    // Calculate hours
+    const clockInTime = timeEntry.clockIn instanceof Date 
+      ? timeEntry.clockIn.toTimeString().slice(0, 5) 
+      : timeEntry.clockIn;
+    
+    const hoursWorked = calculateHoursWorked(clockInTime, currentTime, timeEntry.breaks || []);
+    timeEntry.hoursWorked = hoursWorked;
+    timeEntry.totalHours = hoursWorked;
+    
+    if (timeEntry.scheduledHours && timeEntry.scheduledHours > 0) {
+      timeEntry.variance = hoursWorked - timeEntry.scheduledHours;
+    } else {
+      timeEntry.variance = 0;
+    }
+    
+    await timeEntry.save();
+    
+    console.log('✅ Time entry force reset complete:', {
+      entryId: timeEntry._id,
+      newStatus: timeEntry.status,
+      hoursWorked
+    });
+    
+    res.json({
+      success: true,
+      message: 'Employee clock status has been reset',
+      data: timeEntry
+    });
+    
+  } catch (error) {
+    console.error('Error forcing clock reset:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset clock status',
       error: error.message
     });
   }

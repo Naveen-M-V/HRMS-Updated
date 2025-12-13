@@ -595,12 +595,20 @@ const ClockIns = () => {
           )
         );
         
-        // Trigger refresh for UserDashboard
-        triggerClockRefresh();
+        // Trigger refresh for UserDashboard and AdminDashboard
+        triggerClockRefresh({
+          action: isCurrentUser ? 'START_BREAK' : 'ADMIN_START_BREAK',
+          employeeId: employeeId,
+          employeeName: employee?.firstName && employee?.lastName 
+            ? `${employee.firstName} ${employee.lastName}` 
+            : 'Employee',
+          timestamp: Date.now()
+        });
         
         // Wait before fetching fresh data
         setTimeout(async () => {
           await fetchData();
+          await fetchMyStatus();
         }, 1000);
       } else {
         toast.error(response.message || 'Failed to set on break');
@@ -642,8 +650,22 @@ const ClockIns = () => {
       if (response.success) {
         const displayStatus = newStatus === 'resume_work' ? 'resumed work' : actualStatus.replace('_', ' ');
         toast.success(`Status changed to ${displayStatus} successfully`);
+        
+        // Trigger refresh for UserDashboard and AdminDashboard
+        const employee = employees.find(emp => emp.id === employeeId || emp._id === employeeId);
+        triggerClockRefresh({
+          action: newStatus === 'resume_work' ? 'RESUME_WORK' : 'STATUS_CHANGE',
+          employeeId: employeeId,
+          employeeName: employee?.firstName && employee?.lastName 
+            ? `${employee.firstName} ${employee.lastName}` 
+            : 'Employee',
+          newStatus: actualStatus,
+          timestamp: Date.now()
+        });
+        
         // Fetch fresh data to ensure consistency
         await fetchData();
+        await fetchMyStatus();
       } else {
         toast.error(response.message || 'Failed to change status');
         // Revert optimistic update on failure
