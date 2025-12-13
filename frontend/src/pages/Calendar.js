@@ -81,7 +81,7 @@ const Calendar = () => {
       
       // Fetch shift assignments
       const shiftResponse = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/rota/shifts/all`,
+        `${process.env.REACT_APP_API_BASE_URL}/rota/shift-assignments/all`,
         {
           params: {
             startDate: startOfMonth,

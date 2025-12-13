@@ -21,8 +21,14 @@ const MyShifts = () => {
   const [filter, setFilter] = useState('upcoming'); // 'all', 'upcoming', 'past'
 
   useEffect(() => {
-    fetchMyShifts();
-  }, []);
+    // Only fetch if user is loaded
+    if (user?.id || user?._id) {
+      fetchMyShifts();
+    } else {
+      setLoading(false);
+      setError('User not loaded');
+    }
+  }, [user]);
 
   const fetchMyShifts = async () => {
     setLoading(true);
@@ -34,7 +40,7 @@ const MyShifts = () => {
       const endDate = dayjs().add(2, 'month').endOf('month').format('YYYY-MM-DD');
       
       const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/rota/shifts/all`,
+        `${process.env.REACT_APP_API_BASE_URL}/rota/shift-assignments/all`,
         {
           params: {
             startDate,

@@ -20,8 +20,14 @@ const MyLeaveRequests = () => {
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
 
   useEffect(() => {
-    fetchMyRequests();
-  }, []);
+    // Only fetch if user is loaded
+    if (user?.id || user?._id) {
+      fetchMyRequests();
+    } else {
+      setLoading(false);
+      setError('User not loaded');
+    }
+  }, [user]);
 
   const fetchMyRequests = async () => {
     setLoading(true);
