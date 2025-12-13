@@ -1730,12 +1730,19 @@ router.post('/user/out', authenticateSession, async (req, res) => {
     }
     // ===========================================================
     
-    const hoursWorked = calculateHoursWorked(timeEntry.clockIn, currentTime, timeEntry.breaks);
+    // Calculate hours worked - handle both Date objects and time strings
+    const clockInTime = timeEntry.clockIn instanceof Date 
+      ? timeEntry.clockIn.toTimeString().slice(0, 5) 
+      : timeEntry.clockIn;
+    
+    const hoursWorked = calculateHoursWorked(clockInTime, currentTime, timeEntry.breaks || []);
     timeEntry.hoursWorked = hoursWorked;
     timeEntry.totalHours = hoursWorked;
     
-    if (timeEntry.scheduledHours > 0) {
+    if (timeEntry.scheduledHours && timeEntry.scheduledHours > 0) {
       timeEntry.variance = hoursWorked - timeEntry.scheduledHours;
+    } else {
+      timeEntry.variance = 0; // Default variance to 0 if no scheduled hours
     }
     
     await timeEntry.save();
@@ -2301,6 +2308,66 @@ router.get('/employees/count', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch employee count',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/clock/dashboard-stats
+ * Get dashboard statistics for admin overview
+ */
+router.get('/dashboard-stats', async (req, res) => {
+  try {
+    // Get UK timezone date for today's records
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
+    
+    // Get all employees count
+    const totalEmployees = await EmployeesHub.countDocuments();
+    
+    // Get today's time entries
+    const timeEntries = await TimeEntry.find({
+      date: dateString
+    }).populate('employee', 'firstName lastName email');
+    
+    // Count by status
+    const activeEmployees = timeEntries.filter(entry => entry.status === 'clocked_in').length;
+    const onBreakEmployees = timeEntries.filter(entry => entry.status === 'on_break').length;
+    const offlineEmployees = totalEmployees - activeEmployees - onBreakEmployees;
+    
+    // Get expiring certificates (example - you may need to adjust based on your Certificate model)
+    let expiringCertificates = 0;
+    try {
+      const Certificate = require('../models/Certificate');
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      
+      expiringCertificates = await Certificate.countDocuments({
+        expiryDate: {
+          $gte: new Date(),
+          $lte: thirtyDaysFromNow
+        },
+        status: { $ne: 'expired' }
+      });
+    } catch (certError) {
+      console.warn('Certificate count failed:', certError.message);
+    }
+    
+    res.json({
+      totalEmployees,
+      activeEmployees,
+      onBreakEmployees,
+      offlineEmployees,
+      totalCertificates: 0, // Placeholder
+      expiringCertificates
+    });
+    
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch dashboard stats',
       error: error.message
     });
   }

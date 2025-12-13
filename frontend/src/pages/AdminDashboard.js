@@ -30,9 +30,12 @@ const AdminDashboard = () => {
   // Fetch dashboard statistics
   const fetchStats = async () => {
     try {
-      // This would be your actual API endpoint
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/admin/dashboard-stats`, {
-        credentials: 'include'
+      // Fetch from clock dashboard-stats endpoint
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/clock/dashboard-stats`, {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
       });
 
       if (response.ok) {
