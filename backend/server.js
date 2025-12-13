@@ -169,6 +169,9 @@ const validateCertificateInput = (req, res, next) => {
   next();
 };
 
+// Configure mongoose to suppress deprecated warnings
+mongoose.set('strictQuery', false);
+
 // MongoDB connection
 mongoose.connect(MONGODB_URI).then(() => {
   console.log('MongoDB connected successfully');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useClockStatus } from '../context/ClockStatusContext';
 import ComplianceDashboard from '../components/ComplianceDashboard';
 import { 
   ChartBarIcon, 
@@ -15,6 +16,7 @@ import {
  */
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const { refreshTrigger } = useClockStatus();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({
     totalEmployees: 0,
@@ -26,30 +28,17 @@ const AdminDashboard = () => {
   });
 
   // Fetch dashboard statistics
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // This would be your actual API endpoint
-        const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/admin/dashboard-stats`, {
-          credentials: 'include'
-        });
+  const fetchStats = async () => {
+    try {
+      // This would be your actual API endpoint
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/admin/dashboard-stats`, {
+        credentials: 'include'
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-        } else {
-          setStats({
-            totalEmployees: 0,
-            activeEmployees: 0,
-            onBreakEmployees: 0,
-            offlineEmployees: 0,
-            totalCertificates: 0,
-            expiringCertificates: 0,
-            error: 'Failed to load dashboard statistics'
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard stats:', error);
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      } else {
         setStats({
           totalEmployees: 0,
           activeEmployees: 0,
@@ -57,13 +46,35 @@ const AdminDashboard = () => {
           offlineEmployees: 0,
           totalCertificates: 0,
           expiringCertificates: 0,
-          error: 'Failed to load dashboard statistics. Please try again.'
+          error: 'Failed to load dashboard statistics'
         });
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      setStats({
+        totalEmployees: 0,
+        activeEmployees: 0,
+        onBreakEmployees: 0,
+        offlineEmployees: 0,
+        totalCertificates: 0,
+        expiringCertificates: 0,
+        error: 'Failed to load dashboard statistics. Please try again.'
+      });
+    }
+  };
 
+  // Initial fetch on mount
+  useEffect(() => {
     fetchStats();
   }, []);
+
+  // Listen for clock refresh trigger from ClockStatusContext (cross-tab updates)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('🔄 Clock refresh triggered in AdminDashboard, fetching latest stats...');
+      fetchStats();
+    }
+  }, [refreshTrigger]);
 
   const handleEmployeeClick = (employee) => {
     console.log('Employee clicked:', employee);
