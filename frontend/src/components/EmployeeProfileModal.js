@@ -100,6 +100,9 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
   const canTerminateEmployee = () => {
     if (!user) return false;
     const userRole = user.role?.toLowerCase();
+    console.log('DEBUG: EmployeeProfileModal - User role:', user.role);
+    console.log('DEBUG: EmployeeProfileModal - Can terminate:', userRole === 'hr' || userRole === 'admin' || userRole === 'super-admin');
+    console.log('DEBUG: EmployeeProfileModal - Employee status:', employee?.status);
     return userRole === 'hr' || userRole === 'admin' || userRole === 'super-admin';
   };
 
@@ -231,6 +234,10 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                    employee.status === 'on_break' ? '🟡 On Break' : 
                    employee.status === 'clocked_out' ? '🔵 Clocked Out' : '⚪ Absent'}
                 </div>
+              </div>
+              {/* DEBUG: Termination Button Check */}
+              <div style={{border:'2px solid blue', padding:'10px', margin:'10px 0'}}>
+                DEBUG: Termination Button - Can Terminate: {canTerminateEmployee().toString()}, Employee Status: {employee?.status}
               </div>
               {canTerminateEmployee() && employee.status !== 'Terminated' && (
                 <button

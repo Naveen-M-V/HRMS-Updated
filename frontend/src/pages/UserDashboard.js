@@ -38,6 +38,11 @@ const UserDashboard = () => {
   // Check if user is an employee (full features) or profile (certificate-only)
   const isEmployeeUser = user?.userType === 'employee';
   
+  // DEBUG: Log user type and role
+  console.log('DEBUG: UserDashboard - User type:', user?.userType);
+  console.log('DEBUG: UserDashboard - User role:', user?.role);
+  console.log('DEBUG: UserDashboard - isEmployeeUser:', isEmployeeUser);
+  
   // Default tab based on user type
   const defaultTab = isEmployeeUser ? 'overview' : 'certificates';
   const initialTab = searchParams.get('tab') || defaultTab;
@@ -762,6 +767,11 @@ const UserDashboard = () => {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* DEBUG: Leave Request Section Check */}
+        <div style={{border:'2px solid red', padding:'10px', margin:'10px 0'}}>
+          DEBUG: Leave Request Mounted - isEmployeeUser: {isEmployeeUser.toString()}, userType: {user?.userType}
+        </div>
+        
         {/* Overview Tab */}
         {/* Overview Tab - Only for Employee Users */}
         {activeTab === 'overview' && isEmployeeUser && (
