@@ -47,16 +47,6 @@ const LeaveRequestCard = () => {
                     </div>
                   </div>
                 )}
-                
-                {/* Action Buttons */}
-                <div className="flex space-x-3 pt-4">
-                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Save as draft
-                  </button>
-                  <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Send request
-                  </button>
-                </div>
               </div>
               
               {/* Calendar */}
@@ -67,9 +57,9 @@ const LeaveRequestCard = () => {
           </div>
           
           {/* Right Panel - Announcements */}
-          <div className="lg:border-l lg:border-gray-200 lg:pl-6">
+          {/* <div className="lg:border-l lg:border-gray-200 lg:pl-6">
             <AnnouncementsPanel announcements={announcements} />
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

@@ -7,13 +7,14 @@ import { toast } from 'react-toastify';
 const LeaveForm = ({ selectedDates }) => {
   const [formData, setFormData] = useState({
     manager: '',
-    leaveType: 'Sick Leave',
+    leaveType: '',
     reason: ''
   });
 
   const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [managersLoading, setManagersLoading] = useState(true);
 
   const leaveTypes = [
     'Sick Leave',
@@ -31,6 +32,7 @@ const LeaveForm = ({ selectedDates }) => {
 
   const fetchManagers = async () => {
     try {
+      setManagersLoading(true);
       const response = await axios.get('/api/employees?status=Active');
       if (response.data.success) {
         // Filter for specific roles: manager, HR, admin, super-admin
@@ -39,11 +41,14 @@ const LeaveForm = ({ selectedDates }) => {
           ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role) &&
           emp.status === 'Active'
         );
+        console.log('Fetched approvers:', approvers); // Debug log
         setManagers(approvers);
       }
     } catch (error) {
       console.error('Error fetching approvers:', error);
       toast.error('Failed to load approvers');
+    } finally {
+      setManagersLoading(false);
     }
   };
 
@@ -114,7 +119,7 @@ const LeaveForm = ({ selectedDates }) => {
         toast.success('Leave request submitted successfully');
         setFormData({
           manager: '',
-          leaveType: 'Sick Leave',
+          leaveType: '',
           reason: ''
         });
         setErrors({});
@@ -137,19 +142,20 @@ const LeaveForm = ({ selectedDates }) => {
         <label htmlFor="manager" className="block text-sm font-medium text-gray-700 mb-1">
           Approval Manager *
         </label>
-        <div className="relative rounded-md shadow-sm">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <User className="h-4 w-4 text-gray-400" />
-          </div>
-          <Select
-            value={formData.manager}
-            onValueChange={(value) => handleChange('manager', value)}
-          >
-            <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""}`}>
-              <SelectValue placeholder="Select a manager" />
-            </SelectTrigger>
-            <SelectContent>
-              {managers.map(manager => {
+        <Select
+          value={formData.manager}
+          onValueChange={(value) => handleChange('manager', value)}
+        >
+          <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""}`}>
+            <SelectValue placeholder={managersLoading ? "Loading managers..." : "Select a manager"} />
+          </SelectTrigger>
+          <SelectContent>
+            {managersLoading ? (
+              <div className="p-2 text-sm text-gray-500">Loading managers...</div>
+            ) : managers.length === 0 ? (
+              <div className="p-2 text-sm text-gray-500">No managers available</div>
+            ) : (
+              managers.map(manager => {
                 const roleDisplay = manager.role === 'hr' ? 'HR' : 
                                   manager.role === 'super-admin' ? 'Super Admin' :
                                   manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
@@ -158,10 +164,10 @@ const LeaveForm = ({ selectedDates }) => {
                     {manager.firstName} {manager.lastName} — {roleDisplay}
                   </SelectItem>
                 );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
+              })
+            )}
+          </SelectContent>
+        </Select>
         {errors.manager && (
           <p className="mt-1 text-sm text-red-600">{errors.manager}</p>
         )}
@@ -172,26 +178,21 @@ const LeaveForm = ({ selectedDates }) => {
         <label htmlFor="leaveType" className="block text-sm font-medium text-gray-700 mb-1">
           Leave Type *
         </label>
-        <div className="relative rounded-md shadow-sm">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Calendar className="h-4 w-4 text-gray-400" />
-          </div>
-          <Select
-            value={formData.leaveType}
-            onValueChange={(value) => handleChange('leaveType', value)}
-          >
-            <SelectTrigger className={`w-full ${errors.leaveType ? "border-red-500 ring-red-500" : ""}`}>
-              <SelectValue placeholder="Select leave type" />
-            </SelectTrigger>
-            <SelectContent>
-              {leaveTypes.map((type, index) => (
-                <SelectItem key={index} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={formData.leaveType}
+          onValueChange={(value) => handleChange('leaveType', value)}
+        >
+          <SelectTrigger className={`w-full ${errors.leaveType ? "border-red-500 ring-red-500" : ""}`}>
+            <SelectValue placeholder="Select leave type" />
+          </SelectTrigger>
+          <SelectContent>
+            {leaveTypes.map((type, index) => (
+              <SelectItem key={index} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {errors.leaveType && (
           <p className="mt-1 text-sm text-red-600">{errors.leaveType}</p>
         )}
