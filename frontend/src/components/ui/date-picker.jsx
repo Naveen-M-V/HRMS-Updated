@@ -75,6 +75,14 @@ export function DatePicker({
           minDate={effectiveMinDate ? dayjs(effectiveMinDate) : undefined}
           maxDate={effectiveMaxDate ? dayjs(effectiveMaxDate) : undefined}
           disabled={disabled}
+          sx={{
+            '& .MuiPickersPopper-root': {
+              zIndex: 99999,
+            },
+            '& .MuiPaper-root': {
+              zIndex: 99999,
+            }
+          }}
           slotProps={{
             textField: {
               placeholder: placeholder,

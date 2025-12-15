@@ -33,16 +33,10 @@ const LeaveForm = ({ selectedDates }) => {
   const fetchManagers = async () => {
     try {
       setManagersLoading(true);
-      const response = await axios.get('/api/employees?status=Active');
+      const response = await axios.get('/api/employees?status=Active&approvers=true');
       if (response.data.success) {
-        // Filter for specific roles: manager, HR, admin, super-admin
-        // Exclude employees and profiles (interns, trainees, external staff)
-        const approvers = response.data.data.filter(emp =>
-          ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role) &&
-          emp.status === 'Active'
-        );
-        console.log('Fetched approvers:', approvers); // Debug log
-        setManagers(approvers);
+        console.log('Fetched approvers:', response.data.data); // Debug log
+        setManagers(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching approvers:', error);
@@ -145,15 +139,16 @@ const LeaveForm = ({ selectedDates }) => {
         <Select
           value={formData.manager}
           onValueChange={(value) => handleChange('manager', value)}
+          disabled={managers.length === 0}
         >
-          <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""}`}>
-            <SelectValue placeholder={managersLoading ? "Loading managers..." : "Select a manager"} />
+          <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""} ${managers.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
+            <SelectValue placeholder={managersLoading ? "Loading managers..." : managers.length === 0 ? "No approvers available" : "Select a manager"} />
           </SelectTrigger>
           <SelectContent>
             {managersLoading ? (
               <div className="p-2 text-sm text-gray-500">Loading managers...</div>
             ) : managers.length === 0 ? (
-              <div className="p-2 text-sm text-gray-500">No managers available</div>
+              <div className="p-2 text-sm text-gray-500">No approvers available</div>
             ) : (
               managers.map(manager => {
                 const roleDisplay = manager.role === 'hr' ? 'HR' : 
@@ -170,6 +165,9 @@ const LeaveForm = ({ selectedDates }) => {
         </Select>
         {errors.manager && (
           <p className="mt-1 text-sm text-red-600">{errors.manager}</p>
+        )}
+        {managers.length === 0 && !managersLoading && (
+          <p className="mt-1 text-sm text-gray-500">No approvers available. Contact your administrator.</p>
         )}
       </div>
 

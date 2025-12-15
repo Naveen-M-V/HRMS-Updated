@@ -225,10 +225,15 @@ async function checkCircularReporting(managerId, employeeId, visited = new Set()
  */
 exports.getAllEmployees = async (req, res) => {
   try {
-    const { team, department, status, search } = req.query;
+    const { team, department, status, search, approvers } = req.query;
     
     // Build query - default to active employees only
     let query = { isActive: true, status: { $ne: 'Terminated' } };
+    
+    // If requesting approvers, filter by specific roles
+    if (approvers === 'true') {
+      query.role = { $in: ['admin', 'super-admin', 'HR', 'manager'] };
+    }
     
     if (team) query.team = team;
     if (department) query.department = department;

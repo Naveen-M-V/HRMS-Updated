@@ -171,7 +171,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
         }}>
           {/* Header */}
           <div style={{
-            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
             padding: '32px',
             position: 'relative',
             color: 'white'
@@ -306,7 +306,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
         }}>
           {/* Header */}
           <div style={{
-            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
             padding: '32px',
             position: 'relative',
             color: 'white'
