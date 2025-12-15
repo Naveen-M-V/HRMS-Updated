@@ -191,6 +191,15 @@ export default function AddEmployee() {
     if (field === "emailAddress" && emailError) {
       setEmailError("");
     }
+
+    // Real-time email validation
+    if (field === "emailAddress" && value) {
+      if (!validateEmail(value)) {
+        setEmailError("Please enter a valid email address.");
+      } else if (emailError) {
+        setEmailError("");
+      }
+    }
   };
 
   // Fetch employee data for edit mode
@@ -305,7 +314,15 @@ export default function AddEmployee() {
   // Step navigation functions
   const goToStep = (stepNumber) => {
     if (stepNumber >= 1 && stepNumber <= totalSteps) {
-      setCurrentStep(stepNumber);
+      // Only allow navigation to previous steps or current step without validation
+      // For future steps, validate current step first
+      if (stepNumber > currentStep) {
+        if (validateCurrentStep()) {
+          setCurrentStep(stepNumber);
+        }
+      } else {
+        setCurrentStep(stepNumber);
+      }
     }
   };
 
@@ -391,7 +408,7 @@ export default function AddEmployee() {
   };
 
   const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
   };
 
@@ -564,7 +581,7 @@ export default function AddEmployee() {
             {steps.map((step, index) => {
               const isCompleted = step.id < currentStep;
               const isCurrent = step.id === currentStep;
-              const isClickable = step.id <= currentStep || step.id === currentStep + 1;
+              const isClickable = step.id <= currentStep;
 
               return (
                 <div key={step.id} className="flex items-center">
@@ -612,7 +629,6 @@ export default function AddEmployee() {
       );
     };
 
-    // Render step content
     // Image upload handler
     const handleImageUpload = (e) => {
       const file = e.target.files[0];
@@ -620,7 +636,7 @@ export default function AddEmployee() {
         // Validate file type
         const validation = validateImageFile(file);
         if (!validation.isValid) {
-          showError(`This ${file.type} can't be uploaded`);
+          showError('Only JPG and JPEG images are allowed.');
           return;
         }
 
@@ -794,7 +810,7 @@ export default function AddEmployee() {
                 <input
                   type="file"
                   id="profilePhoto"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg"
                   onChange={handleImageUpload}
                   className="hidden"
                 />
@@ -942,7 +958,13 @@ export default function AddEmployee() {
                   placeholder="dd/mm/yyyy"
                   format="DD/MM/YYYY"
                   className="w-full h-[42px]"
+                  maxDate={getMaxDOBDate()}
                 />
+                {errors.dateOfBirth && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.dateOfBirth}
+                  </p>
+                )}
               </div>
 
               {/* Email address */}
@@ -995,9 +1017,14 @@ export default function AddEmployee() {
                   type="tel"
                   placeholder="Work phone"
                   value={formData.workPhone}
-                  onChange={(e) => handleInputChange("workPhone", e.target.value)}
-                  className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => handleMobileNumberChange(e, (value) => handleInputChange("workPhone", value))}
+                  onKeyPress={preventNonMobileNumeric}
+                  className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.workPhone ? "border-red-500" : "border-gray-300"
+                    }`}
                 />
+                {errors.workPhone && (
+                  <p className="mt-1 text-sm text-red-600">Please enter a valid mobile number.</p>
+                )}
               </div>
 
               {/* Job title */}
@@ -1289,9 +1316,14 @@ export default function AddEmployee() {
                   type="tel"
                   placeholder="Phone number"
                   value={formData.emergencyContactPhone}
-                  onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
-                  className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  onChange={(e) => handleMobileNumberChange(e, (value) => handleInputChange("emergencyContactPhone", value))}
+                  onKeyPress={preventNonMobileNumeric}
+                  className={`w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.emergencyContactPhone ? "border-red-500" : "border-gray-300"
+                    }`}
                 />
+                {errors.emergencyContactPhone && (
+                  <p className="mt-1 text-sm text-red-600">Please enter a valid mobile number.</p>
+                )}
               </div>
 
               <div>

@@ -473,38 +473,157 @@ export default function EmployeeHub() {
         {/* Employee Table/Grid */}
         {showEmployeeList && (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            {loading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-500 mt-2">Loading employees...</p>
-              </div>
-            ) : allEmployees.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                No employees found
-              </div>
-            ) : viewMode === 'table' ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <input
-                          type="checkbox"
-                          checked={selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0}
-                          onChange={toggleAllEmployees}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-                        />
-                      </th>
-                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
-                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Team Name</th>
-                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Job Role</th>
-                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                      <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEmployees.map((employee, index) => {
+            {filterBy === "Teams" ? (
+              // Teams Table View
+              teamsLoading ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-500 mt-2">Loading teams...</p>
+                </div>
+              ) : teams.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  No teams found
+                </div>
+              ) : viewMode === 'table' ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Team Name</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredTeams.map((team, index) => {
+                        const teamMembers = getTeamEmployees(team.name);
+                        return (
+                          <tr key={team._id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {index + 1}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                                  style={{ backgroundColor: team.color || '#3B82F6' }}
+                                >
+                                  {team.initials || team.name.substring(0, 2).toUpperCase()}
+                                </div>
+                                <span className="text-sm font-medium text-gray-900">{team.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {team.department || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {teamMembers.length} member{(teamMembers.length || 0) !== 1 ? 's' : ''}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                              {team.description || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <button
+                                onClick={() => toggleTeam(team.name)}
+                                className="text-blue-600 hover:text-blue-800 mr-3"
+                              >
+                                View Members
+                              </button>
+                              <button
+                                onClick={() => navigate(`/manage-teams?edit=${team._id}`)}
+                                className="text-gray-600 hover:text-gray-800"
+                              >
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                // Teams Grid View
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                  {filteredTeams.map((team) => {
+                    const teamMembers = getTeamEmployees(team.name);
+                    return (
+                      <div
+                        key={team._id}
+                        className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300"
+                      >
+                        <div className="flex items-center gap-4 mb-4">
+                          <div
+                            className="h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                            style={{ backgroundColor: team.color || '#3B82F6' }}
+                          >
+                            {team.initials || team.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-semibold text-gray-900 truncate">
+                              {team.name}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {teamMembers.length} member{(teamMembers.length || 0) !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleTeam(team.name)}
+                            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            View Members
+                          </button>
+                          <button
+                            onClick={() => navigate(`/manage-teams?edit=${team._id}`)}
+                            className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-md hover:bg-gray-700 transition-colors text-sm"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              // Employee Table/Grid View (existing code)
+              loading ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-gray-500 mt-2">Loading employees...</p>
+                </div>
+              ) : allEmployees.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  No employees found
+                </div>
+              ) : viewMode === 'table' ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <input
+                            type="checkbox"
+                            checked={selectedEmployees.size === filteredEmployees.length && filteredEmployees.length > 0}
+                            onChange={toggleAllEmployees}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                          />
+                        </th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Team Name</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Job Role</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                        <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredEmployees.map((employee, index) => {
                       const isTerminated = (employee.status || '').toLowerCase() === 'terminated';
                       const isSelected = selectedEmployees.has(employee._id);
                       return (
@@ -668,7 +787,7 @@ export default function EmployeeHub() {
                   );
                 })}
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>

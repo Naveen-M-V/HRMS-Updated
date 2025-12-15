@@ -126,7 +126,17 @@ export const validateDocumentFile = (file) => {
  */
 export const validateDateOfBirth = (dob) => {
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
   const birthDate = new Date(dob);
+  birthDate.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+  
+  // Check if birth date is in the future
+  if (birthDate > today) {
+    return {
+      isValid: false,
+      message: 'Date of Birth cannot be a future date.'
+    };
+  }
   
   // Calculate age
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -164,7 +174,7 @@ export const validateStartDate = (startDate) => {
   if (start > today) {
     return {
       isValid: false,
-      message: "Start date cannot be a future date."
+      message: "Employee start date cannot be a future date."
     };
   }
   
