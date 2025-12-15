@@ -8,6 +8,7 @@ import Cookies from 'js-cookie';
 import UserClockIns from './UserClockIns';
 import MyShifts from '../components/MyShifts';
 import Documents from './Documents';
+import LeaveRequestCard from '../components/LeaveManagement/LeaveRequestCard';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import UserNavigation from '../components/UserNavigation';
