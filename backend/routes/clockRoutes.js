@@ -579,12 +579,15 @@ router.get('/entries', async (req, res) => {
       console.log(`⚠️ Filtered out ${timeEntries.length - validEntries.length} entries with deleted employees`);
     }
 
-    // Process entries to add shift hours and format for frontend
+    // Process entries to add shift hours, overtime, and format for frontend
     const processedEntries = validEntries.map(entry => {
       let shiftHours = null;
       let shiftStartTime = null;
       let shiftEndTime = null;
+      let overtime = 0;
+      let hoursWorked = 0;
       
+      // Calculate shift hours if shift is assigned
       if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
         shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
         shiftStartTime = entry.shiftId.startTime;
@@ -603,6 +606,16 @@ router.get('/entries', async (req, res) => {
       if (entry.clockOut) {
         const clockOutDate = new Date(entry.clockOut);
         clockOutTime = clockOutDate.toTimeString().slice(0, 5);
+        
+        // Calculate hours worked and overtime if both clockIn and clockOut exist
+        if (entry.clockIn) {
+          hoursWorked = calculateHoursWorked(entry.clockIn, entry.clockOut, entry.breaks || []);
+          
+          // Calculate overtime (hours beyond standard 8-hour day)
+          if (hoursWorked > 8) {
+            overtime = hoursWorked - 8;
+          }
+        }
       }
 
       return {
@@ -611,7 +624,9 @@ router.get('/entries', async (req, res) => {
         clockOut: clockOutTime,
         shiftHours: shiftHours ? shiftHours.toFixed(2) : null,
         shiftStartTime: shiftStartTime,
-        shiftEndTime: shiftEndTime
+        shiftEndTime: shiftEndTime,
+        hoursWorked: hoursWorked > 0 ? hoursWorked.toFixed(2) : null,
+        overtime: overtime > 0 ? overtime.toFixed(2) : '0.00'
       };
     });
 

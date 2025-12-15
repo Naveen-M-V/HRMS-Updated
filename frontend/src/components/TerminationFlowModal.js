@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { DatePicker } from './ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -619,13 +620,13 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                 <div>
                   <span style={{ color: '#6b7280', fontWeight: '500' }}>Last Working Day:</span>
                   <div style={{ color: '#111827', fontWeight: '600', marginTop: '4px' }}>
-                    {terminationData.lastWorkingDay}
+                    {formatDateDDMMYY(terminationData.lastWorkingDay)}
                   </div>
                 </div>
                 <div>
                   <span style={{ color: '#6b7280', fontWeight: '500' }}>Exit Date:</span>
                   <div style={{ color: '#111827', fontWeight: '600', marginTop: '4px' }}>
-                    {terminationData.exitDate}
+                    {formatDateDDMMYY(terminationData.exitDate)}
                   </div>
                 </div>
                 <div>

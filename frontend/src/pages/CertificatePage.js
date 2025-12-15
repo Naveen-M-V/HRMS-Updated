@@ -5,6 +5,7 @@ import { useCertificates } from "../context/CertificateContext";
 import { getImageUrl } from '../utils/config';
 import { useAlert } from "../components/AlertNotification";
 import ConfirmDialog from '../components/ConfirmDialog';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 
 export default function CertificatesPage() {
   const { certificates, deleteCertificate } = useCertificates();
@@ -89,7 +90,7 @@ export default function CertificatesPage() {
                 <td className="border px-2 py-1">{c.certificate}</td>
                 <td className="border px-2 py-1">{c.category}</td>
                 <td className="border px-2 py-1">{c.jobRole || "N/A"}</td>
-                <td className="border px-2 py-1">{c.expiryDate}</td>
+                <td className="border px-2 py-1">{formatDateDDMMYY(c.expiryDate)}</td>
                 <td className="border px-2 py-1">{c.profileName}</td>
                 <td className="border px-2 py-1">{c.status}</td>
                 <td className="border px-2 py-1 text-center">
@@ -130,8 +131,8 @@ export default function CertificatesPage() {
             <p className="text-sm text-gray-600 mb-2"><strong>Company:</strong> {selectedCertificate.company}</p>
             <p className="text-sm text-gray-600 mb-2"><strong>Team:</strong> {selectedCertificate.team}</p>
             <p className="text-sm text-gray-600 mb-2"><strong>Provider:</strong> {selectedCertificate.provider}</p>
-            <p className="text-sm text-gray-600 mb-2"><strong>Issue Date:</strong> {selectedCertificate.issueDate}</p>
-            <p className="text-sm text-gray-600 mb-2"><strong>Expiry Date:</strong> {selectedCertificate.expiryDate}</p>
+            <p className="text-sm text-gray-600 mb-2"><strong>Issue Date:</strong> {formatDateDDMMYY(selectedCertificate.issueDate)}</p>
+            <p className="text-sm text-gray-600 mb-2"><strong>Expiry Date:</strong> {formatDateDDMMYY(selectedCertificate.expiryDate)}</p>
             <p className="text-sm text-gray-600 mb-2"><strong>Status:</strong> {selectedCertificate.status}</p>
             <p className="text-sm text-gray-600 mb-2"><strong>Cost:</strong> £{selectedCertificate.cost}</p>
 

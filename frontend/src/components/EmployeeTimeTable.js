@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 import {
   Table,
   TableBody,
@@ -104,7 +105,7 @@ export function EmployeeTimeTable({ records, onEdit, onDelete }) {
                     </div>
                     <div>
                       <div className="text-gray-900">{record.day}</div>
-                      <div className="text-gray-500 text-sm">{record.date}</div>
+                      <div className="text-gray-500 text-sm">{formatDateDDMMYY(record.date)}</div>
                     </div>
                   </div>
                 </TableCell>

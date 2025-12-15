@@ -237,12 +237,6 @@ export default function EditEmployeeProfile() {
       
       const response = await axios.put(`/api/employees/${id}`, employeeData);
       
-      // Debug logging
-      console.log('Update response:', response);
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
-      console.log('Success flag:', response.data.success);
-      
       // Update annual leave balance if changed
       if (response.data.success && annualLeaveAllowance !== 28) {
         try {

@@ -243,6 +243,20 @@ const ClockIns = () => {
     setShowClockInModal(true);
   };
 
+  // Format date for display in history table
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleString("en-GB", {
+      timeZone: "Europe/London",
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
   const confirmClockIn = async () => {
     if (!clockInEmployee) {
       toast.error('No employee selected');
@@ -310,23 +324,18 @@ const ClockIns = () => {
       // If clocking in yourself (current user), use userClockIn
       // Otherwise, use admin clockIn to clock in another employee
       if (isCurrentUser) {
-        console.log('📤 Using userClockIn (self clock-in)');
         response = await userClockIn({ 
           location: 'Work From Office', 
           workType: 'Regular',
           ...gpsData  // Include GPS data
         });
       } else {
-        console.log('📤 Using clockIn (admin clocking in employee)');
         const payload = { 
           employeeId,
           ...gpsData  // Include GPS data for admin clocking in employees
         };
-        console.log('📤 Sending clock in request:', payload);
         response = await clockIn(payload);
       }
-      
-      console.log('📥 Clock in response:', response);
       
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked in successfully' : 'Employee clocked in successfully');
@@ -1978,7 +1987,7 @@ const ClockIns = () => {
                       {entry.employeeName}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#6b7280' }}>
-                      {entry.date}
+                      {formatDate(entry.date)}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#6b7280' }}>
                       {entry.day}

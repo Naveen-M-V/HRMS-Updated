@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { formatDateDDMMYY } from '../utils/dateFormatter';
 import { 
   User, 
   Mail, 
@@ -406,7 +407,7 @@ const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onO
               <div key={index} className="p-4 flex items-center justify-between">
                 <div>
                   <div className="font-medium text-gray-900">{absence.type}</div>
-                  <div className="text-sm text-gray-500">{absence.date}</div>
+                  <div className="text-sm text-gray-500">{formatDateDDMMYY(absence.date)}</div>
                 </div>
                 <span className={`px-2 py-1 text-xs font-medium rounded ${
                   absence.status === 'Approved' 
@@ -440,7 +441,7 @@ const EmploymentTab = ({ employee }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Salary</label>
-              <div className="text-gray-900 font-medium">{employee.salary || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.dateOfBirth ? formatDateDDMMYY(employee.dateOfBirth) : 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Payroll cycle</label>
@@ -548,7 +549,7 @@ const PersonalTab = ({ employee }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date of birth</label>
-              <div className="text-gray-900 font-medium">{employee.dateOfBirth || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.dateOfBirth ? formatDateDDMMYY(employee.dateOfBirth) : 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Mobile number</label>

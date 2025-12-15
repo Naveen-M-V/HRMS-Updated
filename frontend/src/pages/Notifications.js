@@ -35,7 +35,7 @@ export default function Notifications() {
               <Mail className="w-6 h-6 text-gray-600 mt-1" />
 
               <div>
-                <p className="text-sm text-gray-600">{note.date}</p>
+                <p className="text-sm text-gray-600">{formatDateDDMMYY(note.date)}</p>
                 <p className="text-gray-800">{note.title}</p>
               </div>
             </div>

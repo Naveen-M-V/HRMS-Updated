@@ -40,11 +40,6 @@ const UserDashboard = () => {
   // Check if user is an employee (full features) or profile (certificate-only)
   const isEmployeeUser = user?.userType === 'employee';
   
-  // DEBUG: Log user type and role
-  console.log('DEBUG: UserDashboard - User type:', user?.userType);
-  console.log('DEBUG: UserDashboard - User role:', user?.role);
-  console.log('DEBUG: UserDashboard - isEmployeeUser:', isEmployeeUser);
-  
   // Default tab based on user type
   const defaultTab = isEmployeeUser ? 'overview' : 'certificates';
   const initialTab = searchParams.get('tab') || defaultTab;

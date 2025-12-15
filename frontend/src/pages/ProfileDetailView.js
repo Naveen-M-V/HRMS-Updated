@@ -142,20 +142,6 @@ const handleDeleteCertificate = async () => {
     cert.profileName === `${profile?.firstName} ${profile?.lastName}`
   );
 
-  useEffect(() => {
-    console.log('📋 Profile certificates debug:', {
-      profileName: `${profile?.firstName} ${profile?.lastName}`,
-      totalCertificates: certificates.length,
-      userCertificates: userCertificates.length,
-      certificatesList: userCertificates.map(cert => ({
-        id: cert.id || cert._id,
-        name: cert.certificate,
-        profileName: cert.profileName,
-        hasFile: !!cert.certificateFile
-      }))
-    });
-  }, [certificates, profile, userCertificates]);
-
   if (!profile) {
     return (
       <div className="flex items-center justify-center min-h-screen">

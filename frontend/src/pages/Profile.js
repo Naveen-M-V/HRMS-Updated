@@ -493,8 +493,8 @@ export default function Profile() {
                         <h3 className="font-semibold text-gray-900 mb-2">{cert.certificate}</h3>
                         <p className="text-sm text-gray-600 mb-2">{cert.provider}</p>
                         <div className="text-xs text-gray-500 space-y-1">
-                          <div>Issued: {cert.issueDate}</div>
-                          <div>Expires: {cert.expiryDate}</div>
+                          <div>Issued: {formatDateDDMMYY(cert.issueDate)}</div>
+                          <div>Expires: {formatDateDDMMYY(cert.expiryDate)}</div>
                           {cert.cost && <div>Cost: £{cert.cost}</div>}
                         </div>
                       </div>

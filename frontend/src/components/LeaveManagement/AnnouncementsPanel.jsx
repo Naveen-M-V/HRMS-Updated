@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bell } from 'lucide-react';
+import { formatDateDDMMYY } from '../../utils/dateFormatter';
 
 const AnnouncementsPanel = ({ announcements }) => {
   return (
@@ -15,7 +16,7 @@ const AnnouncementsPanel = ({ announcements }) => {
             <div className="flex-shrink-0 h-2 w-2 mt-2 rounded-full bg-blue-500"></div>
             <div className="ml-3 flex-1">
               <p className="text-sm text-gray-700">{announcement.text}</p>
-              <p className="text-xs text-gray-500 mt-1">{announcement.date}</p>
+              <p className="text-xs text-gray-500 mt-1">{formatDateDDMMYY(announcement.date)}</p>
             </div>
           </div>
         ))}

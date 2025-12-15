@@ -101,9 +101,6 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
   const canTerminateEmployee = () => {
     if (!user) return false;
     const userRole = user.role?.toLowerCase();
-    console.log('DEBUG: EmployeeProfileModal - User role:', user.role);
-    console.log('DEBUG: EmployeeProfileModal - Can terminate:', userRole === 'hr' || userRole === 'admin' || userRole === 'super-admin');
-    console.log('DEBUG: EmployeeProfileModal - Employee status:', employee?.status);
     return userRole === 'hr' || userRole === 'admin' || userRole === 'super-admin';
   };
 
