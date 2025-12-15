@@ -279,7 +279,74 @@ export const preventNonMobileNumeric = (e) => {
  * Use with onKeyPress event
  */
 export const preventNonText = (e) => {
-  if (!/[a-zA-Z\s\-']/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+  const char = String.fromCharCode(e.which);
+  if (!/[a-zA-Z\s]/.test(char)) {
     e.preventDefault();
   }
+};
+
+// Character validation utilities
+const TEXT_ONLY_FIELDS = new Set([
+  "firstName",
+  "middleName", 
+  "lastName",
+  "jobTitle",
+  "department",
+  "team",
+  "Organisation Name",
+  "townCity",
+  "county",
+  "emergencyContactName",
+  "emergencyContactRelation",
+  "bankName",
+  "bankBranch",
+  "passportCountry",
+  "licenceCountry"
+]);
+
+const NUMBER_ONLY_FIELDS = new Set([
+  "mobileNumber",
+  "workPhone", 
+  "salary",
+  "accountNumber",
+  "sortCode",
+  "emergencyContactPhone",
+  "payrollNumber"
+]);
+
+const TEXT_ONLY_REGEX = /^[A-Za-z\s'-]+$/;
+const NUMBER_ONLY_REGEX = /^[0-9]+$/;
+
+export const validateFieldCharacters = (field, value) => {
+  if (!value) return ""
+
+  if (TEXT_ONLY_FIELDS.has(field) && !TEXT_ONLY_REGEX.test(value)) {
+    return "Please use letters only.";
+  }
+
+  if (NUMBER_ONLY_FIELDS.has(field) && !NUMBER_ONLY_REGEX.test(value)) {
+    return "Please use numbers only.";
+  }
+
+  return "";
+};
+
+export const collectCharacterErrors = (data) => {
+  const errors = {};
+
+  TEXT_ONLY_FIELDS.forEach((field) => {
+    const message = validateFieldCharacters(field, data?.[field]);
+    if (message) {
+      errors[field] = message;
+    }
+  });
+
+  NUMBER_ONLY_FIELDS.forEach((field) => {
+    const message = validateFieldCharacters(field, data?.[field]);
+    if (message) {
+      errors[field] = message;
+    }
+  });
+
+  return errors;
 };
