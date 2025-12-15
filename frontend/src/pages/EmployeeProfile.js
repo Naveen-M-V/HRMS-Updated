@@ -20,19 +20,24 @@ import {
   Shield,
   Home,
   Users,
-  Download
+  Download,
+  UserMinus
 } from 'lucide-react';
 import axios from '../utils/axiosConfig';
 import AddLeaveModal from '../components/AddLeaveModal';
 import { SicknessModal, LatenessModal, CarryoverModal } from '../components/AbsenceModals';
+import TerminationFlowModal from '../components/TerminationFlowModal';
+import { useAuth } from '../context/AuthContext';
 
 const EmployeeProfile = () => {
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
   const [showSicknessModal, setShowSicknessModal] = React.useState(false);
   const [showLatenessModal, setShowLatenessModal] = React.useState(false);
   const [showCarryoverModal, setShowCarryoverModal] = React.useState(false);
+  const [showTerminationModal, setShowTerminationModal] = React.useState(false);
   const { employeeId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('personal');
@@ -171,6 +176,17 @@ const EmployeeProfile = () => {
           </svg>
           Edit Profile
         </button>
+        {/* Terminate Button - only visible to HR/Admin */}
+        {user && (user.role === 'hr' || user.role === 'admin' || user.role === 'super-admin') && employee && employee.status !== 'Terminated' && (
+          <button
+            onClick={() => setShowTerminationModal(true)}
+            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+            title="Terminate Employee"
+          >
+            <UserMinus className="w-4 h-4" />
+            Terminate
+          </button>
+        )}
       </div>
 <span className="text-base text-gray-700">
   {employee.jobRole || employee.jobTitle || employee.position || ''}
@@ -723,6 +739,25 @@ const DocumentsTab = ({ employee }) => {
           </div>
         </div>
       )}
+    </div>
+
+    {/* Termination Flow Modal */}
+    <TerminationFlowModal
+      employee={employee}
+      isOpen={showTerminationModal}
+      onClose={() => setShowTerminationModal(false)}
+      onSuccess={(terminatedEmployee) => {
+        // Update employee status locally
+        setEmployee(prev => ({
+          ...prev,
+          status: 'Terminated',
+          isActive: false,
+          terminatedDate: terminatedEmployee.terminatedDate
+        }));
+        alert('Employee terminated successfully');
+        setShowTerminationModal(false);
+      }}
+    />
     </div>
   );
 };
