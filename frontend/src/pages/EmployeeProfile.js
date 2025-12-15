@@ -282,6 +282,24 @@ const EmployeeProfile = () => {
 )}
         {activeTab === 'overtime' && <OvertimeTab employee={employee} />}
       </div>
+
+      {/* Termination Flow Modal */}
+      <TerminationFlowModal
+        employee={employee}
+        isOpen={showTerminationModal}
+        onClose={() => setShowTerminationModal(false)}
+        onSuccess={(terminatedEmployee) => {
+          // Update employee status locally
+          setEmployee(prev => ({
+            ...prev,
+            status: 'Terminated',
+            isActive: false,
+            terminatedDate: terminatedEmployee.terminatedDate
+          }));
+          alert('Employee terminated successfully');
+          setShowTerminationModal(false);
+        }}
+      />
     </div>
   );
 };
@@ -739,25 +757,6 @@ const DocumentsTab = ({ employee }) => {
           </div>
         </div>
       )}
-    </div>
-
-    {/* Termination Flow Modal */}
-    <TerminationFlowModal
-      employee={employee}
-      isOpen={showTerminationModal}
-      onClose={() => setShowTerminationModal(false)}
-      onSuccess={(terminatedEmployee) => {
-        // Update employee status locally
-        setEmployee(prev => ({
-          ...prev,
-          status: 'Terminated',
-          isActive: false,
-          terminatedDate: terminatedEmployee.terminatedDate
-        }));
-        alert('Employee terminated successfully');
-        setShowTerminationModal(false);
-      }}
-    />
     </div>
   );
 };
