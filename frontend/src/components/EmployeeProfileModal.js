@@ -153,16 +153,16 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
           position: 'relative',
           color: 'white'
         }}>
-          <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', gap: '10px' }}>
+          <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', gap: '10px', zIndex: 1000 }}>
             {/* Termination Button */}
-            {canTerminateEmployee() && employee.status !== 'Terminated' && (
+            {user && (user.role === 'hr' || user.role === 'admin' || user.role === 'super-admin') && employee && employee.status !== 'Terminated' && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowTerminationModal(true);
                 }}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
+                  background: 'rgba(220, 38, 38, 0.9)',
                   border: 'none',
                   borderRadius: '50%',
                   width: '40px',
@@ -172,10 +172,10 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                   justifyContent: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  backdropFilter: 'blur(10px)'
+                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)'
                 }}
-                onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
-                onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                onMouseEnter={(e) => e.target.style.background = 'rgba(185, 28, 28, 0.9)'}
+                onMouseLeave={(e) => e.target.style.background = 'rgba(220, 38, 38, 0.9)'}
                 title="Terminate Employee"
               >
                 <UserMinusIcon style={{ width: '20px', height: '20px', color: 'white' }} />

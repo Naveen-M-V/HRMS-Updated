@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, addDays } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const LeaveCalendar = ({ onDateSelect }) => {

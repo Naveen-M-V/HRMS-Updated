@@ -1105,6 +1105,11 @@ const UserDashboard = () => {
               </div>
             </div>
 
+            {/* Leave Request Section */}
+            <div className="mt-8">
+              <LeaveRequestCard />
+            </div>
+
             {/* Recent Activity */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
@@ -1128,6 +1133,13 @@ const UserDashboard = () => {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Leave Tab */}
+        {activeTab === 'leave' && isEmployeeUser && (
+          <div className="space-y-6">
+            <LeaveRequestCard />
           </div>
         )}
 
