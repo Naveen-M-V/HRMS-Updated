@@ -712,19 +712,24 @@ router.put('/entry/:id', async (req, res) => {
       });
     }
 
-    // Prepare updates - handle time string conversion if needed
+    // Prepare updates - handle time string conversion to Date objects
     const updateData = { ...updates, updatedAt: new Date() };
     
-    // If clockIn/clockOut are provided as HH:mm strings, keep them as is
-    // The TimeEntry model should accept both formats
+    // Convert HH:mm time strings to full Date objects
     if (updates.clockIn && typeof updates.clockIn === 'string' && !updates.clockIn.includes('T')) {
-      console.log('⏰ Clock in time received as HH:mm format:', updates.clockIn);
-      // Keep as string - the model will handle it
+      console.log('⏰ Converting clock in time from HH:mm format:', updates.clockIn);
+      const [hours, minutes] = updates.clockIn.split(':');
+      const date = updates.date ? new Date(updates.date) : new Date();
+      date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      updateData.clockIn = date;
     }
     
     if (updates.clockOut && typeof updates.clockOut === 'string' && !updates.clockOut.includes('T')) {
-      console.log('⏰ Clock out time received as HH:mm format:', updates.clockOut);
-      // Keep as string - the model will handle it
+      console.log('⏰ Converting clock out time from HH:mm format:', updates.clockOut);
+      const [hours, minutes] = updates.clockOut.split(':');
+      const date = updates.date ? new Date(updates.date) : new Date();
+      date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      updateData.clockOut = date;
     }
 
     const timeEntry = await TimeEntry.findByIdAndUpdate(
