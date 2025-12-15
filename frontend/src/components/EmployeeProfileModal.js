@@ -15,7 +15,8 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   UserCircleIcon,
-  UserMinusIcon
+  UserMinusIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
 import { buildApiUrl } from '../utils/apiConfig';
 import { formatDateDDMMYY, getDayName } from '../utils/dateFormatter';
@@ -152,29 +153,57 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
           position: 'relative',
           color: 'white'
         }}>
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              backdropFilter: 'blur(10px)'
-            }}
-            onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
-            onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
-          >
-            <XMarkIcon style={{ width: '24px', height: '24px', color: 'white' }} />
-          </button>
+          <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', gap: '10px' }}>
+            {/* Termination Button */}
+            {canTerminateEmployee() && employee.status !== 'Terminated' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTerminationModal(true);
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
+                onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                title="Terminate Employee"
+              >
+                <UserMinusIcon style={{ width: '20px', height: '20px', color: 'white' }} />
+              </button>
+            )}
+
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                backdropFilter: 'blur(10px)'
+              }}
+              onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
+              onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+            >
+              <XMarkIcon style={{ width: '24px', height: '24px', color: 'white' }} />
+            </button>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             {/* Profile Picture */}
@@ -235,35 +264,6 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                    employee.status === 'clocked_out' ? '🔵 Clocked Out' : '⚪ Absent'}
                 </div>
               </div>
-              {/* DEBUG: Termination Button Check */}
-              <div style={{border:'2px solid blue', padding:'10px', margin:'10px 0'}}>
-                DEBUG: Termination Button - Can Terminate: {canTerminateEmployee().toString()}, Employee Status: {employee?.status}
-              </div>
-              {canTerminateEmployee() && employee.status !== 'Terminated' && (
-                <button
-                  onClick={() => setShowTerminationModal(true)}
-                  style={{
-                    background: '#dc2626',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    marginTop: '12px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#b91c1c'}
-                  onMouseLeave={(e) => e.target.style.background = '#dc2626'}
-                >
-                  <UserMinusIcon style={{ width: '16px', height: '16px' }} />
-                  Terminate Employee
-                </button>
-              )}
             </div>
           </div>
         </div>

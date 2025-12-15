@@ -22,8 +22,10 @@ import {
   DocumentTextIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  ClockIcon
+  ClockIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
+import LeaveRequestCard from '../components/LeaveManagement/LeaveRequestCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
@@ -767,12 +769,6 @@ const UserDashboard = () => {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* DEBUG: Leave Request Section Check */}
-        <div style={{border:'2px solid red', padding:'10px', margin:'10px 0'}}>
-          DEBUG: Leave Request Mounted - isEmployeeUser: {isEmployeeUser.toString()}, userType: {user?.userType}
-        </div>
-        
-        {/* Overview Tab */}
         {/* Overview Tab - Only for Employee Users */}
         {activeTab === 'overview' && isEmployeeUser && (
           <div className="space-y-6">
