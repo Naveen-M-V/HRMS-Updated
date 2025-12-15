@@ -9,6 +9,7 @@ import UserClockIns from './UserClockIns';
 import MyShifts from '../components/MyShifts';
 import Documents from './Documents';
 import LeaveRequestCard from '../components/LeaveManagement/LeaveRequestCard';
+import MyProfile from './MyProfile';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import UserNavigation from '../components/UserNavigation';
@@ -1139,88 +1140,12 @@ const UserDashboard = () => {
         )}
 
         {/* Profile Tab */}
-        {activeTab === 'profile' && userProfile && (
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">My Profile</h3>
-                {!isEditingProfile ? (
-                  <button
-                    onClick={handleProfileEdit}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <PencilIcon className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </button>
-                ) : (
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={handleProfileSave}
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={handleProfileCancel}
-                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  { field: 'firstName', label: 'First Name', type: 'text' },
-                  { field: 'lastName', label: 'Last Name', type: 'text' },
-                  { field: 'email', label: 'Email', type: 'email', disabled: true },
-                  { field: 'vtid', label: 'VTID', type: 'text', disabled: true },
-                  { field: 'mobile', label: 'Mobile', type: 'tel' },
-                  { field: 'dateOfBirth', label: 'Date of Birth', type: 'date' },
-                  { field: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'] },
-                  { field: 'nationality', label: 'Nationality', type: 'text' }
-                ].map((fieldConfig) => (
-                  <div key={fieldConfig.field}>
-                    <label className="block text-sm font-medium text-gray-500 mb-1">
-                      {fieldConfig.label}
-                    </label>
-                    {isEditingProfile && !fieldConfig.disabled ? (
-                      fieldConfig.type === 'select' ? (
-                        <Select value={editedProfile[fieldConfig.field] || ''} onValueChange={(value) => handleInputChange(fieldConfig.field, value)}>
-                          <SelectTrigger className="mt-1 w-full">
-                            <SelectValue placeholder={`Select ${fieldConfig.label}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {fieldConfig.options.map(option => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <input
-                          type={fieldConfig.type}
-                          value={editedProfile[fieldConfig.field] || ''}
-                          onChange={(e) => handleInputChange(fieldConfig.field, e.target.value)}
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                      )
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">
-                        {fieldConfig.field === 'dateOfBirth' && userProfile[fieldConfig.field]
-                          ? formatDateDDMMYY(userProfile[fieldConfig.field])
-                          : userProfile[fieldConfig.field] || 'Not specified'
-                        }
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+        {activeTab === 'profile' && (
+          <div style={{ margin: '-32px', padding: '0' }}>
+            <MyProfile />
           </div>
         )}
 
-        {/* Clock-ins Tab */}
         {/* Clock-ins Tab - Only for Employee Users */}
         {activeTab === 'clock-ins' && isEmployeeUser && (
           <div style={{ margin: '-32px', padding: '0' }}>

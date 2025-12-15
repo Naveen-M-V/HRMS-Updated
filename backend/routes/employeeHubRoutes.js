@@ -4,6 +4,7 @@ const employeeHubController = require('../controllers/employeeHubController');
 
 // Employee CRUD operations
 // NOTE: Specific routes MUST come before parameterized routes to avoid conflicts
+router.get('/by-user-id/:userId', employeeHubController.getEmployeeByUserId);
 router.get('/', employeeHubController.getAllEmployees);
 router.get('/with-clock-status', employeeHubController.getEmployeesWithClockStatus);
 router.get('/unregistered-brighthr', employeeHubController.getUnregisteredBrightHR);

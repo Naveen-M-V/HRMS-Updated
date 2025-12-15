@@ -221,6 +221,47 @@ async function checkCircularReporting(managerId, employeeId, visited = new Set()
 }
 
 /**
+ * Get employee by userId (for My Profile page)
+ */
+exports.getEmployeeByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    const employee = await EmployeeHub.findOne({ 
+      userId: userId,
+      isActive: true,
+      status: { $ne: 'Terminated' }
+    }).populate('managerId', 'firstName lastName jobTitle');
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: employee
+    });
+  } catch (error) {
+    console.error('Error fetching employee by userId:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching employee',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get all employees
  */
 exports.getAllEmployees = async (req, res) => {
