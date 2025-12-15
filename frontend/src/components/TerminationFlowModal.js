@@ -12,11 +12,23 @@ import {
 } from '@heroicons/react/24/outline';
 import { DatePicker } from './ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import axios from '../utils/axiosConfig';
 
 const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Form data for termination
   const [terminationData, setTerminationData] = useState({
@@ -114,12 +126,14 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
         if (onSuccess) onSuccess(response.data.data);
         // Loading false will reveal the "Success" UI in Step 4
       } else {
-        alert('Failed to terminate employee: ' + response.data.message);
+        setErrorMessage('Failed to terminate employee: ' + response.data.message);
+        setShowErrorDialog(true);
         setCurrentStep(3); // Go back to confirmation if failed
       }
     } catch (error) {
       console.error('Error terminating employee:', error);
-      alert('Error terminating employee: ' + (error.response?.data?.message || error.message));
+      setErrorMessage('Error terminating employee: ' + (error.response?.data?.message || error.message));
+      setShowErrorDialog(true);
       setCurrentStep(3); // Go back to confirmation if failed
     } finally {
       setLoading(false);
@@ -347,7 +361,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                 />
               </div>
 
-              <div>
+              <div style={{ position: 'relative', zIndex: 10001 }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   Last Working Day *
                 </label>
@@ -360,7 +374,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                 />
               </div>
 
-              <div>
+              <div style={{ position: 'relative', zIndex: 10001 }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
                   Exit Date *
                 </label>
@@ -848,6 +862,23 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
           }
         }
       `}</style>
+
+      {/* Error Dialog */}
+      <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Termination Error</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowErrorDialog(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

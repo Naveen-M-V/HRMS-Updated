@@ -572,8 +572,15 @@ router.get('/entries', async (req, res) => {
 
     console.log(`📋 Found ${timeEntries.length} time entries`);
 
+    // Filter out entries with deleted employees (employee is null after populate)
+    const validEntries = timeEntries.filter(entry => entry.employee !== null);
+    
+    if (validEntries.length < timeEntries.length) {
+      console.log(`⚠️ Filtered out ${timeEntries.length - validEntries.length} entries with deleted employees`);
+    }
+
     // Process entries to add shift hours and format for frontend
-    const processedEntries = timeEntries.map(entry => {
+    const processedEntries = validEntries.map(entry => {
       let shiftHours = null;
       let shiftStartTime = null;
       let shiftEndTime = null;

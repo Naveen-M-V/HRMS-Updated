@@ -543,7 +543,7 @@ const TimeHistory = () => {
                       />
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {entry.employee ? `${entry.employee.firstName} ${entry.employee.lastName}` : '-'}
+                      {entry.employee ? `${entry.employee.firstName || ''} ${entry.employee.lastName || ''}`.trim() || 'Unknown' : 'Unknown'}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       <div>{formatTime(entry.clockIn)}</div>
