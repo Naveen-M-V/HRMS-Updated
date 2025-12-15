@@ -10,8 +10,8 @@ import {
   BriefcaseIcon,
   UserCircleIcon
 } from '@heroicons/react/24/outline';
-import { DatePicker } from '../ui/date-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { DatePicker } from './ui/date-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import axios from '../utils/axiosConfig';
 
 const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
