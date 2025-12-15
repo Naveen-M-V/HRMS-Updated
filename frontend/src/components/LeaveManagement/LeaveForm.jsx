@@ -4,12 +4,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import axios from '../../utils/axiosConfig';
 import { toast } from 'react-toastify';
 
-const LeaveForm = () => {
+const LeaveForm = ({ selectedDates }) => {
   const [formData, setFormData] = useState({
     manager: '',
     leaveType: 'Sick Leave',
-    startDate: null,
-    endDate: null,
     reason: ''
   });
 
@@ -66,20 +64,20 @@ const LeaveForm = () => {
 
     if (!formData.manager) newErrors.manager = 'Please select an approver';
     if (!formData.leaveType) newErrors.leaveType = 'Please select a leave type';
-    if (!formData.startDate) newErrors.startDate = 'Please select a start date';
-    if (!formData.endDate) newErrors.endDate = 'Please select an end date';
+    if (!selectedDates.start) newErrors.dates = 'Please select start date from calendar';
+    if (!selectedDates.end) newErrors.dates = 'Please select end date from calendar';
     if (!formData.reason || formData.reason.trim().length < 10) {
       newErrors.reason = 'Reason must be at least 10 characters';
     }
 
-    if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate);
-      const end = new Date(formData.endDate);
+    if (selectedDates.start && selectedDates.end) {
+      const start = new Date(selectedDates.start);
+      const end = new Date(selectedDates.end);
       if (start > end) {
-        newErrors.dateRange = 'Start date must be before end date';
+        newErrors.dates = 'Start date must be before end date';
       }
       if (start < new Date()) {
-        newErrors.dateRange = 'Cannot request leave for past dates';
+        newErrors.dates = 'Cannot request leave for past dates';
       }
     }
 
@@ -104,8 +102,8 @@ const LeaveForm = () => {
         employeeId: currentUser._id || currentUser.id, // Logged-in employee
         approverId: formData.manager,
         leaveType: formData.leaveType,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
+        startDate: selectedDates.start,
+        endDate: selectedDates.end,
         reason: formData.reason,
         status: 'pending'
       };
@@ -117,8 +115,6 @@ const LeaveForm = () => {
         setFormData({
           manager: '',
           leaveType: 'Sick Leave',
-          startDate: null,
-          endDate: null,
           reason: ''
         });
         setErrors({});
@@ -149,7 +145,7 @@ const LeaveForm = () => {
             value={formData.manager}
             onValueChange={(value) => handleChange('manager', value)}
           >
-            <SelectTrigger className={`block w-full pl-10 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${errors.manager ? "border-red-500 ring-red-500" : ""}`}>
+            <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""}`}>
               <SelectValue placeholder="Select a manager" />
             </SelectTrigger>
             <SelectContent>
@@ -184,7 +180,7 @@ const LeaveForm = () => {
             value={formData.leaveType}
             onValueChange={(value) => handleChange('leaveType', value)}
           >
-            <SelectTrigger className={`block w-full pl-10 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${errors.leaveType ? "border-red-500 ring-red-500" : ""}`}>
+            <SelectTrigger className={`w-full ${errors.leaveType ? "border-red-500 ring-red-500" : ""}`}>
               <SelectValue placeholder="Select leave type" />
             </SelectTrigger>
             <SelectContent>
@@ -201,45 +197,10 @@ const LeaveForm = () => {
         )}
       </div>
 
-      {/* Date Range */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
-            Start Date *
-          </label>
-          <input
-            type="date"
-            id="startDate"
-            value={formData.startDate || ''}
-            onChange={(e) => handleChange('startDate', e.target.value)}
-            className={`block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${errors.startDate || errors.dateRange ? "border-red-500 ring-red-500" : ""}`}
-          />
-          {errors.startDate && (
-            <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>
-          )}
-        </div>
-        
-        <div>
-          <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
-            End Date *
-          </label>
-          <input
-            type="date"
-            id="endDate"
-            value={formData.endDate || ''}
-            onChange={(e) => handleChange('endDate', e.target.value)}
-            min={formData.startDate || ''}
-            className={`block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${errors.endDate || errors.dateRange ? "border-red-500 ring-red-500" : ""}`}
-          />
-          {errors.endDate && (
-            <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
-          )}
-        </div>
-      </div>
-
-      {errors.dateRange && (
+      {/* Date Validation Error */}
+      {errors.dates && (
         <div className="bg-red-50 border border-red-200 rounded-md p-3">
-          <p className="text-sm text-red-600">{errors.dateRange}</p>
+          <p className="text-sm text-red-600">{errors.dates}</p>
         </div>
       )}
 
@@ -276,7 +237,7 @@ const LeaveForm = () => {
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !formData.manager || !selectedDates.start || !selectedDates.end}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Sending...' : 'Send Request'}

@@ -30,7 +30,7 @@ const LeaveRequestCard = () => {
           <div className="lg:col-span-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <LeaveForm />
+                <LeaveForm selectedDates={selectedDates} />
                 
                 {/* Selected Date Range */}
                 {selectedDates.start && selectedDates.end && (
