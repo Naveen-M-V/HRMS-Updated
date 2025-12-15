@@ -139,10 +139,9 @@ const LeaveForm = ({ selectedDates }) => {
         <Select
           value={formData.manager}
           onValueChange={(value) => handleChange('manager', value)}
-          disabled={managers.length === 0}
         >
-          <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""} ${managers.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}>
-            <SelectValue placeholder={managersLoading ? "Loading managers..." : managers.length === 0 ? "No approvers available" : "Select a manager"} />
+          <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""}`}>
+            <SelectValue placeholder={managersLoading ? "Loading managers..." : "Select a manager"} />
           </SelectTrigger>
           <SelectContent>
             {managersLoading ? (

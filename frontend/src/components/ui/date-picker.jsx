@@ -75,6 +75,7 @@ export function DatePicker({
           minDate={effectiveMinDate ? dayjs(effectiveMinDate) : undefined}
           maxDate={effectiveMaxDate ? dayjs(effectiveMaxDate) : undefined}
           disabled={disabled}
+          disablePortal={true}
           sx={{
             '& .MuiPickersPopper-root': {
               zIndex: 99999,
