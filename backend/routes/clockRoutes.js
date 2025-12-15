@@ -701,18 +701,47 @@ router.put('/entry/:id', async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
+    console.log('🔄 Updating time entry:', id);
+    console.log('📝 Update data:', updates);
+
+    // Validate MongoDB ID format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid time entry ID format'
+      });
+    }
+
+    // Prepare updates - handle time string conversion if needed
+    const updateData = { ...updates, updatedAt: new Date() };
+    
+    // If clockIn/clockOut are provided as HH:mm strings, keep them as is
+    // The TimeEntry model should accept both formats
+    if (updates.clockIn && typeof updates.clockIn === 'string' && !updates.clockIn.includes('T')) {
+      console.log('⏰ Clock in time received as HH:mm format:', updates.clockIn);
+      // Keep as string - the model will handle it
+    }
+    
+    if (updates.clockOut && typeof updates.clockOut === 'string' && !updates.clockOut.includes('T')) {
+      console.log('⏰ Clock out time received as HH:mm format:', updates.clockOut);
+      // Keep as string - the model will handle it
+    }
+
     const timeEntry = await TimeEntry.findByIdAndUpdate(
       id,
-      { ...updates, updatedAt: new Date() },
+      updateData,
       { new: true }
     ).populate('employee', 'firstName lastName email department');
 
     if (!timeEntry) {
+      console.warn('⚠️ Time entry not found:', id);
       return res.status(404).json({
         success: false,
         message: 'Time entry not found'
       });
     }
+
+    console.log('✅ Time entry updated successfully:', timeEntry._id);
 
     res.json({
       success: true,
@@ -721,10 +750,12 @@ router.put('/entry/:id', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Update time entry error:', error);
+    console.error('❌ Update time entry error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Server error updating time entry'
+      message: 'Server error updating time entry',
+      error: error.message
     });
   }
 });

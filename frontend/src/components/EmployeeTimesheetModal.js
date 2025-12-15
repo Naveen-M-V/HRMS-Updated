@@ -462,9 +462,12 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
         // Create sessions array from all entries for this day
         const sessions = dayEntries.map(entry => ({
+          entryId: entry._id || entry.id, // Add the MongoDB _id for each session
           clockInTime: formatTime(entry.clockIn),
           clockOutTime: entry.clockOut ? formatTime(entry.clockOut) : 'Present',
-          breaks: entry.breaks || []
+          breaks: entry.breaks || [],
+          location: entry.location || 'Work From Office',
+          workType: entry.workType || 'Regular'
         }));
 
         // Log multiple sessions for debugging

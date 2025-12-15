@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
 const LeaveRecord = require('../models/LeaveRecord');
+const LeaveRequest = require('../models/LeaveRequest');
 const EmployeesHub = require('../models/EmployeesHub');
 
 /**
@@ -624,34 +625,38 @@ router.get('/user/next-leave', async (req, res) => {
 const leaveApprovalController = require('../controllers/leaveApprovalController');
 
 // @route   POST /api/leave/requests/submit
-// @desc    Submit a new leave request (pending approval)
+// @desc    Submit a new leave request (pending approval) - DEPRECATED
+// @desc    Use POST /api/leave/requests instead
 // @access  Private
-router.post('/requests/submit', leaveApprovalController.submitLeaveRequest);
+// router.post('/requests/submit', leaveApprovalController.submitLeaveRequest);
 
 // @route   POST /api/leave/requests/:leaveId/approve
-// @desc    Approve a pending leave request
+// @desc    Approve a pending leave request - DEPRECATED
+// @desc    Use POST /api/leave/requests/:id/approve instead
 // @access  Private (Manager/Admin)
-router.post('/requests/:leaveId/approve', leaveApprovalController.approveLeaveRequest);
+// router.post('/requests/:leaveId/approve', leaveApprovalController.approveLeaveRequest);
 
 // @route   POST /api/leave/requests/:leaveId/reject
-// @desc    Reject a pending leave request
+// @desc    Reject a pending leave request - DEPRECATED
+// @desc    Use POST /api/leave/requests/:id/reject instead
 // @access  Private (Manager/Admin)
-router.post('/requests/:leaveId/reject', leaveApprovalController.rejectLeaveRequest);
+// router.post('/requests/:leaveId/reject', leaveApprovalController.rejectLeaveRequest);
 
 // @route   GET /api/leave/requests/pending
-// @desc    Get all pending leave requests for a manager
+// @desc    Get all pending leave requests for a manager - DEPRECATED
+// @desc    Use GET /api/leave/requests/pending (inline handler) instead
 // @access  Private (Manager/Admin)
-router.get('/requests/pending', leaveApprovalController.getPendingLeaveRequests);
+// router.get('/requests/pending', leaveApprovalController.getPendingLeaveRequests);
 
 // @route   GET /api/leave/requests/employee/:employeeId
-// @desc    Get all leave requests for a specific employee
+// @desc    Get all leave requests for a specific employee - DEPRECATED
 // @access  Private
-router.get('/requests/employee/:employeeId', leaveApprovalController.getEmployeeLeaveRequests);
+// router.get('/requests/employee/:employeeId', leaveApprovalController.getEmployeeLeaveRequests);
 
 // @route   GET /api/leave/overlaps
-// @desc    Detect overlapping leave requests for team/department
+// @desc    Detect overlapping leave requests for team/department - DEPRECATED
 // @access  Private (Manager/Admin)
-router.get('/overlaps', leaveApprovalController.detectLeaveOverlaps);
+// router.get('/overlaps', leaveApprovalController.detectLeaveOverlaps);
 
 // @route   PUT /api/leave/balance/:userId
 // @desc    Update user's annual leave entitlement by userId
@@ -810,12 +815,33 @@ router.post('/requests', async (req, res) => {
       });
     }
 
+    // Calculate number of days (inclusive)
+    const oneDay = 24 * 60 * 60 * 1000;
+    const numberOfDays = Math.round((end - start) / oneDay) + 1;
+
+    // Check for overlapping leave requests
+    const overlappingLeave = await LeaveRequest.findOne({
+      employeeId,
+      status: { $in: ['Pending', 'Approved'] },
+      $or: [
+        { startDate: { $lte: end }, endDate: { $gte: start } }
+      ]
+    });
+
+    if (overlappingLeave) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have a leave request for this date range'
+      });
+    }
+
     const leaveRequest = new LeaveRequest({
       employeeId,
       approverId,
       leaveType,
       startDate: start,
       endDate: end,
+      numberOfDays,
       reason,
       status: status === 'Draft' ? 'Draft' : 'Pending'
     });
@@ -823,6 +849,24 @@ router.post('/requests', async (req, res) => {
     await leaveRequest.save();
     await leaveRequest.populate('employeeId', 'firstName lastName email');
     await leaveRequest.populate('approverId', 'firstName lastName email');
+
+    // Create notification for approver if status is Pending
+    if (leaveRequest.status === 'Pending') {
+      try {
+        const employee = await EmployeesHub.findById(employeeId);
+        const Notification = require('../models/Notification');
+        await Notification.create({
+          userId: approverId,
+          type: 'leave_request',
+          title: 'New Leave Request',
+          message: `${employee?.firstName} ${employee?.lastName} has submitted a ${leaveType} leave request for ${numberOfDays} day(s)`,
+          relatedId: leaveRequest._id,
+          read: false
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -889,6 +933,42 @@ router.get('/requests/employee/:employeeId', async (req, res) => {
     });
   } catch (error) {
     console.error('Get employee requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching leave requests',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/leave/requests/my-requests
+// @desc    Get current user's leave requests
+// @access  Private (Employee)
+router.get('/requests/my-requests', async (req, res) => {
+  try {
+    const employeeId = req.session?.user?._id || req.user?.id;
+
+    if (!employeeId) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const { status } = req.query;
+
+    let query = { employeeId };
+    if (status) {
+      query.status = status;
+    }
+
+    const requests = await LeaveRequest.find(query)
+      .populate('approverId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: requests
+    });
+  } catch (error) {
+    console.error('Get my requests error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching leave requests',

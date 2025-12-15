@@ -101,7 +101,7 @@ const LeaveRequestForm = ({ onSuccess }) => {
         status: isDraft ? 'Draft' : 'Pending'
       };
 
-      const response = await axios.post('/api/leave-requests', payload);
+      const response = await axios.post('/api/leave/requests', payload);
 
       if (response.data.success) {
         toast.success(response.data.message);

@@ -12,7 +12,7 @@ const UpcomingLeavesCard = () => {
 
   const fetchUpcomingLeaves = async () => {
     try {
-      const response = await axios.get('/api/leave-requests/my-requests?status=Approved');
+      const response = await axios.get('/api/leave/requests/my-requests?status=Approved');
       if (response.data.success) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);

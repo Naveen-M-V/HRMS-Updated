@@ -140,17 +140,38 @@ const calculateHoursWorked = (clockIn, clockOut, breaks = []) => {
 };
 
 /**
- * Calculate scheduled hours from shift
- * @param {Object} shift - Shift assignment object
+ * Calculate scheduled hours from shift or two time strings
+ * @param {Object|String} shiftOrStartTime - Shift object OR startTime string in HH:MM format
+ * @param {String} endTime - endTime string in HH:MM format (only if first param is string)
  * @returns {Number} Scheduled hours (decimal)
  */
-const calculateScheduledHours = (shift) => {
+const calculateScheduledHours = (shiftOrStartTime, endTime) => {
   try {
-    const startTime = new Date(`2000-01-01T${shift.startTime}`);
-    const endTime = new Date(`2000-01-01T${shift.endTime}`);
+    let startTime, finalEndTime;
     
-    let totalMinutes = (endTime - startTime) / (1000 * 60);
-    totalMinutes -= shift.breakDuration || 0;
+    // Handle both function signatures
+    if (typeof shiftOrStartTime === 'string') {
+      // Called with (startTime, endTime) as strings
+      startTime = shiftOrStartTime;
+      finalEndTime = endTime;
+    } else if (typeof shiftOrStartTime === 'object' && shiftOrStartTime !== null) {
+      // Called with shift object
+      startTime = shiftOrStartTime.startTime;
+      finalEndTime = shiftOrStartTime.endTime;
+    } else {
+      console.warn('calculateScheduledHours: Invalid parameters');
+      return 8; // Default 8 hours
+    }
+    
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${finalEndTime}`);
+    
+    let totalMinutes = (end - start) / (1000 * 60);
+    
+    // Subtract break duration if shift object was provided
+    if (typeof shiftOrStartTime === 'object' && shiftOrStartTime !== null) {
+      totalMinutes -= shiftOrStartTime.breakDuration || 0;
+    }
     
     return Math.round((totalMinutes / 60) * 100) / 100;
   } catch (error) {
