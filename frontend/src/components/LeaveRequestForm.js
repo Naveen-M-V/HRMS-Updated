@@ -9,6 +9,7 @@ import {
   PaperAirplaneIcon,
   SaveIcon
 } from '@heroicons/react/24/outline';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const LeaveRequestForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -44,8 +45,8 @@ const LeaveRequestForm = ({ onSuccess }) => {
     try {
       const response = await axios.get('/api/employees?status=Active');
       if (response.data.success) {
-        const activeManagers = response.data.data.filter(emp => 
-          emp.role === 'admin' || emp.role === 'hr' || emp.role === 'super-admin'
+        const activeManagers = response.data.data.filter(emp =>
+          ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role)
         );
         setManagers(activeManagers);
       }
@@ -159,30 +160,21 @@ const LeaveRequestForm = ({ onSuccess }) => {
             }}>
               Approval Manager *
             </label>
-            <select
+            <Select
               value={formData.approverId}
-              onChange={(e) => setFormData({ ...formData, approverId: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: errors.approverId ? '2px solid #ef4444' : '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                background: '#ffffff',
-                cursor: 'pointer',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={(e) => !errors.approverId && (e.target.style.borderColor = '#3b82f6')}
-              onBlur={(e) => !errors.approverId && (e.target.style.borderColor = '#d1d5db')}
+              onValueChange={(value) => setFormData({ ...formData, approverId: value })}
             >
-              <option value="">Select a manager</option>
-              {managers.map(manager => (
-                <option key={manager._id} value={manager._id}>
-                  {manager.firstName} {manager.lastName}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className={`w-full ${errors.approverId ? "border-red-500 ring-red-500" : ""}`}>
+                <SelectValue placeholder="Select a manager" />
+              </SelectTrigger>
+              <SelectContent>
+                {managers.map(manager => (
+                  <SelectItem key={manager._id} value={manager._id}>
+                    {manager.firstName} {manager.lastName} — {manager.role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.approverId && (
               <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>{errors.approverId}</p>
             )}
@@ -199,27 +191,19 @@ const LeaveRequestForm = ({ onSuccess }) => {
             }}>
               Leave Type *
             </label>
-            <select
+            <Select
               value={formData.leaveType}
-              onChange={(e) => setFormData({ ...formData, leaveType: e.target.value })}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: errors.leaveType ? '2px solid #ef4444' : '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                background: '#ffffff',
-                cursor: 'pointer',
-                transition: 'border-color 0.2s'
-              }}
-              onFocus={(e) => !errors.leaveType && (e.target.style.borderColor = '#3b82f6')}
-              onBlur={(e) => !errors.leaveType && (e.target.style.borderColor = '#d1d5db')}
+              onValueChange={(value) => setFormData({ ...formData, leaveType: value })}
             >
-              {leaveTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+              <SelectTrigger className={`w-full ${errors.leaveType ? "border-red-500 ring-red-500" : ""}`}>
+                <SelectValue placeholder="Select leave type" />
+              </SelectTrigger>
+              <SelectContent>
+                {leaveTypes.map(type => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {errors.leaveType && (
               <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>{errors.leaveType}</p>
             )}

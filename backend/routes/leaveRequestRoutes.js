@@ -21,7 +21,7 @@ router.get('/my-requests', authenticate, leaveRequestController.getMyLeaveReques
 // @route   GET /api/leave-requests/pending
 // @desc    Get pending leave requests for approval (admin/manager)
 // @access  Private (Admin/Manager)
-router.get('/pending', authenticate, authorize(['admin', 'hr', 'super-admin']), leaveRequestController.getPendingLeaveRequests);
+router.get('/pending', authenticate, authorize(['admin', 'hr', 'super-admin', 'manager']), leaveRequestController.getPendingLeaveRequests);
 
 // @route   GET /api/leave-requests/:id
 // @desc    Get a specific leave request
@@ -31,12 +31,12 @@ router.get('/:id', authenticate, leaveRequestController.getLeaveRequestById);
 // @route   PATCH /api/leave-requests/:id/approve
 // @desc    Approve a leave request
 // @access  Private (Admin/Manager)
-router.patch('/:id/approve', authenticate, authorize(['admin', 'hr', 'super-admin']), leaveRequestController.approveLeaveRequest);
+router.patch('/:id/approve', authenticate, authorize(['admin', 'hr', 'super-admin', 'manager']), leaveRequestController.approveLeaveRequest);
 
 // @route   PATCH /api/leave-requests/:id/reject
 // @desc    Reject a leave request
 // @access  Private (Admin/Manager)
-router.patch('/:id/reject', authenticate, authorize(['admin', 'hr', 'super-admin']), leaveRequestController.rejectLeaveRequest);
+router.patch('/:id/reject', authenticate, authorize(['admin', 'hr', 'super-admin', 'manager']), leaveRequestController.rejectLeaveRequest);
 
 // @route   PATCH /api/leave-requests/:id
 // @desc    Update a leave request (draft)

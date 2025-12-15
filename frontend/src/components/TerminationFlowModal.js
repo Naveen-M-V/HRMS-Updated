@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import {
   XMarkIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -17,7 +17,7 @@ import axios from '../utils/axiosConfig';
 const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  
+
   // Form data for termination
   const [terminationData, setTerminationData] = useState({
     terminationType: '',
@@ -31,7 +31,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
 
   const terminationTypes = [
     'Voluntary Resignation',
-    'Termination by Company', 
+    'Termination by Company',
     'Retirement',
     'Redundancy',
     'End of Contract'
@@ -82,10 +82,10 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
       case 1:
         return terminationData.terminationType;
       case 2:
-        return terminationData.noticePeriod && 
-               terminationData.lastWorkingDay && 
-               terminationData.exitDate &&
-               terminationData.terminationReason;
+        return terminationData.noticePeriod &&
+          terminationData.lastWorkingDay &&
+          terminationData.exitDate &&
+          terminationData.terminationReason;
       case 3:
         return true; // Confirmation step doesn't need validation
       default:
@@ -94,7 +94,10 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   };
 
   const handleExecuteTermination = async () => {
+    // Move to step 4 (Loading/Success view)
+    setCurrentStep(4);
     setLoading(true);
+
     try {
       const response = await axios.patch(`/api/employees/${employee._id}/terminate`, {
         terminationType: terminationData.terminationType,
@@ -107,14 +110,17 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
       });
 
       if (response.data.success) {
-        onSuccess(response.data.data);
-        handleClose();
+        // Success: Call parent handler but don't close modal yet
+        if (onSuccess) onSuccess(response.data.data);
+        // Loading false will reveal the "Success" UI in Step 4
       } else {
         alert('Failed to terminate employee: ' + response.data.message);
+        setCurrentStep(3); // Go back to confirmation if failed
       }
     } catch (error) {
       console.error('Error terminating employee:', error);
       alert('Error terminating employee: ' + (error.response?.data?.message || error.message));
+      setCurrentStep(3); // Go back to confirmation if failed
     } finally {
       setLoading(false);
     }
@@ -174,7 +180,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
             >
               <XMarkIcon style={{ width: '24px', height: '24px', color: 'white' }} />
             </button>
-            
+
             <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>
               Initiate Termination
             </h2>
@@ -309,7 +315,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
             >
               <XMarkIcon style={{ width: '24px', height: '24px', color: 'white' }} />
             </button>
-            
+
             <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>
               Termination Details
             </h2>
@@ -347,9 +353,9 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                 </label>
                 <DatePicker
                   value={terminationData.lastWorkingDay ? new Date(terminationData.lastWorkingDay) : null}
-                  onChange={(date) => setTerminationData(prev => ({ 
-                    ...prev, 
-                    lastWorkingDay: date ? date.format('YYYY-MM-DD') : '' 
+                  onChange={(date) => setTerminationData(prev => ({
+                    ...prev,
+                    lastWorkingDay: date ? date.format('YYYY-MM-DD') : ''
                   }))}
                 />
               </div>
@@ -360,9 +366,9 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                 </label>
                 <DatePicker
                   value={terminationData.exitDate ? new Date(terminationData.exitDate) : null}
-                  onChange={(date) => setTerminationData(prev => ({ 
-                    ...prev, 
-                    exitDate: date ? date.format('YYYY-MM-DD') : '' 
+                  onChange={(date) => setTerminationData(prev => ({
+                    ...prev,
+                    exitDate: date ? date.format('YYYY-MM-DD') : ''
                   }))}
                 />
               </div>
@@ -542,7 +548,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
             >
               <XMarkIcon style={{ width: '24px', height: '24px', color: 'white' }} />
             </button>
-            
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
               <ExclamationTriangleIcon style={{ width: '32px', height: '32px' }} />
               <h2 style={{ fontSize: '24px', fontWeight: '700' }}>
@@ -576,7 +582,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#111827' }}>
                 Termination Summary
               </h3>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '14px' }}>
                 <div>
                   <span style={{ color: '#6b7280', fontWeight: '500' }}>Employee:</span>
@@ -665,7 +671,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                 </button>
               </div>
               <button
-                onClick={handleNext}
+                onClick={handleExecuteTermination}
                 style={{
                   padding: '12px 24px',
                   background: '#dc2626',
