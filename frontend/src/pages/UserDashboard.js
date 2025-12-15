@@ -13,10 +13,10 @@ import ShiftInfoCard from '../components/ShiftInfoCard';
 import UserNavigation from '../components/UserNavigation';
 import EmployeeMap from '../components/employeeLiveMap';
 import { jobRoleCertificateMapping } from '../data/new';
-import { 
-  PencilIcon, 
-  PlusIcon, 
-  EyeIcon, 
+import {
+  PencilIcon,
+  PlusIcon,
+  EyeIcon,
   BellIcon,
   UserCircleIcon,
   DocumentTextIcon,
@@ -25,7 +25,6 @@ import {
   ClockIcon,
   CalendarIcon
 } from '@heroicons/react/24/outline';
-import LeaveRequestCard from '../components/LeaveManagement/LeaveRequestCard';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
@@ -36,14 +35,23 @@ const UserDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // Check if user is an employee (full features) or profile (certificate-only)
   const isEmployeeUser = user?.userType === 'employee';
+<<<<<<< Updated upstream
   
+=======
+
+  // DEBUG: Log user type and role
+  console.log('DEBUG: UserDashboard - User type:', user?.userType);
+  console.log('DEBUG: UserDashboard - User role:', user?.role);
+  console.log('DEBUG: UserDashboard - isEmployeeUser:', isEmployeeUser);
+
+>>>>>>> Stashed changes
   // Default tab based on user type
   const defaultTab = isEmployeeUser ? 'overview' : 'certificates';
   const initialTab = searchParams.get('tab') || defaultTab;
-  
+
   const [userProfile, setUserProfile] = useState(null);
   const [certificates, setCertificates] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -51,7 +59,7 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedProfile, setEditedProfile] = useState({});
-  
+
   const [clockStatus, setClockStatus] = useState(null);
   const [clockStatusLoading, setClockStatusLoading] = useState(true);
   const [workLocation, setWorkLocation] = useState('Work From Office');
@@ -63,7 +71,7 @@ const UserDashboard = () => {
   const [showClockOutDialog, setShowClockOutDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
-  
+
   // GPS location state
   const [gpsCoordinates, setGpsCoordinates] = useState(null);
   const [locationAccuracy, setLocationAccuracy] = useState(null);
@@ -90,30 +98,30 @@ const UserDashboard = () => {
       if (showLoading) {
         setLoading(true);
       }
-      
+
       // Determine which endpoint to use based on userType
-      const endpoint = isEmployeeUser 
+      const endpoint = isEmployeeUser
         ? `${API_BASE_URL}/api/employees/by-email/${user.email}`
         : `${API_BASE_URL}/api/profiles/by-email/${user.email}`;
-      
+
       console.log('Fetching user data from:', endpoint, 'userType:', user.userType);
-      
+
       // Fetch user profile/employee by email
       const userDataResponse = await fetch(endpoint, {
         credentials: 'include'
       });
-      
+
       if (userDataResponse.ok) {
         const userData = await userDataResponse.json();
         setUserProfile(userData);
         setEditedProfile(userData);
-        
+
         // Fetch certificates only for profiles (employees might not have profile-based certificates)
         if (!isEmployeeUser && userData._id) {
           const certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${userData._id}/certificates`, {
             credentials: 'include'
           });
-          
+
           if (certificatesResponse.ok) {
             const certificatesData = await certificatesResponse.json();
             setCertificates(certificatesData);
@@ -133,7 +141,7 @@ const UserDashboard = () => {
               'Content-Type': 'application/json'
             }
           });
-          
+
           if (notificationsResponse.ok) {
             const notificationsData = await notificationsResponse.json();
             console.log('User notifications:', notificationsData);
@@ -178,7 +186,7 @@ const UserDashboard = () => {
       const savedClockStatus = Cookies.get('userClockedIn');
       const savedLocation = Cookies.get('clockInLocation');
       const savedWorkType = Cookies.get('clockInWorkType');
-      
+
       if (savedClockStatus === 'true') {
         console.log('🍪 Restoring clock-in state from cookies');
         if (savedLocation) setWorkLocation(savedLocation);
@@ -192,12 +200,12 @@ const UserDashboard = () => {
       fetchUserData();
       fetchClockStatus();
       captureCurrentLocation(); // Capture GPS on page load
-      
+
       // Poll for updates every 60 seconds for notifications only (reduced frequency)
       const interval = setInterval(() => {
         fetchUserData(false); // Background refresh without loading screen
       }, 60000);
-      
+
       return () => clearInterval(interval);
     }
   }, [user, fetchUserData]);
@@ -240,7 +248,7 @@ const UserDashboard = () => {
           location: response.data.location,
           workType: response.data.workType
         }, null, 2));
-        
+
         // Always set fresh data from backend
         const newStatus = {
           status: response.data.status,
@@ -250,11 +258,11 @@ const UserDashboard = () => {
           workType: response.data.workType,
           breaks: response.data.breaks
         };
-        
+
         console.log('🔄 Current clockStatus before update:', clockStatus);
         setClockStatus(newStatus);
         console.log('🔄 New clockStatus set to:', newStatus);
-        
+
         // Force a re-render check
         console.log('🔍 Status check - Should show Clock Out?', newStatus.status === 'clocked_in' || newStatus.status === 'on_break');
       } else {
@@ -282,26 +290,26 @@ const UserDashboard = () => {
   const handleClockIn = async () => {
     setProcessing(true);
     setGpsError(null);
-    
+
     try {
       // ========== GPS LOCATION CAPTURE ==========
       // Request GPS coordinates using browser's Geolocation API
       let gpsData = {};
-      
+
       if (navigator.geolocation) {
         try {
           // Show loading toast while getting location
           const locationToast = toast.info('Requesting high-accuracy location...', { autoClose: false });
-          
+
           // Function to get position with retry logic for better accuracy
           const getAccuratePosition = async (maxRetries = 3, targetAccuracy = 10) => {
             let bestPosition = null;
             let bestAccuracy = Infinity;
-            
+
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
               try {
                 console.log(`📍 GPS attempt ${attempt}/${maxRetries}, target accuracy: ${targetAccuracy}m`);
-                
+
                 const position = await new Promise((resolve, reject) => {
                   navigator.geolocation.getCurrentPosition(
                     resolve,
@@ -313,22 +321,22 @@ const UserDashboard = () => {
                     }
                   );
                 });
-                
+
                 const accuracy = position.coords.accuracy;
                 console.log(`📍 GPS attempt ${attempt} accuracy: ${accuracy.toFixed(2)}m`);
-                
+
                 // Keep track of best position
                 if (accuracy < bestAccuracy) {
                   bestPosition = position;
                   bestAccuracy = accuracy;
                 }
-                
+
                 // If we achieved target accuracy, use it immediately
                 if (accuracy <= targetAccuracy) {
                   console.log(`✅ Achieved target accuracy of ${targetAccuracy}m on attempt ${attempt}`);
                   return position;
                 }
-                
+
                 // Wait a bit before next attempt to allow GPS to stabilize
                 if (attempt < maxRetries) {
                   await new Promise(resolve => setTimeout(resolve, 1000));
@@ -340,39 +348,39 @@ const UserDashboard = () => {
                 }
               }
             }
-            
+
             // Return best position if target accuracy wasn't achieved
             if (bestPosition) {
               console.log(`📍 Using best accuracy achieved: ${bestAccuracy.toFixed(2)}m`);
               return bestPosition;
             }
-            
+
             throw new Error('Failed to get GPS location after all attempts');
           };
-          
+
           // Get accurate position with retry logic
           const position = await getAccuratePosition(3, 10);
-          
+
           // Extract GPS coordinates
           gpsData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy
           };
-          
+
           // Update state for display
           setGpsCoordinates({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           });
           setLocationAccuracy(Math.round(position.coords.accuracy));
-          
+
           // Dismiss location toast
           toast.dismiss(locationToast);
-          
+
           // Show accuracy feedback based on GPS quality
           const accuracyMeters = Math.round(position.coords.accuracy);
-          
+
           if (accuracyMeters <= 10) {
             toast.success(`✅ Excellent GPS accuracy: ${accuracyMeters}m`, {
               autoClose: 3000
@@ -394,11 +402,11 @@ const UserDashboard = () => {
               autoClose: 8000
             });
           }
-          
+
           console.log('GPS captured:', gpsData);
         } catch (gpsError) {
           console.error('GPS error:', gpsError);
-          
+
           // Handle specific GPS errors
           if (gpsError.code === 1) {
             setGpsError('Location permission denied. Please enable location access.');
@@ -414,7 +422,7 @@ const UserDashboard = () => {
             setGpsError('Location request timeout.');
             toast.warning('Location timeout. Clocking in without GPS data.');
           }
-          
+
           // Continue with clock-in even if GPS fails (optional - can be made mandatory)
           console.warn('Continuing clock-in without GPS data');
         }
@@ -423,31 +431,31 @@ const UserDashboard = () => {
         toast.warning('GPS not supported. Clocking in without location data.');
       }
       // ==========================================
-      
+
       // Send clock-in request with GPS data
-      const response = await userClockIn({ 
-        location: workLocation, 
+      const response = await userClockIn({
+        location: workLocation,
         workType,
         ...gpsData // Spread GPS coordinates (latitude, longitude, accuracy)
       });
-      
+
       if (response.success) {
         toast.success(response.message || 'Clocked in successfully!');
-        
+
         // Set cookie to persist clock-in state (expires in 1 day)
         Cookies.set('userClockedIn', 'true', { expires: 1 });
         Cookies.set('clockInTime', new Date().toISOString(), { expires: 1 });
         Cookies.set('clockInLocation', workLocation, { expires: 1 });
         Cookies.set('clockInWorkType', workType, { expires: 1 });
-        
+
         if (response.data) {
           setShiftInfo(response.data.shift);
           setAttendanceStatus(response.data.attendanceStatus);
         }
-        
+
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
-        
+
         // Trigger refresh in admin dashboard and all other tabs for immediate update
         triggerClockRefresh({
           action: 'CLOCK_IN',
@@ -457,7 +465,7 @@ const UserDashboard = () => {
           workType: workType,
           timestamp: Date.now()
         });
-        
+
         if (response.data?.attendanceStatus === 'Late') {
           toast.warning('Late arrival detected', { autoClose: 5000 });
         }
@@ -466,7 +474,7 @@ const UserDashboard = () => {
       console.error('Clock in error:', error);
       // Extract error message from response (backend returns { success: false, message: '...' })
       const errorMessage = error.message || error.error || 'Failed to clock in';
-      
+
       // Check if error response includes current status (from "already clocked in" error)
       if (error.currentStatus) {
         console.log('✅ Error includes current status, updating UI immediately:', error.currentStatus);
@@ -483,7 +491,7 @@ const UserDashboard = () => {
         // Always refresh status when there's an error to sync UI with backend state
         console.log('⚠️ Clock-in failed, fetching current status to sync UI...');
         await fetchClockStatus();
-        
+
         // If user is already clocked in, show appropriate message
         if (errorMessage.includes('already') || errorMessage.includes('clocked in')) {
           toast.warning('You are already clocked in', { autoClose: 3000 });
@@ -504,16 +512,16 @@ const UserDashboard = () => {
   const handleClockOut = async () => {
     setProcessing(true);
     setGpsError(null);
-    
+
     try {
       // ========== GPS LOCATION CAPTURE FOR CLOCK-OUT ==========
       let gpsData = {};
-      
+
       if (navigator.geolocation) {
         try {
           console.log('📍 Capturing GPS location for clock-out...');
           const locationToast = toast.info('Capturing location for clock-out...', { autoClose: false });
-          
+
           // Get accurate position for clock-out
           const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
@@ -526,13 +534,13 @@ const UserDashboard = () => {
               }
             );
           });
-          
+
           gpsData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy
           };
-          
+
           toast.dismiss(locationToast);
           console.log('✅ GPS captured for clock-out:', gpsData);
         } catch (gpsError) {
@@ -541,25 +549,25 @@ const UserDashboard = () => {
         }
       }
       // ========================================================
-      
+
       const response = await userClockOut(gpsData);
-      
+
       if (response.success) {
         const hours = response.data?.hoursWorked || 0;
         toast.success(`Clocked out! Hours: ${hours.toFixed(2)}h`, { autoClose: 5000 });
-        
+
         // Remove cookies to clear persisted clock-in state
         Cookies.remove('userClockedIn');
         Cookies.remove('clockInTime');
         Cookies.remove('clockInLocation');
         Cookies.remove('clockInWorkType');
-        
+
         setShiftInfo(null);
         setAttendanceStatus(null);
-        
+
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
-        
+
         // Trigger refresh in admin dashboard and all other tabs for immediate update
         triggerClockRefresh({
           action: 'CLOCK_OUT',
@@ -584,13 +592,13 @@ const UserDashboard = () => {
     setProcessing(true);
     try {
       const response = await userStartBreak();
-      
+
       if (response.success) {
         toast.success('Break started');
-        
+
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
-        
+
         // Trigger refresh in admin dashboard and all other tabs for immediate update
         triggerClockRefresh({
           action: 'START_BREAK',
@@ -611,13 +619,13 @@ const UserDashboard = () => {
     setProcessing(true);
     try {
       const response = await userResumeWork();
-      
+
       if (response.success) {
         toast.success('Work resumed');
-        
+
         // Fetch updated clock status to update UI immediately
         await fetchClockStatus();
-        
+
         // Trigger refresh in admin dashboard and all other tabs for immediate update
         triggerClockRefresh({
           action: 'RESUME_WORK',
@@ -646,12 +654,12 @@ const UserDashboard = () => {
   const handleProfileSave = async () => {
     try {
       // Determine which endpoint to use based on userType
-      const endpoint = isEmployeeUser 
+      const endpoint = isEmployeeUser
         ? `${API_BASE_URL}/api/employees/${userProfile._id}`
         : `${API_BASE_URL}/api/profiles/${userProfile._id}`;
-      
+
       console.log('Updating user data at:', endpoint, 'userType:', user.userType);
-      
+
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
@@ -700,11 +708,11 @@ const UserDashboard = () => {
 
   const getCertificateStatusColor = (expiryDate) => {
     if (!expiryDate) return 'text-gray-500';
-    
+
     const expiry = new Date(expiryDate);
     const today = new Date();
     const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-    
+
     if (daysUntilExpiry < 0) return 'text-red-600'; // Expired
     if (daysUntilExpiry <= 30) return 'text-yellow-600'; // Expiring soon
     return 'text-green-600'; // Valid
@@ -725,18 +733,18 @@ const UserDashboard = () => {
 
   const getRequiredCertificates = () => {
     if (!userProfile?.jobRole) return null;
-    
+
     // Handle jobRole as array or string
-    const jobRole = Array.isArray(userProfile.jobRole) 
-      ? userProfile.jobRole[0] 
+    const jobRole = Array.isArray(userProfile.jobRole)
+      ? userProfile.jobRole[0]
       : userProfile.jobRole;
-    
+
     return jobRoleCertificateMapping[jobRole] || null;
   };
 
   const checkCertificateStatus = (certCode) => {
     // Check if user has this certificate
-    return certificates.some(cert => 
+    return certificates.some(cert =>
       cert.certificate && cert.certificate.includes(certCode)
     );
   };
@@ -773,13 +781,13 @@ const UserDashboard = () => {
                 <ClockIcon className="h-6 w-6 mr-3 text-blue-600" />
                 Time Tracking
               </h2>
-              
+
               {shiftInfo && attendanceStatus && (
                 <div className="mb-6">
                   <ShiftInfoCard shift={shiftInfo} attendanceStatus={attendanceStatus} validation={null} />
                 </div>
               )}
-              
+
               {/* GPS Location Accuracy Display */}
               {locationAccuracy && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
@@ -797,13 +805,13 @@ const UserDashboard = () => {
               {gpsCoordinates?.latitude && gpsCoordinates?.longitude && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">📍 Your Live Location</h3>
-                  <EmployeeMap 
-                    latitude={gpsCoordinates.latitude} 
-                    longitude={gpsCoordinates.longitude} 
+                  <EmployeeMap
+                    latitude={gpsCoordinates.latitude}
+                    longitude={gpsCoordinates.longitude}
                   />
                 </div>
               )}
-              
+
               {/* GPS Error Display */}
               {gpsError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
@@ -815,7 +823,7 @@ const UserDashboard = () => {
                   </p>
                 </div>
               )}
-              
+
               {clockStatusLoading ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -834,7 +842,7 @@ const UserDashboard = () => {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-3">
                     {clockStatus.status === 'on_break' ? (
                       <button
@@ -853,7 +861,7 @@ const UserDashboard = () => {
                         {processing ? 'Processing...' : 'Start Break'}
                       </button>
                     )}
-                    
+
                     <button
                       onClick={initiateClockOut}
                       disabled={processing}
@@ -899,7 +907,7 @@ const UserDashboard = () => {
                       </Select>
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={initiateClockIn}
                     disabled={processing}
@@ -1032,9 +1040,8 @@ const UserDashboard = () => {
                                   <p className="text-xs text-gray-600">Expires: {formatDateDDMMYY(cert.expiryDate)}</p>
                                 </div>
                                 <div className="text-right">
-                                  <span className={`text-xs font-semibold px-2 py-1 rounded ${
-                                    daysUntilExpiry <= 7 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                                  }`}>
+                                  <span className={`text-xs font-semibold px-2 py-1 rounded ${daysUntilExpiry <= 7 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                                    }`}>
                                     {daysUntilExpiry} {daysUntilExpiry === 1 ? 'day' : 'days'} left
                                   </span>
                                 </div>
@@ -1100,10 +1107,7 @@ const UserDashboard = () => {
               </div>
             </div>
 
-            {/* Leave Request Section */}
-            <div className="mt-8">
-              <LeaveRequestCard />
-            </div>
+            {/* Leave Request Section Removed */}
 
             {/* Recent Activity */}
             <div className="bg-white shadow rounded-lg">
@@ -1281,13 +1285,12 @@ const UserDashboard = () => {
                     <h4 className="font-semibold text-gray-900 mb-2">Optional Certificates</h4>
                     <div className="flex flex-wrap gap-2">
                       {getRequiredCertificates().optional.map(cert => (
-                        <span 
+                        <span
                           key={cert}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            checkCertificateStatus(cert) 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${checkCertificateStatus(cert)
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                            }`}
                         >
                           {checkCertificateStatus(cert) && <CheckCircleIcon className="h-3 w-3 mr-1" />}
                           {cert}
@@ -1355,7 +1358,7 @@ const UserDashboard = () => {
                         {certificates.map((certificate) => {
                           const expiryDate = certificate.expiryDate ? new Date(certificate.expiryDate) : null;
                           const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24)) : null;
-                          
+
                           return (
                             <tr key={certificate._id}>
                               <td className="px-6 py-4 whitespace-nowrap">
@@ -1368,16 +1371,15 @@ const UserDashboard = () => {
                                 {certificate.category || 'General'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  daysUntilExpiry === null ? 'bg-gray-100 text-gray-800' :
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${daysUntilExpiry === null ? 'bg-gray-100 text-gray-800' :
                                   daysUntilExpiry < 0 ? 'bg-red-100 text-red-800' :
-                                  daysUntilExpiry <= 30 ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-green-100 text-green-800'
-                                }`}>
+                                    daysUntilExpiry <= 30 ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-green-100 text-green-800'
+                                  }`}>
                                   {daysUntilExpiry === null ? 'No Expiry' :
-                                   daysUntilExpiry < 0 ? 'Expired' :
-                                   daysUntilExpiry <= 30 ? 'Expiring Soon' :
-                                   'Valid'}
+                                    daysUntilExpiry < 0 ? 'Expired' :
+                                      daysUntilExpiry <= 30 ? 'Expiring Soon' :
+                                        'Valid'}
                                 </span>
                               </td>
                               <td className={`px-6 py-4 whitespace-nowrap text-sm ${getCertificateStatusColor(certificate.expiryDate)}`}>
@@ -1409,7 +1411,7 @@ const UserDashboard = () => {
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900 mb-6">My Notifications</h3>
-              
+
               {notifications.length === 0 ? (
                 <div className="text-center py-12">
                   <BellIcon className="mx-auto h-12 w-12 text-gray-400" />

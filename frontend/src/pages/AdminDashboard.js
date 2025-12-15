@@ -3,14 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
 import ComplianceDashboard from '../components/ComplianceDashboard';
 import Calendar from '../pages/Calendar';
-import { 
-  ChartBarIcon, 
+import {
+  ChartBarIcon,
   UserGroupIcon,
   ClockIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
-  CalendarIcon
+  CalendarIcon,
+  ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
+import ManagerApprovalDashboard from './ManagerApprovalDashboard';
 
 /**
  * AdminDashboard - Main admin interface with location tracking and analytics
@@ -88,6 +90,7 @@ const AdminDashboard = () => {
   const tabs = [
     { id: 'overview', name: 'Overview', icon: ChartBarIcon },
     { id: 'attendance', name: 'Attendance Calendar', icon: CalendarIcon },
+    { id: 'leaves', name: 'Leave Approvals', icon: ClipboardDocumentCheckIcon },
     { id: 'compliance', name: 'Compliance', icon: DocumentTextIcon }
   ];
 
@@ -117,11 +120,10 @@ const AdminDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   {tab.name}
@@ -276,6 +278,10 @@ const AdminDashboard = () => {
           <Calendar />
         )}
 
+        {activeTab === 'leaves' && (
+          <ManagerApprovalDashboard />
+        )}
+
         {activeTab === 'compliance' && (
           <ComplianceDashboard />
         )}
@@ -320,7 +326,7 @@ const AttendanceCalendar = () => {
       setLoading(true);
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      
+
       const url = selectedEmployee === 'all'
         ? `${process.env.REACT_APP_API_BASE_URL}/api/clock/time-entries?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`
         : `${process.env.REACT_APP_API_BASE_URL}/api/clock/time-entries/${selectedEmployee}?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`;
@@ -349,23 +355,23 @@ const AttendanceCalendar = () => {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
+
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(day);
     }
-    
+
     return days;
   };
 
   const getEntriesForDate = (day) => {
     if (!day) return [];
-    
+
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    
+
     return timeEntries.filter(entry => {
       const entryDate = entry.date.split('T')[0];
       return entryDate === dateStr;
@@ -433,7 +439,7 @@ const AttendanceCalendar = () => {
               Next →
             </button>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-700">Filter by Employee:</label>
             <select
@@ -487,21 +493,20 @@ const AttendanceCalendar = () => {
                 {day}
               </div>
             ))}
-            
+
             {/* Calendar Days */}
             {getDaysInMonth().map((day, index) => {
               const entries = getEntriesForDate(day);
               const hasLate = entries.some(isLate);
               const hasOT = entries.some(hasOvertime);
               const hasBreak = entries.some(e => e.breakIn && !e.breakOut);
-              
+
               return (
                 <div
                   key={index}
                   onClick={() => day && handleDayClick(day)}
-                  className={`min-h-24 p-2 border rounded-lg ${
-                    day ? 'bg-white hover:bg-gray-50 cursor-pointer' : 'bg-gray-100'
-                  } ${entries.length > 0 ? 'border-blue-300' : 'border-gray-200'}`}
+                  className={`min-h-24 p-2 border rounded-lg ${day ? 'bg-white hover:bg-gray-50 cursor-pointer' : 'bg-gray-100'
+                    } ${entries.length > 0 ? 'border-blue-300' : 'border-gray-200'}`}
                 >
                   {day && (
                     <>

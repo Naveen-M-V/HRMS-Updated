@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axiosConfig';
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
+import {
+  CheckCircleIcon,
+  XCircleIcon,
   ClockIcon,
   CalendarDaysIcon,
   UserIcon,
@@ -14,12 +14,12 @@ const ManagerApprovalDashboard = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all'); // all, annual, sick, unpaid
+  const [filter, setFilter] = useState('all'); // all, Sick, Casual, etc.
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
-  const [approvalNotes, setApprovalNotes] = useState('');
+  const [adminComment, setAdminComment] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -30,12 +30,11 @@ const ManagerApprovalDashboard = () => {
   const fetchPendingRequests = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/leave/requests/pending`
-      );
-      
+      // Corrected API endpoint to match backend routes
+      const response = await axios.get('/api/leave-requests/pending');
+
       setPendingRequests(response.data.data || []);
     } catch (error) {
       console.error('Error fetching pending requests:', error);
@@ -47,21 +46,21 @@ const ManagerApprovalDashboard = () => {
 
   const handleApprove = async () => {
     if (!selectedRequest) return;
-    
+
     setActionLoading(true);
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/leave/requests/${selectedRequest._id}/approve`,
+      const response = await axios.patch(
+        `/api/leave-requests/${selectedRequest._id}/approve`,
         {
-          approvalNotes
+          adminComment
         }
       );
-      
+
       if (response.data.success) {
-        alert('Leave request approved successfully! The employee has been notified.');
+        // notification handled by backend
         setShowApprovalModal(false);
         setSelectedRequest(null);
-        setApprovalNotes('');
+        setAdminComment('');
         fetchPendingRequests(); // Refresh list
       }
     } catch (error) {
@@ -77,18 +76,18 @@ const ManagerApprovalDashboard = () => {
       alert('Please provide a reason for rejection');
       return;
     }
-    
+
     setActionLoading(true);
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/leave/requests/${selectedRequest._id}/reject`,
+      const response = await axios.patch(
+        `/api/leave-requests/${selectedRequest._id}/reject`,
         {
           rejectionReason
         }
       );
-      
+
       if (response.data.success) {
-        alert('Leave request rejected. The employee has been notified.');
+        // notification handled by backend
         setShowRejectionModal(false);
         setSelectedRequest(null);
         setRejectionReason('');
@@ -105,7 +104,7 @@ const ManagerApprovalDashboard = () => {
   const openApprovalModal = (request) => {
     setSelectedRequest(request);
     setShowApprovalModal(true);
-    setApprovalNotes('');
+    setAdminComment('');
   };
 
   const openRejectionModal = (request) => {
@@ -116,39 +115,34 @@ const ManagerApprovalDashboard = () => {
 
   const filteredRequests = pendingRequests.filter(request => {
     // Filter by type
-    if (filter !== 'all' && request.type !== filter) return false;
-    
+    if (filter !== 'all' && request.leaveType !== filter) return false;
+
     // Filter by search term
     if (searchTerm) {
-      const employeeName = `${request.user?.firstName || ''} ${request.user?.lastName || ''}`.toLowerCase();
-      const employeeId = request.user?.employeeId || '';
+      const employeeName = `${request.employeeId?.firstName || ''} ${request.employeeId?.lastName || ''}`.toLowerCase();
+      const employeeIdCode = request.employeeId?.vtid || '';
       const searchLower = searchTerm.toLowerCase();
-      
-      return employeeName.includes(searchLower) || employeeId.includes(searchLower);
+
+      return employeeName.includes(searchLower) || employeeIdCode.toLowerCase().includes(searchLower);
     }
-    
+
     return true;
   });
 
   const getLeaveTypeColor = (type) => {
     switch (type) {
-      case 'annual':
+      case 'Casual':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'sick':
+      case 'Sick':
         return 'bg-red-100 text-red-800 border-red-200';
-      case 'unpaid':
+      case 'Unpaid':
         return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Maternity':
+      case 'Paternity':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       default:
         return 'bg-green-100 text-green-800 border-green-200';
     }
-  };
-
-  const calculateDuration = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end - start);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
   };
 
   return (
@@ -168,7 +162,7 @@ const ManagerApprovalDashboard = () => {
               <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by employee name or ID..."
+                placeholder="Search by employee name or VTID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -185,9 +179,14 @@ const ManagerApprovalDashboard = () => {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Types</option>
-              <option value="annual">Annual Leave</option>
-              <option value="sick">Sick Leave</option>
-              <option value="unpaid">Unpaid Leave</option>
+              <option value="Casual">Casual</option>
+              <option value="Sick">Sick</option>
+              <option value="Paid">Paid</option>
+              <option value="Unpaid">Unpaid</option>
+              <option value="Maternity">Maternity</option>
+              <option value="Paternity">Paternity</option>
+              <option value="Bereavement">Bereavement</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -219,8 +218,8 @@ const ManagerApprovalDashboard = () => {
           <ClockIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pending Requests</h3>
           <p className="text-gray-600">
-            {searchTerm || filter !== 'all' 
-              ? 'No requests match your current filters' 
+            {searchTerm || filter !== 'all'
+              ? 'No requests match your current filters'
               : 'All leave requests have been processed'}
           </p>
         </div>
@@ -265,17 +264,17 @@ const ManagerApprovalDashboard = () => {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {request.user?.firstName} {request.user?.lastName}
+                            {request.employeeId?.firstName} {request.employeeId?.lastName}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {request.user?.employeeId || 'N/A'}
+                            {request.employeeId?.vtid || 'N/A'}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getLeaveTypeColor(request.type)}`}>
-                        {request.type.charAt(0).toUpperCase() + request.type.slice(1)}
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getLeaveTypeColor(request.leaveType)}`}>
+                        {request.leaveType}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -287,7 +286,7 @@ const ManagerApprovalDashboard = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {request.days || calculateDuration(request.startDate, request.endDate)} days
+                      {request.numberOfDays} days
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       <div className="max-w-xs truncate" title={request.reason}>
@@ -323,43 +322,21 @@ const ManagerApprovalDashboard = () => {
         </div>
       )}
 
-      {/* Summary Stats */}
-      {!loading && filteredRequests.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="text-sm text-blue-600 font-medium">Total Pending</div>
-            <div className="text-2xl font-bold text-blue-900">{filteredRequests.length}</div>
-          </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="text-sm text-green-600 font-medium">Annual Leave</div>
-            <div className="text-2xl font-bold text-green-900">
-              {filteredRequests.filter(r => r.type === 'annual').length}
-            </div>
-          </div>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="text-sm text-red-600 font-medium">Sick Leave</div>
-            <div className="text-2xl font-bold text-red-900">
-              {filteredRequests.filter(r => r.type === 'sick').length}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Approval Modal */}
       {showApprovalModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 text-green-900">Approve Leave Request</h2>
-            
+
             <div className="mb-4 bg-green-50 border border-green-200 rounded p-4">
               <p className="text-sm text-gray-700 mb-2">
-                <strong>Employee:</strong> {selectedRequest.user?.firstName} {selectedRequest.user?.lastName}
+                <strong>Employee:</strong> {selectedRequest.employeeId?.firstName} {selectedRequest.employeeId?.lastName}
               </p>
               <p className="text-sm text-gray-700 mb-2">
-                <strong>Type:</strong> {selectedRequest.type}
+                <strong>Type:</strong> {selectedRequest.leaveType}
               </p>
               <p className="text-sm text-gray-700 mb-2">
-                <strong>Duration:</strong> {selectedRequest.days} days
+                <strong>Duration:</strong> {selectedRequest.numberOfDays} days
               </p>
               <p className="text-sm text-gray-700">
                 <strong>Dates:</strong> {new Date(selectedRequest.startDate).toLocaleDateString('en-GB')} - {new Date(selectedRequest.endDate).toLocaleDateString('en-GB')}
@@ -371,8 +348,8 @@ const ManagerApprovalDashboard = () => {
                 Approval Notes (Optional)
               </label>
               <textarea
-                value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
+                value={adminComment}
+                onChange={(e) => setAdminComment(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows="3"
                 placeholder="Add any notes or comments..."
@@ -403,13 +380,13 @@ const ManagerApprovalDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4 text-red-900">Reject Leave Request</h2>
-            
+
             <div className="mb-4 bg-red-50 border border-red-200 rounded p-4">
               <p className="text-sm text-gray-700 mb-2">
-                <strong>Employee:</strong> {selectedRequest.user?.firstName} {selectedRequest.user?.lastName}
+                <strong>Employee:</strong> {selectedRequest.employeeId?.firstName} {selectedRequest.employeeId?.lastName}
               </p>
               <p className="text-sm text-gray-700 mb-2">
-                <strong>Type:</strong> {selectedRequest.type}
+                <strong>Type:</strong> {selectedRequest.leaveType}
               </p>
               <p className="text-sm text-gray-700">
                 <strong>Dates:</strong> {new Date(selectedRequest.startDate).toLocaleDateString('en-GB')} - {new Date(selectedRequest.endDate).toLocaleDateString('en-GB')}
