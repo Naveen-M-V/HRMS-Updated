@@ -7,7 +7,18 @@ import { CheckIcon, ArrowLeftIcon } from "@heroicons/react/24/solid";
 import { DatePicker } from "../components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useAlert } from "../components/AlertNotification";
-import { validateDateOfBirth, getMaxDOBDate, handleMobileNumberChange, preventNonMobileNumeric, validateStartDate, validateProbationEndDate, getMaxStartDate, getMinProbationDate } from "../utils/inputValidation";
+import { 
+  validateDateOfBirth, 
+  getMaxDOBDate, 
+  handleMobileNumberChange, 
+  preventNonMobileNumeric, 
+  validateStartDate, 
+  validateProbationEndDate, 
+  getMaxStartDate, 
+  getMinProbationDate,
+  validateFieldCharacters,
+  collectCharacterErrors
+} from "../utils/inputValidation";
 
 const TEXT_ONLY_FIELDS = new Set([
   "firstName",
@@ -363,6 +374,82 @@ export default function AddEmployee() {
 
   const prevStep = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  // Validation for current step
+  const validateCurrentStep = () => {
+    const newErrors = {};
+
+    if (currentStep === 1) {
+      // Basic Details validation - mandatory fields
+      if (!formData.firstName) newErrors.firstName = "Required";
+      if (!formData.lastName) newErrors.lastName = "Required";
+      if (!formData.emailAddress) {
+        newErrors.emailAddress = "Required";
+        setEmailError("Please provide a valid email address.");
+      } else if (!validateEmail(formData.emailAddress)) {
+        newErrors.emailAddress = "Invalid";
+        setEmailError("Please provide a valid email address.");
+      }
+      if (!formData.mobileNumber) newErrors.mobileNumber = "Required";
+      if (!formData.jobTitle) newErrors.jobTitle = "Required";
+      if (!formData.department) newErrors.department = "Required";
+      if (!formData.OrganisationName) newErrors.OrganisationName = "Required";
+      
+      // Employment Start Date validation
+      if (!formData.employmentStartDate) {
+        newErrors.employmentStartDate = "Required";
+      } else {
+        const parsedDate = dayjs(formData.employmentStartDate, "DD/MM/YYYY", true);
+        if (!parsedDate.isValid()) {
+          newErrors.employmentStartDate = "Invalid date format. Please use DD/MM/YYYY";
+        } else {
+          // Additional validation for future dates
+          const validation = validateStartDate(formData.employmentStartDate);
+          if (!validation.isValid) {
+            newErrors.employmentStartDate = validation.message;
+          }
+        }
+      }
+      
+      // Probation End Date validation
+      if (!formData.probationEndDate) {
+        newErrors.probationEndDate = "Required";
+      } else {
+        const parsedDate = dayjs(formData.probationEndDate, "DD/MM/YYYY", true);
+        if (!parsedDate.isValid()) {
+          newErrors.probationEndDate = "Invalid date format. Please use DD/MM/YYYY";
+        } else {
+          // Additional validation for past dates
+          const validation = validateProbationEndDate(formData.probationEndDate);
+          if (!validation.isValid) {
+            newErrors.probationEndDate = validation.message;
+          }
+        }
+      }
+    }
+    // Steps 2, 3, 4, 5 have no required fields, so they can be skipped
+
+    const characterErrors = collectCharacterErrors(formData);
+    Object.entries(characterErrors).forEach(([field, message]) => {
+      if (!newErrors[field]) {
+        newErrors[field] = message;
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      focusFirstErrorField(Object.keys(newErrors));
+      return false;
+    }
+
+    setErrors({});
+    return true;
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handleSaveEmployee = async () => {
@@ -862,11 +949,7 @@ export default function AddEmployee() {
                   placeholder="dd/mm/yyyy"
                   format="DD/MM/YYYY"
                   className="w-full h-[42px]"
-                  maxDate={getMaxDOBDate()}
                 />
-                {errors.dateOfBirth && (
-                  <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
-                )}
               </div>
 
               {/* Email address */}
@@ -919,13 +1002,9 @@ export default function AddEmployee() {
                   type="tel"
                   placeholder="Work phone"
                   value={formData.workPhone}
-                  onChange={(e) => handleMobileNumberChange(e, (value) => handleInputChange("workPhone", value))}
-                  onKeyPress={preventNonMobileNumeric}
-                  className={`w-full h-[42px] px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.workPhone ? "border-red-500" : "border-gray-300"}`}
+                  onChange={(e) => handleInputChange("workPhone", e.target.value)}
+                  className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                {errors.workPhone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.workPhone}</p>
-                )}
               </div>
 
               {/* Job title */}
@@ -1211,24 +1290,20 @@ export default function AddEmployee() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone number
+                  Phone Number
                 </label>
                 <input
                   type="tel"
                   placeholder="Phone number"
                   value={formData.emergencyContactPhone}
-                  onChange={(e) => handleMobileNumberChange(e, (value) => handleInputChange("emergencyContactPhone", value))}
-                  onKeyPress={preventNonMobileNumeric}
+                  onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
                   className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
-                {errors.emergencyContactPhone && (
-                  <p className="mt-1 text-sm text-red-600">{errors.emergencyContactPhone}</p>
-                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email address
+                  Email Address
                 </label>
                 <input
                   type="email"
