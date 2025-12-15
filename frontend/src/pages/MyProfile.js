@@ -128,15 +128,27 @@ const MyProfile = () => {
       // Get current user from auth context or localStorage
       const currentUser = user || JSON.parse(localStorage.getItem('user') || '{}');
       
-      if (!currentUser || (!currentUser._id && !currentUser.id)) {
+      if (!currentUser || (!currentUser._id && !currentUser.id && !currentUser.email)) {
         navigate('/login');
         return;
       }
 
+      // Try to fetch by userId first, fallback to email
+      let response;
       const userId = currentUser._id || currentUser.id;
       
-      // Fetch employee data by userId
-      const response = await axios.get(`/api/employees/by-user-id/${userId}`);
+      if (userId) {
+        try {
+          response = await axios.get(`/api/employees/by-user-id/${userId}`);
+        } catch (error) {
+          console.log('Failed to fetch by userId, trying email lookup');
+          // Fallback to email-based lookup
+          response = await axios.get(`/api/employees/by-email/${currentUser.email}`);
+        }
+      } else {
+        // Use email-based lookup directly
+        response = await axios.get(`/api/employees/by-email/${currentUser.email}`);
+      }
       
       if (response.data.success) {
         setEmployee(response.data.data);
