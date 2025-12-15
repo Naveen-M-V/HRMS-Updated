@@ -784,8 +784,6 @@ router.put('/admin/balance/:userId', async (req, res) => {
 // LEAVE REQUEST ROUTES (NEW)
 // ============================================
 
-const LeaveRequest = require('../models/LeaveRequest');
-
 // @route   POST /api/leave/requests
 // @desc    Create a new leave request
 // @access  Private (Employee)
