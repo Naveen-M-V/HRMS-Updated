@@ -24,6 +24,16 @@ export const validateNumberOnly = (value) => {
 };
 
 /**
+ * Validates and filters mobile number input (digits only, no special characters)
+ * @param {string} value - Input value to validate
+ * @returns {string} - Filtered value containing only digits
+ */
+export const validateMobileNumber = (value) => {
+  // Allow only digits 0-9 (no spaces, hyphens, plus, parentheses)
+  return value.replace(/[^0-9]/g, '');
+};
+
+/**
  * Validates and filters phone number input (digits, spaces, hyphens, plus, parentheses)
  * @param {string} value - Input value to validate
  * @returns {string} - Filtered value containing only valid phone characters
@@ -68,6 +78,156 @@ export const validateDecimal = (value) => {
 };
 
 /**
+ * Validates image file type for photo uploads
+ * @param {File} file - File to validate
+ * @returns {Object} - Validation result with isValid and message
+ */
+export const validateImageFile = (file) => {
+  const validTypes = ['image/jpeg', 'image/jpg'];
+  
+  if (!validTypes.includes(file.type)) {
+    return {
+      isValid: false,
+      message: 'Only JPG and JPEG images are allowed.'
+    };
+  }
+  
+  return {
+    isValid: true,
+    message: ''
+  };
+};
+
+/**
+ * Validates document file type for document uploads
+ * @param {File} file - File to validate
+ * @returns {Object} - Validation result with isValid and message
+ */
+export const validateDocumentFile = (file) => {
+  const validTypes = ['application/pdf'];
+  
+  if (!validTypes.includes(file.type)) {
+    return {
+      isValid: false,
+      message: 'Only PDF files are allowed.'
+    };
+  }
+  
+  return {
+    isValid: true,
+    message: ''
+  };
+};
+
+/**
+ * Validates Date of Birth (must be 18+ years old)
+ * @param {Date|string} dob - Date of birth to validate
+ * @returns {Object} - Validation result with isValid and message
+ */
+export const validateDateOfBirth = (dob) => {
+  const today = new Date();
+  const birthDate = new Date(dob);
+  
+  // Calculate age
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  if (age < 18) {
+    return {
+      isValid: false,
+      message: 'You must be at least 18 years old.'
+    };
+  }
+  
+  return {
+    isValid: true,
+    message: ''
+  };
+};
+
+/**
+ * Validates employee start date (must not be future date)
+ * @param {Date|string} startDate - Start date to validate
+ * @returns {Object} - Validation result with isValid and message
+ */
+export const validateStartDate = (startDate) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+  
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+  
+  if (start > today) {
+    return {
+      isValid: false,
+      message: "Start date cannot be a future date."
+    };
+  }
+  
+  return {
+    isValid: true,
+    message: ""
+  };
+};
+
+/**
+ * Validates probation end date (must not be past date)
+ * @param {Date|string} probationDate - Probation end date to validate
+ * @returns {Object} - Validation result with isValid and message
+ */
+export const validateProbationEndDate = (probationDate) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+  
+  const probation = new Date(probationDate);
+  probation.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+  
+  if (probation < today) {
+    return {
+      isValid: false,
+      message: "Probation end date cannot be a past date."
+    };
+  }
+  
+  return {
+    isValid: true,
+    message: ""
+  };
+};
+
+/**
+ * Gets maximum allowed date for start date (today)
+ * @returns {Date} - Maximum allowed date for start date
+ */
+export const getMaxStartDate = () => {
+  const today = new Date();
+  return today;
+};
+
+/**
+ * Gets minimum allowed date for probation end date (today)
+ * @returns {Date} - Minimum allowed date for probation end date
+ */
+export const getMinProbationDate = () => {
+  const today = new Date();
+  return today;
+};
+
+/**
+ * Gets maximum allowed date for DOB (18 years ago from today)
+ * @returns {Date} - Maximum allowed date for DOB
+ */
+export const getMaxDOBDate = () => {
+  const today = new Date();
+  const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  return maxDate;
+};
+
+/**
  * Handler for text-only input fields
  * Use with onChange event
  */
@@ -86,10 +246,29 @@ export const handleNumberOnlyChange = (e, setter) => {
 };
 
 /**
+ * Handler for mobile number input fields (digits only)
+ * Use with onChange event
+ */
+export const handleMobileNumberChange = (e, setter) => {
+  const validValue = validateMobileNumber(e.target.value);
+  setter(validValue);
+};
+
+/**
  * Prevents non-numeric key presses
  * Use with onKeyPress event
  */
 export const preventNonNumeric = (e) => {
+  if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
+    e.preventDefault();
+  }
+};
+
+/**
+ * Prevents non-numeric key presses for mobile numbers (strictly digits only)
+ * Use with onKeyPress event
+ */
+export const preventNonMobileNumeric = (e) => {
   if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') {
     e.preventDefault();
   }

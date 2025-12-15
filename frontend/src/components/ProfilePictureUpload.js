@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CameraIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { validateImageFile } from '../utils/inputValidation';
 
 const ProfilePictureUpload = ({ 
   profilePicture, 
@@ -11,6 +12,7 @@ const ProfilePictureUpload = ({
   size = 120
 }) => {
   const [previewUrl, setPreviewUrl] = useState(profilePicture);
+  const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef(null);
   const fileReaderRef = useRef(null);
 
@@ -28,14 +30,20 @@ const ProfilePictureUpload = ({
     const file = event.target.files[0];
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid image file (JPEG, PNG, or GIF)');
+    // Clear previous error
+    setUploadError('');
+
+    // Validate file type using global validation
+    const validation = validateImageFile(file);
+    if (!validation.isValid) {
+      setUploadError(validation.message);
+      event.target.value = '';
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size should be less than 10MB');
+      setUploadError('File size should be less than 10MB');
+      event.target.value = '';
       return;
     }
 
@@ -149,10 +157,17 @@ const ProfilePictureUpload = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/gif,image/jpg"
+        accept="image/jpeg,image/jpg"
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {/* Error Message */}
+      {uploadError && (
+        <div className="mt-2 text-sm text-red-600 text-center">
+          {uploadError}
+        </div>
+      )}
     </div>
   );
 };

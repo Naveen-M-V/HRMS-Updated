@@ -15,6 +15,7 @@ import {
   Tag
 } from 'lucide-react';
 import axios from 'axios';
+import { validateDocumentFile } from '../../utils/inputValidation';
 import '../../utils/axiosConfig';
 
 const DocumentUpload = ({ 
@@ -73,14 +74,31 @@ const DocumentUpload = ({
   };
 
   const handleFiles = (fileList) => {
-    const newFiles = Array.from(fileList).map(file => ({
-      file,
-      id: Math.random().toString(36).substr(2, 9),
-      status: 'pending'
-    }));
+    const newFiles = [];
+    const fileErrors = [];
+    
+    Array.from(fileList).forEach(file => {
+      // Validate file type using global validation
+      const validation = validateDocumentFile(file);
+      if (!validation.isValid) {
+        fileErrors.push(`${file.name}: ${validation.message}`);
+        return;
+      }
+      
+      newFiles.push({
+        file,
+        id: Math.random().toString(36).substr(2, 9),
+        status: 'pending'
+      });
+    });
+    
+    if (fileErrors.length > 0) {
+      setErrors(prev => ({ ...prev, files: fileErrors.join(', ') }));
+    } else {
+      setErrors(prev => ({ ...prev, files: '' }));
+    }
     
     setFiles(prev => [...prev, ...newFiles]);
-    setErrors({});
   };
 
   const removeFile = (fileId) => {
@@ -320,6 +338,7 @@ const DocumentUpload = ({
                   ref={fileInputRef}
                   type="file"
                   multiple
+                  accept="application/pdf"
                   onChange={handleFileChange}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   disabled={uploading}
@@ -330,7 +349,7 @@ const DocumentUpload = ({
                   Drag and drop files here, or click to select
                 </p>
                 <p className="text-sm text-gray-500">
-                  PDF, Word, Excel, Images (Max 10MB per file)
+                  PDF files only (Max 10MB per file)
                 </p>
               </div>
               {errors.files && (
