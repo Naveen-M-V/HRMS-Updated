@@ -232,7 +232,7 @@ exports.getAllEmployees = async (req, res) => {
     
     // If requesting approvers, filter by specific roles
     if (approvers === 'true') {
-      query.role = { $in: ['admin', 'super-admin', 'HR', 'manager'] };
+      query.role = { $in: ['admin', 'super-admin', 'hr', 'manager'] };
     }
     
     if (team) query.team = team;
