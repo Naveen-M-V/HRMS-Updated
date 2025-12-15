@@ -32,8 +32,15 @@ const ManagerApprovalDashboard = () => {
     setError('');
 
     try {
-      // Corrected API endpoint to match backend routes
-      const response = await axios.get('/api/leave-requests/pending');
+      // Get current user from localStorage or auth context
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Fetch pending requests assigned to the current approver
+      const response = await axios.get('/api/leave-requests/pending', {
+        params: {
+          approverId: currentUser._id || currentUser.id
+        }
+      });
 
       setPendingRequests(response.data.data || []);
     } catch (error) {

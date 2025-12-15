@@ -45,14 +45,17 @@ const LeaveRequestForm = ({ onSuccess }) => {
     try {
       const response = await axios.get('/api/employees?status=Active');
       if (response.data.success) {
-        const activeManagers = response.data.data.filter(emp =>
-          ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role)
+        // Filter for specific roles: manager, HR, admin, super-admin
+        // Exclude employees and profiles (interns, trainees, external staff)
+        const approvers = response.data.data.filter(emp =>
+          ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role) &&
+          emp.status === 'Active'
         );
-        setManagers(activeManagers);
+        setManagers(approvers);
       }
     } catch (error) {
-      console.error('Error fetching managers:', error);
-      toast.error('Failed to load managers');
+      console.error('Error fetching approvers:', error);
+      toast.error('Failed to load approvers');
     }
   };
 
@@ -92,13 +95,17 @@ const LeaveRequestForm = ({ onSuccess }) => {
 
     setLoading(true);
     try {
+      // Get current user from localStorage or auth context
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      
       const payload = {
+        employeeId: currentUser._id || currentUser.id, // Logged-in employee
         approverId: formData.approverId,
         leaveType: formData.leaveType,
         startDate: formData.startDate,
         endDate: formData.endDate,
         reason: formData.reason,
-        status: isDraft ? 'Draft' : 'Pending'
+        status: isDraft ? 'draft' : 'pending'
       };
 
       const response = await axios.post('/api/leave/requests', payload);
@@ -169,7 +176,9 @@ const LeaveRequestForm = ({ onSuccess }) => {
               </SelectTrigger>
               <SelectContent>
                 {managers.map(manager => {
-                  const roleDisplay = manager.role === 'hr' ? 'HR' : manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
+                  const roleDisplay = manager.role === 'hr' ? 'HR' : 
+                                    manager.role === 'super-admin' ? 'Super Admin' :
+                                    manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
                   return (
                     <SelectItem key={manager._id} value={manager._id}>
                       {manager.firstName} {manager.lastName} — {roleDisplay}
