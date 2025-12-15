@@ -168,11 +168,14 @@ const LeaveRequestForm = ({ onSuccess }) => {
                 <SelectValue placeholder="Select a manager" />
               </SelectTrigger>
               <SelectContent>
-                {managers.map(manager => (
-                  <SelectItem key={manager._id} value={manager._id}>
-                    {manager.firstName} {manager.lastName} — {manager.role}
-                  </SelectItem>
-                ))}
+                {managers.map(manager => {
+                  const roleDisplay = manager.role === 'hr' ? 'HR' : manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
+                  return (
+                    <SelectItem key={manager._id} value={manager._id}>
+                      {manager.firstName} {manager.lastName} — {roleDisplay}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             {errors.approverId && (

@@ -211,7 +211,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                 <SelectTrigger style={{ width: '100%', height: '48px' }}>
                   <SelectValue placeholder="Select termination type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[10001]">
                   {terminationTypes.map(type => (
                     <SelectItem key={type} value={type}>{type}</SelectItem>
                   ))}
@@ -384,7 +384,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                   <SelectTrigger style={{ width: '100%', height: '48px' }}>
                     <SelectValue placeholder="Select reason" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[10001]">
                     {terminationReasons.map(reason => (
                       <SelectItem key={reason} value={reason}>{reason}</SelectItem>
                     ))}
