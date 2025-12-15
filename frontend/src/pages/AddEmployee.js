@@ -100,6 +100,7 @@ export default function AddEmployee() {
     // Visa
     visaNumber: "",
     visaExpiryDate: "",
+    documents: [],
   });
 
   const [errors, setErrors] = useState({});
@@ -147,6 +148,7 @@ export default function AddEmployee() {
 
     if (validationMessage) {
       setErrors((prev) => ({ ...prev, [field]: validationMessage }));
+      showError('validation error');
     } else if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -156,6 +158,7 @@ export default function AddEmployee() {
       const validation = validateDateOfBirth(value);
       if (!validation.isValid) {
         setErrors((prev) => ({ ...prev, [field]: validation.message }));
+        showError('validation error');
       } else if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: "" }));
       }
@@ -166,6 +169,7 @@ export default function AddEmployee() {
       const validation = validateStartDate(value);
       if (!validation.isValid) {
         setErrors((prev) => ({ ...prev, [field]: validation.message }));
+        showError('validation error');
       } else if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: "" }));
       }
@@ -176,6 +180,7 @@ export default function AddEmployee() {
       const validation = validateProbationEndDate(value);
       if (!validation.isValid) {
         setErrors((prev) => ({ ...prev, [field]: validation.message }));
+        showError('validation error');
       } else if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: "" }));
       }
@@ -260,6 +265,7 @@ export default function AddEmployee() {
           licenceExpiryDate: formatDateForDisplay(employee.licenceExpiryDate),
           visaNumber: employee.visaNumber || "",
           visaExpiryDate: formatDateForDisplay(employee.visaExpiryDate),
+          documents: employee.documents || [],
         });
       }
     } catch (error) {
@@ -609,9 +615,16 @@ export default function AddEmployee() {
     const handleImageUpload = (e) => {
       const file = e.target.files[0];
       if (file) {
+        // Validate file type
+        const validation = validateImageFile(file);
+        if (!validation.isValid) {
+          showError(`This ${file.type} can't be uploaded`);
+          return;
+        }
+
         // Check file size (5MB limit)
         if (file.size > 5 * 1024 * 1024) {
-          alert('File size must be less than 5MB');
+          showError('File size must be less than 5MB');
           return;
         }
 
@@ -689,6 +702,49 @@ export default function AddEmployee() {
     const handleImageReset = () => {
       setImageRotation(0);
       setImageZoom(1);
+    };
+
+    // Document upload handler
+    const handleDocumentUpload = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file type
+        const validation = validateDocumentFile(file);
+        if (!validation.isValid) {
+          showError(`This ${file.type} can't be uploaded`);
+          return;
+        }
+
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          showError('File size must be less than 10MB');
+          return;
+        }
+
+        // Add document to form data
+        const newDocument = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          lastModified: file.lastModified
+        };
+
+        setFormData(prev => ({
+          ...prev,
+          documents: [...(prev.documents || []), newDocument]
+        }));
+
+        // Clear the file input
+        e.target.value = '';
+      }
+    };
+
+    // Remove document handler
+    const removeDocument = (index) => {
+      setFormData(prev => ({
+        ...prev,
+        documents: prev.documents.filter((_, i) => i !== index)
+      }));
     };
 
     const renderStepContent = () => {
@@ -1548,6 +1604,54 @@ export default function AddEmployee() {
                   format="DD/MM/YYYY"
                   className="w-full"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Document Upload */}
+          <div>
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Documents</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Documents (PDF only)
+                </label>
+                <input
+                  type="file"
+                  id="documentUpload"
+                  accept="application/pdf"
+                  onChange={handleDocumentUpload}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="documentUpload"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Upload Document
+                </label>
+                <p className="text-sm text-gray-500 mt-2">
+                  Upload PDF documents only. Max file size: 10MB.
+                </p>
+                {formData.documents && formData.documents.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <h5 className="text-sm font-medium text-gray-700">Uploaded Documents:</h5>
+                    {formData.documents.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                        <span className="text-sm text-gray-700">{doc.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeDocument(index)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
