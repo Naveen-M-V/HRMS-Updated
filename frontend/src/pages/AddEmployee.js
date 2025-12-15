@@ -17,7 +17,9 @@ import {
   getMaxStartDate, 
   getMinProbationDate,
   validateFieldCharacters,
-  collectCharacterErrors
+  collectCharacterErrors,
+  validateImageFile,
+  validateDocumentFile
 } from "../utils/inputValidation";
 
 dayjs.extend(customParseFormat);
