@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 export default function ArchiveEmployees() {
   const [archivedEmployees, setArchivedEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedEmployees, setSelectedEmployees] = useState([]);
 
   // Fetch archived employees
   const fetchArchivedEmployees = async () => {
@@ -133,72 +134,74 @@ export default function ArchiveEmployees() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Full Name
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300"
+                      checked={selectedEmployees.length === archivedEmployees.length && archivedEmployees.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedEmployees(archivedEmployees.map(emp => emp._id));
+                        } else {
+                          setSelectedEmployees([]);
+                        }
+                      }}
+                    />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee ID
+                    SI Number
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Department
+                    Employee Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Job Title
+                    Reason of Termination
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Start Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Terminated Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Permanently Deleted Date
+                    End Date
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {archivedEmployees.map((employee) => (
+                {archivedEmployees.map((employee, index) => (
                   <tr 
                     key={employee._id} 
-                    className="archived-row hover:bg-gray-50"
-                    style={{ cursor: 'not-allowed' }}
+                    className="hover:bg-gray-50"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                            <span className="text-xs font-medium text-gray-600">
-                              {employee.firstName?.charAt(0)}{employee.lastName?.charAt(0)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-500">
-                            {employee.firstName} {employee.lastName}
-                          </div>
-                          <div className="text-xs text-gray-400">{employee.email}</div>
-                        </div>
-                      </div>
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300"
+                        checked={selectedEmployees.includes(employee._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEmployees([...selectedEmployees, employee._id]);
+                          } else {
+                            setSelectedEmployees(selectedEmployees.filter(id => id !== employee._id));
+                          }
+                        }}
+                      />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.employeeId}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.department || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.jobTitle || '-'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                      {index + 1}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                        {employee.status}
-                      </span>
+                      <div className="text-sm font-medium text-gray-900">
+                        {employee.firstName} {employee.lastName}
+                      </div>
+                      <div className="text-xs text-gray-500">{employee.email}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(employee.terminatedDate)}
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {employee.terminationReason || employee.terminationNote || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(employee.deletedDate)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDate(employee.startDate)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDate(employee.exitDate || employee.terminatedDate)}
                     </td>
                   </tr>
                 ))}

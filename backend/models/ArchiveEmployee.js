@@ -31,6 +31,18 @@ const archiveEmployeeSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  startDate: {
+    type: Date,
+    default: null
+  },
+  terminationReason: {
+    type: String,
+    default: null
+  },
+  exitDate: {
+    type: Date,
+    default: null
+  },
   status: {
     type: String,
     default: 'Deleted'

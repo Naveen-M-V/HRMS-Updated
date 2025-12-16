@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   XMarkIcon,
   ChevronLeftIcon,
@@ -26,10 +26,12 @@ import {
 import axios from '../utils/axiosConfig';
 
 const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
+  const modalRef = useRef(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const modalRef = useRef(null);
 
   // Form data for termination
   const [terminationData, setTerminationData] = useState({
@@ -146,7 +148,9 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   // Step 1: Initiate Termination
   if (currentStep === 1) {
     return (
-      <div style={{
+      <div 
+        id="termination-modal-container"
+        style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -281,7 +285,9 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   // Step 2: Termination Details
   if (currentStep === 2) {
     return (
-      <div style={{
+      <div 
+        id="termination-modal-container"
+        style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -372,6 +378,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                     ...prev,
                     lastWorkingDay: date ? date.format('YYYY-MM-DD') : ''
                   }))}
+                  container={() => document.getElementById('termination-modal-container')}
                 />
               </div>
 
@@ -385,6 +392,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                     ...prev,
                     exitDate: date ? date.format('YYYY-MM-DD') : ''
                   }))}
+                  container={() => document.getElementById('termination-modal-container')}
                 />
               </div>
 

@@ -20,6 +20,7 @@ import {
   UsersIcon,
   UserGroupIcon,
   BookOpenIcon,
+  ArchiveBoxIcon,
 } from "@heroicons/react/24/outline";
 import DocumentDrawer from "./DocumentManagement/DocumentDrawer";
 
@@ -283,17 +284,17 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                 <span>Organizational Chart</span>
               </button>
 
-              {/*<button
-                onClick={() => handleNavigation("/employees/archived")}
+              <button
+                onClick={() => handleNavigation("/archive-employees")}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive("/employees/archived")
+                  isActive("/archive-employees")
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                     : "hover:bg-sidebar-accent/50"
                 }`}
               >
-                <DocumentTextIcon className="h-4 w-4" />
+                <ArchiveBoxIcon className="h-4 w-4" />
                 <span>Archived Employees</span>
-              </button>*/}
+              </button>
 
               <button
                 onClick={() => handleNavigation("/manage-teams")}

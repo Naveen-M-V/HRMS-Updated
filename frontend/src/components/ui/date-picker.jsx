@@ -17,6 +17,7 @@ export function DatePicker({
   name,
   min,
   max,
+  container,
   ...props 
 }) {
   // Support both minDate/min and maxDate/max for compatibility
@@ -75,7 +76,10 @@ export function DatePicker({
           minDate={effectiveMinDate ? dayjs(effectiveMinDate) : undefined}
           maxDate={effectiveMaxDate ? dayjs(effectiveMaxDate) : undefined}
           disabled={disabled}
-          disablePortal={true}
+          PopperProps={{
+            container: container,
+            style: { zIndex: 99999 }
+          }}
           sx={{
             '& .MuiPickersPopper-root': {
               zIndex: 99999,
