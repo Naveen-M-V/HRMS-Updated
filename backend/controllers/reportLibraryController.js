@@ -121,12 +121,13 @@ exports.generateAbsenceReport = async (req, res) => {
     const { startDate, endDate, employeeIds, includeExcused } = req.body;
 
     const matchStage = {
-      date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+      startDate: { $lte: new Date(endDate) },
+      endDate: { $gte: new Date(startDate) },
       status: 'approved'
     };
 
     if (employeeIds && employeeIds.length > 0) {
-      matchStage.employee = { $in: employeeIds };
+      matchStage.user = { $in: employeeIds };
     }
 
     // Get approved leave records
@@ -135,7 +136,7 @@ exports.generateAbsenceReport = async (req, res) => {
       {
         $lookup: {
           from: 'employeeshubs',
-          localField: 'employee',
+          localField: 'user',
           foreignField: '_id',
           as: 'employeeDetails'
         }
@@ -144,18 +145,19 @@ exports.generateAbsenceReport = async (req, res) => {
       {
         $group: {
           _id: {
-            employeeId: '$employee',
-            leaveType: '$leaveType'
+            employeeId: '$user',
+            type: '$type'
           },
           employee: { $first: '$employeeDetails' },
-          totalDays: { $sum: '$daysUsed' },
+          totalDays: { $sum: '$days' },
           instances: { $sum: 1 },
           records: { 
             $push: { 
-              date: '$date',
-              leaveType: '$leaveType',
+              startDate: '$startDate',
+              endDate: '$endDate',
+              type: '$type',
               reason: '$reason',
-              daysUsed: '$daysUsed'
+              days: '$days'
             } 
           }
         }
@@ -166,7 +168,7 @@ exports.generateAbsenceReport = async (req, res) => {
           employee: { $first: '$employee' },
           leaveBreakdown: {
             $push: {
-              leaveType: '$_id.leaveType',
+              leaveType: '$_id.type',
               totalDays: '$totalDays',
               instances: '$instances'
             }
@@ -258,13 +260,14 @@ exports.generateAnnualLeaveReport = async (req, res) => {
     const endDate = new Date(year, 11, 31);
 
     const matchStage = {
-      date: { $gte: startDate, $lte: endDate },
-      leaveType: 'annual',
+      startDate: { $lte: endDate },
+      endDate: { $gte: startDate },
+      type: 'annual',
       status: 'approved'
     };
 
     if (employeeIds && employeeIds.length > 0) {
-      matchStage.employee = { $in: employeeIds };
+      matchStage.user = { $in: employeeIds };
     }
 
     const leaveData = await LeaveRecord.aggregate([
@@ -272,7 +275,7 @@ exports.generateAnnualLeaveReport = async (req, res) => {
       {
         $lookup: {
           from: 'employeeshubs',
-          localField: 'employee',
+          localField: 'user',
           foreignField: '_id',
           as: 'employeeDetails'
         }
@@ -280,14 +283,15 @@ exports.generateAnnualLeaveReport = async (req, res) => {
       { $unwind: '$employeeDetails' },
       {
         $group: {
-          _id: '$employee',
+          _id: '$user',
           employee: { $first: '$employeeDetails' },
-          totalUsed: { $sum: '$daysUsed' },
+          totalUsed: { $sum: '$days' },
           instances: { $sum: 1 },
           leaveRecords: { 
             $push: { 
-              date: '$date',
-              daysUsed: '$daysUsed',
+              startDate: '$startDate',
+              endDate: '$endDate',
+              days: '$days',
               reason: '$reason',
               startDate: '$startDate',
               endDate: '$endDate'
@@ -299,13 +303,14 @@ exports.generateAnnualLeaveReport = async (req, res) => {
 
     // Get balances
     const balances = await AnnualLeaveBalance.find({
-      employee: { $in: leaveData.map(l => l._id) },
-      year: year
+      user: { $in: leaveData.map(l => l._id) },
+      leaveYearStart: { $lte: endDate },
+      leaveYearEnd: { $gte: startDate }
     });
 
     const balanceMap = {};
     balances.forEach(b => {
-      balanceMap[b.employee.toString()] = b;
+      balanceMap[b.user.toString()] = b;
     });
 
     const reportData = leaveData.map(record => {

@@ -265,6 +265,32 @@ exports.approveLeaveRequest = async (req, res) => {
     leaveRequest.approvedAt = new Date();
     await leaveRequest.save();
 
+    // Create LeaveRecord for reporting purposes
+    const LeaveRecord = require('../models/LeaveRecord');
+    const leaveTypeMap = {
+      'Sick': 'sick',
+      'Casual': 'annual',
+      'Paid': 'annual',
+      'Unpaid': 'unpaid',
+      'Maternity': 'annual',
+      'Paternity': 'annual',
+      'Bereavement': 'annual',
+      'Other': 'annual'
+    };
+    
+    await LeaveRecord.create({
+      user: leaveRequest.employeeId,
+      type: leaveTypeMap[leaveRequest.leaveType] || 'annual',
+      status: 'approved',
+      startDate: leaveRequest.startDate,
+      endDate: leaveRequest.endDate,
+      days: leaveRequest.numberOfDays,
+      reason: leaveRequest.reason,
+      approvedBy: req.user.id || req.user._id,
+      approvedAt: new Date(),
+      createdBy: req.user.id || req.user._id
+    });
+
     // Update leave balance if applicable
     if (leaveRequest.leaveType !== 'Unpaid') {
       const leaveBalance = await AnnualLeaveBalance.findOne({

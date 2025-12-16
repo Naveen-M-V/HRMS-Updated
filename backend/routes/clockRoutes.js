@@ -124,11 +124,12 @@ router.post('/in', asyncHandler(async (req, res) => {
   }
 
   // Create new time entry using legacy fields
+  const clockInTime = new Date();
   const entry = new TimeEntry({
     employee: employeeId,
     date: today,
     status: 'clocked_in',
-    clockIn: new Date(),
+    clockIn: clockInTime,
     location: location || 'Office',
     workType: workType || 'Regular',
     createdBy: req.user?._id || req.user?.userId || req.user?.id
@@ -142,6 +143,48 @@ router.post('/in', asyncHandler(async (req, res) => {
       accuracy: accuracy ? parseFloat(accuracy) : null,
       timestamp: new Date()
     };
+  }
+  
+  // Check for scheduled shift and detect lateness
+  const ShiftAssignment = require('../models/ShiftAssignment');
+  const todayStart = new Date(today + 'T00:00:00Z');
+  const todayEnd = new Date(today + 'T23:59:59Z');
+  
+  try {
+    const shift = await ShiftAssignment.findOne({
+      employeeId: employeeId,
+      date: { $gte: todayStart, $lte: todayEnd }
+    });
+    
+    if (shift && shift.startTime) {
+      const [shiftHour, shiftMin] = shift.startTime.split(':').map(Number);
+      const shiftStartTime = new Date(clockInTime);
+      shiftStartTime.setHours(shiftHour, shiftMin, 0, 0);
+      
+      const minutesLate = (clockInTime - shiftStartTime) / (1000 * 60);
+      const gracePeriod = 5;
+      
+      if (minutesLate > gracePeriod) {
+        // Create lateness record
+        const LatenessRecord = require('../models/LatenessRecord');
+        try {
+          await LatenessRecord.create({
+            employee: employeeId,
+            date: clockInTime,
+            scheduledStart: shiftStartTime,
+            actualStart: clockInTime,
+            minutesLate: Math.round(minutesLate),
+            shift: shift._id,
+            excused: false
+          });
+          console.log(`⏰ Admin clock-in: Lateness record created for ${employee.firstName}: ${Math.round(minutesLate)} minutes late`);
+        } catch (lateErr) {
+          console.error('Failed to create lateness record:', lateErr);
+        }
+      }
+    }
+  } catch (shiftErr) {
+    console.warn('Shift lookup failed (non-blocking):', shiftErr.message);
   }
   
   await entry.save();
@@ -1713,6 +1756,34 @@ router.post('/user/in', authenticateSession, async (req, res) => {
         timeEntryData.shiftId = shift._id;
         timeEntryData.attendanceStatus = attendanceStatus;
         timeEntryData.scheduledHours = calculateScheduledHours(shift) || 0;
+        
+        // Check for lateness and create record
+        const [shiftHour, shiftMin] = shift.startTime.split(':').map(Number);
+        const shiftStartTime = new Date(ukNow);
+        shiftStartTime.setHours(shiftHour, shiftMin, 0, 0);
+        
+        const minutesLate = (ukNow - shiftStartTime) / (1000 * 60);
+        const gracePeriod = 5; // 5 minute grace period
+        
+        if (minutesLate > gracePeriod && attendanceStatus === 'Late') {
+          // Create lateness record
+          const LatenessRecord = require('../models/LatenessRecord');
+          try {
+            await LatenessRecord.create({
+              employee: employeeId,
+              date: ukNow,
+              scheduledStart: shiftStartTime,
+              actualStart: ukNow,
+              minutesLate: Math.round(minutesLate),
+              shift: shift._id,
+              excused: false
+            });
+            console.log(`⏰ Lateness record created: ${Math.round(minutesLate)} minutes late`);
+          } catch (lateErr) {
+            console.error('Failed to create lateness record:', lateErr);
+            // Don't fail clock-in if lateness record fails
+          }
+        }
       } catch (shiftCalcError) {
         console.warn('Shift calculation failed (non-blocking):', shiftCalcError.message);
         timeEntryData.attendanceStatus = 'Unscheduled';
