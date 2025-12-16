@@ -3395,7 +3395,7 @@ app.use('/api/rota', authenticateSession, rotaRoutes);
 app.use('/api/clock', authenticateSession, clockRoutes);
 app.use('/api/leave', authenticateSession, leaveRoutes);
 app.use('/api/teams', authenticateSession, teamRoutes);
-app.use('/api/employees', employeeHubRoutes);
+app.use('/api/employees', authenticateSession, employeeHubRoutes);
 app.use('/api/employee-profile', authenticateSession, employeeProfileRoutes);
 app.use('/api/documentManagement', authenticateSession, documentManagementRoutes);
 app.use('/api/approvals', authenticateSession, approvalRoutes);

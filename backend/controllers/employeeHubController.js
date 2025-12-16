@@ -262,6 +262,50 @@ exports.getEmployeeByUserId = async (req, res) => {
 };
 
 /**
+ * Get employee by email (fallback for My Profile page)
+ */
+exports.getEmployeeByEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Normalize email to lowercase for consistent lookup
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const employee = await EmployeeHub.findOne({ 
+      email: normalizedEmail,
+      isActive: true,
+      status: { $ne: 'Terminated' }
+    }).populate('managerId', 'firstName lastName jobTitle');
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: employee
+    });
+  } catch (error) {
+    console.error('Error fetching employee by email:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching employee',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get all employees
  */
 exports.getAllEmployees = async (req, res) => {
