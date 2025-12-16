@@ -38,7 +38,7 @@ async function reverseGeocode(latitude, longitude) {
   try {
     const https = require('https');
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
-    
+
     return new Promise((resolve, reject) => {
       https.get(url, {
         headers: {
@@ -46,11 +46,11 @@ async function reverseGeocode(latitude, longitude) {
         }
       }, (response) => {
         let data = '';
-        
+
         response.on('data', (chunk) => {
           data += chunk;
         });
-        
+
         response.on('end', () => {
           try {
             const result = JSON.parse(data);
@@ -144,26 +144,26 @@ router.post('/in', asyncHandler(async (req, res) => {
       timestamp: new Date()
     };
   }
-  
+
   // Check for scheduled shift and detect lateness
   const ShiftAssignment = require('../models/ShiftAssignment');
   const todayStart = new Date(today + 'T00:00:00Z');
   const todayEnd = new Date(today + 'T23:59:59Z');
-  
+
   try {
     const shift = await ShiftAssignment.findOne({
       employeeId: employeeId,
       date: { $gte: todayStart, $lte: todayEnd }
     });
-    
+
     if (shift && shift.startTime) {
       const [shiftHour, shiftMin] = shift.startTime.split(':').map(Number);
       const shiftStartTime = new Date(clockInTime);
       shiftStartTime.setHours(shiftHour, shiftMin, 0, 0);
-      
+
       const minutesLate = (clockInTime - shiftStartTime) / (1000 * 60);
       const gracePeriod = 5;
-      
+
       if (minutesLate > gracePeriod) {
         // Create lateness record
         const LatenessRecord = require('../models/LatenessRecord');
@@ -186,7 +186,7 @@ router.post('/in', asyncHandler(async (req, res) => {
   } catch (shiftErr) {
     console.warn('Shift lookup failed (non-blocking):', shiftErr.message);
   }
-  
+
   await entry.save();
   console.log('✅ Clock in saved successfully for employee:', employeeId);
 
@@ -196,7 +196,7 @@ router.post('/in', asyncHandler(async (req, res) => {
     const adminUserId = req.user?._id || req.user?.userId || req.user?.id;
     const adminUser = await User.findById(adminUserId);
     const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
-    
+
     await Notification.create({
       userId: employeeId,
       type: 'system',
@@ -209,8 +209,8 @@ router.post('/in', asyncHandler(async (req, res) => {
     // Don't fail the clock-in if notification fails
   }
 
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'Employee clocked in successfully',
     entry: entry
   });
@@ -231,7 +231,7 @@ router.post('/out', asyncHandler(async (req, res) => {
 
   // Get today's date in YYYY-MM-DD format (UTC)
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  
+
   const entry = await TimeEntry.findOne({
     employee: employeeId,
     date: today
@@ -239,23 +239,23 @@ router.post('/out', asyncHandler(async (req, res) => {
 
   // VALIDATION CHECKS
   if (!entry) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "No TimeEntry found for today" 
+    return res.status(400).json({
+      success: false,
+      message: "No TimeEntry found for today"
     });
   }
 
   if (!entry.clockIn) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Employee not clocked in" 
+    return res.status(400).json({
+      success: false,
+      message: "Employee not clocked in"
     });
   }
 
   if (entry.clockOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Already clocked out" 
+    return res.status(400).json({
+      success: false,
+      message: "Already clocked out"
     });
   }
 
@@ -263,12 +263,12 @@ router.post('/out', asyncHandler(async (req, res) => {
   const now = new Date();
   entry.clockOut = now;
   entry.status = 'clocked_out';
-  
+
   // Clear break status if on break
   if (entry.onBreakStart) {
     entry.onBreakStart = null;
   }
-  
+
   // Update GPS location if provided
   if (latitude && longitude) {
     entry.gpsLocationOut = {
@@ -278,7 +278,7 @@ router.post('/out', asyncHandler(async (req, res) => {
       timestamp: now
     };
   }
-  
+
   // 🟩 SAFE SAVE OPERATION - Prevent server crashes
   await entry.save();
   console.log('✅ Clock out saved successfully for employee:', employeeId);
@@ -290,7 +290,7 @@ router.post('/out', asyncHandler(async (req, res) => {
     const User = require('../models/User');
     const adminUser = adminUserId ? await User.findById(adminUserId) : null;
     const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
-    
+
     await Notification.create({
       userId: employeeId,
       type: 'system',
@@ -303,8 +303,8 @@ router.post('/out', asyncHandler(async (req, res) => {
     // Don't fail the clock out if notification fails
   }
 
-  return res.json({ 
-    success: true, 
+  return res.json({
+    success: true,
     message: 'Employee clocked out successfully',
     entry: entry
   });
@@ -325,7 +325,7 @@ router.get('/dashboard', async (req, res) => {
 
     // Get EmployeeHub model to count total active employees with userType='employee'
     const ShiftAssignment = require('../models/ShiftAssignment');
-    
+
     // Get only ACTIVE employees with valid user accounts (userType='employee')
     const employees = await EmployeesHub.find({
       userId: { $exists: true, $ne: null }
@@ -337,8 +337,8 @@ router.get('/dashboard', async (req, res) => {
       .lean();
 
     // Filter out employees without valid userId
-    const validEmployees = employees.filter(emp => 
-      emp.userId && 
+    const validEmployees = employees.filter(emp =>
+      emp.userId &&
       emp.userId._id &&
       emp.userId.userType === 'employee'
     );
@@ -379,7 +379,7 @@ router.get('/dashboard', async (req, res) => {
 
     // Count only CURRENT status - each user counted once based on latest entry
     const employeeStatusMap = new Map();
-    
+
     timeEntries.forEach(entry => {
       const empId = entry.employee.toString();
       // Only set if not already set (since we sorted by most recent first)
@@ -393,7 +393,7 @@ router.get('/dashboard', async (req, res) => {
     let onBreak = 0;
     let clockedOut = 0;
     let absent = 0;
-    
+
     employeeStatusMap.forEach(status => {
       if (status === 'clocked_in') clockedIn++;
       else if (status === 'on_break') onBreak++;
@@ -404,12 +404,12 @@ router.get('/dashboard', async (req, res) => {
     // after their shift start time has passed
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     allUserIds.forEach(userId => {
       const empId = userId.toString();
       const hasTimeEntry = employeeStatusMap.has(empId);
       const shift = shiftMap.get(empId);
-      
+
       // Only mark as absent if:
       // 1. They have a shift assigned today
       // 2. They haven't clocked in yet
@@ -453,8 +453,8 @@ router.get('/status', asyncHandler(async (req, res) => {
     isActive: true,
     deleted: { $ne: true }
   })
-  .select('firstName lastName email department jobTitle employeeId team office role')
-  .lean();
+    .select('firstName lastName email department jobTitle employeeId team office role')
+    .lean();
 
   console.log(`📊 Found ${validEmployees.length} active employees`);
 
@@ -481,7 +481,7 @@ router.get('/status', asyncHandler(async (req, res) => {
   validEmployees.forEach(employee => {
     const empId = employee._id.toString();
     const timeEntry = timeEntryMap.get(empId);
-    
+
     let status = 'clocked_out'; // Default status
     let clockIn = null;
     let clockOut = null;
@@ -502,7 +502,7 @@ router.get('/status', asyncHandler(async (req, res) => {
       // Fallback: Calculate status based on multi-session TimeEntry
       else if (timeEntry.sessions && timeEntry.sessions.length > 0) {
         const lastSession = timeEntry.sessions[timeEntry.sessions.length - 1];
-        
+
         clockIn = lastSession.clockIn;
         clockOut = lastSession.clockOut;
         breakIn = lastSession.breakIn;
@@ -549,7 +549,7 @@ router.get('/status', asyncHandler(async (req, res) => {
 
     // Add to appropriate arrays
     allEmployees.push(employeeWithStatus);
-    
+
     if (status === 'clocked_in') {
       clockedIn.push(employeeWithStatus);
     } else if (status === 'on_break') {
@@ -614,7 +614,7 @@ router.get('/status/:employeeId', asyncHandler(async (req, res) => {
     // Determine current status based on TimeEntry
     if (timeEntry.status) {
       const normalizedStatus = timeEntry.status.toUpperCase().replace(/-/g, '_');
-      
+
       if (normalizedStatus === 'CLOCKED_IN') {
         currentStatus = 'CLOCKED_IN';
         lastPunchType = 'CLOCK_IN';
@@ -628,7 +628,7 @@ router.get('/status/:employeeId', asyncHandler(async (req, res) => {
         lastPunchType = 'CLOCK_OUT';
         lastPunchTime = timeEntry.clockOut;
       }
-      
+
       clockIn = timeEntry.clockIn;
       clockOut = timeEntry.clockOut;
     }
@@ -666,9 +666,9 @@ router.get('/status/:employeeId', asyncHandler(async (req, res) => {
 router.get('/entries', async (req, res) => {
   try {
     const { startDate, endDate, employeeId } = req.query;
-    
+
     let query = {};
-    
+
     // Date range filter - use string comparison since date is stored as YYYY-MM-DD string
     if (startDate || endDate) {
       query.date = {};
@@ -681,7 +681,7 @@ router.get('/entries', async (req, res) => {
         query.date.$lte = endDate;
       }
     }
-    
+
     // Employee filter
     if (employeeId) {
       query.employee = employeeId;
@@ -700,7 +700,7 @@ router.get('/entries', async (req, res) => {
 
     // Filter out entries with deleted employees (employee is null after populate)
     const validEntries = timeEntries.filter(entry => entry.employee !== null);
-    
+
     if (validEntries.length < timeEntries.length) {
       console.log(`⚠️ Filtered out ${timeEntries.length - validEntries.length} entries with deleted employees`);
     }
@@ -712,7 +712,7 @@ router.get('/entries', async (req, res) => {
       let shiftEndTime = null;
       let overtime = 0;
       let hoursWorked = 0;
-      
+
       // Calculate shift hours if shift is assigned
       if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
         shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
@@ -723,20 +723,20 @@ router.get('/entries', async (req, res) => {
       // Format clockIn and clockOut for display (convert ISO to HH:MM format)
       let clockInTime = null;
       let clockOutTime = null;
-      
+
       if (entry.clockIn) {
         const clockInDate = new Date(entry.clockIn);
         clockInTime = clockInDate.toTimeString().slice(0, 5);
       }
-      
+
       if (entry.clockOut) {
         const clockOutDate = new Date(entry.clockOut);
         clockOutTime = clockOutDate.toTimeString().slice(0, 5);
-        
+
         // Calculate hours worked and overtime if both clockIn and clockOut exist
         if (entry.clockIn) {
           hoursWorked = calculateHoursWorked(entry.clockIn, entry.clockOut, entry.breaks || []);
-          
+
           // Calculate overtime (hours beyond standard 8-hour day)
           if (hoursWorked > 8) {
             overtime = hoursWorked - 8;
@@ -796,7 +796,7 @@ router.post('/entry', async (req, res) => {
     // Parse date and time from clockIn
     const clockInDate = new Date(clockIn);
     const clockInTime = clockInDate.toTimeString().slice(0, 5);
-    
+
     let clockOutTime = null;
     if (clockOut) {
       const clockOutDate = new Date(clockOut);
@@ -862,7 +862,7 @@ router.put('/entry/:id', async (req, res) => {
 
     // Prepare updates - handle time string conversion to Date objects
     const updateData = { ...updates, updatedAt: new Date() };
-    
+
     // Convert HH:mm time strings to full Date objects
     if (updates.clockIn && typeof updates.clockIn === 'string' && !updates.clockIn.includes('T')) {
       console.log('⏰ Converting clock in time from HH:mm format:', updates.clockIn);
@@ -871,7 +871,7 @@ router.put('/entry/:id', async (req, res) => {
       date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
       updateData.clockIn = date;
     }
-    
+
     if (updates.clockOut && typeof updates.clockOut === 'string' && !updates.clockOut.includes('T')) {
       console.log('⏰ Converting clock out time from HH:mm format:', updates.clockOut);
       const [hours, minutes] = updates.clockOut.split(':');
@@ -933,7 +933,7 @@ router.delete('/entry/:id', async (req, res) => {
     if (timeEntry.shiftId) {
       const ShiftAssignment = require('../models/ShiftAssignment');
       const shift = await ShiftAssignment.findById(timeEntry.shiftId);
-      
+
       if (shift) {
         shift.status = 'Scheduled';
         shift.actualStartTime = null;
@@ -1008,7 +1008,7 @@ router.post('/onbreak', asyncHandler(async (req, res) => {
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().slice(0, 10);
-  
+
   const entry = await TimeEntry.findOne({
     employee: employeeId,
     date: today
@@ -1016,37 +1016,37 @@ router.post('/onbreak', asyncHandler(async (req, res) => {
 
   // VALIDATION CHECKS
   if (!entry) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "No TimeEntry found for today. Employee must clock in first." 
+    return res.status(400).json({
+      success: false,
+      message: "No TimeEntry found for today. Employee must clock in first."
     });
   }
 
   if (!entry.clockIn) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Employee must clock in first." 
+    return res.status(400).json({
+      success: false,
+      message: "Employee must clock in first."
     });
   }
 
   if (entry.clockOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Already clocked out. Cannot start break." 
+    return res.status(400).json({
+      success: false,
+      message: "Already clocked out. Cannot start break."
     });
   }
 
   if (entry.onBreakStart) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Already on break" 
+    return res.status(400).json({
+      success: false,
+      message: "Already on break"
     });
   }
 
   // Set break start time
   entry.onBreakStart = new Date();
   entry.status = 'on_break';
-  
+
   await entry.save();
   console.log('✅ Break started successfully for employee:', employeeId);
 
@@ -1057,7 +1057,7 @@ router.post('/onbreak', asyncHandler(async (req, res) => {
     const User = require('../models/User');
     const adminUser = adminUserId ? await User.findById(adminUserId) : null;
     const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
-    
+
     await Notification.create({
       userId: employeeId,
       type: 'system',
@@ -1069,8 +1069,8 @@ router.post('/onbreak', asyncHandler(async (req, res) => {
     console.error('❌ Failed to create notification:', notifError);
   }
 
-  return res.json({ 
-    success: true, 
+  return res.json({
+    success: true,
     message: 'Break started successfully',
     entry: entry
   });
@@ -1091,7 +1091,7 @@ router.post('/endbreak', asyncHandler(async (req, res) => {
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().slice(0, 10);
-  
+
   const entry = await TimeEntry.findOne({
     employee: employeeId,
     date: today
@@ -1099,51 +1099,51 @@ router.post('/endbreak', asyncHandler(async (req, res) => {
 
   // VALIDATION CHECKS
   if (!entry) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "No TimeEntry found for today" 
+    return res.status(400).json({
+      success: false,
+      message: "No TimeEntry found for today"
     });
   }
 
   if (!entry.clockIn) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Employee not clocked in" 
+    return res.status(400).json({
+      success: false,
+      message: "Employee not clocked in"
     });
   }
 
   if (entry.clockOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Already clocked out" 
+    return res.status(400).json({
+      success: false,
+      message: "Already clocked out"
     });
   }
 
   if (!entry.onBreakStart) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Not on break" 
+    return res.status(400).json({
+      success: false,
+      message: "Not on break"
     });
   }
 
   // Calculate break duration and add to breaks array
   const breakEnd = new Date();
   const breakDuration = (breakEnd - entry.onBreakStart) / 1000 / 60; // minutes
-  
+
   if (!entry.breaks) {
     entry.breaks = [];
   }
-  
+
   entry.breaks.push({
     start: entry.onBreakStart,
     end: breakEnd,
     duration: breakDuration
   });
-  
+
   // Clear break status and resume work
   entry.onBreakStart = null;
   entry.status = 'clocked_in';
-  
+
   await entry.save();
   console.log('✅ Break ended successfully for employee:', employeeId);
 
@@ -1154,7 +1154,7 @@ router.post('/endbreak', asyncHandler(async (req, res) => {
     const User = require('../models/User');
     const adminUser = adminUserId ? await User.findById(adminUserId) : null;
     const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
-    
+
     await Notification.create({
       userId: employeeId,
       type: 'system',
@@ -1166,8 +1166,8 @@ router.post('/endbreak', asyncHandler(async (req, res) => {
     console.error('❌ Failed to create notification:', notifError);
   }
 
-  return res.json({ 
-    success: true, 
+  return res.json({
+    success: true,
     message: 'Break ended successfully',
     entry: entry
   });
@@ -1188,7 +1188,7 @@ router.post('/resume', asyncHandler(async (req, res) => {
 
   // Get today's date in YYYY-MM-DD format (UTC)
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  
+
   const entry = await TimeEntry.findOne({
     employee: employeeId,
     date: today
@@ -1196,53 +1196,53 @@ router.post('/resume', asyncHandler(async (req, res) => {
 
   // VALIDATION CHECKS
   if (!entry) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "No TimeEntry found for today" 
+    return res.status(400).json({
+      success: false,
+      message: "No TimeEntry found for today"
     });
   }
 
   if (!entry.sessions || entry.sessions.length === 0) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "No active session found" 
+    return res.status(400).json({
+      success: false,
+      message: "No active session found"
     });
   }
 
   const last = entry.sessions[entry.sessions.length - 1];
 
   if (!last.clockIn) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Invalid session" 
+    return res.status(400).json({
+      success: false,
+      message: "Invalid session"
     });
   }
 
   if (last.clockOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Session already closed" 
+    return res.status(400).json({
+      success: false,
+      message: "Session already closed"
     });
   }
 
   if (!last.breakIn) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Not on break" 
+    return res.status(400).json({
+      success: false,
+      message: "Not on break"
     });
   }
 
   if (last.breakOut) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Break already ended" 
+    return res.status(400).json({
+      success: false,
+      message: "Break already ended"
     });
   }
 
   // UTC TIMESTAMP - End break
   last.breakOut = new Date().toISOString();
   entry.status = 'clocked_in';
-  
+
   await entry.save();
   console.log(' Break ended successfully for employee:', employeeId);
 
@@ -1253,7 +1253,7 @@ router.post('/resume', asyncHandler(async (req, res) => {
     const User = require('../models/User');
     const adminUser = adminUserId ? await User.findById(adminUserId) : null;
     const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
-    
+
     await Notification.create({
       userId: employeeId,
       type: 'system',
@@ -1265,8 +1265,8 @@ router.post('/resume', asyncHandler(async (req, res) => {
     console.error(' Failed to create notification:', notifError);
   }
 
-  return res.json({ 
-    success: true, 
+  return res.json({
+    success: true,
     message: 'Break ended successfully',
     entry: entry
   });
@@ -1311,34 +1311,34 @@ router.post('/admin/status', async (req, res) => {
         if (breakEntry) {
           // Resume work from break
           const now = new Date();
-          
+
           // Calculate break duration and add to breaks array
           if (breakEntry.onBreakStart) {
             const breakDuration = (now - breakEntry.onBreakStart) / 1000 / 60; // minutes
-            
+
             if (!breakEntry.breaks) {
               breakEntry.breaks = [];
             }
-            
+
             breakEntry.breaks.push({
               start: breakEntry.onBreakStart,
               end: now,
               duration: breakDuration
             });
-            
+
             // Clear break status
             breakEntry.onBreakStart = null;
           }
-          
+
           breakEntry.status = 'clocked_in';
           await breakEntry.save();
-          
+
           // Update shift status to In Progress when resuming work
           if (breakEntry.shiftId) {
             console.log('Resume work: Updating shift to In Progress:', breakEntry.shiftId._id);
             await updateShiftStatus(breakEntry.shiftId._id, 'In Progress');
           }
-          
+
           result = { message: 'Employee resumed work successfully', data: breakEntry };
           break;
         }
@@ -1390,7 +1390,7 @@ router.post('/admin/status', async (req, res) => {
 
         activeEntry.clockOut = new Date();
         activeEntry.status = 'clocked_out';
-        
+
         // Clear break status if on break
         if (activeEntry.onBreakStart) {
           activeEntry.onBreakStart = null;
@@ -1424,13 +1424,13 @@ router.post('/admin/status', async (req, res) => {
         clockedInEntry.onBreakStart = new Date();
         clockedInEntry.status = 'on_break';
         await clockedInEntry.save();
-        
+
         // Update shift status to On Break
         if (clockedInEntry.shiftId) {
           console.log('Break started: Updating shift to On Break:', clockedInEntry.shiftId._id);
           await updateShiftStatus(clockedInEntry.shiftId._id, 'On Break');
         }
-        
+
         result = { message: 'Break started successfully', data: clockedInEntry };
         break;
 
@@ -1439,7 +1439,7 @@ router.post('/admin/status', async (req, res) => {
         // Create a leave record for today
         const todayDate = new Date();
         todayDate.setHours(0, 0, 0, 0);
-        
+
         const leaveRecord = new LeaveRecord({
           user: employeeId,
           type: status === 'absent' ? 'absent' : 'annual',
@@ -1484,7 +1484,7 @@ router.post('/admin/status', async (req, res) => {
 router.get('/export', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     let query = {};
     if (startDate || endDate) {
       query.date = {};
@@ -1502,9 +1502,9 @@ router.get('/export', async (req, res) => {
 
     // Generate CSV
     let csv = 'Date,Employee Name,VTID,Clock In,Clock Out,Total Hours,Breaks,Location\n';
-    
+
     timeEntries.forEach(entry => {
-      const employeeName = entry.employee ? 
+      const employeeName = entry.employee ?
         `${entry.employee.firstName} ${entry.employee.lastName}` : 'Unknown';
       const vtid = entry.employee?.vtid || '';
       const date = entry.date.toLocaleDateString();
@@ -1514,7 +1514,7 @@ router.get('/export', async (req, res) => {
       const breakTime = entry.breaks.reduce((total, b) => total + b.duration, 0);
       const breakHours = (breakTime / 60).toFixed(2);
       const location = entry.location || '';
-      
+
       csv += `${date},"${employeeName}",${vtid},${clockIn},${clockOut},${totalHours},${breakHours},"${location}"\n`;
     });
 
@@ -1560,9 +1560,9 @@ router.get('/user/status', authenticateSession, async (req, res) => {
     const dateString = ukNow.toISOString().slice(0, 10);
 
     // (keep your existing logic below this line)
-    
+
     console.log('📊 User status query - userId:', userId, 'dateString:', dateString);
-    
+
     // Query for today's entry (supports both employee and admin users)
     const timeEntry = await TimeEntry.findOne({
       $or: [
@@ -1572,9 +1572,9 @@ router.get('/user/status', authenticateSession, async (req, res) => {
       date: dateString,
       status: { $in: ['clocked_in', 'clocked_out', 'on_break'] }
     })
-    .sort({ clockIn: -1 }) // Get the most recent entry
-    .populate('employee', 'firstName lastName email vtid');
-    
+      .sort({ clockIn: -1 }) // Get the most recent entry
+      .populate('employee', 'firstName lastName email vtid');
+
     console.log('📊 Found time entry:', timeEntry ? {
       status: timeEntry.status,
       clockIn: timeEntry.clockIn,
@@ -1624,7 +1624,7 @@ router.post('/user/in', authenticateSession, async (req, res) => {
     console.log('🔵 Clock-in request received');
     console.log('req.user:', req.user);
     console.log('AUTH HEADER (user/in):', req.headers.authorization);
-    
+
     // Defensive check for req.user
     if (!req.user) {
       console.error('❌ req.user is undefined in /api/clock/user/in. Authentication is missing or auth middleware not applied.');
@@ -1633,7 +1633,7 @@ router.post('/user/in', authenticateSession, async (req, res) => {
         message: 'Authentication required'
       });
     }
-    
+
     const userId = req.user._id || req.user.userId || req.user.id;
     // Extract GPS coordinates from request body
     const { workType, location, latitude, longitude, accuracy } = req.body;
@@ -1653,13 +1653,13 @@ router.post('/user/in', authenticateSession, async (req, res) => {
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const today = new Date(ukNow);
     today.setHours(0, 0, 0, 0);
-    
+
     // Format date as YYYY-MM-DD string (required by schema)
     const dateString = ukNow.toISOString().slice(0, 10);
-    
+
     // For admins, use userId directly; for employees, use employee field
     const employeeId = userId;
-    
+
     const existingEntry = await TimeEntry.findOne({
       $or: [
         { employee: employeeId },
@@ -1692,12 +1692,12 @@ router.post('/user/in', authenticateSession, async (req, res) => {
         }
       });
     }
-    
+
     // User can clock in again after clocking out (creates a new time entry for the same day)
 
     // Get current UK time
     const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format for display
-    
+
     // Find matching shift (non-blocking for admins)
     let shift = null;
     try {
@@ -1706,7 +1706,7 @@ router.post('/user/in', authenticateSession, async (req, res) => {
       console.warn('Shift lookup failed (non-blocking):', shiftError.message);
       // Continue without shift - admins may not have shifts
     }
-    
+
     let timeEntryData = {
       employee: employeeId,
       date: dateString,
@@ -1716,12 +1716,12 @@ router.post('/user/in', authenticateSession, async (req, res) => {
       status: 'clocked_in',
       createdBy: userId
     };
-    
+
     // ========== GPS LOCATION PROCESSING ==========
     // If GPS coordinates are provided, save them and attempt reverse geocoding
     if (latitude && longitude) {
       console.log('GPS coordinates received:', { latitude, longitude, accuracy });
-      
+
       // Initialize GPS location object (use gpsLocationIn for clock-in)
       timeEntryData.gpsLocationIn = {
         latitude: parseFloat(latitude),
@@ -1729,7 +1729,7 @@ router.post('/user/in', authenticateSession, async (req, res) => {
         accuracy: accuracy ? parseFloat(accuracy) : null,
         timestamp: new Date()
       };
-      
+
       // Attempt reverse geocoding to get address (non-blocking)
       try {
         const address = await reverseGeocode(latitude, longitude);
@@ -1744,27 +1744,27 @@ router.post('/user/in', authenticateSession, async (req, res) => {
       }
     }
     // ============================================
-    
+
     let attendanceStatus = 'Unscheduled';
     let validationResult = null;
-    
+
     if (shift) {
       try {
         validationResult = validateClockIn(currentTime, shift);
         attendanceStatus = validationResult.status;
-        
+
         timeEntryData.shiftId = shift._id;
         timeEntryData.attendanceStatus = attendanceStatus;
         timeEntryData.scheduledHours = calculateScheduledHours(shift) || 0;
-        
+
         // Check for lateness and create record
         const [shiftHour, shiftMin] = shift.startTime.split(':').map(Number);
         const shiftStartTime = new Date(ukNow);
         shiftStartTime.setHours(shiftHour, shiftMin, 0, 0);
-        
+
         const minutesLate = (ukNow - shiftStartTime) / (1000 * 60);
         const gracePeriod = 5; // 5 minute grace period
-        
+
         if (minutesLate > gracePeriod && attendanceStatus === 'Late') {
           // Create lateness record
           const LatenessRecord = require('../models/LatenessRecord');
@@ -1793,7 +1793,7 @@ router.post('/user/in', authenticateSession, async (req, res) => {
       timeEntryData.attendanceStatus = 'Unscheduled';
       timeEntryData.notes = 'No scheduled shift found for today';
     }
-    
+
     console.log('📝 Creating TimeEntry with data:', {
       employee: timeEntryData.employee,
       date: timeEntryData.date,
@@ -1801,12 +1801,12 @@ router.post('/user/in', authenticateSession, async (req, res) => {
       location: timeEntryData.location,
       workType: timeEntryData.workType
     });
-    
+
     const timeEntry = new TimeEntry(timeEntryData);
     await timeEntry.save();
-    
+
     console.log('✅ TimeEntry saved successfully:', timeEntry._id);
-    
+
     if (shift) {
       console.log('User clock-in: Updating shift to In Progress:', shift._id);
       await updateShiftStatus(shift._id, 'In Progress', {
@@ -1870,7 +1870,7 @@ router.post('/user/out', authenticateSession, async (req, res) => {
         message: 'Authentication required'
       });
     }
-    
+
     const userId = req.user._id || req.user.userId || req.user.id;
     // Extract GPS coordinates from request body for clock-out
     const { latitude, longitude, accuracy } = req.body;
@@ -1886,13 +1886,13 @@ router.post('/user/out', authenticateSession, async (req, res) => {
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const today = new Date(ukNow);
     today.setHours(0, 0, 0, 0);
-    
+
     // Format date as YYYY-MM-DD string (required by schema)
     const dateString = ukNow.toISOString().slice(0, 10);
-    
+
     // For admins, use userId directly; for employees, use employee field
     const employeeId = userId;
-    
+
     const timeEntry = await TimeEntry.findOne({
       $or: [
         { employee: employeeId },
@@ -1914,12 +1914,12 @@ router.post('/user/out', authenticateSession, async (req, res) => {
     const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format for display
     timeEntry.clockOut = ukNow; // Use Date object, not string
     timeEntry.status = 'clocked_out';
-    
+
     // ========== GPS LOCATION PROCESSING FOR CLOCK-OUT ==========
     // If GPS coordinates are provided, save them and attempt reverse geocoding
     if (latitude && longitude) {
       console.log('GPS coordinates received for clock-out:', { latitude, longitude, accuracy });
-      
+
       // Initialize GPS location object for clock-out
       timeEntry.gpsLocationOut = {
         latitude: parseFloat(latitude),
@@ -1927,7 +1927,7 @@ router.post('/user/out', authenticateSession, async (req, res) => {
         accuracy: accuracy ? parseFloat(accuracy) : null,
         capturedAt: new Date()
       };
-      
+
       // Attempt reverse geocoding to get address (non-blocking)
       try {
         const address = await reverseGeocode(latitude, longitude);
@@ -1941,24 +1941,24 @@ router.post('/user/out', authenticateSession, async (req, res) => {
       }
     }
     // ===========================================================
-    
+
     // Calculate hours worked - handle both Date objects and time strings
-    const clockInTime = timeEntry.clockIn instanceof Date 
-      ? timeEntry.clockIn.toTimeString().slice(0, 5) 
+    const clockInTime = timeEntry.clockIn instanceof Date
+      ? timeEntry.clockIn.toTimeString().slice(0, 5)
       : timeEntry.clockIn;
-    
+
     const hoursWorked = calculateHoursWorked(clockInTime, currentTime, timeEntry.breaks || []);
     timeEntry.hoursWorked = hoursWorked;
     timeEntry.totalHours = hoursWorked;
-    
+
     if (timeEntry.scheduledHours && timeEntry.scheduledHours > 0) {
       timeEntry.variance = hoursWorked - timeEntry.scheduledHours;
     } else {
       timeEntry.variance = 0; // Default variance to 0 if no scheduled hours
     }
-    
+
     await timeEntry.save();
-    
+
     if (timeEntry.shiftId) {
       console.log('User clock-out: Marking shift as Completed');
       await updateShiftStatus(timeEntry.shiftId._id, 'Completed', {
@@ -2013,7 +2013,7 @@ router.post('/user/break', authenticateSession, async (req, res) => {
         message: 'Authentication required'
       });
     }
-    
+
     const userId = req.user._id || req.user.userId || req.user.id;
     const { duration = 30, type = 'other' } = req.body;
 
@@ -2027,7 +2027,7 @@ router.post('/user/break', authenticateSession, async (req, res) => {
     // Find today's active time entry using UK timezone
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
-    
+
     const timeEntry = await TimeEntry.findOne({
       $or: [
         { employee: userId },
@@ -2060,7 +2060,7 @@ router.post('/user/break', authenticateSession, async (req, res) => {
     timeEntry.breaks.push(newBreak);
     timeEntry.status = 'on_break';
     await timeEntry.save();
-    
+
     // Note: Shift status stays "In Progress" during break
     // (not changing to "On Break" to keep it simple)
 
@@ -2092,7 +2092,7 @@ router.post('/user/start-break', authenticateSession, async (req, res) => {
         message: 'Authentication required'
       });
     }
-    
+
     const userId = req.user._id || req.user.userId || req.user.id;
 
     if (!userId) {
@@ -2105,7 +2105,7 @@ router.post('/user/start-break', authenticateSession, async (req, res) => {
     // Find today's active time entry using UK timezone
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
-    
+
     const timeEntry = await TimeEntry.findOne({
       $or: [
         { employee: userId },
@@ -2126,7 +2126,7 @@ router.post('/user/start-break', authenticateSession, async (req, res) => {
     const currentTime = new Date().toTimeString().slice(0, 5);
     timeEntry.status = 'on_break';
     timeEntry.onBreakStart = currentTime;
-    
+
     await timeEntry.save();
 
     // Create notification
@@ -2171,7 +2171,7 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
         message: 'Authentication required'
       });
     }
-    
+
     const userId = req.user._id || req.user.userId || req.user.id;
 
     if (!userId) {
@@ -2184,13 +2184,13 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
     // Find today's time entry that's on break using UK timezone
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
-    
+
     console.log('🔵 Resume work request:', {
       userId,
       dateString,
       ukNow: ukNow.toISOString()
     });
-    
+
     const timeEntry = await TimeEntry.findOne({
       $or: [
         { employee: userId },
@@ -2217,12 +2217,12 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
     // Calculate break duration
     const currentTime = new Date().toTimeString().slice(0, 5);
     const breakStart = timeEntry.onBreakStart;
-    
+
     if (breakStart) {
       const [startHour, startMin] = breakStart.split(':').map(Number);
       const [endHour, endMin] = currentTime.split(':').map(Number);
       const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
-      
+
       // Add break to breaks array
       timeEntry.breaks.push({
         startTime: breakStart,
@@ -2235,9 +2235,9 @@ router.post('/user/resume-work', authenticateSession, async (req, res) => {
     // Resume work status
     timeEntry.status = 'clocked_in';
     timeEntry.onBreakStart = null;
-    
+
     await timeEntry.save();
-    
+
     console.log('✅ Work resumed successfully:', {
       entryId: timeEntry._id,
       newStatus: timeEntry.status
@@ -2285,12 +2285,12 @@ router.get('/user/entries', authenticateSession, async (req, res) => {
         message: 'Authentication required'
       });
     }
-    
+
     const userId = req.user._id || req.user.userId || req.user.id;
     const { startDate, endDate } = req.query;
-    
+
     let query = { employee: userId };
-    
+
     // Date range filter
     if (startDate || endDate) {
       query.date = {};
@@ -2314,7 +2314,7 @@ router.get('/user/entries', authenticateSession, async (req, res) => {
       let shiftHours = null;
       let shiftStartTime = null;
       let shiftEndTime = null;
-      
+
       if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
         shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
         shiftStartTime = entry.shiftId.startTime;
@@ -2349,25 +2349,25 @@ router.get('/user/entries', authenticateSession, async (req, res) => {
 router.delete('/entries/:id', async (req, res) => {
   try {
     const entryId = req.params.id;
-    
+
     // Find the time entry
     const timeEntry = await TimeEntry.findById(entryId);
-    
+
     if (!timeEntry) {
       return res.status(404).json({
         success: false,
         message: 'Time entry not found'
       });
     }
-    
+
     // Delete the time entry
     await TimeEntry.findByIdAndDelete(entryId);
-    
+
     res.json({
       success: true,
       message: 'Time entry deleted successfully'
     });
-    
+
   } catch (error) {
     console.error('Delete time entry error:', error);
     res.status(500).json({
@@ -2409,14 +2409,14 @@ router.get('/timesheet/:employeeId', async (req, res) => {
         $lte: endDateStr
       }
     })
-    .sort({ date: 1, clockIn: 1 }) // Sort by date, then by clock-in time for multiple sessions
-    .lean();
+      .sort({ date: 1, clockIn: 1 }) // Sort by date, then by clock-in time for multiple sessions
+      .lean();
 
     console.log(`✅ Found ${timeEntries.length} time entries`);
-    
+
     // Manually populate employee data from EmployeesHub
     const employeeData = await EmployeesHub.findById(employeeId).select('firstName lastName email vtid').lean();
-    
+
     if (!employeeData) {
       // Fallback to User model if not found in EmployeesHub
       const userData = await User.findById(employeeId).select('firstName lastName email vtid').lean();
@@ -2430,7 +2430,7 @@ router.get('/timesheet/:employeeId', async (req, res) => {
         entry.employee = employeeData;
       });
     }
-    
+
     // Populate shift data
     for (let entry of timeEntries) {
       if (entry.shiftId) {
@@ -2466,7 +2466,7 @@ router.get('/timesheet/:employeeId', async (req, res) => {
         // Calculate negative hours (if worked less than expected shift hours)
         if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
           const expectedHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
-          
+
           if (hoursWorked < expectedHours) {
             negativeHours = expectedHours - hoursWorked;
             totalNegativeHours += negativeHours;
@@ -2482,7 +2482,7 @@ router.get('/timesheet/:employeeId', async (req, res) => {
       let shiftHours = null;
       let shiftStartTime = null;
       let shiftEndTime = null;
-      
+
       if (entry.shiftId && entry.shiftId.startTime && entry.shiftId.endTime) {
         shiftHours = calculateScheduledHours(entry.shiftId.startTime, entry.shiftId.endTime);
         shiftStartTime = entry.shiftId.startTime;
@@ -2528,7 +2528,7 @@ router.get('/timesheet/:employeeId', async (req, res) => {
 router.get('/employees/count', async (req, res) => {
   try {
     const totalCount = await User.countDocuments({ role: 'employee' });
-    
+
     res.json({
       success: true,
       total: totalCount
@@ -2552,27 +2552,27 @@ router.get('/dashboard-stats', async (req, res) => {
     // Get UK timezone date for today's records
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
-    
+
     // Get all employees count
     const totalEmployees = await EmployeesHub.countDocuments();
-    
+
     // Get today's time entries
     const timeEntries = await TimeEntry.find({
       date: dateString
     }).populate('employee', 'firstName lastName email');
-    
+
     // Count by status
     const activeEmployees = timeEntries.filter(entry => entry.status === 'clocked_in').length;
     const onBreakEmployees = timeEntries.filter(entry => entry.status === 'on_break').length;
     const offlineEmployees = totalEmployees - activeEmployees - onBreakEmployees;
-    
+
     // Get expiring certificates (example - you may need to adjust based on your Certificate model)
     let expiringCertificates = 0;
     try {
       const Certificate = require('../models/Certificate');
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-      
+
       expiringCertificates = await Certificate.countDocuments({
         expiryDate: {
           $gte: new Date(),
@@ -2583,7 +2583,7 @@ router.get('/dashboard-stats', async (req, res) => {
     } catch (certError) {
       console.warn('Certificate count failed:', certError.message);
     }
-    
+
     res.json({
       totalEmployees,
       activeEmployees,
@@ -2592,7 +2592,7 @@ router.get('/dashboard-stats', async (req, res) => {
       totalCertificates: 0, // Placeholder
       expiringCertificates
     });
-    
+
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     res.status(500).json({
@@ -2610,13 +2610,13 @@ router.get('/dashboard-stats', async (req, res) => {
 router.post('/force-reset/:employeeId', authenticateSession, async (req, res) => {
   try {
     const { employeeId } = req.params;
-    
+
     // Use UK timezone for today's date
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const dateString = ukNow.toISOString().slice(0, 10);
-    
+
     console.log('🔧 Force reset requested for employee:', employeeId, 'date:', dateString);
-    
+
     // Find and reset today's time entry
     const timeEntry = await TimeEntry.findOne({
       $or: [
@@ -2626,55 +2626,55 @@ router.post('/force-reset/:employeeId', authenticateSession, async (req, res) =>
       date: dateString,
       status: { $in: ['clocked_in', 'on_break'] }
     });
-    
+
     if (!timeEntry) {
       return res.status(404).json({
         success: false,
         message: 'No active time entry found for this employee today'
       });
     }
-    
+
     console.log('✅ Found time entry to reset:', {
       entryId: timeEntry._id,
       currentStatus: timeEntry.status,
       clockIn: timeEntry.clockIn
     });
-    
+
     // Force clock out
     const currentTime = ukNow.toTimeString().slice(0, 5);
     timeEntry.clockOut = ukNow;
     timeEntry.status = 'clocked_out';
     timeEntry.onBreakStart = null;
-    
+
     // Calculate hours
-    const clockInTime = timeEntry.clockIn instanceof Date 
-      ? timeEntry.clockIn.toTimeString().slice(0, 5) 
+    const clockInTime = timeEntry.clockIn instanceof Date
+      ? timeEntry.clockIn.toTimeString().slice(0, 5)
       : timeEntry.clockIn;
-    
+
     const hoursWorked = calculateHoursWorked(clockInTime, currentTime, timeEntry.breaks || []);
     timeEntry.hoursWorked = hoursWorked;
     timeEntry.totalHours = hoursWorked;
-    
+
     if (timeEntry.scheduledHours && timeEntry.scheduledHours > 0) {
       timeEntry.variance = hoursWorked - timeEntry.scheduledHours;
     } else {
       timeEntry.variance = 0;
     }
-    
+
     await timeEntry.save();
-    
+
     console.log('✅ Time entry force reset complete:', {
       entryId: timeEntry._id,
       newStatus: timeEntry.status,
       hoursWorked
     });
-    
+
     res.json({
       success: true,
       message: 'Employee clock status has been reset',
       data: timeEntry
     });
-    
+
   } catch (error) {
     console.error('Error forcing clock reset:', error);
     res.status(500).json({

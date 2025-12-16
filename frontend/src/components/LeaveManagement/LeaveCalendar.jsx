@@ -2,9 +2,17 @@ import React, { useState } from 'react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const LeaveCalendar = ({ onDateSelect }) => {
+const LeaveCalendar = ({ onDateSelect, startDate, endDate }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedRange, setSelectedRange] = useState({ start: null, end: null });
+  // Internal state for uncontrolled mode
+  const [internalRange, setInternalRange] = useState({ start: null, end: null });
+
+  // Use props if provided (controlled), otherwise internal state (uncontrolled)
+  const isControlled = startDate !== undefined; // Check if controlled
+
+  const selectedRange = isControlled
+    ? { start: startDate, end: endDate }
+    : internalRange;
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -14,19 +22,25 @@ const LeaveCalendar = ({ onDateSelect }) => {
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
   const handleDateClick = (day) => {
+    let newRange;
+
     if (!selectedRange.start || (selectedRange.start && selectedRange.end)) {
-      // If no start date is selected or both start and end are selected, start a new range
-      const newRange = { start: day, end: null };
-      setSelectedRange(newRange);
-      onDateSelect(day, day);
+      // Start new range
+      newRange = { start: day, end: null };
     } else {
-      // If start date is selected but end date is not
+      // Complete range
       const start = day < selectedRange.start ? day : selectedRange.start;
       const end = day < selectedRange.start ? selectedRange.start : day;
-      const newRange = { start, end };
-      setSelectedRange(newRange);
-      onDateSelect(start, end);
+      newRange = { start, end };
     }
+
+    // Update internal state if uncontrolled
+    if (!isControlled) {
+      setInternalRange(newRange);
+    }
+
+    // Notify parent
+    onDateSelect(newRange.start, newRange.end);
   };
 
   const isInRange = (day) => {
@@ -83,7 +97,7 @@ const LeaveCalendar = ({ onDateSelect }) => {
         ))}
 
         {emptyStartDays}
-        
+
         {daysInMonth.map((day, i) => {
           const isCurrentMonth = isSameMonth(day, currentMonth);
           const isSelected = isInRange(day) || isStartDate(day) || isEndDate(day);
@@ -92,7 +106,7 @@ const LeaveCalendar = ({ onDateSelect }) => {
           const isToday = isSameDay(day, new Date());
 
           let dayClass = "h-10 w-10 flex items-center justify-center rounded-full text-sm";
-          
+
           if (isSelected) {
             dayClass += " bg-blue-100 text-blue-700 font-medium";
             if (isStart) dayClass += " rounded-r-none";

@@ -15,7 +15,7 @@ import {
   getShiftStatistics,
   updateShiftAssignment,
   deleteShiftAssignment,
-  requestShiftSwap, 
+  requestShiftSwap,
   approveShiftSwap
 } from '../utils/rotaApi';
 import { toast, ToastContainer } from 'react-toastify';
@@ -42,12 +42,12 @@ const RotaShiftManagement = () => {
   const [viewMode, setViewMode] = useState('list');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState(null);
-  
+
   // Modal state
   const [assignmentType, setAssignmentType] = useState('employee'); // 'employee' or 'team'
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
-  
+
   // Initialize filters from localStorage or use defaults
   const getInitialFilters = () => {
     try {
@@ -60,14 +60,14 @@ const RotaShiftManagement = () => {
     } catch (error) {
       console.error('Error loading filters from localStorage:', error);
     }
-    
+
     // Default filters - show all shifts (2 year range)
     const startDate = new Date();
     startDate.setFullYear(startDate.getFullYear() - 1); // 1 year ago
-    
+
     const endDate = new Date();
     endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
-    
+
     const defaultFilters = {
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],
@@ -79,7 +79,7 @@ const RotaShiftManagement = () => {
     console.log('📂 Using default filters (2 year range):', defaultFilters);
     return defaultFilters;
   };
-  
+
   const [filters, setFilters] = useState(getInitialFilters);
   const [formData, setFormData] = useState({
     employeeIds: [], // Array for multiple employee selection
@@ -117,37 +117,37 @@ const RotaShiftManagement = () => {
     setLoading(true);
     try {
       console.log('🔄 Fetching rota data...');
-      
+
       // Fetch employees from EmployeeHub (userType='employee') for shift assignment
       const employeesResponse = await axios.get(
         buildApiUrl('/employees/with-clock-status'),
         { withCredentials: true }
       );
-      
+
       // Fetch teams
       const teamsResponse = await axios.get(
         buildApiUrl('/teams'),
         { withCredentials: true }
       );
-      
+
       console.log('🔍 Fetching with filters:', filters);
-      
+
       const [shiftsRes, statsRes] = await Promise.all([
         getAllShiftAssignments(filters),
         getShiftStatistics(filters.startDate, filters.endDate)
       ]);
-      
+
       console.log('📋 Employees Response:', employeesResponse.data);
       console.log('👥 Teams Response:', teamsResponse.data);
       console.log('📅 Shifts Response:', shiftsRes);
       console.log('📊 Total shifts received:', shiftsRes.data?.length || 0);
-      
+
       // Set teams data
       if (teamsResponse.data && teamsResponse.data.success) {
         setTeams(teamsResponse.data.data || []);
         console.log('✅ Loaded teams:', teamsResponse.data.data?.length || 0);
       }
-      
+
       if (shiftsRes.success) {
         console.log('📊 First 3 shifts details:', shiftsRes.data?.slice(0, 3).map(s => ({
           shiftId: s._id,
@@ -168,11 +168,11 @@ const RotaShiftManagement = () => {
         setShifts([]);
       }
       if (statsRes.success) setStatistics(statsRes.data);
-      
+
       // Build comprehensive employee list from EmployeeHub AND shifts
       const employeeList = [];
       const employeeIds = new Set();
-      
+
       // First, add all employees from EmployeeHub (userType='employee')
       if (employeesResponse.data?.success && employeesResponse.data.data) {
         employeesResponse.data.data.forEach(employee => {
@@ -192,7 +192,7 @@ const RotaShiftManagement = () => {
           employeeIds.add(idString);
         });
       }
-      
+
       console.log(`✅ Loaded ${employeeList.length} total employees (from EmployeeHub roster)`);
       console.log('📋 Employee IDs:', employeeList.map(e => ({ name: e.name, id: e.id, role: e.role })));
       setEmployees(employeeList);
@@ -207,7 +207,7 @@ const RotaShiftManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.employeeIds.length === 0 || formData.dateRange.length !== 2) {
       toast.warning('Please select employees and date range');
       return;
@@ -219,7 +219,7 @@ const RotaShiftManagement = () => {
       const start = dayjs(formData.dateRange[0]);
       const end = dayjs(formData.dateRange[1]);
       const dates = [];
-      
+
       // Generate all dates in the range
       let currentDate = start.startOf('day');
       while (currentDate.isBefore(end) || currentDate.isSame(end)) {
@@ -228,7 +228,7 @@ const RotaShiftManagement = () => {
       }
 
       console.log('📤 Assigning shifts for date range:', { startDate: formData.dateRange[0], endDate: formData.dateRange[1], totalDates: dates.length, employees: formData.employeeIds.length });
-      
+
       // Create shift assignments for all dates and all selected employees
       const shiftPromises = [];
       for (const employeeId of formData.employeeIds) {
@@ -249,7 +249,7 @@ const RotaShiftManagement = () => {
 
       const results = await Promise.all(shiftPromises);
       const successCount = results.filter(r => r.success).length;
-      
+
       if (successCount > 0) {
         toast.success(`Successfully assigned ${successCount} shifts to ${formData.employeeIds.length} employee(s)`);
         setShowModal(false);
@@ -286,7 +286,7 @@ const RotaShiftManagement = () => {
   const handleTeamSelect = (teamId) => {
     const team = teams.find(t => t._id === teamId);
     setSelectedTeam(team);
-    
+
     if (team && team.members) {
       // Get team members from the team's members array
       setTeamMembers(team.members || []);
@@ -298,7 +298,7 @@ const RotaShiftManagement = () => {
   // Handle team shift assignment
   const handleTeamSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.teamIds.length === 0 || formData.dateRange.length !== 2) {
       toast.warning('Please select teams and date range');
       return;
@@ -310,7 +310,7 @@ const RotaShiftManagement = () => {
       const start = dayjs(formData.dateRange[0]);
       const end = dayjs(formData.dateRange[1]);
       const dates = [];
-      
+
       // Generate all dates in the range
       let currentDate = start.startOf('day');
       while (currentDate.isBefore(end) || currentDate.isSame(end)) {
@@ -319,7 +319,7 @@ const RotaShiftManagement = () => {
       }
 
       console.log('📤 Assigning shifts for date range:', { startDate: formData.dateRange[0], endDate: formData.dateRange[1], totalDates: dates.length, teams: formData.teamIds.length });
-      
+
       // Create shift assignments for all dates and all selected teams
       const shiftPromises = [];
       for (const teamId of formData.teamIds) {
@@ -345,7 +345,7 @@ const RotaShiftManagement = () => {
 
       const results = await Promise.all(shiftPromises);
       const successCount = results.filter(r => r.success).length;
-      
+
       if (successCount > 0) {
         toast.success(`Successfully assigned ${successCount} shifts to ${formData.teamIds.length} team(s)`);
         setShowModal(false);
@@ -452,10 +452,10 @@ const RotaShiftManagement = () => {
   const resetFilters = () => {
     const startDate = new Date();
     startDate.setFullYear(startDate.getFullYear() - 1); // 1 year ago
-    
+
     const endDate = new Date();
     endDate.setFullYear(endDate.getFullYear() + 1); // 1 year ahead
-    
+
     const defaultFilters = {
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],
@@ -465,7 +465,7 @@ const RotaShiftManagement = () => {
       status: ''
     };
     setFilters(defaultFilters);
-    
+
     // Save to localStorage
     try {
       localStorage.setItem('rotaShiftFilters', JSON.stringify(defaultFilters));
@@ -473,7 +473,7 @@ const RotaShiftManagement = () => {
     } catch (error) {
       console.error('Error saving filters to localStorage:', error);
     }
-    
+
     toast.info('Filters reset to show all shifts', { autoClose: 2000 });
   };
 
@@ -495,12 +495,12 @@ const RotaShiftManagement = () => {
       s.status || 'Assigned',
       s.breakDuration || '0'
     ]);
-    
+
     if (rows.length === 0) {
       toast.warning('No shifts data available to export.');
       return;
     }
-    
+
     // Create CSV with proper escaping for commas and quotes
     const csv = [headers, ...rows]
       .map(row => row.map(cell => {
@@ -512,7 +512,7 @@ const RotaShiftManagement = () => {
         return cellStr;
       }).join(','))
       .join('\n');
-    
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -688,10 +688,10 @@ const RotaShiftManagement = () => {
                     // Priority 2: Try to match with employees list
                     // Priority 3: Show 'Unassigned'
                     let employeeName = 'Unassigned';
-                    
+
                     // Debug logging - show details for ALL shifts showing "Unassigned"
                     const shouldLog = index === 0 || !shift.employeeId || (typeof shift.employeeId === 'object' && !shift.employeeId?.firstName);
-                    
+
                     if (shouldLog) {
                       console.log(`🔍 Rendering shift #${index + 1}:`, {
                         shiftId: shift._id,
@@ -708,7 +708,7 @@ const RotaShiftManagement = () => {
                         rawEmployeeId: JSON.stringify(shift.employeeId)
                       });
                     }
-                    
+
                     if (shift.employeeId) {
                       if (typeof shift.employeeId === 'object' && shift.employeeId !== null && shift.employeeId.firstName) {
                         // Backend populated the employeeId with user data
@@ -721,10 +721,10 @@ const RotaShiftManagement = () => {
                         if (typeof shift.employeeId === 'object' && shift.employeeId !== null) {
                           // It's an object - try to get the ID
                           if (shift.employeeId._id) {
-                            employeeIdStr = typeof shift.employeeId._id === 'object' ? 
+                            employeeIdStr = typeof shift.employeeId._id === 'object' ?
                               shift.employeeId._id.toString() : shift.employeeId._id.toString();
                           } else if (shift.employeeId.id) {
-                            employeeIdStr = typeof shift.employeeId.id === 'object' ? 
+                            employeeIdStr = typeof shift.employeeId.id === 'object' ?
                               shift.employeeId.id.toString() : shift.employeeId.id.toString();
                           } else {
                             // Try to convert the whole object to string (it might be an ObjectId)
@@ -739,11 +739,11 @@ const RotaShiftManagement = () => {
                           // It's already a string
                           employeeIdStr = shift.employeeId?.toString();
                         }
-                        
+
                         if (employeeIdStr) {
                           if (shouldLog) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
-                          const employee = employees.find(emp => 
-                            emp.id?.toString() === employeeIdStr || 
+                          const employee = employees.find(emp =>
+                            emp.id?.toString() === employeeIdStr ||
                             emp._id?.toString() === employeeIdStr
                           );
                           if (employee) {
@@ -763,71 +763,71 @@ const RotaShiftManagement = () => {
                     } else {
                       if (shouldLog) console.log('⚠️ Shift has no employeeId at all');
                     }
-                    
+
                     return (
-                    <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
-                        {index + 1}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                        {employeeName}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                        {formatUKDate(shift.date)}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                        {formatUKTime(shift.startTime)} - {formatUKTime(shift.endTime)}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        {shift.actualStartTime || shift.actualEndTime ? (
-                          <div>
-                            <div>{shift.actualStartTime || '--:--'} - {shift.actualEndTime || '--:--'}</div>
-                            {shift.status === 'In Progress' && (
-                              <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px' }}>
-                                ⏳ In progress
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span style={{ color: '#d1d5db' }}>Not started</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          background: getLocationColor(shift.location) + '20',
-                          color: getLocationColor(shift.location)
-                        }}>
-                          {shift.location}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                        {shift.workType}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        {getStatusBadge(shift.status)}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <button
-                          onClick={() => { setShiftToDelete(shift._id); setShowDeleteDialog(true); }}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid #fca5a5',
-                            background: '#ffffff',
-                            color: '#dc2626',
+                      <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
+                          {index + 1}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
+                          {employeeName}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
+                          {formatUKDate(shift.date)}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
+                          {formatUKTime(shift.startTime)} - {formatUKTime(shift.endTime)}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+                          {shift.actualStartTime || shift.actualEndTime ? (
+                            <div>
+                              <div>{shift.actualStartTime || '--:--'} - {shift.actualEndTime || '--:--'}</div>
+                              {shift.status === 'In Progress' && (
+                                <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px' }}>
+                                  ⏳ In progress
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ color: '#d1d5db' }}>Not started</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '12px',
                             fontSize: '12px',
                             fontWeight: '500',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
+                            background: getLocationColor(shift.location) + '20',
+                            color: getLocationColor(shift.location)
+                          }}>
+                            {shift.location}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
+                          {shift.workType}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {getStatusBadge(shift.status)}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <button
+                            onClick={() => { setShiftToDelete(shift._id); setShowDeleteDialog(true); }}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid #fca5a5',
+                              background: '#ffffff',
+                              color: '#dc2626',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
                     );
                   })
                 )}
@@ -869,10 +869,10 @@ const RotaShiftManagement = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div style={{ 
-              display: 'flex', 
-              borderBottom: '1px solid #e5e7eb', 
-              marginBottom: '24px' 
+            <div style={{
+              display: 'flex',
+              borderBottom: '1px solid #e5e7eb',
+              marginBottom: '24px'
             }}>
               <button
                 type="button"
@@ -959,13 +959,13 @@ const RotaShiftManagement = () => {
                     }}
                     placeholder="Select teams..."
                   />
-                  
+
                   {/* Team Members Display */}
                   {selectedTeam && teamMembers.length > 0 && (
-                    <div style={{ 
-                      marginTop: '12px', 
-                      padding: '16px', 
-                      background: '#f8fafc', 
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '16px',
+                      background: '#f8fafc',
                       borderRadius: '8px',
                       border: '1px solid #e2e8f0'
                     }}>
@@ -1001,8 +1001,11 @@ const RotaShiftManagement = () => {
                   background: '#f9fafb'
                 }}>
                   <LeaveCalendar
+                    startDate={formData.dateRange[0]}
+                    endDate={formData.dateRange[1]}
                     onDateSelect={(start, end) => {
-                      const dateRange = start && end ? [start, end] : [];
+                      // Store partial range ([start]) to allow visual selection of first date
+                      const dateRange = start ? (end ? [start, end] : [start]) : [];
                       setFormData({ ...formData, dateRange });
                     }}
                   />
@@ -1169,8 +1172,8 @@ const RotaShiftManagement = () => {
                     cursor: loading ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {loading 
-                    ? (assignmentType === 'employee' ? 'Assigning...' : 'Assigning to Team...') 
+                  {loading
+                    ? (assignmentType === 'employee' ? 'Assigning...' : 'Assigning to Team...')
                     : (assignmentType === 'employee' ? 'Assign Shift' : `Assign to ${teamMembers.length} Members`)
                   }
                 </button>

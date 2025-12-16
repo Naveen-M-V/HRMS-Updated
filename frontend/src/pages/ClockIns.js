@@ -103,7 +103,7 @@ const ClockIns = () => {
       // Fetch admin's own clock status using user status endpoint
       const { getUserClockStatus } = require('../utils/clockApi');
       const response = await getUserClockStatus();
-      
+
       if (response.success) {
         console.log('✅ Admin clock status loaded:', response.data);
         setMyStatus(response.data);
@@ -120,7 +120,7 @@ const ClockIns = () => {
     try {
       console.log('🔄 Fetching clock-ins data...');
       setStatsLoading(true);
-      
+
       // Fetch EmployeeHub data, clock status, and stats in parallel
       const [employeesRes, clockStatusRes, statsRes] = await Promise.all([
         fetch(`${process.env.REACT_APP_API_BASE_URL}/employees`, {
@@ -133,7 +133,7 @@ const ClockIns = () => {
         getClockStatus({ includeAdmins: true }),
         getDashboardStats()
       ]);
-      
+
       console.log('👥 Employees Response:', employeesRes);
       console.log('⏰ Clock Status Response:', clockStatusRes);
       console.log('📊 Stats Response:', statsRes);
@@ -147,7 +147,7 @@ const ClockIns = () => {
         // Fallback to allEmployees if available
         clockStatusData = clockStatusRes.allEmployees;
       }
-      
+
       console.log('📍 Processed clock status data:', clockStatusData.length, 'employees');
 
       if (employeesRes?.success && employeesRes.data) {
@@ -160,7 +160,7 @@ const ClockIns = () => {
           clockIn: null,
           clockOut: null
         }));
-        
+
         // Update with actual clock status from the new API response
         if (clockStatusData.length > 0) {
           const clockStatusMap = {};
@@ -172,13 +172,13 @@ const ClockIns = () => {
               console.log('🔍 Backend clock status for', key, ':', clockEmp.status);
             }
           });
-          
+
           employeesWithClockStatus.forEach(emp => {
             // Try to match by email first, then by ID
             const matchByEmail = clockStatusMap[emp.email];
             const matchById = clockStatusMap[emp.id] || clockStatusMap[emp._id];
             const clockData = matchByEmail || matchById;
-            
+
             if (clockData) {
               emp.status = clockData.status || 'clocked_out';
               emp.clockStatus = clockData.status || 'clocked_out';
@@ -190,12 +190,12 @@ const ClockIns = () => {
             }
           });
         }
-        
+
         setEmployees(employeesWithClockStatus);
-        
+
         // Always calculate stats from the full employee list for accuracy
         calculateStatsFromEmployees(employeesWithClockStatus);
-        
+
         // Also use backend stats if available for comparison
         if (statsRes.success) {
           console.log('📊 Backend stats:', statsRes.data);
@@ -262,38 +262,38 @@ const ClockIns = () => {
       toast.error('No employee selected');
       return;
     }
-    
+
     const employeeId = clockInEmployee.id || clockInEmployee._id;
     const isAdmin = clockInEmployee.role === 'admin';
     const isCurrentUser = currentUser?.email === clockInEmployee.email;
-    
+
     console.log('🔍 Clock In Debug - Full Employee Object:', clockInEmployee);
     console.log('Clock In - Employee ID:', employeeId);
     console.log('Clock In - Is Admin:', isAdmin);
     console.log('Clock In - Is Current User:', isCurrentUser);
     console.log('Clock In - Current Status:', clockInEmployee.status);
     console.log('Employee ID type:', typeof employeeId);
-    
+
     if (!employeeId) {
       console.error('❌ Employee ID is undefined! Employee object:', clockInEmployee);
       toast.error('Invalid employee data. Please refresh and try again.');
       setShowClockInModal(false);
       return;
     }
-    
+
     setShowClockInModal(false);
 
     try {
       let response;
       let gpsData = {};
-      
+
       // ========== GPS LOCATION CAPTURE ==========
       // Capture GPS for both self clock-in and admin clocking in employees
       if (navigator.geolocation) {
         try {
           console.log('📍 Capturing GPS location for clock-in...');
           const locationToast = toast.info('Capturing location...', { autoClose: false });
-          
+
           const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
               resolve,
@@ -305,13 +305,13 @@ const ClockIns = () => {
               }
             );
           });
-          
+
           gpsData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy
           };
-          
+
           toast.dismiss(locationToast);
           console.log('✅ GPS captured:', gpsData);
         } catch (gpsError) {
@@ -320,40 +320,40 @@ const ClockIns = () => {
         }
       }
       // ==========================================
-      
+
       // If clocking in yourself (current user), use userClockIn
       // Otherwise, use admin clockIn to clock in another employee
       if (isCurrentUser) {
-        response = await userClockIn({ 
-          location: 'Work From Office', 
+        response = await userClockIn({
+          location: 'Work From Office',
           workType: 'Regular',
           ...gpsData  // Include GPS data
         });
       } else {
-        const payload = { 
+        const payload = {
           employeeId,
           ...gpsData  // Include GPS data for admin clocking in employees
         };
         response = await clockIn(payload);
       }
-      
+
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked in successfully' : 'Employee clocked in successfully');
-        
+
         // Store geolocation data
         if (gpsData.latitude && gpsData.longitude) {
           setClockInGeoLocation({
             latitude: gpsData.latitude,
             longitude: gpsData.longitude,
             accuracy: gpsData.accuracy,
-            timestamp: new Date().toLocaleTimeString('en-GB', { 
-              hour: '2-digit', 
+            timestamp: new Date().toLocaleTimeString('en-GB', {
+              hour: '2-digit',
               minute: '2-digit',
-              hour12: false 
+              hour12: false
             })
           });
         }
-        
+
         // Add to clock-in history
         const historyEntry = {
           employeeName: `${clockInEmployee.firstName} ${clockInEmployee.lastName}`,
@@ -364,42 +364,42 @@ const ClockIns = () => {
           accuracy: gpsData.accuracy ? `±${Math.round(gpsData.accuracy)}m` : 'N/A'
         };
         setClockInHistory(prev => [historyEntry, ...prev]);
-        
+
         // Immediately update the employee status in the list for instant UI feedback
-        setEmployees(prevEmployees => 
-          prevEmployees.map(emp => 
-            (emp.id === employeeId || emp._id === employeeId) 
-              ? { 
-                  ...emp, 
-                  status: 'clocked_in',
-                  clockIn: response.data?.timeEntry?.clockIn || new Date().toTimeString().slice(0, 5),
-                  timeEntryId: response.data?.timeEntry?._id || emp.timeEntryId
-                }
+        setEmployees(prevEmployees =>
+          prevEmployees.map(emp =>
+            (emp.id === employeeId || emp._id === employeeId)
+              ? {
+                ...emp,
+                status: 'clocked_in',
+                clockIn: response.data?.timeEntry?.clockIn || new Date().toTimeString().slice(0, 5),
+                timeEntryId: response.data?.timeEntry?._id || emp.timeEntryId
+              }
               : emp
           )
         );
-        
+
         // Update selected employee status
         setSelectedEmployee(prev => prev ? { ...prev, status: 'clocked_in' } : null);
-        
+
         // Trigger refresh for UserDashboard and all other tabs
         triggerClockRefresh({
           action: 'ADMIN_CLOCK_IN',
           employeeId: employeeId,
-          employeeName: clockInEmployee?.firstName && clockInEmployee?.lastName 
-            ? `${clockInEmployee.firstName} ${clockInEmployee.lastName}` 
+          employeeName: clockInEmployee?.firstName && clockInEmployee?.lastName
+            ? `${clockInEmployee.firstName} ${clockInEmployee.lastName}`
             : 'Employee',
           adminName: currentUser?.firstName && currentUser?.lastName
             ? `${currentUser.firstName} ${currentUser.lastName}`
             : 'Admin',
           timestamp: Date.now()
         });
-        
+
         // Wait a moment for backend to fully process, then fetch fresh data
         setTimeout(async () => {
           await fetchData();
           await fetchMyStatus(); // Refresh admin's own status
-          
+
           // Debug: Check what status we actually got back
           const updatedEmployee = employees.find(emp => emp.id === employeeId || emp._id === employeeId);
           console.log('🔍 Employee status after clock-in:', {
@@ -418,14 +418,14 @@ const ClockIns = () => {
       console.error('❌ Error response status:', error.response?.status);
       console.error('❌ Error message:', error.message);
       console.error('❌ Full error object:', JSON.stringify(error, null, 2));
-      
+
       // The error might be thrown directly from clockApi.js as {success: false, message: "..."}
       // or as an axios error with error.response.data
       const errorMsg = error.message || error.response?.data?.message || 'Failed to clock in';
-      
+
       // Show the error message from backend
       toast.error(errorMsg);
-      
+
       // Refresh to sync state
       await fetchData();
       await fetchMyStatus();
@@ -446,17 +446,17 @@ const ClockIns = () => {
     console.log('🔍 Clock Out - Is Current User:', isCurrentUser);
 
     // Optimistic update
-    setEmployees(prevEmployees => 
-      prevEmployees.map(emp => 
-        (emp.id === employeeId || emp._id === employeeId) 
+    setEmployees(prevEmployees =>
+      prevEmployees.map(emp =>
+        (emp.id === employeeId || emp._id === employeeId)
           ? { ...emp, status: 'clocked_out' }
           : emp
       )
     );
 
     // Also update selected employee if it matches
-    setSelectedEmployee(prev => 
-      prev && (prev.id === employeeId || prev._id === employeeId) 
+    setSelectedEmployee(prev =>
+      prev && (prev.id === employeeId || prev._id === employeeId)
         ? { ...prev, status: 'clocked_out' }
         : prev
     );
@@ -464,13 +464,13 @@ const ClockIns = () => {
     try {
       let response;
       let gpsData = {};
-      
+
       // ========== GPS LOCATION CAPTURE FOR CLOCK-OUT ==========
       if (navigator.geolocation) {
         try {
           console.log('📍 Capturing GPS location for clock-out...');
           const locationToast = toast.info('Capturing location...', { autoClose: false });
-          
+
           const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(
               resolve,
@@ -482,13 +482,13 @@ const ClockIns = () => {
               }
             );
           });
-          
+
           gpsData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy
           };
-          
+
           toast.dismiss(locationToast);
           console.log('✅ GPS captured for clock-out:', gpsData);
         } catch (gpsError) {
@@ -497,7 +497,7 @@ const ClockIns = () => {
         }
       }
       // ========================================================
-      
+
       // If clocking out yourself, use userClockOut
       if (isCurrentUser) {
         console.log('📤 Using userClockOut (self clock-out)');
@@ -509,32 +509,32 @@ const ClockIns = () => {
         console.log('Employee ID being sent:', employeeId);
         response = await clockOut({ employeeId, ...gpsData });
       }
-      
+
       console.log('📥 Clock out response:', response);
-      
+
       if (response.success) {
         toast.success(isCurrentUser ? 'You have clocked out successfully' : 'Employee clocked out successfully');
-        
+
         // Update with response data
-        setEmployees(prevEmployees => 
-          prevEmployees.map(emp => 
-            (emp.id === employeeId || emp._id === employeeId) 
-              ? { 
-                  ...emp, 
-                  status: 'clocked_out',
-                  clockOut: response.data?.timeEntry?.clockOut || new Date().toTimeString().slice(0, 5),
-                  hoursWorked: response.data?.hoursWorked || emp.hoursWorked
-                }
+        setEmployees(prevEmployees =>
+          prevEmployees.map(emp =>
+            (emp.id === employeeId || emp._id === employeeId)
+              ? {
+                ...emp,
+                status: 'clocked_out',
+                clockOut: response.data?.timeEntry?.clockOut || new Date().toTimeString().slice(0, 5),
+                hoursWorked: response.data?.hoursWorked || emp.hoursWorked
+              }
               : emp
           )
         );
-        
+
         // Trigger refresh for UserDashboard and all other tabs
         triggerClockRefresh({
           action: 'ADMIN_CLOCK_OUT',
           employeeId: employeeId,
-          employeeName: employee?.firstName && employee?.lastName 
-            ? `${employee.firstName} ${employee.lastName}` 
+          employeeName: employee?.firstName && employee?.lastName
+            ? `${employee.firstName} ${employee.lastName}`
             : 'Employee',
           adminName: currentUser?.firstName && currentUser?.lastName
             ? `${currentUser.firstName} ${currentUser.lastName}`
@@ -542,7 +542,7 @@ const ClockIns = () => {
           hoursWorked: response.data?.hoursWorked || 0,
           timestamp: Date.now()
         });
-        
+
         // Wait before fetching fresh data
         setTimeout(async () => {
           await fetchData();
@@ -559,7 +559,7 @@ const ClockIns = () => {
       console.error('❌ Error response status:', error.response?.status);
       console.error('❌ Error message:', error.message);
       console.error('❌ Full error object:', JSON.stringify(error, null, 2));
-      
+
       const errorMessage = error.response?.data?.message || error.message || 'Failed to clock out';
       toast.error(`Clock out failed: ${errorMessage}`);
       await fetchData(); // Revert on error
@@ -581,24 +581,24 @@ const ClockIns = () => {
     console.log('🔍 On Break - Is Current User:', isCurrentUser);
 
     // Optimistic update
-    setEmployees(prevEmployees => 
-      prevEmployees.map(emp => 
-        (emp.id === employeeId || emp._id === employeeId) 
+    setEmployees(prevEmployees =>
+      prevEmployees.map(emp =>
+        (emp.id === employeeId || emp._id === employeeId)
           ? { ...emp, status: 'on_break' }
           : emp
       )
     );
 
     // Also update selected employee if it matches
-    setSelectedEmployee(prev => 
-      prev && (prev.id === employeeId || prev._id === employeeId) 
+    setSelectedEmployee(prev =>
+      prev && (prev.id === employeeId || prev._id === employeeId)
         ? { ...prev, status: 'on_break' }
         : prev
     );
 
     try {
       let response;
-      
+
       // If setting yourself on break, use userStartBreak
       if (isCurrentUser) {
         console.log('📤 Using userStartBreak (self break)');
@@ -607,29 +607,29 @@ const ClockIns = () => {
         console.log('📤 Using setOnBreak (admin setting employee on break)');
         response = await setOnBreak(employeeId);
       }
-      
+
       if (response.success) {
         toast.success(isCurrentUser ? 'You are now on break' : 'Employee is now on break');
-        
+
         // Update with response data
-        setEmployees(prevEmployees => 
-          prevEmployees.map(emp => 
-            (emp.id === employeeId || emp._id === employeeId) 
+        setEmployees(prevEmployees =>
+          prevEmployees.map(emp =>
+            (emp.id === employeeId || emp._id === employeeId)
               ? { ...emp, status: 'on_break' }
               : emp
           )
         );
-        
+
         // Trigger refresh for UserDashboard and AdminDashboard
         triggerClockRefresh({
           action: isCurrentUser ? 'START_BREAK' : 'ADMIN_START_BREAK',
           employeeId: employeeId,
-          employeeName: employee?.firstName && employee?.lastName 
-            ? `${employee.firstName} ${employee.lastName}` 
+          employeeName: employee?.firstName && employee?.lastName
+            ? `${employee.firstName} ${employee.lastName}`
             : 'Employee',
           timestamp: Date.now()
         });
-        
+
         // Wait before fetching fresh data
         setTimeout(async () => {
           await fetchData();
@@ -655,17 +655,17 @@ const ClockIns = () => {
 
     // Optimistic update - update UI immediately
     const actualStatus = newStatus === 'resume_work' ? 'clocked_in' : newStatus;
-    setEmployees(prevEmployees => 
-      prevEmployees.map(emp => 
-        (emp.id === employeeId || emp._id === employeeId) 
+    setEmployees(prevEmployees =>
+      prevEmployees.map(emp =>
+        (emp.id === employeeId || emp._id === employeeId)
           ? { ...emp, status: actualStatus }
           : emp
       )
     );
 
     // Also update selected employee if it matches
-    setSelectedEmployee(prev => 
-      prev && (prev.id === employeeId || prev._id === employeeId) 
+    setSelectedEmployee(prev =>
+      prev && (prev.id === employeeId || prev._id === employeeId)
         ? { ...prev, status: actualStatus }
         : prev
     );
@@ -675,19 +675,19 @@ const ClockIns = () => {
       if (response.success) {
         const displayStatus = newStatus === 'resume_work' ? 'resumed work' : actualStatus.replace('_', ' ');
         toast.success(`Status changed to ${displayStatus} successfully`);
-        
+
         // Trigger refresh for UserDashboard and AdminDashboard
         const employee = employees.find(emp => emp.id === employeeId || emp._id === employeeId);
         triggerClockRefresh({
           action: newStatus === 'resume_work' ? 'RESUME_WORK' : 'STATUS_CHANGE',
           employeeId: employeeId,
-          employeeName: employee?.firstName && employee?.lastName 
-            ? `${employee.firstName} ${employee.lastName}` 
+          employeeName: employee?.firstName && employee?.lastName
+            ? `${employee.firstName} ${employee.lastName}`
             : 'Employee',
           newStatus: actualStatus,
           timestamp: Date.now()
         });
-        
+
         // Fetch fresh data to ensure consistency
         await fetchData();
         await fetchMyStatus();
@@ -743,7 +743,7 @@ const ClockIns = () => {
       toast.error('No time entry to edit. Employee must be clocked in first.');
       return;
     }
-    
+
     setEditingEntry(employee);
     setEditForm({
       date: new Date().toISOString().split('T')[0],
@@ -755,7 +755,7 @@ const ClockIns = () => {
 
   const handleUpdateTimeEntry = async (e) => {
     e.preventDefault();
-    
+
     if (!editingEntry?.timeEntryId) return;
 
     try {
@@ -799,7 +799,7 @@ const ClockIns = () => {
     // Determine if we should show 'None' instead of 'Absent'
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // If status is absent, check if it's a future date or if shift hasn't ended yet
     let displayStatus = status;
     if (status === 'absent' || !status) {
@@ -808,7 +808,7 @@ const ClockIns = () => {
       const now = new Date();
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       // If current time hasn't reached end of day, show 'None'
       // Once end of day is reached, show 'Absent'
       if (now < endOfDay) {
@@ -817,7 +817,7 @@ const ClockIns = () => {
         displayStatus = 'absent';
       }
     }
-    
+
     const styles = {
       clocked_in: { color: '#10b981' },
       clocked_out: { color: '#3b82f6' },
@@ -858,12 +858,12 @@ const ClockIns = () => {
       return true;
     })
     .filter(employee => {
-    const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase();
-    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                         employee.employeeId?.toString().includes(searchTerm) ||
-                         employee.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+      const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase();
+      const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
+        employee.employeeId?.toString().includes(searchTerm) ||
+        employee.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    });
 
   // Pagination logic
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
@@ -888,7 +888,7 @@ const ClockIns = () => {
   const getPageNumbers = () => {
     const pages = [];
     const maxPagesToShow = 5;
-    
+
     if (totalPages <= maxPagesToShow) {
       // Show all pages if total is small
       for (let i = 1; i <= totalPages; i++) {
@@ -897,30 +897,30 @@ const ClockIns = () => {
     } else {
       // Show first page
       pages.push(1);
-      
+
       // Calculate range around current page
       let start = Math.max(2, currentPage - 1);
       let end = Math.min(totalPages - 1, currentPage + 1);
-      
+
       // Add ellipsis if needed
       if (start > 2) {
         pages.push('ellipsis-start');
       }
-      
+
       // Add middle pages
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
+
       // Add ellipsis if needed
       if (end < totalPages - 1) {
         pages.push('ellipsis-end');
       }
-      
+
       // Show last page
       pages.push(totalPages);
     }
-    
+
     return pages;
   };
 
@@ -962,7 +962,7 @@ const ClockIns = () => {
               Last Updated: {getCurrentUKTime()} (UK Time)
             </p>
           </div>
-          
+
           {/* Top Action Buttons - Always Visible */}
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {/* Searchable Employee Input with Clear Button */}
@@ -1039,9 +1039,9 @@ const ClockIns = () => {
                       if (!employeeSearchTerm) return true; // Show all if no search term
                       const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
                       const search = employeeSearchTerm.toLowerCase();
-                      return fullName.includes(search) || 
-                             emp.email?.toLowerCase().includes(search) ||
-                             emp.vtid?.toString().includes(search);
+                      return fullName.includes(search) ||
+                        emp.email?.toLowerCase().includes(search) ||
+                        emp.vtid?.toString().includes(search);
                     })
                     .slice(0, 15)
                     .map(emp => (
@@ -1080,19 +1080,19 @@ const ClockIns = () => {
                   {employeeSearchTerm && employees.filter(emp => {
                     const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
                     const search = employeeSearchTerm.toLowerCase();
-                    return fullName.includes(search) || 
-                           emp.email?.toLowerCase().includes(search) ||
-                           emp.vtid?.toString().includes(search);
+                    return fullName.includes(search) ||
+                      emp.email?.toLowerCase().includes(search) ||
+                      emp.vtid?.toString().includes(search);
                   }).length === 0 && (
-                    <div style={{
-                      padding: '20px',
-                      textAlign: 'center',
-                      color: '#6b7280',
-                      fontSize: '14px'
-                    }}>
-                      No employees found
-                    </div>
-                  )}
+                      <div style={{
+                        padding: '20px',
+                        textAlign: 'center',
+                        color: '#6b7280',
+                        fontSize: '14px'
+                      }}>
+                        No employees found
+                      </div>
+                    )}
                   {!employeeSearchTerm && employees.length === 0 && (
                     <div style={{
                       padding: '20px',
@@ -1106,7 +1106,7 @@ const ClockIns = () => {
                 </div>
               )}
             </div>
-            
+
             {selectedEmployee && selectedEmployee.status === 'clocked_in' && (
               <button
                 onClick={() => handleOnBreak(selectedEmployee.id || selectedEmployee._id)}
@@ -1122,10 +1122,10 @@ const ClockIns = () => {
                   boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
                 }}
               >
-                 Add Break
+                Add Break
               </button>
             )}
-            
+
             {selectedFromSearch && selectedEmployee?.status === 'clocked_in' || selectedEmployee?.status === 'on_break' ? (
               <button
                 onClick={() => handleClockOut(selectedEmployee.id || selectedEmployee._id)}
@@ -1141,7 +1141,7 @@ const ClockIns = () => {
                   boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
                 }}
               >
-                 Clock Out
+                Clock Out
               </button>
             ) : (
               <button
@@ -1176,7 +1176,7 @@ const ClockIns = () => {
                   boxShadow: (selectedFromSearch && selectedEmployee) ? '0 2px 4px rgba(16, 185, 129, 0.3)' : 'none'
                 }}
               >
-                 Clock In
+                Clock In
               </button>
             )}
           </div>
@@ -1190,7 +1190,7 @@ const ClockIns = () => {
           marginBottom: '24px'
         }}>
           {/* All Profiles Card */}
-          <div 
+          <div
             onClick={() => {
               setStatusFilter(null);
               setSearchTerm('');
@@ -1212,7 +1212,7 @@ const ClockIns = () => {
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>All Employees</div>
           </div>
-          <div 
+          <div
             onClick={() => setStatusFilter(statusFilter === 'clocked_in' ? null : 'clocked_in')}
             style={{
               background: statusFilter === 'clocked_in' ? '#d1fae5' : '#ffffff',
@@ -1231,7 +1231,7 @@ const ClockIns = () => {
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked In</div>
           </div>
-          <div 
+          <div
             onClick={() => setStatusFilter(statusFilter === 'clocked_out' ? null : 'clocked_out')}
             style={{
               background: statusFilter === 'clocked_out' ? '#dbeafe' : '#ffffff',
@@ -1250,7 +1250,7 @@ const ClockIns = () => {
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked Out</div>
           </div>
-          <div 
+          <div
             onClick={() => setStatusFilter(statusFilter === 'on_break' ? null : 'on_break')}
             style={{
               background: statusFilter === 'on_break' ? '#fef3c7' : '#ffffff',
@@ -1269,7 +1269,7 @@ const ClockIns = () => {
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>On a break</div>
           </div>
-          <div 
+          <div
             onClick={() => setStatusFilter(statusFilter === 'absent' ? null : 'absent')}
             style={{
               background: statusFilter === 'absent' ? '#fee2e2' : '#ffffff',
@@ -1377,8 +1377,7 @@ const ClockIns = () => {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Name</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Email</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Job Title</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Department</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Team</th>
+
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Office</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Clock In</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>Clock Out</th>
@@ -1390,8 +1389,8 @@ const ClockIns = () => {
             <tbody>
               {displayedEmployees.length > 0 ? (
                 displayedEmployees.map((employee, index) => (
-                  <tr 
-                    key={employee.id || employee._id || index} 
+                  <tr
+                    key={employee.id || employee._id || index}
                     onClick={() => {
                       console.log('🔍 Opening timesheet for employee:', {
                         id: employee.id,
@@ -1453,12 +1452,7 @@ const ClockIns = () => {
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.jobTitle || '-'}
                     </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {employee.department || '-'}
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {employee.team || '-'}
-                    </td>
+
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                       {employee.office || '-'}
                     </td>
@@ -1469,8 +1463,8 @@ const ClockIns = () => {
                       {formatUKTimeOnly(employee.clockOut)}
                     </td>
                     <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                      {employee.breakIn && employee.breakOut ? 
-                        `${formatUKTimeOnly(employee.breakIn)} - ${formatUKTimeOnly(employee.breakOut)}` : 
+                      {employee.breakIn && employee.breakOut ?
+                        `${formatUKTimeOnly(employee.breakIn)} - ${formatUKTimeOnly(employee.breakOut)}` :
                         employee.breakIn ? `${formatUKTimeOnly(employee.breakIn)} (on break)` : '-'
                       }
                     </td>
@@ -1506,7 +1500,7 @@ const ClockIns = () => {
                             Clock In
                           </button>
                         )}
-                        
+
                         {/* Clock Out Button - Show when clocked in or on break */}
                         {(employee.status === 'clocked_in' || employee.status === 'on_break') && (
                           <button
@@ -1534,7 +1528,7 @@ const ClockIns = () => {
                             Clock Out
                           </button>
                         )}
-                        
+
                         {/* Break Button - Show when clocked in */}
                         {employee.status === 'clocked_in' && (
                           <button
@@ -1562,7 +1556,7 @@ const ClockIns = () => {
                             Break
                           </button>
                         )}
-                        
+
                         {/* View Details Button */}
                         <button
                           onClick={(e) => {
@@ -1629,7 +1623,7 @@ const ClockIns = () => {
                       </PaginationItem>
                     );
                   }
-                  
+
                   return (
                     <PaginationItem key={pageNum}>
                       <PaginationLink
@@ -1650,7 +1644,7 @@ const ClockIns = () => {
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
-            
+
             {/* Pagination Info */}
             <div style={{
               marginTop: '16px',
@@ -1760,7 +1754,7 @@ const ClockIns = () => {
                 backgroundSize: '20px 20px',
                 opacity: 0.3
               }}></div>
-              
+
               {/* Placeholder for Image - Will be replaced */}
               <div style={{
                 position: 'relative',
@@ -1954,7 +1948,7 @@ const ClockIns = () => {
           }}>
             📋 Clock-In History
           </h2>
-          
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{
               width: '100%',
@@ -1973,7 +1967,7 @@ const ClockIns = () => {
               </thead>
               <tbody>
                 {clockInHistory.map((entry, index) => (
-                  <tr 
+                  <tr
                     key={index}
                     style={{
                       borderBottom: '1px solid #e5e7eb',
