@@ -89,17 +89,43 @@ exports.createLeaveRequest = async (req, res) => {
     await leaveRequest.populate('employeeId', 'firstName lastName email');
     await leaveRequest.populate('approverId', 'firstName lastName email');
 
-    // Create notification for approver if status is Pending
+    // Create notifications for all admins and super admins if status is Pending
     if (leaveRequest.status === 'Pending') {
       const employee = await EmployeeHub.findById(employeeId);
-      await Notification.create({
-        userId: approverId,
+      const User = require('../models/User');
+      
+      // Find all admin and super-admin users
+      const admins = await User.find({
+        role: { $in: ['admin', 'super-admin'] }
+      }).select('_id');
+      
+      // Create notification for each admin
+      const notifications = admins.map(admin => ({
+        userId: admin._id,
         type: 'leave_request',
         title: 'New Leave Request',
-        message: `${employee.firstName} ${employee.lastName} has submitted a leave request for ${leaveType} leave`,
+        message: `${employee.firstName} ${employee.lastName} has submitted a leave request for ${leaveType} leave from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
         relatedId: leaveRequest._id,
+        priority: 'high',
         read: false
-      });
+      }));
+      
+      // Also notify the specific approver if they're not already in the admin list
+      const adminIds = admins.map(a => a._id.toString());
+      if (!adminIds.includes(approverId.toString())) {
+        notifications.push({
+          userId: approverId,
+          type: 'leave_request',
+          title: 'New Leave Request Assigned',
+          message: `${employee.firstName} ${employee.lastName} has assigned you to approve their ${leaveType} leave request`,
+          relatedId: leaveRequest._id,
+          priority: 'high',
+          read: false
+        });
+      }
+      
+      await Notification.insertMany(notifications);
+      console.log(`✅ Created ${notifications.length} leave request notifications`);
     }
 
     res.status(201).json({
@@ -155,10 +181,17 @@ exports.getMyLeaveRequests = async (req, res) => {
  */
 exports.getPendingLeaveRequests = async (req, res) => {
   try {
-    const approverId = req.user.id || req.user._id;
+    const userId = req.user.id || req.user._id;
+    const userRole = req.user.role;
     const { leaveType, startDate, endDate } = req.query;
 
-    let query = { approverId, status: 'Pending' };
+    let query = { status: 'Pending' };
+
+    // If user is admin or super-admin, show ALL pending requests
+    // Otherwise, only show requests assigned to them as approver
+    if (userRole !== 'admin' && userRole !== 'super-admin') {
+      query.approverId = userId;
+    }
 
     if (leaveType) {
       query.leaveType = leaveType;
@@ -171,11 +204,13 @@ exports.getPendingLeaveRequests = async (req, res) => {
     }
 
     const leaveRequests = await LeaveRequest.find(query)
-      .populate('employeeId', 'firstName lastName email vtid department')
+      .populate('employeeId', 'firstName lastName email vtid department jobTitle')
+      .populate('approverId', 'firstName lastName')
       .sort({ createdAt: -1 });
 
     res.json({
       success: true,
+      count: leaveRequests.length,
       data: leaveRequests
     });
   } catch (error) {
