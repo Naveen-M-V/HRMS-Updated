@@ -822,9 +822,19 @@ const Calendar = () => {
                                   </div>
                                 )}
                                 {event.data.days && (
-                                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
-                                    <span className="font-medium">⏱️</span>
-                                    <span className="font-semibold">{event.data.days} day(s)</span>
+                                  <div className="flex flex-col gap-1 mt-2 text-xs text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">⏱️</span>
+                                      <span className="font-semibold">{event.data.days} day(s)</span>
+                                    </div>
+                                    {event.data.startDate && event.data.endDate && (
+                                      <div className="flex items-center gap-2 ml-5">
+                                        <span className="font-medium">📅</span>
+                                        <span className="font-semibold text-blue-600">
+                                          {event.data.startDate} - {event.data.endDate}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>

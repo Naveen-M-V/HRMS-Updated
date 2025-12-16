@@ -28,7 +28,7 @@ import MUITimePicker from '../components/MUITimePicker';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
-import DateRangePicker from '../components/DateRangePicker';
+import LeaveCalendar from '../components/LeaveManagement/LeaveCalendar';
 import { formatDateDDMMYY, getShortDayName } from '../utils/dateFormatter';
 import dayjs from 'dayjs';
 
@@ -479,27 +479,48 @@ const RotaShiftManagement = () => {
 
 
   const exportToCSV = () => {
+    if (!shifts || shifts.length === 0) {
+      toast.warning('No shifts to export. Please apply filters and load shifts first.');
+      return;
+    }
+
     const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
     const rows = shifts.map(s => [
-      `${s.employeeId?.firstName || ''} ${s.employeeId?.lastName || ''}`,
+      `${s.employeeId?.firstName || ''} ${s.employeeId?.lastName || ''}`.trim() || 'Unknown',
       formatDateDDMMYY(s.date),
-      s.startTime,
-      s.endTime,
-      s.location,
-      s.workType,
-      s.status,
-      s.breakDuration
+      s.startTime || '-',
+      s.endTime || '-',
+      s.location || '-',
+      s.workType || '-',
+      s.status || 'Assigned',
+      s.breakDuration || '0'
     ]);
     
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    if (rows.length === 0) {
+      toast.warning('No shifts data available to export.');
+      return;
+    }
+    
+    // Create CSV with proper escaping for commas and quotes
+    const csv = [headers, ...rows]
+      .map(row => row.map(cell => {
+        // Escape quotes and wrap in quotes if contains comma
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return `"${cellStr.replace(/"/g, '""')}"`;
+        }
+        return cellStr;
+      }).join(','))
+      .join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `shifts_${filters.startDate}_${filters.endDate}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('CSV exported successfully');
+    toast.success(`CSV exported successfully with ${rows.length} shifts`);
   };
 
   if (loading && shifts.length === 0) {
@@ -973,10 +994,33 @@ const RotaShiftManagement = () => {
               {/* Date Range Selection */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>Date Range <span style={{ color: '#dc2626' }}>*</span></label>
-                <DateRangePicker
-                  value={formData.dateRange}
-                  onChange={(dateRange) => setFormData({ ...formData, dateRange })}
-                />
+                <div style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  background: '#f9fafb'
+                }}>
+                  <LeaveCalendar
+                    onDateSelect={(start, end) => {
+                      const dateRange = start && end ? [start, end] : [];
+                      setFormData({ ...formData, dateRange });
+                    }}
+                  />
+                  {formData.dateRange && formData.dateRange.length === 2 && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '12px',
+                      background: '#eff6ff',
+                      borderRadius: '6px',
+                      border: '1px solid #bfdbfe',
+                      fontSize: '14px',
+                      color: '#1e40af',
+                      fontWeight: '500'
+                    }}>
+                      📅 {formData.dateRange[0].toLocaleDateString('en-GB')} — {formData.dateRange[1].toLocaleDateString('en-GB')}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Time Selection */}
