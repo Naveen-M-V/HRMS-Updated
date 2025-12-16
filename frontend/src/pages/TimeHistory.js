@@ -43,6 +43,18 @@ const TimeHistory = () => {
       end: new Date().toISOString().split('T')[0]
     }
   });
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [formData, setFormData] = useState({
+    employeeId: '',
+    startDate: '',
+    endDate: '',
+    startTime: '09:00',
+    endTime: '17:00',
+    location: 'Office',
+    workType: 'Regular',
+    breakDuration: 60,
+    notes: ''
+  });
 
   function getDefaultStartDate() {
     const date = new Date();
