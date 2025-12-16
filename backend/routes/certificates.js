@@ -78,6 +78,34 @@ router.get('/dashboard-stats', async (req, res) => {
 });
 
 // ----------------------
+// Get certificates by employee ID
+// ----------------------
+router.get('/employee/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({ message: 'Invalid employee ID' });
+    }
+
+    const certificates = await Certificate.find({ 
+      ownerType: 'employee', 
+      employeeRef: employeeId 
+    })
+    .populate('uploadedBy', 'firstName lastName employeeId')
+    .populate('reviewedBy', 'firstName lastName employeeId')
+    .sort({ createdAt: -1 });
+
+    res.json(certificates);
+
+  } catch (error) {
+    console.error("Error fetching certificates by employee ID:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// ----------------------
 // Get certificate by ID
 // ----------------------
 router.get('/:id', async (req, res) => {

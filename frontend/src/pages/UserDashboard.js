@@ -113,18 +113,30 @@ const UserDashboard = () => {
         setUserProfile(userData);
         setEditedProfile(userData);
 
-        // Fetch certificates only for profiles (employees might not have profile-based certificates)
-        if (!isEmployeeUser && userData._id) {
-          const certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${userData._id}/certificates`, {
-            credentials: 'include'
-          });
+        // Fetch certificates for both employee and profile users
+        if (userData._id) {
+          let certificatesResponse;
+          
+          if (isEmployeeUser) {
+            // For employees, use employeeRef endpoint
+            certificatesResponse = await fetch(`${API_BASE_URL}/api/certificates/employee/${userData._id}`, {
+              credentials: 'include'
+            });
+          } else {
+            // For profiles, use profileRef endpoint  
+            certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${userData._id}/certificates`, {
+              credentials: 'include'
+            });
+          }
 
           if (certificatesResponse.ok) {
             const certificatesData = await certificatesResponse.json();
             setCertificates(certificatesData);
+          } else {
+            console.warn('Failed to fetch certificates:', certificatesResponse.status);
+            setCertificates([]);
           }
         } else {
-          // For employees, we might need a different certificate endpoint or skip this
           setCertificates([]);
         }
 
@@ -956,7 +968,7 @@ const UserDashboard = () => {
                           return (
                             <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100">
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{cert.certificate || cert.certificateName}</p>
+                                <p className="text-sm font-medium text-gray-900">{cert.title || cert.certificate || cert.certificateName}</p>
                                 <p className="text-xs text-gray-500">{cert.category || 'General'}</p>
                               </div>
                               <div className="text-right">
@@ -1284,9 +1296,9 @@ const UserDashboard = () => {
                             <tr key={certificate._id}>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-medium text-gray-900">
-                                  {certificate.certificate || certificate.certificateName || 'Certificate'}
+                                  {certificate.title || certificate.certificate || certificate.certificateName || 'Certificate'}
                                 </div>
-                                <div className="text-sm text-gray-500">{certificate.provider || 'N/A'}</div>
+                                <div className="text-sm text-gray-500">{certificate.issuingOrganization || certificate.provider || 'N/A'}</div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {certificate.category || 'General'}

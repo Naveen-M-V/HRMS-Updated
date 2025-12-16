@@ -2533,7 +2533,13 @@ app.get('/api/certificates/debug-dates', async (req, res) => {
 app.get('/api/profiles/:profileId/certificates', async (req, res) => {
   try {
     const { profileId } = req.params;
-    const certificates = await Certificate.find({ profileId }).sort({ createdOn: -1 });
+    const certificates = await Certificate.find({ 
+      ownerType: 'profile', 
+      profileRef: profileId 
+    })
+    .populate('uploadedBy', 'firstName lastName employeeId')
+    .populate('reviewedBy', 'firstName lastName employeeId')
+    .sort({ createdAt: -1 });
     res.json(certificates);
   } catch (error) {
     res.status(500).json({ message: error.message });

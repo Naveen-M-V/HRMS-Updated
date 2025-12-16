@@ -1507,12 +1507,31 @@ router.get('/export', async (req, res) => {
       const employeeName = entry.employee ?
         `${entry.employee.firstName} ${entry.employee.lastName}` : 'Unknown';
       const vtid = entry.employee?.vtid || '';
-      const date = entry.date.toLocaleDateString();
+      const date = entry.date ? entry.date.toLocaleDateString() : '';
       const clockIn = entry.clockIn || '';
       const clockOut = entry.clockOut || '';
-      const totalHours = entry.totalHours.toFixed(2);
-      const breakTime = entry.breaks.reduce((total, b) => total + b.duration, 0);
-      const breakHours = (breakTime / 60).toFixed(2);
+      
+      // Calculate total hours safely
+      let totalHours = '0.00';
+      if (entry.clockIn && entry.clockOut) {
+        try {
+          const start = new Date(`2000-01-01T${entry.clockIn}`);
+          const end = new Date(`2000-01-01T${entry.clockOut}`);
+          const diffMs = end - start;
+          totalHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
+        } catch (error) {
+          console.warn('Error calculating hours for entry:', entry._id, error);
+          totalHours = '0.00';
+        }
+      }
+      
+      // Calculate break time safely
+      let breakHours = '0.00';
+      if (entry.breaks && Array.isArray(entry.breaks)) {
+        const totalBreakMinutes = entry.breaks.reduce((total, b) => total + (b.duration || 0), 0);
+        breakHours = (totalBreakMinutes / 60).toFixed(2);
+      }
+      
       const location = entry.location || '';
 
       csv += `${date},"${employeeName}",${vtid},${clockIn},${clockOut},${totalHours},${breakHours},"${location}"\n`;
