@@ -128,7 +128,10 @@ const MyProfile = () => {
       // Get current user from auth context or localStorage
       const currentUser = user || JSON.parse(localStorage.getItem('user') || '{}');
       
+      console.log('Current user for profile lookup:', currentUser);
+      
       if (!currentUser || (!currentUser._id && !currentUser.id && !currentUser.email)) {
+        console.log('No valid user found, redirecting to login');
         navigate('/login');
         return;
       }
@@ -139,24 +142,40 @@ const MyProfile = () => {
       
       if (userId) {
         try {
+          console.log('Trying to fetch employee by userId:', userId);
           response = await axios.get(`/api/employees/by-user-id/${userId}`);
+          console.log('Response from userId lookup:', response.data);
         } catch (error) {
-          console.log('Failed to fetch by userId, trying email lookup');
+          console.log('Failed to fetch by userId, trying email lookup:', error.response?.status);
           // Fallback to email-based lookup
           response = await axios.get(`/api/employees/by-email/${currentUser.email}`);
+          console.log('Response from email lookup:', response.data);
         }
       } else {
         // Use email-based lookup directly
+        console.log('Fetching employee by email:', currentUser.email);
         response = await axios.get(`/api/employees/by-email/${currentUser.email}`);
+        console.log('Response from email lookup:', response.data);
       }
       
-      if (response.data.success) {
+      // Handle response properly - check if response has data and success flag
+      if (response.data && response.data.success) {
+        console.log('Employee data found:', response.data.data);
         setEmployee(response.data.data);
+      } else if (response.data && response.data.data) {
+        // Some endpoints might return data directly without success flag
+        console.log('Employee data found (direct):', response.data);
+        setEmployee(response.data);
       } else {
-        console.error('Failed to fetch employee data');
+        console.error('Failed to fetch employee data - response:', response.data);
+        // Set employee to null to trigger "Profile not found" message
+        setEmployee(null);
       }
     } catch (error) {
       console.error('Error fetching employee data:', error);
+      console.error('Error response:', error.response?.data);
+      // Set employee to null to trigger "Profile not found" message
+      setEmployee(null);
     } finally {
       setLoading(false);
     }
@@ -245,7 +264,26 @@ const MyProfile = () => {
   if (!employee) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-gray-500">Profile not found</div>
+        <div className="text-center max-w-md">
+          <div className="text-gray-500 mb-4">Profile not found</div>
+          <p className="text-sm text-gray-400 mb-4">
+            We couldn't find your employee profile. This might be because:
+          </p>
+          <ul className="text-sm text-gray-400 text-left mb-4">
+            <li>• Your account hasn't been linked to an employee profile yet</li>
+            <li>• Your email in the system doesn't match your login email</li>
+            <li>• Your profile may be inactive or terminated</li>
+          </ul>
+          <p className="text-sm text-gray-400">
+            Please contact your HR administrator for assistance.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
