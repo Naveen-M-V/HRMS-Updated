@@ -3,6 +3,7 @@ const TimeEntry = require('../models/TimeEntry');
 const EmployeesHub = require('../models/EmployeesHub');
 const Rota = require('../models/Rota');
 const Shift = require('../models/Shift');
+const ShiftAssignment = require('../models/ShiftAssignment');
 const Certificate = require('../models/Certificate');
 const Expense = require('../models/Expense');
 const PayrollException = require('../models/PayrollException');
@@ -68,13 +69,6 @@ exports.getReportTypes = async (req, res) => {
         category: 'People'
       },
       {
-        id: 'payroll-exceptions',
-        name: 'Payroll Exceptions',
-        description: 'Issues requiring resolution before payroll',
-        icon: 'AlertTriangle',
-        category: 'Payroll'
-      },
-      {
         id: 'expenses',
         name: 'Expenses Report',
         description: 'Employee expense claims and reimbursements',
@@ -86,13 +80,6 @@ exports.getReportTypes = async (req, res) => {
         name: 'Length of Service',
         description: 'Employee tenure and service anniversaries',
         icon: 'Award',
-        category: 'People'
-      },
-      {
-        id: 'turnover',
-        name: 'Turnover & Retention',
-        description: 'Employee turnover rates and retention metrics',
-        icon: 'TrendingDown',
         category: 'People'
       },
       {
@@ -127,6 +114,7 @@ exports.getReportTypes = async (req, res) => {
 
 /**
  * Generate Absence Report
+ * Includes approved leave records AND employees who didn't clock in when they had shifts
  */
 exports.generateAbsenceReport = async (req, res) => {
   try {
@@ -141,6 +129,7 @@ exports.generateAbsenceReport = async (req, res) => {
       matchStage.employee = { $in: employeeIds };
     }
 
+    // Get approved leave records
     const absenceData = await LeaveRecord.aggregate([
       { $match: matchStage },
       {
@@ -161,7 +150,14 @@ exports.generateAbsenceReport = async (req, res) => {
           employee: { $first: '$employeeDetails' },
           totalDays: { $sum: '$daysUsed' },
           instances: { $sum: 1 },
-          records: { $push: '$$ROOT' }
+          records: { 
+            $push: { 
+              date: '$date',
+              leaveType: '$leaveType',
+              reason: '$reason',
+              daysUsed: '$daysUsed'
+            } 
+          }
         }
       },
       {
@@ -176,7 +172,8 @@ exports.generateAbsenceReport = async (req, res) => {
             }
           },
           totalAbsenceDays: { $sum: '$totalDays' },
-          totalInstances: { $sum: '$instances' }
+          totalInstances: { $sum: '$instances' },
+          allRecords: { $push: '$records' }
         }
       },
       {
@@ -187,11 +184,52 @@ exports.generateAbsenceReport = async (req, res) => {
           jobTitle: '$employee.jobTitle',
           leaveBreakdown: 1,
           totalAbsenceDays: 1,
-          totalInstances: 1
+          totalInstances: 1,
+          records: { $reduce: { input: '$allRecords', initialValue: [], in: { $concatArrays: ['$$value', '$$this'] } } }
         }
       },
       { $sort: { totalAbsenceDays: -1 } }
     ]);
+
+    // Also check for employees who didn't clock in when they had shifts
+    const ShiftAssignment = require('../models/ShiftAssignment');
+    const employeeIdsToCheck = employeeIds && employeeIds.length > 0 ? employeeIds : 
+      (await EmployeesHub.find({ status: 'Active', isActive: true, deleted: { $ne: true } }).distinct('_id'));
+
+    const shiftsInRange = await ShiftAssignment.find({
+      employeeId: { $in: employeeIdsToCheck },
+      date: { $gte: new Date(startDate), $lte: new Date(endDate) }
+    }).populate('employeeId', 'employeeId firstName lastName department jobTitle').lean();
+
+    // Check which shifts don't have corresponding time entries
+    const absencesWithoutClockIn = [];
+    for (const shift of shiftsInRange) {
+      const dateStr = new Date(shift.date).toISOString().slice(0, 10);
+      const timeEntry = await TimeEntry.findOne({
+        employee: shift.employeeId._id,
+        date: dateStr
+      });
+
+      // Check if there's also a leave record for this date
+      const leaveRecord = await LeaveRecord.findOne({
+        employee: shift.employeeId._id,
+        date: shift.date,
+        status: 'approved'
+      });
+
+      if (!timeEntry && !leaveRecord && shift.employeeId) {
+        absencesWithoutClockIn.push({
+          employeeId: shift.employeeId.employeeId,
+          fullName: `${shift.employeeId.firstName} ${shift.employeeId.lastName}`,
+          department: shift.employeeId.department,
+          jobTitle: shift.employeeId.jobTitle,
+          date: shift.date,
+          shiftTime: `${shift.startTime} - ${shift.endTime}`,
+          reason: 'No Clock-in / No Leave Recorded',
+          type: 'Unrecorded Absence'
+        });
+      }
+    }
 
     res.json({
       success: true,
@@ -199,7 +237,8 @@ exports.generateAbsenceReport = async (req, res) => {
         reportType: 'absence',
         dateRange: { startDate, endDate },
         totalRecords: absenceData.length,
-        records: absenceData
+        records: absenceData,
+        unrecordedAbsences: absencesWithoutClockIn
       }
     });
   } catch (error) {
@@ -210,6 +249,7 @@ exports.generateAbsenceReport = async (req, res) => {
 
 /**
  * Generate Annual Leave Report
+ * Includes leave dates, reasons, and balance information
  */
 exports.generateAnnualLeaveReport = async (req, res) => {
   try {
@@ -243,7 +283,16 @@ exports.generateAnnualLeaveReport = async (req, res) => {
           _id: '$employee',
           employee: { $first: '$employeeDetails' },
           totalUsed: { $sum: '$daysUsed' },
-          instances: { $sum: 1 }
+          instances: { $sum: 1 },
+          leaveRecords: { 
+            $push: { 
+              date: '$date',
+              daysUsed: '$daysUsed',
+              reason: '$reason',
+              startDate: '$startDate',
+              endDate: '$endDate'
+            } 
+          }
         }
       }
     ]);
@@ -268,7 +317,8 @@ exports.generateAnnualLeaveReport = async (req, res) => {
         entitled: balance.totalEntitled || 0,
         used: record.totalUsed,
         remaining: (balance.totalEntitled || 0) - record.totalUsed,
-        instances: record.instances
+        instances: record.instances,
+        leaveDetails: record.leaveRecords
       };
     });
 
@@ -289,6 +339,7 @@ exports.generateAnnualLeaveReport = async (req, res) => {
 
 /**
  * Generate Lateness Report
+ * Calculates lateness when employees clock in after their scheduled shift start time
  */
 exports.generateLatenessReport = async (req, res) => {
   try {
@@ -306,6 +357,7 @@ exports.generateLatenessReport = async (req, res) => {
       matchStage.excused = false;
     }
 
+    // Get lateness records from LatenessRecord model
     const latenessData = await LatenessRecord.aggregate([
       { $match: matchStage },
       {
@@ -326,7 +378,16 @@ exports.generateLatenessReport = async (req, res) => {
             $sum: { $cond: ['$excused', 1, 0] }
           },
           totalMinutesLate: { $sum: '$minutesLate' },
-          records: { $push: '$$ROOT' }
+          records: { 
+            $push: { 
+              date: '$date',
+              minutesLate: '$minutesLate',
+              scheduledStart: '$scheduledStart',
+              actualStart: '$actualStart',
+              reason: '$reason',
+              excused: '$excused'
+            } 
+          }
         }
       },
       {
@@ -339,11 +400,73 @@ exports.generateLatenessReport = async (req, res) => {
           excusedIncidents: 1,
           unexcusedIncidents: { $subtract: ['$totalIncidents', '$excusedIncidents'] },
           totalMinutesLate: 1,
-          averageMinutesLate: { $divide: ['$totalMinutesLate', '$totalIncidents'] }
+          averageMinutesLate: { $divide: ['$totalMinutesLate', '$totalIncidents'] },
+          latenessRecords: '$records'
         }
       },
       { $sort: { totalIncidents: -1 } }
     ]);
+
+    // Also check TimeEntry records for lateness not yet in LatenessRecord
+    const ShiftAssignment = require('../models/ShiftAssignment');
+    const timeEntriesMatchStage = {
+      date: { $gte: startDate, $lte: endDate },
+      clockIn: { $exists: true, $ne: null }
+    };
+
+    if (employeeIds && employeeIds.length > 0) {
+      timeEntriesMatchStage.employee = { $in: employeeIds };
+    }
+
+    const timeEntries = await TimeEntry.find(timeEntriesMatchStage)
+      .populate('employee', 'employeeId firstName lastName department jobTitle')
+      .lean();
+
+    const additionalLateness = [];
+    for (const entry of timeEntries) {
+      if (!entry.employee) continue;
+
+      const dateStr = entry.date;
+      const entryDate = new Date(dateStr);
+      const nextDay = new Date(entryDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      // Find shift for this entry
+      const shift = await ShiftAssignment.findOne({
+        employeeId: entry.employee._id,
+        date: { $gte: entryDate, $lt: nextDay }
+      }).lean();
+
+      if (shift && shift.startTime) {
+        const [shiftHour, shiftMin] = shift.startTime.split(':').map(Number);
+        const shiftStartTime = new Date(entryDate);
+        shiftStartTime.setHours(shiftHour, shiftMin, 0, 0);
+
+        const clockInTime = new Date(entry.clockIn);
+        const minutesLate = (clockInTime - shiftStartTime) / (1000 * 60);
+
+        if (minutesLate > 5) { // Grace period of 5 minutes
+          // Check if this lateness is already in LatenessRecord
+          const existingRecord = await LatenessRecord.findOne({
+            employee: entry.employee._id,
+            date: entryDate
+          });
+
+          if (!existingRecord) {
+            additionalLateness.push({
+              employeeId: entry.employee.employeeId,
+              fullName: `${entry.employee.firstName} ${entry.employee.lastName}`,
+              department: entry.employee.department,
+              date: entryDate,
+              scheduledStart: shiftStartTime,
+              actualStart: clockInTime,
+              minutesLate: Math.round(minutesLate),
+              excused: false
+            });
+          }
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -351,7 +474,8 @@ exports.generateLatenessReport = async (req, res) => {
         reportType: 'lateness',
         dateRange: { startDate, endDate },
         totalRecords: latenessData.length,
-        records: latenessData
+        records: latenessData,
+        additionalLatenessFound: additionalLateness
       }
     });
   } catch (error) {
@@ -362,97 +486,145 @@ exports.generateLatenessReport = async (req, res) => {
 
 /**
  * Generate Overtime Report
+ * Calculates overtime when employees clock out after their scheduled shift end time
  */
 exports.generateOvertimeReport = async (req, res) => {
   try {
     const { startDate, endDate, employeeIds } = req.body;
 
     const matchStage = {
-      clockInTime: { $gte: new Date(startDate), $lte: new Date(endDate) },
-      clockOutTime: { $exists: true, $ne: null }
+      date: { $gte: startDate, $lte: endDate },
+      clockOut: { $exists: true, $ne: null }
     };
 
     if (employeeIds && employeeIds.length > 0) {
       matchStage.employee = { $in: employeeIds };
     }
 
-    const overtimeData = await TimeEntry.aggregate([
-      { $match: matchStage },
-      {
-        $addFields: {
-          hoursWorked: {
-            $divide: [
-              { $subtract: ['$clockOutTime', '$clockInTime'] },
-              1000 * 60 * 60
-            ]
-          }
+    // Get time entries with their shift information
+    const timeEntries = await TimeEntry.find(matchStage)
+      .populate('employee', 'employeeId firstName lastName department jobTitle hourlyRate')
+      .lean();
+
+    const ShiftAssignment = require('../models/ShiftAssignment');
+    const overtimeRecords = [];
+
+    for (const entry of timeEntries) {
+      if (!entry.employee) continue;
+
+      // Find the shift assignment for this date
+      const shiftDate = new Date(entry.date);
+      const nextDay = new Date(shiftDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      const shift = await ShiftAssignment.findOne({
+        employeeId: entry.employee._id,
+        date: { $gte: shiftDate, $lt: nextDay }
+      }).lean();
+
+      let overtimeHours = 0;
+
+      if (shift && shift.startTime && shift.endTime && entry.clockIn && entry.clockOut) {
+        // Parse shift times
+        const [shiftStartHour, shiftStartMin] = shift.startTime.split(':').map(Number);
+        const [shiftEndHour, shiftEndMin] = shift.endTime.split(':').map(Number);
+
+        // Create date objects for shift times
+        const shiftStart = new Date(shiftDate);
+        shiftStart.setHours(shiftStartHour, shiftStartMin, 0, 0);
+
+        const shiftEnd = new Date(shiftDate);
+        shiftEnd.setHours(shiftEndHour, shiftEndMin, 0, 0);
+
+        // Handle overnight shifts
+        if (shiftEnd <= shiftStart) {
+          shiftEnd.setDate(shiftEnd.getDate() + 1);
         }
-      },
-      {
-        $addFields: {
-          overtimeHours: {
-            $cond: {
-              if: { $gt: ['$hoursWorked', 8] },
-              then: { $subtract: ['$hoursWorked', 8] },
-              else: 0
-            }
-          }
+
+        const scheduledHours = (shiftEnd - shiftStart) / (1000 * 60 * 60);
+        
+        // Calculate actual hours worked
+        const actualStart = new Date(entry.clockIn);
+        const actualEnd = new Date(entry.clockOut);
+        let actualHours = (actualEnd - actualStart) / (1000 * 60 * 60);
+
+        // Subtract break time if any
+        if (entry.breakDuration) {
+          actualHours -= (entry.breakDuration / 60);
         }
-      },
-      {
-        $match: {
-          overtimeHours: { $gt: 0 }
+
+        // Overtime is hours worked beyond scheduled hours
+        overtimeHours = Math.max(0, actualHours - scheduledHours);
+      } else {
+        // Fallback: if no shift, assume 8-hour standard day
+        const actualStart = new Date(entry.clockIn);
+        const actualEnd = new Date(entry.clockOut);
+        let actualHours = (actualEnd - actualStart) / (1000 * 60 * 60);
+
+        if (entry.breakDuration) {
+          actualHours -= (entry.breakDuration / 60);
         }
-      },
-      {
-        $lookup: {
-          from: 'employeeshubs',
-          localField: 'employee',
-          foreignField: '_id',
-          as: 'employeeDetails'
-        }
-      },
-      { $unwind: '$employeeDetails' },
-      {
-        $group: {
-          _id: '$employee',
-          employee: { $first: '$employeeDetails' },
-          totalOvertimeHours: { $sum: '$overtimeHours' },
-          overtimeInstances: { $sum: 1 }
-        }
-      },
-      {
-        $project: {
-          employeeId: '$employee.employeeId',
-          fullName: { $concat: ['$employee.firstName', ' ', '$employee.lastName'] },
-          department: '$employee.department',
-          jobTitle: '$employee.jobTitle',
-          hourlyRate: '$employee.hourlyRate',
-          totalOvertimeHours: { $round: ['$totalOvertimeHours', 2] },
-          overtimeInstances: 1,
-          estimatedCost: {
-            $round: [
-              {
-                $multiply: [
-                  '$totalOvertimeHours',
-                  { $multiply: ['$employee.hourlyRate', 1.5] }
-                ]
-              },
-              2
-            ]
-          }
-        }
-      },
-      { $sort: { totalOvertimeHours: -1 } }
-    ]);
+
+        overtimeHours = Math.max(0, actualHours - 8);
+      }
+
+      if (overtimeHours > 0) {
+        overtimeRecords.push({
+          employeeId: entry.employee.employeeId,
+          fullName: `${entry.employee.firstName} ${entry.employee.lastName}`,
+          department: entry.employee.department,
+          jobTitle: entry.employee.jobTitle,
+          date: entry.date,
+          clockIn: entry.clockIn,
+          clockOut: entry.clockOut,
+          scheduledHours: shift ? 
+            ((new Date(entry.date).setHours(...shift.endTime.split(':').map(Number)) - 
+              new Date(entry.date).setHours(...shift.startTime.split(':').map(Number))) / (1000 * 60 * 60)).toFixed(2) : 
+            '8.00',
+          actualHours: ((new Date(entry.clockOut) - new Date(entry.clockIn)) / (1000 * 60 * 60)).toFixed(2),
+          overtimeHours: overtimeHours.toFixed(2),
+          hourlyRate: entry.employee.hourlyRate || 0,
+          overtimePay: ((entry.employee.hourlyRate || 0) * 1.5 * overtimeHours).toFixed(2)
+        });
+      }
+    }
+
+    // Group by employee
+    const groupedData = {};
+    overtimeRecords.forEach(record => {
+      const key = record.employeeId;
+      if (!groupedData[key]) {
+        groupedData[key] = {
+          employeeId: record.employeeId,
+          fullName: record.fullName,
+          department: record.department,
+          jobTitle: record.jobTitle,
+          hourlyRate: record.hourlyRate,
+          totalOvertimeHours: 0,
+          totalOvertimePay: 0,
+          overtimeInstances: 0,
+          records: []
+        };
+      }
+      groupedData[key].totalOvertimeHours += parseFloat(record.overtimeHours);
+      groupedData[key].totalOvertimePay += parseFloat(record.overtimePay);
+      groupedData[key].overtimeInstances++;
+      groupedData[key].records.push(record);
+    });
+
+    const finalRecords = Object.values(groupedData).map(emp => ({
+      ...emp,
+      totalOvertimeHours: emp.totalOvertimeHours.toFixed(2),
+      totalOvertimePay: emp.totalOvertimePay.toFixed(2)
+    }));
 
     res.json({
       success: true,
       data: {
         reportType: 'overtime',
         dateRange: { startDate, endDate },
-        totalRecords: overtimeData.length,
-        records: overtimeData
+        totalRecords: finalRecords.length,
+        records: finalRecords.sort((a, b) => parseFloat(b.totalOvertimeHours) - parseFloat(a.totalOvertimeHours))
       }
     });
   } catch (error) {
@@ -463,6 +635,7 @@ exports.generateOvertimeReport = async (req, res) => {
 
 /**
  * Generate Rota Report
+ * Includes shift schedules from both Rota and ShiftAssignment models
  */
 exports.generateRotaReport = async (req, res) => {
   try {
@@ -476,6 +649,7 @@ exports.generateRotaReport = async (req, res) => {
       matchStage.employee = { $in: employeeIds };
     }
 
+    // Get rota data
     const rotaData = await Rota.aggregate([
       { $match: matchStage },
       {
@@ -512,13 +686,49 @@ exports.generateRotaReport = async (req, res) => {
       { $sort: { date: 1, startTime: 1 } }
     ]);
 
+    // Also get shift assignments
+    const shiftMatchStage = {
+      date: { $gte: new Date(startDate), $lte: new Date(endDate) }
+    };
+
+    if (employeeIds && employeeIds.length > 0) {
+      shiftMatchStage.employeeId = { $in: employeeIds };
+    }
+
+    const shiftAssignments = await ShiftAssignment.find(shiftMatchStage)
+      .populate('employeeId', 'employeeId firstName lastName department')
+      .populate('shiftId', 'name')
+      .lean();
+
+    const shiftData = shiftAssignments.map(shift => ({
+      date: shift.date,
+      employeeId: shift.employeeId?.employeeId,
+      fullName: shift.employeeId ? `${shift.employeeId.firstName} ${shift.employeeId.lastName}` : 'N/A',
+      department: shift.employeeId?.department,
+      shiftName: shift.shiftId?.name || shift.shiftName || 'N/A',
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      location: shift.location || 'Office',
+      status: shift.status || 'Scheduled'
+    }));
+
+    // Combine both rota and shift assignments, removing duplicates
+    const combinedData = [...rotaData, ...shiftData];
+    const uniqueData = combinedData.reduce((acc, current) => {
+      const key = `${current.employeeId}-${current.date}-${current.startTime}`;
+      if (!acc.find(item => `${item.employeeId}-${item.date}-${item.startTime}` === key)) {
+        acc.push(current);
+      }
+      return acc;
+    }, []);
+
     res.json({
       success: true,
       data: {
         reportType: 'rota',
         dateRange: { startDate, endDate },
-        totalRecords: rotaData.length,
-        records: rotaData
+        totalRecords: uniqueData.length,
+        records: uniqueData.sort((a, b) => new Date(a.date) - new Date(b.date))
       }
     });
   } catch (error) {

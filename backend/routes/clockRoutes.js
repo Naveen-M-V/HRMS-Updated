@@ -534,6 +534,89 @@ router.get('/status', asyncHandler(async (req, res) => {
   return res.json(responseData);
 }));
 
+// @route   GET /api/clock/status/:employeeId
+// @desc    Get current clock status for a specific employee (SINGLE SOURCE OF TRUTH)
+// @access  Private (Admin/Employee)
+router.get('/status/:employeeId', asyncHandler(async (req, res) => {
+  const { employeeId } = req.params;
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  console.log(`📊 Fetching clock status for employee: ${employeeId}, date: ${today}`);
+
+  // Find the employee
+  const employee = await EmployeesHub.findById(employeeId)
+    .select('firstName lastName email department jobTitle employeeId')
+    .lean();
+
+  if (!employee) {
+    return res.status(404).json({
+      success: false,
+      message: 'Employee not found'
+    });
+  }
+
+  // Get today's time entry
+  const timeEntry = await TimeEntry.findOne({
+    employee: employeeId,
+    date: today
+  }).lean();
+
+  let currentStatus = 'CLOCKED_OUT';
+  let lastPunchType = null;
+  let lastPunchTime = null;
+  let clockIn = null;
+  let clockOut = null;
+
+  if (timeEntry) {
+    // Determine current status based on TimeEntry
+    if (timeEntry.status) {
+      const normalizedStatus = timeEntry.status.toUpperCase().replace(/-/g, '_');
+      
+      if (normalizedStatus === 'CLOCKED_IN') {
+        currentStatus = 'CLOCKED_IN';
+        lastPunchType = 'CLOCK_IN';
+        lastPunchTime = timeEntry.clockIn;
+      } else if (normalizedStatus === 'ON_BREAK') {
+        currentStatus = 'ON_BREAK';
+        lastPunchType = 'BREAK';
+        lastPunchTime = timeEntry.onBreakStart || timeEntry.clockIn;
+      } else if (normalizedStatus === 'CLOCKED_OUT' && timeEntry.clockOut) {
+        currentStatus = 'CLOCKED_OUT';
+        lastPunchType = 'CLOCK_OUT';
+        lastPunchTime = timeEntry.clockOut;
+      }
+      
+      clockIn = timeEntry.clockIn;
+      clockOut = timeEntry.clockOut;
+    }
+  }
+
+  const statusData = {
+    employeeId: employee._id,
+    currentStatus,
+    lastPunchType,
+    lastPunchTime,
+    clockIn,
+    clockOut,
+    employee: {
+      _id: employee._id,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      email: employee.email,
+      department: employee.department,
+      jobTitle: employee.jobTitle,
+      employeeId: employee.employeeId
+    }
+  };
+
+  console.log(`✅ Clock status for ${employee.firstName}: ${currentStatus}`);
+
+  res.json({
+    success: true,
+    data: statusData
+  });
+}));
+
 // @route   GET /api/clock/entries
 // @desc    Get time entries with optional filters
 // @access  Private (Admin)

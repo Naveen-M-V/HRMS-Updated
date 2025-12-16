@@ -48,10 +48,8 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
       'rota': '/api/report-library/rota',
       'sickness': '/api/report-library/sickness',
       'employee-details': '/api/report-library/employee-details',
-      'payroll-exceptions': '/api/report-library/payroll-exceptions',
       'expenses': '/api/report-library/expenses',
       'length-of-service': '/api/report-library/length-of-service',
-      'turnover': '/api/report-library/turnover',
       'working-status': '/api/report-library/working-status',
       'sensitive-info': '/api/report-library/sensitive-info',
       'furloughed': '/api/report-library/furloughed'
@@ -70,11 +68,6 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
     // Report-specific adjustments
     if (report.id === 'annual-leave') {
       payload.year = new Date(startDate).getFullYear();
-    }
-
-    if (report.id === 'payroll-exceptions') {
-      payload.payPeriodStart = startDate;
-      payload.payPeriodEnd = endDate;
     }
 
     if (report.id === 'sensitive-info') {
@@ -242,7 +235,7 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
             )}
 
             {/* Employee Selection */}
-            {!['working-status', 'turnover'].includes(report.id) && (
+            {!['working-status'].includes(report.id) && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   <Users size={16} className="inline mr-2" />
