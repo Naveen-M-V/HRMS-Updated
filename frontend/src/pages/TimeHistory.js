@@ -23,23 +23,11 @@ dayjs.extend(isBetween);
 const TimeHistory = () => {
   const [timeEntries, setTimeEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [editingEntry, setEditingEntry] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [formData, setFormData] = useState({
-    employeeId: '',
-    startDate: '',
-    endDate: '',
-    startTime: '09:00',
-    endTime: '17:00',
-    location: 'Office',
-    workType: 'Regular',
-    breakDuration: 60,
-    notes: ''
-  });
   const [editFormData, setEditFormData] = useState({
     clockIn: '',
     clockOut: '',
@@ -447,9 +435,6 @@ const TimeHistory = () => {
                 minDate={filters.dateRange.start ? dayjs(filters.dateRange.start) : undefined}
               />
             </div>
-            <button onClick={() => setShowAssignModal(true)} style={{ padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              + Assign Shift
-            </button>
           </div>
         </div>
 
