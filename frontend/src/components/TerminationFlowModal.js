@@ -31,7 +31,6 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const modalRef = useRef(null);
 
   // Form data for termination
   const [terminationData, setTerminationData] = useState({
