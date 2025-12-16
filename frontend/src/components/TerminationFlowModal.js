@@ -147,21 +147,21 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   // Step 1: Initiate Termination
   if (currentStep === 1) {
     return (
-      <div 
+      <div
         id="termination-modal-container"
         style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px'
-      }}>
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
         <div style={{
           background: '#ffffff',
           borderRadius: '20px',
@@ -284,21 +284,21 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
   // Step 2: Termination Details
   if (currentStep === 2) {
     return (
-      <div 
+      <div
         id="termination-modal-container"
         style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000,
-        padding: '20px'
-      }}>
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
         <div style={{
           background: '#ffffff',
           borderRadius: '20px',
@@ -377,7 +377,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                     ...prev,
                     lastWorkingDay: date ? date.format('YYYY-MM-DD') : ''
                   }))}
-                  container={() => document.getElementById('termination-modal-container')}
+                  disablePortal={true}
                 />
               </div>
 
@@ -391,7 +391,7 @@ const TerminationFlowModal = ({ employee, isOpen, onClose, onSuccess }) => {
                     ...prev,
                     exitDate: date ? date.format('YYYY-MM-DD') : ''
                   }))}
-                  container={() => document.getElementById('termination-modal-container')}
+                  disablePortal={true}
                 />
               </div>
 

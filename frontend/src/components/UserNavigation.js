@@ -24,7 +24,7 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
 
   const navigationItems = [
     { id: 'overview', name: 'Overview', icon: HomeIcon, showForProfile: false },
-    { id: 'profile', name: 'My Profile', icon: UserCircleIcon, showForProfile: true },
+    { id: 'profile', name: 'My Profile', icon: UserCircleIcon, showForProfile: false },
     { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon, showForProfile: false },
     { id: 'shifts', name: 'My Shifts', icon: CalendarDaysIcon, showForProfile: false },
     { id: 'documents', name: 'Documents', icon: FolderIcon, showForProfile: false },
@@ -60,17 +60,16 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
-              
+
               return (
                 <Tooltip title={item.name} placement="bottom" arrow>
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
-                      isActive
+                    className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${isActive
                         ? 'bg-green-50 text-green-700'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
+                      }`}
                   >
                     <Icon className="h-5 w-5" />
                     {item.badge > 0 && (
@@ -137,7 +136,7 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
-              
+
               return (
                 <Tooltip title={item.name} placement="right" arrow>
                   <button
@@ -146,11 +145,10 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
                       setActiveTab(item.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-green-50 text-green-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
+                        ? 'bg-green-50 text-green-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
                   >
                     <Icon className="h-5 w-5" />
                     <span className="flex-1 text-left">{item.name}</span>

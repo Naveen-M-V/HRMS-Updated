@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
-import { 
-  User, 
-  Mail, 
-  MapPin, 
+import {
+  User,
+  Mail,
+  MapPin,
   Calendar,
   Phone,
   Home,
@@ -124,12 +124,12 @@ const MyProfile = () => {
   const fetchEmployeeData = async () => {
     try {
       setLoading(true);
-      
+
       // Get current user from auth context or localStorage
       const currentUser = user || JSON.parse(localStorage.getItem('user') || '{}');
-      
+
       console.log('Current user for profile lookup:', currentUser);
-      
+
       if (!currentUser || (!currentUser._id && !currentUser.id && !currentUser.email)) {
         console.log('No valid user found, redirecting to login');
         navigate('/login');
@@ -139,7 +139,7 @@ const MyProfile = () => {
       // Try to fetch by userId first, fallback to email
       let response;
       const userId = currentUser._id || currentUser.id;
-      
+
       if (userId) {
         try {
           console.log('Trying to fetch employee by userId:', userId);
@@ -157,17 +157,21 @@ const MyProfile = () => {
         response = await axios.get(`/api/employees/by-email/${currentUser.email}`);
         console.log('Response from email lookup:', response.data);
       }
-      
-      // Handle response properly - check if response has data and success flag
-      if (response.data && response.data.success) {
-        console.log('Employee data found:', response.data.data);
-        setEmployee(response.data.data);
-      } else if (response.data && response.data.data) {
-        // Some endpoints might return data directly without success flag
-        console.log('Employee data found (direct):', response.data);
-        setEmployee(response.data);
+
+      // Handle response properly - check if response has data
+      // The backend returns the employee object directly in response.data
+      if (response.data) {
+        // specific check for success flag if it exists (standard wrapper)
+        if (response.data.success && response.data.data) {
+          console.log('Employee data found (wrapped):', response.data.data);
+          setEmployee(response.data.data);
+        } else {
+          // Direct object response (current behavior)
+          console.log('Employee data found (direct):', response.data);
+          setEmployee(response.data);
+        }
       } else {
-        console.error('Failed to fetch employee data - response:', response.data);
+        console.error('Failed to fetch employee data - empty response');
         // Set employee to null to trigger "Profile not found" message
         setEmployee(null);
       }
@@ -188,7 +192,7 @@ const MyProfile = () => {
 
   const formatFieldValue = (value, type) => {
     if (!value) return 'Not specified';
-    
+
     switch (type) {
       case 'date':
         return formatDateDDMMYY(value);
@@ -225,7 +229,7 @@ const MyProfile = () => {
     }
 
     const Icon = section.icon;
-    
+
     return (
       <div key={section.id} className="bg-white border border-gray-200 rounded-xl shadow-sm">
         <div className="p-6 border-b border-gray-200">
@@ -277,8 +281,8 @@ const MyProfile = () => {
           <p className="text-sm text-gray-400">
             Please contact your HR administrator for assistance.
           </p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Try Again
