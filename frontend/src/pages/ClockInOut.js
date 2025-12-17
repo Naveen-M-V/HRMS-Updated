@@ -474,49 +474,6 @@ const ClockInOut = () => {
           </div>
 
           <div 
-            onClick={() => setSelectedFilter(selectedFilter === 'late' ? null : 'late')}
-            style={{
-              background: selectedFilter === 'late' ? '#fef3c7' : '#ffffff',
-              borderRadius: '12px',
-              padding: '24px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-              border: selectedFilter === 'late' ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '8px'
-            }}>
-              <span style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                fontWeight: '500'
-              }}>
-                Late
-              </span>
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#f59e0b'
-              }}></div>
-            </div>
-            <div style={{
-              fontSize: '32px',
-              fontWeight: '700',
-              color: '#111827'
-            }}>
-              {stats.late || 0}
-            </div>
-          </div>
-
-          <div 
             onClick={() => setSelectedFilter(selectedFilter === 'absent' ? null : 'absent')}
             style={{
               background: selectedFilter === 'absent' ? '#fee2e2' : '#ffffff',

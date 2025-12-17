@@ -1207,7 +1207,7 @@ const ClockIns = () => {
         {/* Statistics Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '16px',
           marginBottom: '24px'
         }}>
@@ -1290,25 +1290,6 @@ const ClockIns = () => {
               {statsLoading ? '...' : (stats?.onBreak ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>On a break</div>
-          </div>
-          <div
-            onClick={() => setStatusFilter(statusFilter === 'late' ? null : 'late')}
-            style={{
-              background: statusFilter === 'late' ? '#fef3c7' : '#ffffff',
-              borderRadius: '8px',
-              padding: '16px',
-              textAlign: 'center',
-              border: statusFilter === 'late' ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>
-              {statsLoading ? '...' : (stats?.late ?? 0)}
-            </div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>Late</div>
           </div>
           <div
             onClick={() => setStatusFilter(statusFilter === 'absent' ? null : 'absent')}
