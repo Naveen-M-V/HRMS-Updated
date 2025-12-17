@@ -9,7 +9,7 @@ import ProfilePictureUpload from "../components/ProfilePictureUpload";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
 import { buildApiUrl } from "../utils/apiConfig";
-import { validateTextOnly, validateNumberOnly, validatePhoneNumber, validateEmail, validateDateOfBirth } from "../utils/inputValidation";
+import { validateTextOnly, validateNumberOnly, validatePhoneNumber, validateEmail, validateDateOfBirth, getMaxDOBDate } from "../utils/inputValidation";
 import {
   Select,
   SelectContent,
