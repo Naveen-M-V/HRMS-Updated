@@ -59,6 +59,7 @@ import AddEmployee from "./pages/AddEmployee";
 import ArchiveEmployees from "./pages/ArchiveEmployees";
 import Calendar from "./pages/Calendar";
 import OrganisationalChart from "./pages/OrganisationalChart";
+import OrganizationalChartNew from "./pages/OrganizationalChartNew";
 import AnnualLeaveBalance from './pages/AnnualLeaveBalance';
 import ManagerApprovalDashboard from './pages/ManagerApprovalDashboard';
 import Documents from './pages/Documents';
@@ -347,6 +348,7 @@ function App() {
                     <Route path="/employee-hub" element={<EmployeeHub />} />
                     <Route path="/archive-employees" element={<ArchiveEmployees />} />
                     <Route path="/organisational-chart" element={<OrganisationalChart />} />
+                    <Route path="/org-chart-new" element={<OrganizationalChartNew />} />
                     <Route path="/add-employee" element={<AddEmployee />} />
                     <Route path="/calendar" element={<Calendar />} />
                     <Route path="/employee/:employeeId" element={<EmployeeProfile />} />
