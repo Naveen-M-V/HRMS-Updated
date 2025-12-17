@@ -59,7 +59,7 @@ const Calendar = () => {
   // NEW: Fetch calendar events when month changes
   useEffect(() => {
     fetchCalendarEvents();
-    if (user?.userType === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'super-admin') {
       fetchPendingRequests();
     }
   }, [currentDate]);
@@ -110,7 +110,7 @@ const Calendar = () => {
   };
 
   const fetchPendingRequests = async () => {
-    if (user?.userType !== 'admin') return;
+    if (!['admin', 'super-admin', 'hr', 'manager'].includes(user?.role)) return;
     
     setLoadingRequests(true);
     try {
@@ -553,7 +553,7 @@ const Calendar = () => {
 
       if (response.data.success) {
         toast.success(
-          user?.userType === 'admin' 
+          (user?.role === 'admin' || user?.role === 'super-admin')
             ? 'Leave request submitted successfully!'
             : 'Leave request submitted and awaiting approval'
         );
@@ -572,7 +572,7 @@ const Calendar = () => {
   // Check if form is valid for submission
   const isFormValid = () => {
     // For admin users, they must select an employee
-    if (user?.userType === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'super-admin') {
       return selectedEmployee && startDate && endDate && !weekendWarning;
     }
     // For employee users, just need dates
@@ -624,7 +624,7 @@ const Calendar = () => {
       </div>
 
       {/* Tabs for Admin */}
-      {user?.userType === 'admin' && (
+      {(user?.role === 'admin' || user?.role === 'super-admin' || user?.role === 'hr' || user?.role === 'manager') && (
         <div className="mb-4 border-b border-gray-200">
           <div className="flex gap-4">
             <button
@@ -966,7 +966,7 @@ const Calendar = () => {
             {/* Modal Body */}
             <div className="p-6">
               {/* Employee Selection - Only for admins */}
-              {user?.userType === 'admin' && (
+              {(user?.role === 'admin' || user?.role === 'super-admin') && (
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Employee <span className="text-red-500">*</span>
@@ -1105,7 +1105,7 @@ const Calendar = () => {
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  {submitting ? 'Submitting...' : user?.userType === 'admin' ? 'Add Absence' : 'Submit Request'}
+                  {submitting ? 'Submitting...' : (user?.role === 'admin' || user?.role === 'super-admin') ? 'Add Absence' : 'Submit Request'}
                 </button>
               </div>
             </div>
@@ -1116,7 +1116,7 @@ const Calendar = () => {
       )}
 
       {/* Pending Requests View - Admin Only */}
-      {activeTab === 'pending-requests' && user?.userType === 'admin' && (
+      {activeTab === 'pending-requests' && (user?.role === 'admin' || user?.role === 'super-admin' || user?.role === 'hr' || user?.role === 'manager') && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Leave Requests</h2>
           
