@@ -713,9 +713,9 @@ router.put('/admin/balance/:userId', async (req, res) => {
     const { entitlementDays, carryOverDays, reason } = req.body;
     const adminId = req.session.user._id;
 
-    // Check if user is admin
+    // Check if user is admin or super-admin
     const admin = await User.findById(adminId);
-    if (!admin || admin.role !== 'admin') {
+    if (!admin || !['admin', 'super-admin'].includes(admin.role)) {
       return res.status(403).json({ message: 'Admin access required' });
     }
 

@@ -3058,8 +3058,8 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // For admin users, get from User collection
-    if (req.user.role === 'admin') {
+    // For admin or super-admin users, get from User collection
+    if (['admin', 'super-admin'].includes(req.user.role)) {
       const user = await User.findOne({ email: req.user.email })
         .select('-password -__v')
         .lean();
@@ -3193,7 +3193,7 @@ app.get('/api/my-profile', authenticateSession, async (req, res) => {
 // Update admin profile details (persist in Profile collection)
 app.put('/api/admin/update-profile', authenticateSession, async (req, res) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
+    if (!req.user || !['admin', 'super-admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
@@ -3258,8 +3258,8 @@ app.put('/api/admin/update-profile', authenticateSession, async (req, res) => {
 // Create new user endpoint (Admin only)
 app.post('/api/users/create', authenticateSession, async (req, res) => {
   try {
-    // Check if user is admin
-    if (!req.user || req.user.role !== 'admin') {
+    // Check if user is admin or super-admin
+    if (!req.user || !['admin', 'super-admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
