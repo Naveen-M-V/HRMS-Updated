@@ -596,16 +596,32 @@ exports.createEmployee = async (req, res) => {
 
     // Send credentials via email
     try {
+      console.log('📧 Attempting to send credentials email to:', employee.email);
+      console.log('📧 Email config:', {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        user: process.env.EMAIL_USER,
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER
+      });
+      
       const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
-      await sendUserCredentialsEmail(
+      const emailResult = await sendUserCredentialsEmail(
         employee.email,
         `${employee.firstName} ${employee.lastName}`,
         temporaryPassword,
         loginUrl
       );
-      console.log('✅ Credentials email sent to:', employee.email);
+      
+      if (emailResult && emailResult.success) {
+        console.log('✅ Credentials email sent successfully to:', employee.email);
+        console.log('✅ Message ID:', emailResult.messageId);
+      } else {
+        console.error('❌ Email sending failed:', emailResult?.error);
+      }
     } catch (emailError) {
       console.error('⚠️ Failed to send credentials email:', emailError);
+      console.error('⚠️ Error details:', emailError.message);
+      console.error('⚠️ Stack trace:', emailError.stack);
       // Continue with response even if email fails
     }
 

@@ -164,6 +164,8 @@ const ClockIns = () => {
         // Update with actual clock status from the new API response
         if (clockStatusData.length > 0) {
           const clockStatusMap = {};
+          const employeeEmailSet = new Set(employeesWithClockStatus.map(e => e.email));
+          
           clockStatusData.forEach(clockEmp => {
             // Use email or ID to match employees
             const key = clockEmp.email || clockEmp.id || clockEmp._id;
@@ -173,6 +175,7 @@ const ClockIns = () => {
             }
           });
 
+          // Update existing employees with clock status
           employeesWithClockStatus.forEach(emp => {
             // Try to match by email first, then by ID
             const matchByEmail = clockStatusMap[emp.email];
@@ -187,6 +190,29 @@ const ClockIns = () => {
               emp.breakIn = clockData.breakIn;
               emp.breakOut = clockData.breakOut;
               console.log('🔍 Updated employee status:', emp.email, '→', emp.status);
+            }
+          });
+          
+          // Add any clocked-in admins/superadmins who are NOT in EmployeeHub
+          clockStatusData.forEach(clockEmp => {
+            const isInEmployeeHub = clockEmp.email && employeeEmailSet.has(clockEmp.email);
+            const isAdminRole = clockEmp.role === 'admin' || clockEmp.role === 'super-admin';
+            
+            if (!isInEmployeeHub && isAdminRole && clockEmp.status && clockEmp.status !== 'clocked_out') {
+              // This is an admin/superadmin who clocked in but isn't in EmployeeHub
+              console.log('➕ Adding clocked-in admin to list:', clockEmp.email, clockEmp.role, clockEmp.status);
+              employeesWithClockStatus.push({
+                ...clockEmp,
+                name: clockEmp.name || `${clockEmp.firstName || ''} ${clockEmp.lastName || ''}`.trim(),
+                status: clockEmp.status,
+                clockStatus: clockEmp.status,
+                clockIn: clockEmp.clockIn,
+                clockOut: clockEmp.clockOut,
+                breakIn: clockEmp.breakIn,
+                breakOut: clockEmp.breakOut,
+                role: clockEmp.role,
+                isAdmin: true
+              });
             }
           });
         }

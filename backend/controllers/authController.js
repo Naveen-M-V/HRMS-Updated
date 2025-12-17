@@ -622,17 +622,32 @@ exports.forgotPassword = async (req, res) => {
     const resetUrl = `${process.env.FRONTEND_URL || 'https://hrms.talentshield.co.uk'}/reset-password?token=${resetToken}&email=${email}`;
     
     try {
-      await sendPasswordResetEmail(
+      console.log('📧 Attempting to send password reset email to:', user.email);
+      console.log('📧 Email config:', {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        user: process.env.EMAIL_USER,
+        from: process.env.EMAIL_FROM || process.env.EMAIL_USER
+      });
+      
+      const emailResult = await sendPasswordResetEmail(
         user.email,
         user.firstName || 'User',
         resetUrl,
         resetToken
       );
       
-      console.log(`✅ Password reset email sent to: ${user.email}`);
+      if (emailResult && emailResult.success) {
+        console.log(`✅ Password reset email sent successfully to: ${user.email}`);
+        console.log('✅ Message ID:', emailResult.messageId);
+      } else {
+        console.error('❌ Email sending failed:', emailResult?.error);
+      }
+      console.log('📧 Reset URL (for debugging):', resetUrl);
     } catch (emailError) {
       console.error('❌ Failed to send reset email:', emailError.message);
-      // Don't fail the request if email fails - user can still use the link if logged
+      console.error('❌ Error details:', emailError);
+      console.error('❌ Stack trace:', emailError.stack);
       console.log('📧 Reset URL (for debugging):', resetUrl);
     }
 
