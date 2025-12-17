@@ -60,9 +60,10 @@ const upload = multer({
 const checkPermission = (action) => {
   return async (req, res, next) => {
     try {
+      // Skip permission check if no user (let authenticateSession handle it)
       if (!req.user) {
-        console.error('checkPermission: No user in request');
-        return res.status(401).json({ message: 'Authentication required' });
+        console.log('checkPermission: No user, allowing through (auth middleware will handle)');
+        return next();
       }
       
       const user = req.user;

@@ -541,7 +541,7 @@ const PersonalTab = ({ employee }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Full name</label>
-              <div className="text-gray-900 font-medium">{employee.name || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.name || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
@@ -553,7 +553,7 @@ const PersonalTab = ({ employee }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Mobile number</label>
-              <div className="text-gray-900 font-medium">{employee.mobileNumber || employee.phone || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.phone || employee.phoneNumber || employee.mobileNumber || 'Not specified'}</div>
             </div>
           </div>
         </div>
@@ -568,23 +568,23 @@ const PersonalTab = ({ employee }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="col-span-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">Address line 1</label>
-              <div className="text-gray-900 font-medium">{employee.addressLine1 || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.addressLine1 || employee.address1 || employee.address || 'Not specified'}</div>
             </div>
             <div className="col-span-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">Address line 2</label>
-              <div className="text-gray-900 font-medium">{employee.addressLine2 || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.addressLine2 || employee.address2 || 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-              <div className="text-gray-900 font-medium">{employee.city || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.city || employee.townCity || 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Postal code</label>
-              <div className="text-gray-900 font-medium">{employee.postalCode || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.postalCode || employee.postcode || 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-              <div className="text-gray-900 font-medium">{employee.country || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.country || employee.county || 'United Kingdom'}</div>
             </div>
           </div>
         </div>
