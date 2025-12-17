@@ -347,8 +347,7 @@ function App() {
                     <Route path="/manage-teams" element={<ManageTeams />} />
                     <Route path="/employee-hub" element={<EmployeeHub />} />
                     <Route path="/archive-employees" element={<ArchiveEmployees />} />
-                    <Route path="/organisational-chart" element={<OrganisationalChart />} />
-                    <Route path="/org-chart-new" element={<OrganizationalChartNew />} />
+                    <Route path="/organisational-chart" element={<OrganizationalChartNew />} />
                     <Route path="/add-employee" element={<AddEmployee />} />
                     <Route path="/calendar" element={<Calendar />} />
                     <Route path="/employee/:employeeId" element={<EmployeeProfile />} />
