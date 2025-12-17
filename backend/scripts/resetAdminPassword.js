@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 const path = require('path');
 
 // Change to backend directory before loading config
@@ -45,9 +44,8 @@ const resetPassword = async (email, newPassword) => {
     console.log(`   Role: ${user.role}`);
     console.log('');
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+    // Set the plain password - the model's pre-save hook will hash it
+    user.password = newPassword;
     
     // Clear any reset tokens
     if (collection === 'User') {
@@ -58,7 +56,12 @@ const resetPassword = async (email, newPassword) => {
       user.passwordResetExpires = undefined;
     }
     
+    // Mark password as modified to ensure it gets hashed
+    user.markModified('password');
+    
     await user.save();
+    
+    console.log('✅ Password saved and hashed by model');
 
     console.log('========================================');
     console.log('✅ PASSWORD RESET SUCCESSFUL!');
