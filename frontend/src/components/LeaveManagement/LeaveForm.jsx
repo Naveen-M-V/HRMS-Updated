@@ -33,9 +33,10 @@ const LeaveForm = ({ selectedDates }) => {
   const fetchManagers = async () => {
     try {
       setManagersLoading(true);
-      const response = await axios.get('/api/employees?status=Active&approvers=true');
+      // Fetch admin and super-admin users as approvers
+      const response = await axios.get('/api/employees?role=admin,super-admin');
       if (response.data.success) {
-        console.log('Fetched approvers:', response.data.data); // Debug log
+        console.log('Fetched admin approvers:', response.data.data); // Debug log
         setManagers(response.data.data);
       }
     } catch (error) {

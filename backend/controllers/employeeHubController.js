@@ -310,7 +310,7 @@ exports.getEmployeeByEmail = async (req, res) => {
  */
 exports.getAllEmployees = async (req, res) => {
   try {
-    const { team, department, status, search, approvers } = req.query;
+    const { team, department, status, search, approvers, role } = req.query;
 
     // Build query - default to active employees only
     let query = { isActive: true, status: { $ne: 'Terminated' } };
@@ -318,6 +318,12 @@ exports.getAllEmployees = async (req, res) => {
     // If requesting approvers, filter by specific roles
     if (approvers === 'true') {
       query.role = { $in: ['admin', 'super-admin', 'hr', 'manager'] };
+    }
+    
+    // If specific roles are requested (comma-separated)
+    if (role) {
+      const roles = role.split(',').map(r => r.trim());
+      query.role = { $in: roles };
     }
 
     if (team) query.team = team;
