@@ -9,10 +9,8 @@ import {
   ClockIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
-  CalendarIcon,
-  ClipboardDocumentCheckIcon
+  CalendarIcon
 } from '@heroicons/react/24/outline';
-import ManagerApprovalDashboard from './ManagerApprovalDashboard';
 
 /**
  * AdminDashboard - Main admin interface with location tracking and analytics
@@ -89,8 +87,7 @@ const AdminDashboard = () => {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: ChartBarIcon },
-    { id: 'attendance', name: 'Attendance Calendar', icon: CalendarIcon },
-    { id: 'leaves', name: 'Leave Approvals', icon: ClipboardDocumentCheckIcon },
+    { id: 'attendance', name: 'Calendar', icon: CalendarIcon },
     { id: 'compliance', name: 'Compliance', icon: DocumentTextIcon }
   ];
 
@@ -276,10 +273,6 @@ const AdminDashboard = () => {
 
         {activeTab === 'attendance' && (
           <Calendar />
-        )}
-
-        {activeTab === 'leaves' && (
-          <ManagerApprovalDashboard />
         )}
 
         {activeTab === 'compliance' && (

@@ -48,7 +48,7 @@ const EmployeeCalendarView = ({ userProfile }) => {
       // Fetch MY approved leaves only
       const leaveResponse = await axios.get('/api/leave/records', {
         params: {
-          employeeId: userProfile._id,
+          userId: userProfile._id,  // Backend expects 'userId' not 'employeeId'
           startDate: startOfMonth,
           endDate: endOfMonth,
           status: 'approved'

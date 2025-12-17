@@ -310,6 +310,20 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           )}
         </div>
 
+        {/* Calendar - Separate Section */}
+        <div className="pt-2 border-t border-sidebar-border">
+          <button
+            onClick={() => handleNavigation("/calendar")}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/calendar")
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                : "hover:bg-sidebar-accent/50"
+              }`}
+          >
+            <CalendarIcon className="h-5 w-5 flex-shrink-0" />
+            {isOpen && <span className="text-sm font-medium">Calendar</span>}
+          </button>
+        </div>
+
         {/* Rota Shift Management - Separate Section */}
         <div className="pt-2 border-t border-sidebar-border">
           <button
@@ -342,19 +356,8 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                     : "hover:bg-sidebar-accent/50"
                   }`}
               >
-                <CalendarIcon className="h-4 w-4" />
-                <span>Shift Management</span>
-              </button>
-              
-              <button
-                onClick={() => handleNavigation("/calendar")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/calendar")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
                 <CalendarDaysIcon className="h-4 w-4" />
-                <span>Calendar</span>
+                <span>Shift Management</span>
               </button>
             </div>
           )}
