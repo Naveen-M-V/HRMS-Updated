@@ -43,16 +43,39 @@ const LeaveRequestForm = ({ onSuccess }) => {
 
   const fetchManagers = async () => {
     try {
-      const response = await axios.get('/api/employees?status=Active');
-      if (response.data.success) {
-        // Filter for specific roles: manager, HR, admin, super-admin
-        // Exclude employees and profiles (interns, trainees, external staff)
-        const approvers = response.data.data.filter(emp =>
+      // Fetch from two sources: employees and admins
+      const [employeesRes, adminsRes] = await Promise.all([
+        axios.get('/api/employees?status=Active'),
+        axios.get('/api/users') // Get all users (admin and super-admin)
+      ]);
+
+      let approvers = [];
+
+      // Get admins/managers from EmployeeHub
+      if (employeesRes.data.success && employeesRes.data.data) {
+        const employeeApprovers = employeesRes.data.data.filter(emp =>
           ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role) &&
           emp.status === 'Active'
         );
-        setManagers(approvers);
+        approvers = [...approvers, ...employeeApprovers];
       }
+
+      // Get admin and super-admin accounts from User collection
+      if (adminsRes.data.success && adminsRes.data.data) {
+        const userApprovers = adminsRes.data.data.filter(user =>
+          ['admin', 'super-admin'].includes(user.role) &&
+          user.isActive !== false &&
+          user.isAdminApproved !== false
+        );
+        approvers = [...approvers, ...userApprovers];
+      }
+
+      // Remove duplicates by email
+      const uniqueApprovers = Array.from(
+        new Map(approvers.map(item => [item.email, item])).values()
+      );
+
+      setManagers(uniqueApprovers);
     } catch (error) {
       console.error('Error fetching approvers:', error);
       toast.error('Failed to load approvers');

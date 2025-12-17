@@ -3046,6 +3046,29 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
   }
 });
 
+// Get all admin and super-admin users (for approver selection)
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({
+      role: { $in: ['admin', 'super-admin'] },
+      isActive: { $ne: false }
+    })
+      .select('_id email firstName lastName role isAdminApproved isActive')
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: users || []
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch users'
+    });
+  }
+});
+
 // Get current user's profile (for My Settings page)
 app.get('/api/my-profile', authenticateSession, async (req, res) => {
   try {
