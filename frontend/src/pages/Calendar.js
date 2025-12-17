@@ -750,10 +750,9 @@ const Calendar = () => {
             );
           })}
         </div>
-      </div>
 
-      {/* Day Details Modal - Popup Style */}
-      {showDayDetailsModal && (
+        {/* Day Details Modal - Popup Style */}
+        {showDayDetailsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fadeIn p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col">
             {/* Modal Header - Enhanced */}
@@ -942,8 +941,8 @@ const Calendar = () => {
         </div>
       )}
 
-      {/* Time Off Modal */}
-      {showTimeOffModal && (
+        {/* Time Off Modal */}
+        {showTimeOffModal && (
         <div className="fixed inset-0 z-50 flex">
           {/* Dark backdrop */}
           <div 
@@ -1112,6 +1111,8 @@ const Calendar = () => {
             </div>
           </div>
         </div>
+        )}
+      </div>
       )}
 
       {/* Pending Requests View - Admin Only */}
