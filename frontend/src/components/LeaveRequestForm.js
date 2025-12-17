@@ -49,6 +49,9 @@ const LeaveRequestForm = ({ onSuccess }) => {
         axios.get('/api/users') // Get all users (admin and super-admin)
       ]);
 
+      console.log('📊 Employees response:', employeesRes.data);
+      console.log('📊 Users response:', adminsRes.data);
+
       let approvers = [];
 
       // Get admins/managers from EmployeeHub
@@ -57,6 +60,7 @@ const LeaveRequestForm = ({ onSuccess }) => {
           ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role) &&
           emp.status === 'Active'
         );
+        console.log('👥 Employee approvers found:', employeeApprovers.length);
         approvers = [...approvers, ...employeeApprovers];
       }
 
@@ -67,6 +71,8 @@ const LeaveRequestForm = ({ onSuccess }) => {
           user.isActive !== false &&
           user.isAdminApproved !== false
         );
+        console.log('👑 User (admin/super-admin) approvers found:', userApprovers.length);
+        console.log('👑 User approvers data:', userApprovers);
         approvers = [...approvers, ...userApprovers];
       }
 
@@ -75,9 +81,12 @@ const LeaveRequestForm = ({ onSuccess }) => {
         new Map(approvers.map(item => [item.email, item])).values()
       );
 
+      console.log('✅ Total unique approvers:', uniqueApprovers.length);
+      console.log('✅ Approvers:', uniqueApprovers);
+
       setManagers(uniqueApprovers);
     } catch (error) {
-      console.error('Error fetching approvers:', error);
+      console.error('❌ Error fetching approvers:', error);
       toast.error('Failed to load approvers');
     }
   };

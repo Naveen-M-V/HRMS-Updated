@@ -3049,6 +3049,8 @@ app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
 // Get all admin and super-admin users (for approver selection)
 app.get('/api/users', async (req, res) => {
   try {
+    console.log('📞 /api/users endpoint called');
+    
     const users = await User.find({
       role: { $in: ['admin', 'super-admin'] },
       isActive: { $ne: false }
@@ -3056,15 +3058,21 @@ app.get('/api/users', async (req, res) => {
       .select('_id email firstName lastName role isAdminApproved isActive')
       .lean();
 
+    console.log('📊 Found users:', users.length);
+    users.forEach(u => {
+      console.log(`   - ${u.firstName} ${u.lastName} (${u.email}) - Role: ${u.role}, Approved: ${u.isAdminApproved}`);
+    });
+
     return res.status(200).json({
       success: true,
       data: users || []
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('❌ Error fetching users:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch users'
+      message: 'Failed to fetch users',
+      error: error.message
     });
   }
 });
