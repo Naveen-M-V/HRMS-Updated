@@ -302,7 +302,7 @@ export default function ProfilesCreate() {
             <div>
               <label className="block text-sm font-medium">Date of Birth</label>
               <DatePicker
-                name="dob"
+                label="Date of birth"
                 value={formData.dob}
                 onChange={(date) => {
                   const dateValue = date ? date.format("DD/MM/YYYY") : "";
@@ -321,8 +321,10 @@ export default function ProfilesCreate() {
                     setErrors(prev => ({ ...prev, dob: '' }));
                   }
                 }}
-                placeholder="Select date of birth"
-                className="mt-1"
+                placeholder="dd/mm/yyyy"
+                format="DD/MM/YYYY"
+                className="mt-1 w-full h-[42px]"
+                maxDate={getMaxDOBDate()}
               />
               {errors.dob && (
                 <p className="text-red-500 text-sm mt-1">{errors.dob}</p>
