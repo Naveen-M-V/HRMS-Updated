@@ -11,10 +11,12 @@ import {
 } from "@heroicons/react/24/outline";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { formatDateDDMMYY } from "../utils/dateFormatter";
+import { useAlert } from "../components/AlertNotification";
 
 export default function EmployeeHub() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { success, error } = useAlert();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState("All");
   const [sortBy, setSortBy] = useState("First name (A - Z)");
@@ -102,11 +104,11 @@ export default function EmployeeHub() {
         await fetchAllEmployees();
         setSelectedEmployees(new Set());
         setShowDeleteConfirm(false);
-        alert(`Successfully deleted ${employeeIds.length} employee(s)`);
+        success(`Successfully deleted ${employeeIds.length} employee(s)`);
       }
     } catch (error) {
       console.error('Error deleting employees:', error);
-      alert('Failed to delete employees. Please try again.');
+      error('Failed to delete employees. Please try again.');
     }
   };
 

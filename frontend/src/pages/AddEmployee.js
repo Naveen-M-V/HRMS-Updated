@@ -39,6 +39,10 @@ export default function AddEmployee() {
   // Employees list for manager dropdown
   const [employees, setEmployees] = useState([]);
 
+  // Teams data from API
+  const [teams, setTeams] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+
   // Form data state
   const [formData, setFormData] = useState({
     // Basic details
@@ -301,8 +305,24 @@ export default function AddEmployee() {
         console.error('Error fetching employees:', error);
       }
     };
+
+    // Fetch teams from API
+    const fetchTeams = async () => {
+      setTeamsLoading(true);
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/teams`);
+        if (response.data.success) {
+          setTeams(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching teams:', error);
+      } finally {
+        setTeamsLoading(false);
+      }
+    };
     
     fetchEmployees();
+    fetchTeams();
   }, []);
 
   useEffect(() => {
@@ -1064,13 +1084,22 @@ export default function AddEmployee() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Team
                 </label>
-                <input
-                  type="text"
-                  placeholder="Team (optional)"
-                  value={formData.team}
-                  onChange={(e) => handleInputChange("team", e.target.value)}
-                  className="w-full h-[42px] px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <Select
+                  value={formData.team || ""}
+                  onValueChange={(value) => handleInputChange("team", value)}
+                >
+                  <SelectTrigger className="w-full h-[42px]">
+                    <SelectValue placeholder="Select team (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No team selected</SelectItem>
+                    {teams.map((team) => (
+                      <SelectItem key={team._id} value={team.name}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Manager */}

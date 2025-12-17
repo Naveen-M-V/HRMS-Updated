@@ -282,7 +282,8 @@ export default function EditEmployeeProfile() {
       const response = await axios.delete(`/api/employees/${id}`);
       
       if (response.data.success) {
-        success('Employee deleted successfully!');
+        const employeeName = `${formData.firstName} ${formData.lastName}`;
+        success(`Employee '${employeeName}' has been deleted successfully`);
         navigate("/employees");
       } else {
         error(response.data.message || 'Failed to delete employee');

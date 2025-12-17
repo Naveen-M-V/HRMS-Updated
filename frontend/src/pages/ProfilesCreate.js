@@ -119,11 +119,16 @@ export default function ProfilesCreate() {
     setFormData({ ...formData, [name]: value });
 
     // Validate date of birth when it changes
-    if (name === 'dob' && value) {
-      const validation = validateDateOfBirth(value);
-      if (!validation.isValid) {
-        setErrors(prev => ({ ...prev, dob: validation.message }));
+    if (name === 'dob') {
+      if (value) {
+        const validation = validateDateOfBirth(value);
+        if (!validation.isValid) {
+          setErrors(prev => ({ ...prev, dob: validation.message }));
+        } else {
+          setErrors(prev => ({ ...prev, dob: '' }));
+        }
       } else {
+        // Clear error when field is cleared
         setErrors(prev => ({ ...prev, dob: '' }));
       }
     }

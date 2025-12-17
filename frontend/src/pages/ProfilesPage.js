@@ -101,22 +101,8 @@ export default function ProfilesPage() {
         const response = await deleteProfile(profileId);
         console.log('Delete response:', response);
 
-        // Show detailed success message based on backend response
-        let successMessage = `Profile for ${profileName} deleted successfully!`;
-        
-        if (response && response.details) {
-          const details = [];
-          if (response.details.certificatesDeleted > 0) {
-            details.push(`${response.details.certificatesDeleted} certificate(s)`);
-          }
-          if (response.details.userAccountDeleted) {
-            details.push('user account');
-          }
-          
-          if (details.length > 0) {
-            successMessage += `\n\nAlso deleted: ${details.join(' and ')}`;
-          }
-        }
+        // Show simple success message
+        let successMessage = `'${profileName}' has been deleted successfully`;
 
         success(successMessage);
         console.log(`Profile ${profileName} deleted successfully`, response);

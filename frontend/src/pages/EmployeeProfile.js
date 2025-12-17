@@ -432,6 +432,53 @@ const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onO
 const EmploymentTab = ({ employee }) => {
   return (
     <div className="space-y-8">
+      {/* Employment Details Section */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Employment Details</h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Job title</label>
+              <div className="text-gray-900 font-medium">{employee.jobTitle || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+              <div className="text-gray-900 font-medium">{employee.department || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Team</label>
+              <div className="text-gray-900 font-medium">{employee.team || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Office</label>
+              <div className="text-gray-900 font-medium">{employee.office || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Organisation</label>
+              <div className="text-gray-900 font-medium">{employee.OrganisationName || employee.organisationName || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Employment start date</label>
+              <div className="text-gray-900 font-medium">{employee.startDate ? formatDateDDMMYY(employee.startDate) : 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Probation end date</label>
+              <div className="text-gray-900 font-medium">{employee.probationEndDate ? formatDateDDMMYY(employee.probationEndDate) : 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Employment type</label>
+              <div className="text-gray-900 font-medium">{employee.employmentType || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <div className="text-gray-900 font-medium">{employee.status || 'Active'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Pay Details Section */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
         <div className="p-6 border-b border-gray-200">
@@ -444,16 +491,36 @@ const EmploymentTab = ({ employee }) => {
               <div className="text-gray-900 font-medium">{employee.salary ? `£${employee.salary.toLocaleString()}` : 'Not specified'}</div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Payroll cycle</label>
-              <div className="text-gray-900 font-medium">{employee.payrollCycle || 'Not specified'}</div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Rate</label>
+              <div className="text-gray-900 font-medium">{employee.rate ? `£${employee.rate}/hour` : 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Payment frequency</label>
+              <div className="text-gray-900 font-medium">{employee.paymentFrequency || employee.payrollCycle || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Payroll number</label>
+              <div className="text-gray-900 font-medium">{employee.payrollNumber || 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Bank name</label>
               <div className="text-gray-900 font-medium">{employee.bankName || 'Not specified'}</div>
             </div>
-            <div className="col-span-full">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Account name</label>
+              <div className="text-gray-900 font-medium">{employee.accountName || 'Not specified'}</div>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Account number</label>
               <div className="text-gray-900 font-medium">{employee.accountNumber || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sort code</label>
+              <div className="text-gray-900 font-medium">{employee.sortCode || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Bank branch</label>
+              <div className="text-gray-900 font-medium">{employee.bankBranch || 'Not specified'}</div>
             </div>
           </div>
         </div>
@@ -461,61 +528,61 @@ const EmploymentTab = ({ employee }) => {
 
       {/* Sensitive Details Section */}
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
-  <div className="p-6 border-b border-gray-200">
-    <div className="flex items-center space-x-2">
-      <Shield className="w-5 h-5 text-orange-500" />
-      <h3 className="text-lg font-semibold text-gray-900">Sensitive Details</h3>
-    </div>
-  </div>
-  <div className="p-6">
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tax code</label>
-        <div className="text-gray-900 font-medium">{employee.taxCode || employee.taxcode || 'Not specified'}</div>
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <Shield className="w-5 h-5 text-orange-500" />
+            <h3 className="text-lg font-semibold text-gray-900">Sensitive Details</h3>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tax code</label>
+              <div className="text-gray-900 font-medium">{employee.taxCode || employee.taxcode || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">National Insurance Number</label>
+              <div className="text-gray-900 font-medium">{employee.niNumber || employee.nationalInsuranceNumber || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Passport number</label>
+              <div className="text-gray-900 font-medium">{employee.passportNumber || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Passport country</label>
+              <div className="text-gray-900 font-medium">{employee.passportCountry || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Passport expiry date</label>
+              <div className="text-gray-900 font-medium">{employee.passportExpiryDate ? formatDateDDMMYY(employee.passportExpiryDate) : 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Visa number</label>
+              <div className="text-gray-900 font-medium">{employee.visaNumber || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Visa expiry date</label>
+              <div className="text-gray-900 font-medium">{employee.visaExpiryDate ? formatDateDDMMYY(employee.visaExpiryDate) : 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Driving licence number</label>
+              <div className="text-gray-900 font-medium">{employee.licenceNumber || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Licence country</label>
+              <div className="text-gray-900 font-medium">{employee.licenceCountry || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Licence class</label>
+              <div className="text-gray-900 font-medium">{employee.licenceClass || 'Not specified'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Licence expiry date</label>
+              <div className="text-gray-900 font-medium">{employee.licenceExpiryDate ? formatDateDDMMYY(employee.licenceExpiryDate) : 'Not specified'}</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">National Insurance Number</label>
-        <div className="text-gray-900 font-medium">{employee.niNumber || employee.nationalInsuranceNumber || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Passport number</label>
-        <div className="text-gray-900 font-medium">{employee.passportNumber || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Passport country</label>
-        <div className="text-gray-900 font-medium">{employee.passportCountry || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Passport expiry date</label>
-        <div className="text-gray-900 font-medium">{employee.passportExpiryDate || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Visa number</label>
-        <div className="text-gray-900 font-medium">{employee.visaNumber || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Visa expiry date</label>
-        <div className="text-gray-900 font-medium">{employee.visaExpiryDate || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Driving licence number</label>
-        <div className="text-gray-900 font-medium">{employee.licenceNumber || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Licence country</label>
-        <div className="text-gray-900 font-medium">{employee.licenceCountry || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Licence class</label>
-        <div className="text-gray-900 font-medium">{employee.licenceClass || 'Not specified'}</div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Licence expiry date</label>
-        <div className="text-gray-900 font-medium">{employee.licenceExpiryDate || 'Not specified'}</div>
-      </div>
-    </div>
-  </div>
-</div>
     </div>
   );
 };
