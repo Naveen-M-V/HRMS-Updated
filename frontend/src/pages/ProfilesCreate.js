@@ -117,21 +117,6 @@ export default function ProfilesCreate() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    // Validate date of birth when it changes
-    if (name === 'dob') {
-      if (value) {
-        const validation = validateDateOfBirth(value);
-        if (!validation.isValid) {
-          setErrors(prev => ({ ...prev, dob: validation.message }));
-        } else {
-          setErrors(prev => ({ ...prev, dob: '' }));
-        }
-      } else {
-        // Clear error when field is cleared
-        setErrors(prev => ({ ...prev, dob: '' }));
-      }
-    }
   };
 
   const handleJobRoleChange = (jobRole) => {
@@ -319,7 +304,23 @@ export default function ProfilesCreate() {
               <DatePicker
                 name="dob"
                 value={formData.dob}
-                onChange={handleChange}
+                onChange={(date) => {
+                  const dateValue = date ? date.format("DD/MM/YYYY") : "";
+                  setFormData({ ...formData, dob: dateValue });
+                  
+                  // Validate date of birth when it changes
+                  if (dateValue) {
+                    const validation = validateDateOfBirth(dateValue);
+                    if (!validation.isValid) {
+                      setErrors(prev => ({ ...prev, dob: validation.message }));
+                    } else {
+                      setErrors(prev => ({ ...prev, dob: '' }));
+                    }
+                  } else {
+                    // Clear error when field is cleared
+                    setErrors(prev => ({ ...prev, dob: '' }));
+                  }
+                }}
                 placeholder="Select date of birth"
                 className="mt-1"
               />

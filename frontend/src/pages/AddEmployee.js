@@ -1092,7 +1092,6 @@ export default function AddEmployee() {
                     <SelectValue placeholder="Select team (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No team selected</SelectItem>
                     {teams.map((team) => (
                       <SelectItem key={team._id} value={team.name}>
                         {team.name}
@@ -1102,10 +1101,10 @@ export default function AddEmployee() {
                 </Select>
               </div>
 
-              {/* Manager */}
+              {/* Reports To (Manager) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reports To (Manager)
+                  Reports To Manager
                 </label>
                 <select
                   value={formData.managerId}

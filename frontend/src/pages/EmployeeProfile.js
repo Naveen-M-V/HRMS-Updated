@@ -331,14 +331,14 @@ const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onO
           <div className="space-y-3">
             <button
   type="button"
-  className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium"
+  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
   onClick={onAddLeave}
 >
   Add annual leave
 </button>
             <button
   type="button"
-  className="w-full px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium"
+  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
   onClick={onAddLeave}
 >
   Add time off
@@ -346,7 +346,7 @@ const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onO
             <button 
               type="button"
               onClick={onOpenCarryover}
-              className="w-full px-4 py-2 text-blue-600 hover:text-blue-800 font-medium border border-blue-600 rounded-lg"
+              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
             >
               Update carryover
             </button>
@@ -367,7 +367,7 @@ const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onO
               <button 
                 type="button"
                 onClick={onOpenSickness}
-                className="p-1 text-pink-600 hover:bg-pink-50 rounded"
+                className="p-1 text-green-600 hover:bg-green-50 rounded"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -385,7 +385,7 @@ const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onO
               <button 
                 type="button"
                 onClick={onOpenLateness}
-                className="p-1 text-pink-600 hover:bg-pink-50 rounded"
+                className="p-1 text-green-600 hover:bg-green-50 rounded"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -457,7 +457,7 @@ const EmploymentTab = ({ employee }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Organisation</label>
-              <div className="text-gray-900 font-medium">{employee.OrganisationName || employee.organisationName || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.OrganisationName || employee.organisationName || employee.office || 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Employment start date</label>
@@ -635,23 +635,27 @@ const PersonalTab = ({ employee }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="col-span-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">Address line 1</label>
-              <div className="text-gray-900 font-medium">{employee.addressLine1 || employee.address1 || employee.address || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.address1 || employee.addressLine1 || employee.address || 'Not specified'}</div>
             </div>
             <div className="col-span-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">Address line 2</label>
-              <div className="text-gray-900 font-medium">{employee.addressLine2 || employee.address2 || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.address2 || employee.addressLine2 || 'Not specified'}</div>
+            </div>
+            <div className="col-span-full">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Address line 3</label>
+              <div className="text-gray-900 font-medium">{employee.address3 || employee.addressLine3 || 'Not specified'}</div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-              <div className="text-gray-900 font-medium">{employee.city || employee.townCity || 'Not specified'}</div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Town/City</label>
+              <div className="text-gray-900 font-medium">{employee.townCity || employee.city || 'Not specified'}</div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Postal code</label>
-              <div className="text-gray-900 font-medium">{employee.postalCode || employee.postcode || 'Not specified'}</div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">County</label>
+              <div className="text-gray-900 font-medium">{employee.county || 'Not specified'}</div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-              <div className="text-gray-900 font-medium">{employee.country || employee.county || 'United Kingdom'}</div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Postcode</label>
+              <div className="text-gray-900 font-medium">{employee.postcode || employee.postalCode || 'Not specified'}</div>
             </div>
           </div>
         </div>
@@ -661,10 +665,10 @@ const PersonalTab = ({ employee }) => {
 };
 
 const EmergenciesTab = ({ employee }) => {
-  const contactName = employee.emergencyContactName;
-  const contactRelation = employee.emergencyContactRelation;
-  const contactPhone = employee.emergencyContactPhone;
-  const contactEmail = employee.emergencyContactEmail;
+  const contactName = employee.emergencyContactName || employee.emergencyContact;
+  const contactRelation = employee.emergencyContactRelation || employee.emergencyRelationship;
+  const contactPhone = employee.emergencyContactPhone || employee.emergencyPhone || employee.emergencyMobile;
+  const contactEmail = employee.emergencyContactEmail || employee.emergencyEmail;
   const hasContact = contactName || contactRelation || contactPhone || contactEmail;
 
   return (
@@ -708,14 +712,14 @@ const EmergenciesTab = ({ employee }) => {
 
 // Documents Tab with Document Manager
 const DocumentsTab = ({ employee }) => {
-  // Assume employee.folders or employee.documents is the real data array
-  const folders = employee.folders || [];
+  // Check multiple possible data structures
+  const folders = employee.folders || employee.documents || employee.documentFolders || [];
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [documents, setDocuments] = useState([]);
 
   const handleFolderClick = (folder) => {
     setSelectedFolder(folder);
-    setDocuments(folder.documents || []);
+    setDocuments(folder.documents || folder.files || []);
   };
 
   const handleBackToFolders = () => {
@@ -728,6 +732,7 @@ const DocumentsTab = ({ employee }) => {
       <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
         <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found.</h3>
+        <p className="text-sm text-gray-500">Documents will appear here once they are uploaded.</p>
       </div>
     );
   }
