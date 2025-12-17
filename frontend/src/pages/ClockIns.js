@@ -196,6 +196,27 @@ const ClockIns = () => {
         // Always calculate stats from the full employee list for accuracy
         calculateStatsFromEmployees(employeesWithClockStatus);
 
+        // Fetch attendance status for late/absent counts
+        try {
+          const attendanceRes = await fetch(`${process.env.REACT_APP_API_BASE_URL}/clock/attendance-status`, {
+            credentials: 'include'
+          });
+          if (attendanceRes.ok) {
+            const attendanceData = await attendanceRes.json();
+            if (attendanceData.success && attendanceData.data) {
+              console.log('📊 Attendance status:', attendanceData.data);
+              // Update stats with accurate late/absent counts
+              setStats(prevStats => ({
+                ...prevStats,
+                late: attendanceData.data.summary.late || 0,
+                absent: attendanceData.data.summary.absent || 0
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching attendance status:', error);
+        }
+
         // Also use backend stats if available for comparison
         if (statsRes.success) {
           console.log('📊 Backend stats:', statsRes.data);
@@ -229,6 +250,7 @@ const ClockIns = () => {
       clockedOut: employeeList.filter(e => e.status === 'clocked_out').length,
       onLeave: employeeList.filter(e => e.status === 'on_leave').length,
       absent: employeeList.filter(e => e.status === 'absent').length,
+      late: 0, // Will be updated by attendance API
       total: employeeList.length
     };
     console.log('📊 Calculated stats from employees:', calculated);
@@ -1268,6 +1290,25 @@ const ClockIns = () => {
               {statsLoading ? '...' : (stats?.onBreak ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>On a break</div>
+          </div>
+          <div
+            onClick={() => setStatusFilter(statusFilter === 'late' ? null : 'late')}
+            style={{
+              background: statusFilter === 'late' ? '#fef3c7' : '#ffffff',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center',
+              border: statusFilter === 'late' ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#f59e0b' }}>
+              {statsLoading ? '...' : (stats?.late ?? 0)}
+            </div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>Late</div>
           </div>
           <div
             onClick={() => setStatusFilter(statusFilter === 'absent' ? null : 'absent')}

@@ -2571,6 +2571,7 @@ router.get('/dashboard-stats', async (req, res) => {
     // Get UK timezone date for today's records
     const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
+    const today = moment().tz('Europe/London').startOf('day');
 
     // Get all employees count
     const totalEmployees = await EmployeesHub.countDocuments();
@@ -2584,6 +2585,65 @@ router.get('/dashboard-stats', async (req, res) => {
     const activeEmployees = timeEntries.filter(entry => entry.status === 'clocked_in').length;
     const onBreakEmployees = timeEntries.filter(entry => entry.status === 'on_break').length;
     const offlineEmployees = totalEmployees - activeEmployees - onBreakEmployees;
+
+    // Calculate absence/late statistics
+    const Shift = require('../models/Shift');
+    const ShiftAssignment = require('../models/ShiftAssignment');
+    
+    const todayShifts = await ShiftAssignment.find({
+      date: {
+        $gte: today.toDate(),
+        $lt: today.clone().add(1, 'day').toDate()
+      }
+    }).populate('employeeId', 'firstName lastName email vtid');
+    
+    let absentCount = 0;
+    let lateCount = 0;
+    
+    for (const shift of todayShifts) {
+      if (!shift.employeeId || !shift.employeeId._id) continue;
+      
+      const employeeId = shift.employeeId._id;
+      
+      // Check if on leave
+      const leaveToday = await LeaveRecord.findOne({
+        user: employeeId,
+        status: 'approved',
+        startDate: { $lte: today.toDate() },
+        endDate: { $gte: today.toDate() }
+      });
+      
+      if (leaveToday) continue;
+      
+      // Check clock-in
+      const clockInToday = await TimeEntry.findOne({
+        employeeId: employeeId,
+        date: {
+          $gte: today.toDate(),
+          $lt: today.clone().add(1, 'day').toDate()
+        },
+        clockIn: { $exists: true, $ne: null }
+      }).sort({ clockIn: 1 });
+      
+      const [shiftHour, shiftMinute] = shift.startTime.split(':').map(Number);
+      const shiftStartTime = today.clone().hour(shiftHour).minute(shiftMinute);
+      const threeHoursAfterShift = shiftStartTime.clone().add(3, 'hours');
+      
+      if (!clockInToday) {
+        const now = moment().tz('Europe/London');
+        if (now.isAfter(threeHoursAfterShift)) {
+          absentCount++;
+        }
+      } else {
+        const clockInTime = moment(clockInToday.clockIn).tz('Europe/London');
+        
+        if (clockInTime.isAfter(shiftStartTime) && clockInTime.isSameOrBefore(threeHoursAfterShift)) {
+          lateCount++;
+        } else if (clockInTime.isAfter(threeHoursAfterShift)) {
+          absentCount++;
+        }
+      }
+    }
 
     // Get expiring certificates (example - you may need to adjust based on your Certificate model)
     let expiringCertificates = 0;
@@ -2608,6 +2668,8 @@ router.get('/dashboard-stats', async (req, res) => {
       activeEmployees,
       onBreakEmployees,
       offlineEmployees,
+      absentEmployees: absentCount,
+      lateEmployees: lateCount,
       totalCertificates: 0, // Placeholder
       expiringCertificates
     });
@@ -2703,5 +2765,159 @@ router.post('/force-reset/:employeeId', authenticateSession, async (req, res) =>
     });
   }
 });
+
+/**
+ * @route   GET /api/clock/attendance-status
+ * @desc    Get attendance status (on-time, late, absent) for employees with shifts today
+ * @access  Admin
+ * @businessRules
+ *   - ON-TIME: Clock-in BEFORE shift.startTime
+ *   - LATE: Clock-in AFTER shift.startTime BUT WITHIN 3 hours
+ *   - ABSENT: NO clock-in OR clock-in AFTER 3 hours from shift.startTime
+ */
+router.get('/attendance-status', authenticateSession, asyncHandler(async (req, res) => {
+  try {
+    const Shift = require('../models/Shift');
+    const ShiftAssignment = require('../models/ShiftAssignment');
+    
+    // Get today's date at start of day (normalize timezone)
+    const today = moment().tz('Europe/London').startOf('day');
+    const todayStr = today.format('YYYY-MM-DD');
+    
+    console.log(`📊 Calculating attendance status for ${todayStr}`);
+    
+    // Find all shift assignments for today
+    const todayShifts = await ShiftAssignment.find({
+      date: {
+        $gte: today.toDate(),
+        $lt: today.clone().add(1, 'day').toDate()
+      }
+    }).populate('employeeId', 'firstName lastName email vtid');
+    
+    console.log(`✅ Found ${todayShifts.length} shifts scheduled for today`);
+    
+    const onTimeEmployees = [];
+    const lateEmployees = [];
+    const absentEmployees = [];
+    
+    for (const shift of todayShifts) {
+      // Skip if no employee assigned
+      if (!shift.employeeId || !shift.employeeId._id) {
+        console.log(`⚠️ Shift ${shift._id} has no employee assigned`);
+        continue;
+      }
+      
+      const employeeId = shift.employeeId._id;
+      const employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
+      
+      // Check if employee is on approved leave today
+      const leaveToday = await LeaveRecord.findOne({
+        user: employeeId,
+        status: 'approved',
+        startDate: { $lte: today.toDate() },
+        endDate: { $gte: today.toDate() }
+      });
+      
+      if (leaveToday) {
+        console.log(`🏖️ ${employeeName} is on approved leave - skipping`);
+        continue;
+      }
+      
+      // Check if employee has clocked in today
+      const clockInToday = await TimeEntry.findOne({
+        employeeId: employeeId,
+        date: {
+          $gte: today.toDate(),
+          $lt: today.clone().add(1, 'day').toDate()
+        },
+        clockIn: { $exists: true, $ne: null }
+      }).sort({ clockIn: 1 }); // Get first clock-in of the day
+      
+      // Parse shift start time
+      const [shiftHour, shiftMinute] = shift.startTime.split(':').map(Number);
+      const shiftStartTime = today.clone().hour(shiftHour).minute(shiftMinute);
+      const threeHoursAfterShift = shiftStartTime.clone().add(3, 'hours');
+      
+      const employeeData = {
+        employeeId: employeeId,
+        name: employeeName,
+        email: shift.employeeId.email,
+        vtid: shift.employeeId.vtid,
+        shiftStartTime: shift.startTime,
+        shiftEndTime: shift.endTime,
+        location: shift.location
+      };
+      
+      if (!clockInToday) {
+        // No clock-in = ABSENT (only if shift start time has passed by 3 hours)
+        const now = moment().tz('Europe/London');
+        if (now.isAfter(threeHoursAfterShift)) {
+          employeeData.status = 'ABSENT';
+          employeeData.reason = 'No clock-in recorded';
+          absentEmployees.push(employeeData);
+          console.log(`❌ ${employeeName} - ABSENT (no clock-in, 3+ hours past shift)`);
+        } else {
+          // Shift hasn't started yet or within grace period - don't mark as absent yet
+          console.log(`⏳ ${employeeName} - Waiting (shift starts at ${shift.startTime}, currently within grace period)`);
+        }
+      } else {
+        // Employee clocked in - check if on-time or late
+        const clockInTime = moment(clockInToday.clockIn).tz('Europe/London');
+        employeeData.clockInTime = clockInTime.format('HH:mm');
+        
+        if (clockInTime.isSameOrBefore(shiftStartTime)) {
+          // ON-TIME
+          employeeData.status = 'ON_TIME';
+          onTimeEmployees.push(employeeData);
+          console.log(`✅ ${employeeName} - ON-TIME (clocked in at ${employeeData.clockInTime})`);
+        } else if (clockInTime.isAfter(shiftStartTime) && clockInTime.isSameOrBefore(threeHoursAfterShift)) {
+          // LATE (within 3 hours)
+          const minutesLate = clockInTime.diff(shiftStartTime, 'minutes');
+          employeeData.status = 'LATE';
+          employeeData.minutesLate = minutesLate;
+          employeeData.reason = `${minutesLate} minutes late`;
+          lateEmployees.push(employeeData);
+          console.log(`⚠️ ${employeeName} - LATE (${minutesLate} minutes)`);
+        } else {
+          // Clocked in MORE than 3 hours after shift start = ABSENT
+          const minutesLate = clockInTime.diff(shiftStartTime, 'minutes');
+          employeeData.status = 'ABSENT';
+          employeeData.reason = `Clocked in ${minutesLate} minutes after shift start (>3 hours)`;
+          employeeData.clockInTime = clockInTime.format('HH:mm');
+          absentEmployees.push(employeeData);
+          console.log(`❌ ${employeeName} - ABSENT (clocked in ${minutesLate} minutes late)`);
+        }
+      }
+    }
+    
+    const summary = {
+      date: todayStr,
+      totalScheduled: todayShifts.length,
+      onTime: onTimeEmployees.length,
+      late: lateEmployees.length,
+      absent: absentEmployees.length
+    };
+    
+    console.log('📊 Attendance Summary:', summary);
+    
+    res.json({
+      success: true,
+      data: {
+        summary,
+        onTimeEmployees,
+        lateEmployees,
+        absentEmployees
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error calculating attendance status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to calculate attendance status',
+      error: error.message
+    });
+  }
+}));
 
 module.exports = router;

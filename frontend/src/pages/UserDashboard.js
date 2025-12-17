@@ -46,8 +46,8 @@ const UserDashboard = () => {
   console.log('DEBUG: UserDashboard - User type:', user?.userType);
   console.log('DEBUG: UserDashboard - User role:', user?.role);
   console.log('DEBUG: UserDashboard - isEmployeeUser:', isEmployeeUser);
-  // Default tab based on user type
-  const defaultTab = isEmployeeUser ? 'overview' : 'certificates';
+  // Default tab - employees always see overview, profiles see notifications
+  const defaultTab = isEmployeeUser ? 'overview' : 'notifications';
   const initialTab = searchParams.get('tab') || defaultTab;
 
   const [userProfile, setUserProfile] = useState(null);

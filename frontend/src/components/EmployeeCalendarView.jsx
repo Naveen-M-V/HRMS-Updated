@@ -56,13 +56,15 @@ const EmployeeCalendarView = ({ userProfile }) => {
       });
       
       // Fetch MY shift assignments only
-      const shiftResponse = await axios.get('/api/rota/shift-assignments/employee', {
+      const shiftResponse = await axios.get(`/api/rota/shift-assignments/employee/${userProfile._id}`, {
         params: {
-          employeeId: userProfile._id,
           startDate: startOfMonth,
           endDate: endOfMonth
         }
       });
+      
+      console.log('📅 Employee Calendar - Shifts API Response:', shiftResponse.data);
+      console.log('📅 Employee Calendar - Leave Records:', leaveResponse.data.data || []);
       
       setLeaveRecords(leaveResponse.data.data || []);
       setShiftAssignments(shiftResponse.data.data || []);
