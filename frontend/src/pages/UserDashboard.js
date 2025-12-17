@@ -9,6 +9,7 @@ import UserClockIns from './UserClockIns';
 import MyShifts from '../components/MyShifts';
 import Documents from './Documents';
 import LeaveRequestCard from '../components/LeaveManagement/LeaveRequestCard';
+import EmployeeCalendarView from '../components/EmployeeCalendarView';
 import MyProfile from './MyProfile';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
@@ -1141,6 +1142,13 @@ const UserDashboard = () => {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Calendar Tab */}
+        {activeTab === 'calendar' && isEmployeeUser && (
+          <div className="space-y-6">
+            <EmployeeCalendarView userProfile={userProfile} />
           </div>
         )}
 

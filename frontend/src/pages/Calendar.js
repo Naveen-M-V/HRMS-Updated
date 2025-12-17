@@ -52,11 +52,16 @@ const Calendar = () => {
   // NEW: Day expansion state
   const [expandedDay, setExpandedDay] = useState(null);
   const [dayDetails, setDayDetails] = useState([]);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'short-term', 'long-term'
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'pending-requests'
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   // NEW: Fetch calendar events when month changes
   useEffect(() => {
     fetchCalendarEvents();
+    if (user?.userType === 'admin') {
+      fetchPendingRequests();
+    }
   }, [currentDate]);
 
   const fetchCalendarEvents = async () => {
@@ -101,6 +106,21 @@ const Calendar = () => {
       setShiftAssignments([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingRequests = async () => {
+    if (user?.userType !== 'admin') return;
+    
+    setLoadingRequests(true);
+    try {
+      const response = await axios.get('/api/leave-requests/pending');
+      setPendingRequests(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching pending requests:', error);
+      toast.error('Failed to load pending requests');
+    } finally {
+      setLoadingRequests(false);
     }
   };
 
@@ -559,6 +579,29 @@ const Calendar = () => {
     return startDate && endDate && !weekendWarning;
   };
 
+  const handleApproveRequest = async (requestId) => {
+    try {
+      await axios.patch(`/api/leave-requests/${requestId}/approve`);
+      toast.success('Leave request approved');
+      fetchPendingRequests();
+      fetchCalendarEvents(); // Refresh calendar
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast.error(error.response?.data?.message || 'Failed to approve request');
+    }
+  };
+
+  const handleRejectRequest = async (requestId, reason) => {
+    try {
+      await axios.patch(`/api/leave-requests/${requestId}/reject`, { rejectionReason: reason });
+      toast.success('Leave request rejected');
+      fetchPendingRequests();
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      toast.error(error.response?.data?.message || 'Failed to reject request');
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -580,8 +623,42 @@ const Calendar = () => {
         )}
       </div>
 
-      {/* Calendar Section */}
-      <div className="bg-white rounded-lg shadow">
+      {/* Tabs for Admin */}
+      {user?.userType === 'admin' && (
+        <div className="mb-4 border-b border-gray-200">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-4 py-2 border-b-2 font-medium transition-colors ${
+                activeTab === 'calendar'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Calendar
+            </button>
+            <button
+              onClick={() => setActiveTab('pending-requests')}
+              className={`px-4 py-2 border-b-2 font-medium transition-colors flex items-center gap-2 ${
+                activeTab === 'pending-requests'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Pending requests
+              {pendingRequests.length > 0 && (
+                <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar View */}
+      {activeTab === 'calendar' && (
+        <div className="bg-white rounded-lg shadow">
         {/* Calendar Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-4">
@@ -1034,6 +1111,104 @@ const Calendar = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Pending Requests View - Admin Only */}
+      {activeTab === 'pending-requests' && user?.userType === 'admin' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Leave Requests</h2>
+          
+          {loadingRequests ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">Loading requests...</p>
+            </div>
+          ) : pendingRequests.length === 0 ? (
+            <div className="text-center py-12">
+              <ClockIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pending Requests</h3>
+              <p className="text-gray-600">All leave requests have been processed</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingRequests.map((request) => (
+                <div key={request._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-blue-700">
+                            {request.employeeId?.firstName?.[0]}{request.employeeId?.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">
+                            {request.employeeId?.firstName} {request.employeeId?.lastName}
+                          </h3>
+                          <p className="text-sm text-gray-500">{request.employeeId?.email}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <p className="text-xs text-gray-500">Leave Type</p>
+                          <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                            request.leaveType === 'Sick' ? 'bg-red-100 text-red-800' :
+                            request.leaveType === 'Casual' ? 'bg-blue-100 text-blue-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {request.leaveType}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Date Range</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {new Date(request.startDate).toLocaleDateString('en-GB')} - {new Date(request.endDate).toLocaleDateString('en-GB')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Duration</p>
+                          <p className="text-sm font-medium text-gray-900">{request.numberOfDays} day(s)</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Requested</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {new Date(request.createdAt).toLocaleDateString('en-GB')}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {request.reason && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-500 mb-1">Reason</p>
+                          <p className="text-sm text-gray-900">{request.reason}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => handleApproveRequest(request._id)}
+                        className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => {
+                          const reason = prompt('Please provide a reason for rejection:');
+                          if (reason) handleRejectRequest(request._id, reason);
+                        }}
+                        className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

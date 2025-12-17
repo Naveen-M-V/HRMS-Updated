@@ -28,7 +28,7 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
     { id: 'clock-ins', name: 'Clock-ins', icon: ClockIcon, showForProfile: false },
     { id: 'shifts', name: 'My Shifts', icon: CalendarDaysIcon, showForProfile: false },
     { id: 'documents', name: 'Documents', icon: FolderIcon, showForProfile: false },
-    { id: 'leave', name: 'Leave', icon: CalendarIcon, showForProfile: true, tooltip: 'Leave Requests' },
+    { id: 'calendar', name: 'Calendar', icon: CalendarIcon, showForProfile: false, tooltip: 'Calendar & Leave' },
     { id: 'certificates', name: 'Certificates', icon: DocumentTextIcon, showForProfile: true },
     { id: 'notifications', name: 'Notifications', icon: BellIcon, badge: notifications?.length || 0, showForProfile: true },
   ].filter(item => isEmployeeUser || item.showForProfile);
