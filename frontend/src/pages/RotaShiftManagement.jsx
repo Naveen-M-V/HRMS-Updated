@@ -915,7 +915,7 @@ const RotaShiftManagement = () => {
             </div>
 
             {/* Form Content */}
-            <form onSubmit={assignmentType === 'employee' ? handleSubmit : handleTeamSubmit}>
+            <form onSubmit={(e) => e.preventDefault()}>
               {/* Employee/Team Selection */}
               {assignmentType === 'employee' ? (
                 <div style={{ marginBottom: '20px' }}>
@@ -1159,7 +1159,8 @@ const RotaShiftManagement = () => {
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={assignmentType === 'employee' ? handleSubmit : handleTeamSubmit}
                   disabled={loading}
                   style={{
                     padding: '10px 24px',
