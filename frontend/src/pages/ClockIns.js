@@ -193,7 +193,10 @@ const ClockIns = () => {
 
         setEmployees(employeesWithClockStatus);
 
-        // Fetch attendance status for late/absent counts (single source of truth)
+        // Always calculate stats from the full employee list for accuracy
+        calculateStatsFromEmployees(employeesWithClockStatus);
+
+        // Fetch attendance status for late/absent counts
         try {
           const attendanceRes = await fetch(`${process.env.REACT_APP_API_BASE_URL}/clock/attendance-status`, {
             credentials: 'include'
@@ -202,7 +205,7 @@ const ClockIns = () => {
             const attendanceData = await attendanceRes.json();
             if (attendanceData.success && attendanceData.data) {
               console.log('📊 Attendance status:', attendanceData.data);
-              // Update stats with accurate late/absent counts from unified backend logic
+              // Update stats with accurate late/absent counts
               setStats(prevStats => ({
                 ...prevStats,
                 late: attendanceData.data.summary.late || 0,
@@ -214,13 +217,11 @@ const ClockIns = () => {
           console.error('Error fetching attendance status:', error);
         }
 
-        // Always use backend stats for accuracy
+        // Also use backend stats if available for comparison
         if (statsRes.success) {
           console.log('📊 Backend stats:', statsRes.data);
-          setStats(statsRes.data);
         } else {
-          console.log('⚠️ Backend stats failed, using default stats');
-          setStats({ clockedIn: 0, onBreak: 0, clockedOut: 0, total: 0 });
+          console.log('⚠️ Backend stats failed, using frontend calculation');
         }
       } else {
         console.warn('⚠️ EmployeeHub clock status fetch failed');

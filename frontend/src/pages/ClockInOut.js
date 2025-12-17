@@ -104,23 +104,17 @@ const ClockInOut = () => {
         
         setClockData(employeesWithClockStatus);
         
-        // Always use unified backend logic for stats
+        // Always calculate stats from the full employee list for accuracy
         if (statsRes.success && statsRes.data) {
           console.log('📊 Backend stats available:', statsRes.data);
-          setStats(statsRes.data);
+          // Always use frontend calculation for consistency
+          calculateStats(employeesWithClockStatus);
         } else {
-          console.log('⚠️ Backend stats failed, using default stats');
-          setStats({
-            total: employeesWithClockStatus.length,
-            clockedIn: 0,
-            clockedOut: 0,
-            onBreak: 0,
-            absent: 0,
-            late: 0
-          });
+          console.log('⚠️ Backend stats failed, using frontend calculation');
+          calculateStats(employeesWithClockStatus);
         }
         
-        // Fetch attendance status for late/absent counts (single source of truth)
+        // Fetch attendance status for late/absent counts
         try {
           const attendanceRes = await fetch(`${process.env.REACT_APP_API_BASE_URL}/clock/attendance-status`, {
             credentials: 'include'
@@ -129,7 +123,7 @@ const ClockInOut = () => {
             const attendanceData = await attendanceRes.json();
             if (attendanceData.success && attendanceData.data) {
               console.log('📊 Attendance status:', attendanceData.data);
-              // Update stats with accurate late/absent counts from unified backend logic
+              // Update stats with accurate late/absent counts
               setStats(prevStats => ({
                 ...prevStats,
                 late: attendanceData.data.summary.late || 0,
@@ -143,37 +137,16 @@ const ClockInOut = () => {
       } else if (statusRes.success) {
         // Fallback to using clock status data directly if employee data fails
         setClockData(clockStatusData);
-        setStats({
-          total: clockStatusData.length,
-          clockedIn: 0,
-          clockedOut: 0,
-          onBreak: 0,
-          absent: 0,
-          late: 0
-        });
+        calculateStats(clockStatusData);
       } else {
         setClockData([]);
-        setStats({
-          total: 0,
-          clockedIn: 0,
-          clockedOut: 0,
-          onBreak: 0,
-          absent: 0,
-          late: 0
-        });
+        calculateStats([]);
       }
     } catch (error) {
       console.error('Clock status error:', error);
       toast.error('Failed to fetch employee clock status');
       setClockData([]);
-      setStats({
-        total: 0,
-        clockedIn: 0,
-        clockedOut: 0,
-        onBreak: 0,
-        absent: 0,
-        late: 0
-      });
+      calculateStats([]);
     } finally {
       setLoading(false);
     }
