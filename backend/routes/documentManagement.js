@@ -60,9 +60,10 @@ const upload = multer({
 const checkPermission = (action) => {
   return async (req, res, next) => {
     try {
-      // Skip permission check if no user (let authenticateSession handle it)
+      // If no user at this point, something is wrong with auth middleware
+      // But we should not block here - let it pass and fail in the route handler
       if (!req.user) {
-        console.log('checkPermission: No user, allowing through (auth middleware will handle)');
+        console.warn('checkPermission: No user found, skipping permission check');
         return next();
       }
       
