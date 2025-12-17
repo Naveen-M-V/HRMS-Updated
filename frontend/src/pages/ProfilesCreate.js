@@ -9,7 +9,7 @@ import ProfilePictureUpload from "../components/ProfilePictureUpload";
 import { getAllJobRoles } from "../data/certificateJobRoleMapping";
 import { useAlert } from "../components/AlertNotification";
 import { buildApiUrl } from "../utils/apiConfig";
-import { validateTextOnly, validateNumberOnly, validatePhoneNumber, validateEmail } from "../utils/inputValidation";
+import { validateTextOnly, validateNumberOnly, validatePhoneNumber, validateEmail, validateDateOfBirth } from "../utils/inputValidation";
 import {
   Select,
   SelectContent,
@@ -47,6 +47,7 @@ export default function ProfilesCreate() {
   const [jobRoles, setJobRoles] = useState([]);
   const [jobLevels, setJobLevels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
 
   const navigate = useNavigate();
   const { addProfile, creating, uploadProfilePicture } = useProfiles();
@@ -114,7 +115,18 @@ export default function ProfilesCreate() {
 
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // Validate date of birth when it changes
+    if (name === 'dob' && value) {
+      const validation = validateDateOfBirth(value);
+      if (!validation.isValid) {
+        setErrors(prev => ({ ...prev, dob: validation.message }));
+      } else {
+        setErrors(prev => ({ ...prev, dob: '' }));
+      }
+    }
   };
 
   const handleJobRoleChange = (jobRole) => {
@@ -147,6 +159,15 @@ export default function ProfilesCreate() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate date of birth if provided
+    if (formData.dob) {
+      const validation = validateDateOfBirth(formData.dob);
+      if (!validation.isValid) {
+        error(validation.message);
+        return;
+      }
+    }
     
     if (!formData.firstName || !formData.lastName || !formData.email) {
       error('Please fill in all required fields: First Name, Last Name, and Email');
@@ -297,6 +318,9 @@ export default function ProfilesCreate() {
                 placeholder="Select date of birth"
                 className="mt-1"
               />
+              {errors.dob && (
+                <p className="text-red-500 text-sm mt-1">{errors.dob}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium">Company</label>
