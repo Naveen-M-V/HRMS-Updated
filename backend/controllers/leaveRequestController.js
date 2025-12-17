@@ -350,6 +350,23 @@ exports.approveLeaveRequest = async (req, res) => {
       read: false
     });
 
+    // Send email notification to employee
+    try {
+      const { sendLeaveApprovalEmail } = require('../utils/emailService');
+      await sendLeaveApprovalEmail(
+        employee.email,
+        `${employee.firstName} ${employee.lastName}`,
+        leaveRequest.leaveType,
+        new Date(leaveRequest.startDate).toLocaleDateString(),
+        new Date(leaveRequest.endDate).toLocaleDateString(),
+        adminComment || 'Your leave request has been approved.',
+        'approved'
+      );
+      console.log('✅ Approval email sent to employee:', employee.email);
+    } catch (emailError) {
+      console.error('⚠️ Failed to send approval email:', emailError.message);
+    }
+
     await leaveRequest.populate('employeeId', 'firstName lastName email');
     await leaveRequest.populate('approverId', 'firstName lastName email');
 
@@ -413,6 +430,7 @@ exports.rejectLeaveRequest = async (req, res) => {
     await leaveRequest.save();
 
     // Create notification for employee
+    const employee = await EmployeeHub.findById(leaveRequest.employeeId);
     await Notification.create({
       userId: leaveRequest.employeeId,
       type: 'leave_rejected',
@@ -421,6 +439,22 @@ exports.rejectLeaveRequest = async (req, res) => {
       relatedId: leaveRequest._id,
       read: false
     });
+
+    // Send email notification to employee
+    try {
+      const { sendLeaveRejectionEmail } = require('../utils/emailService');
+      await sendLeaveRejectionEmail(
+        employee.email,
+        `${employee.firstName} ${employee.lastName}`,
+        leaveRequest.leaveType,
+        new Date(leaveRequest.startDate).toLocaleDateString(),
+        new Date(leaveRequest.endDate).toLocaleDateString(),
+        rejectionReason
+      );
+      console.log('✅ Rejection email sent to employee:', employee.email);
+    } catch (emailError) {
+      console.error('⚠️ Failed to send rejection email:', emailError.message);
+    }
 
     await leaveRequest.populate('employeeId', 'firstName lastName email');
     await leaveRequest.populate('approverId', 'firstName lastName email');

@@ -43,49 +43,23 @@ const LeaveRequestForm = ({ onSuccess }) => {
 
   const fetchManagers = async () => {
     try {
-      // Fetch from two sources: employees and admins
-      const [employeesRes, adminsRes] = await Promise.all([
-        axios.get('/api/employees?status=Active'),
-        axios.get('/api/users') // Get all users (admin and super-admin)
-      ]);
+      console.log('📋 Fetching approvers (admin/super-admin only)...');
+      
+      const response = await axios.get('/api/users');
+      console.log('📊 API response:', response.data);
 
-      console.log('📊 Employees response:', employeesRes.data);
-      console.log('📊 Users response:', adminsRes.data);
-
-      let approvers = [];
-
-      // Get admins/managers from EmployeeHub
-      if (employeesRes.data.success && employeesRes.data.data) {
-        const employeeApprovers = employeesRes.data.data.filter(emp =>
-          ['admin', 'hr', 'super-admin', 'manager'].includes(emp.role) &&
-          emp.status === 'Active'
-        );
-        console.log('👥 Employee approvers found:', employeeApprovers.length);
-        approvers = [...approvers, ...employeeApprovers];
+      if (response.data.success && response.data.data) {
+        console.log('✅ Found', response.data.data.length, 'admin/super-admin accounts');
+        console.log('📋 Data:', response.data.data);
+        setManagers(response.data.data);
+      } else {
+        console.warn('⚠️ No approvers found in response');
+        setManagers([]);
       }
-
-      // Get admin and super-admin accounts from User collection
-      if (adminsRes.data.success && adminsRes.data.data) {
-        const userApprovers = adminsRes.data.data.filter(user =>
-          ['admin', 'super-admin'].includes(user.role)
-        );
-        console.log('👑 User (admin/super-admin) approvers found:', userApprovers.length);
-        console.log('👑 User approvers data:', userApprovers);
-        approvers = [...approvers, ...userApprovers];
-      }
-
-      // Remove duplicates by email
-      const uniqueApprovers = Array.from(
-        new Map(approvers.map(item => [item.email, item])).values()
-      );
-
-      console.log('✅ Total unique approvers:', uniqueApprovers.length);
-      console.log('✅ Approvers:', uniqueApprovers);
-
-      setManagers(uniqueApprovers);
     } catch (error) {
       console.error('❌ Error fetching approvers:', error);
       toast.error('Failed to load approvers');
+      setManagers([]);
     }
   };
 
