@@ -3053,7 +3053,8 @@ app.get('/api/users', async (req, res) => {
     
     const users = await User.find({
       role: { $in: ['admin', 'super-admin'] },
-      isActive: { $ne: false }
+      isActive: { $ne: false },
+      isAdminApproved: true  // Only approved admins
     })
       .select('_id email firstName lastName role isAdminApproved isActive')
       .lean();

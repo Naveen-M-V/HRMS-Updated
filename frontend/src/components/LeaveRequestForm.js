@@ -67,9 +67,7 @@ const LeaveRequestForm = ({ onSuccess }) => {
       // Get admin and super-admin accounts from User collection
       if (adminsRes.data.success && adminsRes.data.data) {
         const userApprovers = adminsRes.data.data.filter(user =>
-          ['admin', 'super-admin'].includes(user.role) &&
-          user.isActive !== false &&
-          user.isAdminApproved !== false
+          ['admin', 'super-admin'].includes(user.role)
         );
         console.log('👑 User (admin/super-admin) approvers found:', userApprovers.length);
         console.log('👑 User approvers data:', userApprovers);
