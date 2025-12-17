@@ -611,10 +611,6 @@ const Calendar = () => {
               <PlusIcon className="h-4 w-4" />
               <span>Time Off</span>
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <ArrowPathIcon className="h-4 w-4" />
-              <span>Sync</span>
-            </button>
           </div>
         </div>
 

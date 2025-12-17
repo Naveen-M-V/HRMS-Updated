@@ -237,7 +237,15 @@ const OrganizationalChartNew = () => {
       const response = await axios.get('/api/employees/org-chart');
       
       if (response.data.success) {
-        setOrgChartData(response.data.data || []);
+        // Normalize data: convert _id to id for consistency
+        const normalizeEmployee = (emp) => ({
+          ...emp,
+          id: emp.id || emp._id?.toString() || emp._id,
+          directReports: emp.directReports?.map(normalizeEmployee) || []
+        });
+        
+        const normalizedData = (response.data.data || []).map(normalizeEmployee);
+        setOrgChartData(normalizedData);
       }
     } catch (error) {
       console.error('Error fetching org chart:', error);
@@ -252,7 +260,12 @@ const OrganizationalChartNew = () => {
     try {
       const response = await axios.get('/api/employees/hub/all');
       if (response.data.success) {
-        setAllEmployees(response.data.data || []);
+        // Normalize: ensure id field exists
+        const normalized = (response.data.data || []).map(emp => ({
+          ...emp,
+          id: emp.id || emp._id?.toString() || emp._id
+        }));
+        setAllEmployees(normalized);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
