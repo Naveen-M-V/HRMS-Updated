@@ -3,7 +3,8 @@
  * Tests the email service configuration and sends a test email
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const nodemailer = require('nodemailer');
 
 console.log('📧 Email Configuration Test\n');
