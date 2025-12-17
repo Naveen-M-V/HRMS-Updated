@@ -538,10 +538,10 @@ const Calendar = () => {
       const workingDays = calculateWorkingDays(startDate, endDate);
 
       const response = await axios.post(
-        `${process.env.REACT_APP_API_BASE_URL}/leave/requests/submit`,
+        '/api/leave-requests',
         {
           employeeId,
-          type: leaveType,
+          leaveType: leaveType,
           startDate: startDate.format('YYYY-MM-DD'),
           endDate: endDate.format('YYYY-MM-DD'),
           days: workingDays,

@@ -441,7 +441,7 @@ const EmploymentTab = ({ employee }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Salary</label>
-              <div className="text-gray-900 font-medium">{employee.dateOfBirth ? formatDateDDMMYY(employee.dateOfBirth) : 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee.salary ? `£${employee.salary.toLocaleString()}` : 'Not specified'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Payroll cycle</label>

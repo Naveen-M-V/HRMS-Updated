@@ -126,7 +126,7 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
 
         try {
           const response = await axios.post(
-            `${apiUrl}/api/documentManagement/upload`,
+            `${apiUrl}/api/documentManagement/folders/${folderId}/documents`,
             formData,
             {
               headers: {
