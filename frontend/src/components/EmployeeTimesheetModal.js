@@ -504,8 +504,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           isWeekend: isWeekend,
           isToday: isToday,
           isFuture: isFuture,
-          // GPS location data for admin view
-          gpsLocation: dayEntry.gpsLocation || null,
+          // GPS location data for admin view - prioritize clock-in location, fallback to clock-out
+          gpsLocation: dayEntry.gpsLocationIn || dayEntry.gpsLocationOut || null,
           // Shift data for timeline coloring
           shift: dayEntry.shift || null,
           shiftStartTime: dayEntry.shiftStartTime || null,
@@ -1243,9 +1243,34 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         location: day.location || 'N/A',
         overtime: day.overtime || '-',
         overtimeHours: day.overtimeHours || '--',
-        geolocation: day.gpsLocation && day.gpsLocation.latitude != null && day.gpsLocation.longitude != null
-          ? `${day.gpsLocation.latitude.toFixed(6)}, ${day.gpsLocation.longitude.toFixed(6)}`
-          : '--',
+        geolocation: (() => {
+          // `processTimesheetData` normalizes backend fields into `day.gpsLocation`
+          // (from `gpsLocationIn`/`gpsLocationOut`). Keep additional fallbacks
+          // to avoid breaking if backend field names differ.
+          const gps =
+            day.gpsLocation ||
+            day.gpsLocationIn ||
+            day.gpsLocationOut ||
+            day.geoLocation ||
+            day.geolocation ||
+            null;
+
+          if (!gps) return '—';
+
+          // Already formatted
+          if (typeof gps === 'string') return gps.trim() || '—';
+
+          const lat = gps.latitude ?? gps.lat ?? (Array.isArray(gps.coordinates) ? gps.coordinates[1] : null);
+          const lng = gps.longitude ?? gps.lng ?? (Array.isArray(gps.coordinates) ? gps.coordinates[0] : null);
+
+          if (lat == null || lng == null) return '—';
+
+          const latNum = Number(lat);
+          const lngNum = Number(lng);
+          if (Number.isNaN(latNum) || Number.isNaN(lngNum)) return '—';
+
+          return `${latNum.toFixed(6)}, ${lngNum.toFixed(6)}`;
+        })(),
         rawData: day // Keep original data for edit/delete operations
       };
     });
