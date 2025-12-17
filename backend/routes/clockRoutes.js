@@ -401,10 +401,10 @@ router.get('/dashboard', async (req, res) => {
     });
 
     // Calculate absent: only count as absent if they have a shift today and haven't clocked in
-    // after their shift start time has passed
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
+    // after their shift start time + 3 hours (consistent with attendance-status endpoint)
+    const moment = require('moment');
+    const now = moment().tz('Europe/London');
+    
     allUserIds.forEach(userId => {
       const empId = userId.toString();
       const hasTimeEntry = employeeStatusMap.has(empId);
@@ -413,9 +413,14 @@ router.get('/dashboard', async (req, res) => {
       // Only mark as absent if:
       // 1. They have a shift assigned today
       // 2. They haven't clocked in yet
-      // 3. Current time is past their shift start time
-      if (shift && !hasTimeEntry && currentTime > shift.startTime) {
-        absent++;
+      // 3. Current time is past 3 hours after shift start time
+      if (shift && !hasTimeEntry) {
+        const shiftStartTime = moment(shift.startTime, 'HH:mm').tz('Europe/London');
+        const threeHoursAfterShift = shiftStartTime.clone().add(3, 'hours');
+        
+        if (now.isAfter(threeHoursAfterShift)) {
+          absent++;
+        }
       }
     });
 
