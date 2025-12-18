@@ -10,11 +10,18 @@ const mongoose = require('mongoose');
  */
 exports.createLeaveRequest = async (req, res) => {
   try {
+    console.log('🔍 Leave request creation started');
+    console.log('🔍 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('🔍 User from session:', req.user);
+    
     const { approverId, leaveType, startDate, endDate, reason, status } = req.body;
     const employeeId = req.user.id || req.user._id;
 
+    console.log('🔍 Extracted employeeId:', employeeId);
+
     // Validation
     if (!approverId || !leaveType || !startDate || !endDate || !reason) {
+      console.log('❌ Missing required fields');
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: approverId, leaveType, startDate, endDate, reason'
@@ -56,11 +63,13 @@ exports.createLeaveRequest = async (req, res) => {
     // Check if approver exists and is a manager/admin
     const approver = await EmployeeHub.findById(approverId);
     if (!approver) {
+      console.log('❌ Approver not found:', approverId);
       return res.status(404).json({
         success: false,
         message: 'Approver not found'
       });
     }
+    console.log('✅ Approver found:', approver.firstName, approver.lastName);
 
     // Check for overlapping leave requests
     const overlappingLeave = await LeaveRequest.findOne({
@@ -72,12 +81,14 @@ exports.createLeaveRequest = async (req, res) => {
     });
 
     if (overlappingLeave) {
+      console.log('❌ Overlapping leave found');
       return res.status(400).json({
         success: false,
         message: 'You already have a leave request for this date range'
       });
     }
 
+    console.log('🔍 Creating leave request document...');
     // Create leave request
     const leaveRequest = new LeaveRequest({
       employeeId,
@@ -89,20 +100,24 @@ exports.createLeaveRequest = async (req, res) => {
       status: status === 'Draft' ? 'Draft' : 'Pending'
     });
 
-    await leaveRequest.save();
+    console.log('🔍 Saving leave request...');
+    console.log('✅ Leave request saved successfully:', leaveRequest._id);
 
     // Populate references for response
+    console.log('🔍 Populating employee and approver references...');
     await leaveRequest.populate('employeeId', 'firstName lastName email');
     await leaveRequest.populate('approverId', 'firstName lastName email');
+    console.log('✅ References populated');
 
     // Create notifications for all admins and super admins if status is Pending
     if (leaveRequest.status === 'Pending') {
+      console.log('🔍 Creating notifications for admins...');
       const employee = await EmployeeHub.findById(employeeId);
-      const User = require('../models/User');
       
-      // Find all admin and super-admin users
-      const admins = await User.find({
-        role: { $in: ['admin', 'super-admin'] }
+      // Find all admin and super-admin employees in EmployeeHub
+      const admins = await EmployeeHub.find({
+        role: { $in: ['admin', 'super-admin'] },
+        isActive: true
       }).select('_id');
       
       // Create notification for each admin
@@ -130,17 +145,23 @@ exports.createLeaveRequest = async (req, res) => {
         });
       }
       
-      await Notification.insertMany(notifications);
-      console.log(`✅ Created ${notifications.length} leave request notifications`);
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+        console.log(`✅ Created ${notifications.length} leave request notifications`);
+      } else {
+        console.log('⚠️ No notifications created - no admins found');
+      }
     }
 
+    console.log('✅ Leave request creation completed successfully');
     res.status(201).json({
       success: true,
       message: leaveRequest.status === 'Draft' ? 'Leave request saved as draft' : 'Leave request submitted successfully',
       data: leaveRequest
     });
   } catch (error) {
-    console.error('Create leave request error:', error);
+    console.error('❌ Create leave request error:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error creating leave request',
