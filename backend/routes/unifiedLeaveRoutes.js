@@ -56,11 +56,140 @@ router.get('/calendar', unifiedLeaveController.getCalendarLeaves);
 // Detect overlapping leaves for team/department
 router.get('/overlaps', unifiedLeaveController.detectLeaveOverlaps);
 
+// ==================== LEAVE RECORDS (SICKNESS, LATENESS, ETC.) ====================
+
+// Create leave record (sickness, lateness, etc.)
+router.post('/records', async (req, res) => {
+  try {
+    const { userId, type, startDate, endDate, days, reason, notes, status } = req.body;
+    
+    if (!userId || !startDate || !endDate || days === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId, startDate, endDate, and days are required'
+      });
+    }
+    
+    // Check if employee exists in EmployeesHub
+    const employee = await EmployeesHub.findById(userId);
+    
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found. Leave records are only for EmployeesHub employees.'
+      });
+    }
+    
+    const record = new LeaveRecord({
+      user: userId,
+      type: type || 'annual',
+      status: status || 'approved',
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      days,
+      reason,
+      notes,
+      createdBy: req.user?.id || req.user?._id || null,
+      approvedBy: status === 'approved' ? (req.user?.id || req.user?._id || null) : null,
+      approvedAt: status === 'approved' ? new Date() : null
+    });
+    
+    await record.save();
+    
+    const populatedRecord = await LeaveRecord.findById(record._id)
+      .populate('user', 'firstName lastName email vtid')
+      .populate('createdBy', 'firstName lastName');
+    
+    res.json({
+      success: true,
+      message: 'Leave record created successfully',
+      data: populatedRecord
+    });
+    
+  } catch (error) {
+    console.error('Create leave record error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error creating leave record',
+      error: error.message
+    });
+  }
+});
+
+// Get leave records with filters
+router.get('/records', async (req, res) => {
+  try {
+    const { userId, type, status, startDate, endDate } = req.query;
+    
+    let query = {};
+    
+    if (userId) query.user = userId;
+    if (type) query.type = type;
+    if (status) query.status = status;
+    
+    if (startDate || endDate) {
+      query.startDate = {};
+      if (startDate) query.startDate.$gte = new Date(startDate);
+      if (endDate) query.startDate.$lte = new Date(endDate);
+    }
+    
+    const records = await LeaveRecord.find(query)
+      .populate('user', 'firstName lastName email vtid')
+      .populate('createdBy', 'firstName lastName')
+      .sort({ startDate: -1 });
+    
+    res.json({
+      success: true,
+      data: records
+    });
+    
+  } catch (error) {
+    console.error('Get leave records error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching leave records',
+      error: error.message
+    });
+  }
+});
+
+// Delete leave record
+router.delete('/records/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const record = await LeaveRecord.findById(id);
+    
+    if (!record) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave record not found'
+      });
+    }
+    
+    await record.deleteOne();
+    
+    res.json({
+      success: true,
+      message: 'Leave record deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Delete leave record error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error deleting leave record',
+      error: error.message
+    });
+  }
+});
+
 // ==================== LEAVE BALANCE ENDPOINTS ====================
 
 // Import required models
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
 const EmployeesHub = require('../models/EmployeesHub');
+const LeaveRecord = require('../models/LeaveRecord');
 
 // Get leave balances with optional filters
 router.get('/balances', async (req, res) => {

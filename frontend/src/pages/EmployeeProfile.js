@@ -26,12 +26,14 @@ import {
 } from 'lucide-react';
 import axios from '../utils/axiosConfig';
 import AddLeaveModal from '../components/AddLeaveModal';
+import AddTimeOffModal from '../components/AddTimeOffModal';
 import { SicknessModal, LatenessModal, CarryoverModal } from '../components/AbsenceModals';
 import TerminationFlowModal from '../components/TerminationFlowModal';
 import { useAuth } from '../context/AuthContext';
 
 const EmployeeProfile = () => {
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
+  const [showTimeOffModal, setShowTimeOffModal] = React.useState(false);
   const [showSicknessModal, setShowSicknessModal] = React.useState(false);
   const [showLatenessModal, setShowLatenessModal] = React.useState(false);
   const [showCarryoverModal, setShowCarryoverModal] = React.useState(false);
@@ -267,6 +269,7 @@ const EmployeeProfile = () => {
   <AbsenceTab 
     employee={employee} 
     onAddLeave={() => setShowLeaveModal(true)}
+    onAddTimeOff={() => setShowTimeOffModal(true)}
     onOpenCarryover={() => setShowCarryoverModal(true)}
     onOpenSickness={() => setShowSicknessModal(true)}
     onOpenLateness={() => setShowLatenessModal(true)}
@@ -277,11 +280,24 @@ const EmployeeProfile = () => {
     employee={employee}
     onClose={() => {
       setShowLeaveModal(false);
-      refreshAbsences(); // Refresh data when modal closes
+      refreshAbsences();
     }}
     onSuccess={() => {
       setShowLeaveModal(false);
-      refreshAbsences(); // Refresh data on successful leave addition
+      refreshAbsences();
+    }}
+  />
+)}
+{showTimeOffModal && (
+  <AddTimeOffModal
+    employee={employee}
+    onClose={() => {
+      setShowTimeOffModal(false);
+      refreshAbsences();
+    }}
+    onSuccess={() => {
+      setShowTimeOffModal(false);
+      refreshAbsences();
     }}
   />
 )}
@@ -331,7 +347,7 @@ const EmployeeProfile = () => {
 };
 
 // Absence Tab Component
-const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onOpenLateness }) => {
+const AbsenceTab = ({ employee, onAddLeave, onAddTimeOff, onOpenCarryover, onOpenSickness, onOpenLateness }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Left Side */}
@@ -364,7 +380,7 @@ const AbsenceTab = ({ employee, onAddLeave, onOpenCarryover, onOpenSickness, onO
             <button
   type="button"
   className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-  onClick={onAddLeave}
+  onClick={onAddTimeOff}
 >
   Add time off
 </button>
