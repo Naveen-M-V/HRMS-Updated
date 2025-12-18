@@ -114,7 +114,7 @@ const Calendar = () => {
     
     setLoadingRequests(true);
     try {
-      const response = await axios.get('/api/leave-requests/pending');
+      const response = await axios.get('/api/leave/pending-requests');
       setPendingRequests(response.data.data || []);
     } catch (error) {
       console.error('Error fetching pending requests:', error);
@@ -538,7 +538,7 @@ const Calendar = () => {
       const workingDays = calculateWorkingDays(startDate, endDate);
 
       const response = await axios.post(
-        '/api/leave-requests',
+        '/api/leave/admin/time-off',
         {
           employeeId,
           leaveType: leaveType,
@@ -581,7 +581,7 @@ const Calendar = () => {
 
   const handleApproveRequest = async (requestId) => {
     try {
-      await axios.patch(`/api/leave-requests/${requestId}/approve`);
+      await axios.patch(`/api/leave/approve/${requestId}`);
       toast.success('Leave request approved');
       fetchPendingRequests();
       fetchCalendarEvents(); // Refresh calendar
@@ -593,7 +593,7 @@ const Calendar = () => {
 
   const handleRejectRequest = async (requestId, reason) => {
     try {
-      await axios.patch(`/api/leave-requests/${requestId}/reject`, { rejectionReason: reason });
+      await axios.patch(`/api/leave/reject/${requestId}`, { rejectionReason: reason });
       toast.success('Leave request rejected');
       fetchPendingRequests();
     } catch (error) {

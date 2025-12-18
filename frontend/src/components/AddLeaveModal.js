@@ -24,17 +24,15 @@ export default function AddLeaveModal({ employee, onClose, onSuccess }) {
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + Number(totalDays) - 1);
       
-      const response = await axios.post("/api/leave/records", {
-        userId: userId,
-        type: leaveType,
-        days: Number(totalDays),
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        reason: notes || `${type} - ${totalDays} days`,
-        status: "approved" // Explicitly set status as approved since admin is adding it
+      const response = await axios.post("/api/leave/employee-hub/annual-leave", {
+        employeeId: userId,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        reason: notes || `${type} - ${totalDays} days`
       });
       
       console.log('Leave record created:', response.data);
+      alert('Annual leave added successfully!');
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {

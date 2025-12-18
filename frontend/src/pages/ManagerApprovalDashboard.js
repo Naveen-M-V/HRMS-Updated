@@ -35,12 +35,8 @@ const ManagerApprovalDashboard = () => {
       // Get current user from localStorage or auth context
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
       
-      // Fetch pending requests assigned to the current approver
-      const response = await axios.get('/api/leave-requests/pending', {
-        params: {
-          approverId: currentUser._id || currentUser.id
-        }
-      });
+      // Fetch all pending requests (unified system sends to all admins)
+      const response = await axios.get('/api/leave/pending-requests');
 
       setPendingRequests(response.data.data || []);
     } catch (error) {
@@ -57,7 +53,7 @@ const ManagerApprovalDashboard = () => {
     setActionLoading(true);
     try {
       const response = await axios.patch(
-        `/api/leave-requests/${selectedRequest._id}/approve`,
+        `/api/leave/approve/${selectedRequest._id}`,
         {
           adminComment
         }
@@ -87,7 +83,7 @@ const ManagerApprovalDashboard = () => {
     setActionLoading(true);
     try {
       const response = await axios.patch(
-        `/api/leave-requests/${selectedRequest._id}/reject`,
+        `/api/leave/reject/${selectedRequest._id}`,
         {
           rejectionReason
         }

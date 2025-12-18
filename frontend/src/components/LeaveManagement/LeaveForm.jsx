@@ -6,15 +6,12 @@ import { toast } from 'react-toastify';
 
 const LeaveForm = ({ selectedDates }) => {
   const [formData, setFormData] = useState({
-    manager: '',
     leaveType: '',
     reason: ''
   });
 
-  const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [managersLoading, setManagersLoading] = useState(true);
 
   const leaveTypes = [
     'Sick Leave',
@@ -26,26 +23,9 @@ const LeaveForm = ({ selectedDates }) => {
     'Bereavement Leave'
   ];
 
-  useEffect(() => {
-    fetchManagers();
-  }, []);
+  // No need to fetch managers - unified system sends to all admins automatically
 
-  const fetchManagers = async () => {
-    try {
-      setManagersLoading(true);
-      // Fetch admin and super-admin users as approvers from auth endpoint
-      const response = await axios.get('/api/auth/approvers');
-      if (response.data.success) {
-        console.log('Fetched admin approvers:', response.data.data); // Debug log
-        setManagers(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching approvers:', error);
-      toast.error('Failed to load approvers');
-    } finally {
-      setManagersLoading(false);
-    }
-  };
+  // Removed fetchManagers - unified system automatically routes to all admins
 
   const handleChange = (field, value) => {
     setFormData(prev => ({
@@ -62,7 +42,6 @@ const LeaveForm = ({ selectedDates }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.manager) newErrors.manager = 'Please select an approver';
     if (!formData.leaveType) newErrors.leaveType = 'Please select a leave type';
     if (!selectedDates.start) newErrors.dates = 'Please select start date from calendar';
     if (!selectedDates.end) newErrors.dates = 'Please select end date from calendar';
@@ -95,25 +74,19 @@ const LeaveForm = ({ selectedDates }) => {
 
     setLoading(true);
     try {
-      // Get current user from localStorage or auth context
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      
       const payload = {
-        employeeId: currentUser._id || currentUser.id, // Logged-in employee
-        approverId: formData.manager,
         leaveType: formData.leaveType,
         startDate: selectedDates.start,
         endDate: selectedDates.end,
         reason: formData.reason,
-        status: 'pending'
+        status: 'Pending'
       };
 
-      const response = await axios.post('/api/leave-requests', payload);
+      const response = await axios.post('/api/leave/request', payload);
 
       if (response.data.success) {
         toast.success('Leave request submitted successfully');
         setFormData({
-          manager: '',
           leaveType: '',
           reason: ''
         });
@@ -132,43 +105,12 @@ const LeaveForm = ({ selectedDates }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Manager Dropdown */}
-      <div>
-        <label htmlFor="manager" className="block text-sm font-medium text-gray-700 mb-1">
-          Approval Manager *
-        </label>
-        <Select
-          value={formData.manager}
-          onValueChange={(value) => handleChange('manager', value)}
-        >
-          <SelectTrigger className={`w-full ${errors.manager ? "border-red-500 ring-red-500" : ""}`}>
-            <SelectValue placeholder={managersLoading ? "Loading managers..." : "Select a manager"} />
-          </SelectTrigger>
-          <SelectContent>
-            {managersLoading ? (
-              <div className="p-2 text-sm text-gray-500">Loading managers...</div>
-            ) : managers.length === 0 ? (
-              <div className="p-2 text-sm text-gray-500">No approvers available</div>
-            ) : (
-              managers.map(manager => {
-                const roleDisplay = manager.role === 'hr' ? 'HR' : 
-                                  manager.role === 'super-admin' ? 'Super Admin' :
-                                  manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
-                return (
-                  <SelectItem key={manager._id} value={manager._id}>
-                    {manager.firstName} {manager.lastName} — {roleDisplay}
-                  </SelectItem>
-                );
-              })
-            )}
-          </SelectContent>
-        </Select>
-        {errors.manager && (
-          <p className="mt-1 text-sm text-red-600">{errors.manager}</p>
-        )}
-        {managers.length === 0 && !managersLoading && (
-          <p className="mt-1 text-sm text-gray-500">No approvers available. Contact your administrator.</p>
-        )}
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+        <p className="text-sm text-blue-800 flex items-center gap-2">
+          <CheckCircleIcon className="h-4 w-4" />
+          Your request will be sent to all admins and super-admins for approval
+        </p>
       </div>
 
       {/* Leave Type Dropdown */}
@@ -236,7 +178,7 @@ const LeaveForm = ({ selectedDates }) => {
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={loading || !formData.manager || !selectedDates.start || !selectedDates.end}
+          disabled={loading || !selectedDates.start || !selectedDates.end}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Sending...' : 'Send Request'}

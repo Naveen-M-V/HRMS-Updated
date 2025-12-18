@@ -34,10 +34,7 @@ const MyLeaveRequests = () => {
     setError('');
     
     try {
-      const employeeId = user?.id || user?._id;
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_BASE_URL}/leave/requests/employee/${employeeId}`
-      );
+      const response = await axios.get('/api/leave/my-requests');
       
       const allRequests = response.data.data || [];
       // Sort by creation date (newest first)
