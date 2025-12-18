@@ -61,6 +61,7 @@ const notificationSchema = new mongoose.Schema({
       'work_resumed',    // Work resumed notifications
       'admin_clock_in',  // Admin clock-in
       'admin_clock_out', // Admin clock-out
+      'leave',           // Leave request notifications
       'reminder',        // General reminders
       'alert'           // Critical alerts
     ]

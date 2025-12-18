@@ -140,28 +140,68 @@ exports.createLeaveRequest = async (req, res) => {
         console.log(`✅ Found ${profileAdmins.length} profile admins and ${employeeAdmins.length} employee admins`);
         
         // Create notification for each admin
-        const notifications = allAdmins.map(admin => ({
-          userId: admin._id,
-          type: 'leave_request',
-          title: 'New Leave Request',
-          message: `${employee.firstName} ${employee.lastName} has submitted a leave request for ${leaveType} leave from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
-          relatedId: leaveRequest._id,
-          priority: 'high',
-          read: false
-        }));
+        const notifications = [];
         
-        // Also notify the specific approver if they're not already in the admin list
-        const adminIds = allAdmins.map(a => a._id.toString());
-        if (!adminIds.includes(approverId.toString())) {
+        // Add notifications for profile admins (User schema)
+        profileAdmins.forEach(admin => {
           notifications.push({
-            userId: approverId,
-            type: 'leave_request',
-            title: 'New Leave Request Assigned',
-            message: `${employee.firstName} ${employee.lastName} has assigned you to approve their ${leaveType} leave request`,
+            recipientType: 'profile',
+            profileRef: admin._id,
+            type: 'leave',
+            title: 'New Leave Request',
+            message: `${employee.firstName} ${employee.lastName} has submitted a leave request for ${leaveType} leave from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
             relatedId: leaveRequest._id,
             priority: 'high',
             read: false
           });
+        });
+        
+        // Add notifications for employee admins (EmployeeHub schema)
+        employeeAdmins.forEach(admin => {
+          notifications.push({
+            recipientType: 'employee',
+            employeeRef: admin._id,
+            type: 'leave',
+            title: 'New Leave Request',
+            message: `${employee.firstName} ${employee.lastName} has submitted a leave request for ${leaveType} leave from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
+            relatedId: leaveRequest._id,
+            priority: 'high',
+            read: false
+          });
+        });
+        
+        // Also notify the specific approver if they're not already in the admin list
+        const allAdminIds = [
+          ...profileAdmins.map(a => a._id.toString()),
+          ...employeeAdmins.map(a => a._id.toString())
+        ];
+        
+        if (!allAdminIds.includes(approverId.toString())) {
+          // Check if approver is from User or EmployeeHub
+          const approverInUser = await User.findById(approverId);
+          if (approverInUser) {
+            notifications.push({
+              recipientType: 'profile',
+              profileRef: approverId,
+              type: 'leave',
+              title: 'New Leave Request Assigned',
+              message: `${employee.firstName} ${employee.lastName} has assigned you to approve their ${leaveType} leave request`,
+              relatedId: leaveRequest._id,
+              priority: 'high',
+              read: false
+            });
+          } else {
+            notifications.push({
+              recipientType: 'employee',
+              employeeRef: approverId,
+              type: 'leave',
+              title: 'New Leave Request Assigned',
+              message: `${employee.firstName} ${employee.lastName} has assigned you to approve their ${leaveType} leave request`,
+              relatedId: leaveRequest._id,
+              priority: 'high',
+              read: false
+            });
+          }
         }
         
         if (notifications.length > 0) {
