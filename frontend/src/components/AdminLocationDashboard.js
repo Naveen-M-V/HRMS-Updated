@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
+import moment from 'moment-timezone';
 import { 
   MapPinIcon, 
   UserGroupIcon, 
@@ -368,7 +369,7 @@ const AdminLocationDashboard = ({
           </div>
           ${location?.accuracy ? `<div style="font-size: 11px; color: #6b7280;">🎯 Accuracy: ±${Math.round(location.accuracy)}m</div>` : ''}
           <div style="font-size: 11px; color: #6b7280;">
-            🕒 Last seen: ${lastSeen.toLocaleTimeString()}
+            🕒 Last seen: ${moment(lastSeen).tz('Europe/London').format('HH:mm:ss')}
           </div>
         </div>
       </div>
@@ -416,7 +417,7 @@ const AdminLocationDashboard = ({
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <span>{filteredEmployees.length} employees</span>
             {lastUpdate && (
-              <span>• Updated {lastUpdate.toLocaleTimeString()}</span>
+              <span>• Updated {moment(lastUpdate).tz('Europe/London').format('HH:mm:ss')}</span>
             )}
           </div>
         </div>

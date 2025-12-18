@@ -616,6 +616,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         }
 
         // Format clock in/out times - handle both HH:mm string and ISO date formats
+        // ALWAYS convert UTC timestamps to UK timezone for display
         const formatTime = (timeValue) => {
           if (!timeValue) return 'N/A';
           
@@ -624,18 +625,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
             return timeValue;
           }
           
-          // If it's an ISO date string or Date object, convert to UK time
+          // Convert UTC timestamp to UK timezone using moment-timezone
           try {
-            const date = new Date(timeValue);
-            if (isNaN(date.getTime())) {
+            const m = moment(timeValue).tz('Europe/London');
+            if (!m.isValid()) {
               return timeValue; // Return original if invalid
             }
-            return date.toLocaleTimeString('en-GB', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: false,
-              timeZone: 'Europe/London'
-            });
+            return m.format('HH:mm');
           } catch (e) {
             console.error('Error formatting time:', e);
             return timeValue;

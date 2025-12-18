@@ -8,6 +8,7 @@ import TimelineBar from '../components/TimelineBar';
 import { DatePicker } from '../components/ui/date-picker';
 import MUITimePicker from '../components/MUITimePicker';
 import dayjs from 'dayjs';
+import moment from 'moment-timezone';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
 import { formatUKTimeOnly } from '../utils/timeUtils';
@@ -394,20 +395,19 @@ const ClockIns = () => {
             latitude: gpsData.latitude,
             longitude: gpsData.longitude,
             accuracy: gpsData.accuracy,
-            timestamp: new Date().toLocaleTimeString('en-GB', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            })
+            timestamp: moment().tz('Europe/London').format('HH:mm')
           });
         }
 
         // Add to clock-in history
+        const clockInTimeFormatted = response.data?.timeEntry?.clockIn 
+          ? moment(response.data.timeEntry.clockIn).tz('Europe/London').format('HH:mm')
+          : moment().tz('Europe/London').format('HH:mm');
         const historyEntry = {
           employeeName: `${clockInEmployee.firstName} ${clockInEmployee.lastName}`,
           date: new Date().toLocaleDateString('en-GB'),
           day: new Date().toLocaleDateString('en-GB', { weekday: 'long' }),
-          clockInTime: response.data?.timeEntry?.clockIn || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          clockInTime: clockInTimeFormatted,
           location: gpsData.latitude ? `${gpsData.latitude.toFixed(4)}, ${gpsData.longitude.toFixed(4)}` : 'N/A',
           accuracy: gpsData.accuracy ? `±${Math.round(gpsData.accuracy)}m` : 'N/A'
         };

@@ -124,6 +124,7 @@ router.post('/in', asyncHandler(async (req, res) => {
   }
 
   // Create new time entry using legacy fields
+  // Store as UTC Date object - MongoDB will handle timezone conversion
   const clockInTime = new Date();
   const entry = new TimeEntry({
     employee: employeeId,
@@ -259,7 +260,7 @@ router.post('/out', asyncHandler(async (req, res) => {
     });
   }
 
-  // Set clock out time
+  // Set clock out time - store as UTC Date object
   const now = new Date();
   entry.clockOut = now;
   entry.status = 'clocked_out';
@@ -1043,7 +1044,7 @@ router.post('/onbreak', asyncHandler(async (req, res) => {
     });
   }
 
-  // Set break start time
+  // Set break start time - store as UTC Date object
   entry.onBreakStart = new Date();
   entry.status = 'on_break';
 
@@ -1127,6 +1128,7 @@ router.post('/endbreak', asyncHandler(async (req, res) => {
   }
 
   // Calculate break duration and add to breaks array
+  // Store as UTC Date object
   const breakEnd = new Date();
   const breakDuration = (breakEnd - entry.onBreakStart) / 1000 / 60; // minutes
 
@@ -1729,7 +1731,7 @@ router.post('/user/in', authenticateSession, async (req, res) => {
     let timeEntryData = {
       employee: employeeId,
       date: dateString,
-      clockIn: ukNow, // Use Date object, not string
+      clockIn: new Date(), // Store as UTC Date object
       location: location || 'Work From Office',
       workType: workType || 'Regular',
       status: 'clocked_in',
@@ -1929,9 +1931,10 @@ router.post('/user/out', authenticateSession, async (req, res) => {
       });
     }
 
-    // Update clock out time using UK timezone
+    // Update clock out time - store as UTC Date object
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format for display
-    timeEntry.clockOut = ukNow; // Use Date object, not string
+    timeEntry.clockOut = new Date(); // Store as UTC Date object
     timeEntry.status = 'clocked_out';
 
     // ========== GPS LOCATION PROCESSING FOR CLOCK-OUT ==========

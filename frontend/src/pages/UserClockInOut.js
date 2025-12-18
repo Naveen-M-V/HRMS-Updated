@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import moment from 'moment-timezone';
 import { userClockIn, userClockOut, getUserClockStatus, userStartBreak, userResumeWork } from '../utils/clockApi';
 import ShiftInfoCard from '../components/ShiftInfoCard';
 import LoadingScreen from '../components/LoadingScreen';
@@ -228,11 +229,7 @@ const UserClockInOut = () => {
   };
 
   const getCurrentTime = () => {
-    return new Date().toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return moment().tz('Europe/London').format('HH:mm:ss');
   };
 
   const [currentTime, setCurrentTime] = useState(getCurrentTime());

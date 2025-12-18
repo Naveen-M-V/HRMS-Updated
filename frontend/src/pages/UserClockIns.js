@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import moment from 'moment-timezone';
 
 /**
  * User Clock-ins Page
@@ -199,22 +200,12 @@ const UserClockIns = () => {
     
     // If it's an ISO date string, convert to UK time
     try {
-      const date = new Date(timeString);
-      if (isNaN(date.getTime())) {
-        // Try parsing as time string
-        return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-          timeZone: 'Europe/London'
-        });
+      // Convert UTC timestamp to UK timezone using moment-timezone
+      const m = moment(timeString).tz('Europe/London');
+      if (!m.isValid()) {
+        return timeString; // Return original if invalid
       }
-      return date.toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'Europe/London'
-      });
+      return m.format('HH:mm');
     } catch (e) {
       console.error('Error formatting time:', e);
       return timeString;
