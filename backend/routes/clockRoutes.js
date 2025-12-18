@@ -1506,22 +1506,39 @@ router.get('/export', async (req, res) => {
       const employeeName = entry.employee ?
         `${entry.employee.firstName} ${entry.employee.lastName}` : 'Unknown';
       const vtid = entry.employee?.vtid || '';
-      const date = entry.date ? entry.date.toLocaleDateString() : '';
-      const clockIn = entry.clockIn || '';
-      const clockOut = entry.clockOut || '';
       
-      // Calculate total hours safely
-      let totalHours = '0.00';
-      if (entry.clockIn && entry.clockOut) {
-        try {
-          const start = new Date(`2000-01-01T${entry.clockIn}`);
-          const end = new Date(`2000-01-01T${entry.clockOut}`);
-          const diffMs = end - start;
-          totalHours = (diffMs / (1000 * 60 * 60)).toFixed(2);
-        } catch (error) {
-          console.warn('Error calculating hours for entry:', entry._id, error);
-          totalHours = '0.00';
+      // Date is already a string in YYYY-MM-DD format, convert to DD/MM/YYYY
+      let date = '';
+      if (entry.date) {
+        const [year, month, day] = entry.date.split('-');
+        date = `${day}/${month}/${year}`;
+      }
+      
+      // Get first session's clock in/out times
+      let clockIn = '';
+      let clockOut = '';
+      if (entry.sessions && entry.sessions.length > 0) {
+        const firstSession = entry.sessions[0];
+        if (firstSession.clockIn) {
+          clockIn = new Date(firstSession.clockIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
+        if (firstSession.clockOut) {
+          clockOut = new Date(firstSession.clockOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+      }
+      
+      // Calculate total hours from all sessions
+      let totalHours = '0.00';
+      if (entry.sessions && entry.sessions.length > 0) {
+        let totalMs = 0;
+        entry.sessions.forEach(session => {
+          if (session.clockIn && session.clockOut) {
+            const start = new Date(session.clockIn);
+            const end = new Date(session.clockOut);
+            totalMs += (end - start);
+          }
+        });
+        totalHours = (totalMs / (1000 * 60 * 60)).toFixed(2);
       }
       
       // Calculate break time safely
