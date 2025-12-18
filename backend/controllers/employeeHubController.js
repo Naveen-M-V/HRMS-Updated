@@ -317,15 +317,13 @@ exports.getAllEmployees = async (req, res) => {
 
     // If requesting approvers, filter by specific roles
     if (approvers === 'true') {
-      query.role = { $in: ['admin', 'super-admin', 'hr', 'manager', 'senior-manager'] };
+      query.role = { $in: ['admin', 'super-admin', 'hr', 'manager'] };
     }
     
     // If specific roles are requested (comma-separated)
     if (role) {
       const roles = role.split(',').map(r => r.trim());
       query.role = { $in: roles };
-      console.log('🔍 Filtering employees by roles:', roles);
-      console.log('🔍 Query:', JSON.stringify(query));
     }
 
     if (team) query.team = team;
@@ -353,18 +351,12 @@ exports.getAllEmployees = async (req, res) => {
       .populate('managerId', 'firstName lastName')
       .sort({ firstName: 1, lastName: 1 });
 
-    console.log(`✅ Found ${employees.length} employees matching query`);
-    if (role) {
-      console.log('📋 Employees found:', employees.map(e => `${e.firstName} ${e.lastName} (${e.role})`));
-    }
-
     res.status(200).json({
       success: true,
       count: employees.length,
       data: employees
     });
   } catch (error) {
-    console.error('❌ Error fetching employees:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching employees',
@@ -604,32 +596,16 @@ exports.createEmployee = async (req, res) => {
 
     // Send credentials via email
     try {
-      console.log('📧 Attempting to send credentials email to:', employee.email);
-      console.log('📧 Email config:', {
-        host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT,
-        user: process.env.EMAIL_USER,
-        from: process.env.EMAIL_FROM || process.env.EMAIL_USER
-      });
-      
       const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
-      const emailResult = await sendUserCredentialsEmail(
+      await sendUserCredentialsEmail(
         employee.email,
         `${employee.firstName} ${employee.lastName}`,
         temporaryPassword,
         loginUrl
       );
-      
-      if (emailResult && emailResult.success) {
-        console.log('✅ Credentials email sent successfully to:', employee.email);
-        console.log('✅ Message ID:', emailResult.messageId);
-      } else {
-        console.error('❌ Email sending failed:', emailResult?.error);
-      }
+      console.log('✅ Credentials email sent to:', employee.email);
     } catch (emailError) {
       console.error('⚠️ Failed to send credentials email:', emailError);
-      console.error('⚠️ Error details:', emailError.message);
-      console.error('⚠️ Stack trace:', emailError.stack);
       // Continue with response even if email fails
     }
 
