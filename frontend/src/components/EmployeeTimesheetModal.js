@@ -8,7 +8,7 @@ import {
   TrashIcon,
   EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
-import { buildApiUrl } from '../utils/apiConfig';
+import { buildApiUrl, buildDirectUrl } from '../utils/apiConfig';
 import { DatePicker } from './ui/date-picker';
 import MUITimePicker from './MUITimePicker';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -23,6 +23,8 @@ import { formatDateDDMMYY, getShortDayName, getDayName } from '../utils/dateForm
 
 const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const { triggerClockRefresh } = useClockStatus(); // For global refresh
+  const [activeEmployee, setActiveEmployee] = useState(employee || null);
+  const [employeeList, setEmployeeList] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekData, setWeekData] = useState([]);
   const [statistics, setStatistics] = useState({
@@ -56,15 +58,120 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   const [currentClockStatus, setCurrentClockStatus] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All Status');
 
+  const getEmployeeKey = (emp) => {
+    if (!emp) return null;
+    return emp._id || emp.id || emp.profileId || emp.email || null;
+  };
+
+  const getEmployeeDisplayName = (emp) => {
+    if (!emp) return '';
+    const first = emp.firstName || '';
+    const last = emp.lastName || '';
+    return `${first} ${last}`.trim();
+  };
+
+  const getEmployeeIndexInList = (emp, list) => {
+    const key = getEmployeeKey(emp);
+    if (!key) return -1;
+    return (list || []).findIndex(e => getEmployeeKey(e) === key);
+  };
+
+  const fetchEmployeesForNavigation = async () => {
+    try {
+      let response;
+      try {
+        response = await axios.get(
+          buildApiUrl('/employees'),
+          {
+            withCredentials: true,
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+          }
+        );
+      } catch (primaryError) {
+        response = await axios.get(
+          buildDirectUrl('/employees'),
+          {
+            withCredentials: true,
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+          }
+        );
+      }
+
+      const raw = response.data;
+      const list = Array.isArray(raw)
+        ? raw
+        : (raw?.data || raw?.employees || []);
+
+      const normalized = Array.isArray(list) ? [...list] : [];
+
+      // Ensure the currently active employee is included even if the endpoint response differs.
+      if (activeEmployee) {
+        const existingIdx = getEmployeeIndexInList(activeEmployee, normalized);
+        if (existingIdx === -1) {
+          normalized.unshift(activeEmployee);
+        }
+      }
+
+      normalized.sort((a, b) => {
+        const aName = getEmployeeDisplayName(a).toLowerCase();
+        const bName = getEmployeeDisplayName(b).toLowerCase();
+        return aName.localeCompare(bName);
+      });
+
+      setEmployeeList(normalized);
+      setTotalEmployees(normalized.length);
+
+      if (activeEmployee) {
+        const idx = getEmployeeIndexInList(activeEmployee, normalized);
+        if (idx >= 0) setCurrentEmployeeIndex(idx + 1);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching employees for navigation:', error);
+      setEmployeeList([]);
+    }
+  };
+
+  const navigateEmployee = (direction) => {
+    if (!employeeList || employeeList.length === 0) return;
+    const currentIdx = getEmployeeIndexInList(activeEmployee, employeeList);
+    if (currentIdx === -1) return;
+    const nextIdx = currentIdx + direction;
+    if (nextIdx < 0 || nextIdx >= employeeList.length) return;
+
+    const nextEmployee = employeeList[nextIdx];
+    setActiveEmployee(nextEmployee);
+    setCurrentEmployeeIndex(nextIdx + 1);
+    setSelectedEntries(new Set());
+    setSelectAll(false);
+    setOpenMenuIndex(null);
+    setEditingEntry(null);
+    setShowEditModal(false);
+    setEmployeeProfile(null);
+  };
+
+  const canNavigatePrev = employeeList.length > 0 && getEmployeeIndexInList(activeEmployee, employeeList) > 0;
+  const canNavigateNext = employeeList.length > 0 && getEmployeeIndexInList(activeEmployee, employeeList) >= 0 && getEmployeeIndexInList(activeEmployee, employeeList) < employeeList.length - 1;
+
   useEffect(() => {
     if (employee) {
-      console.log('Employee data in modal:', employee);
+      setActiveEmployee(employee);
+    }
+  }, [employee]);
+
+  useEffect(() => {
+    if (activeEmployee) {
+      console.log('Employee data in modal:', activeEmployee);
       fetchEmployeeProfile();
       fetchWeeklyTimesheet();
-      fetchTotalEmployees();
       fetchCurrentClockStatus();
+      fetchEmployeesForNavigation();
     }
-  }, [employee, currentDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEmployee, currentDate]);
 
   // Update timeline every minute for progressive animation
   useEffect(() => {
@@ -78,19 +185,19 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   // Auto-refresh clock status every 10 seconds for real-time updates
   useEffect(() => {
     const statusInterval = setInterval(() => {
-      if (employee) {
+      if (activeEmployee) {
         fetchCurrentClockStatus();
       }
     }, 10000); // Update every 10 seconds
 
     return () => clearInterval(statusInterval);
-  }, [employee]);
+  }, [activeEmployee]);
 
   // Fetch employee profile data (includes mobile number)
   const fetchEmployeeProfile = async () => {
     try {
       // Use profileId if available, otherwise fall back to _id or id
-      const profileId = employee.profileId || employee._id || employee.id;
+      const profileId = activeEmployee?.profileId || activeEmployee?._id || activeEmployee?.id;
       console.log('📱 Fetching profile for profile ID:', profileId);
       
       const response = await axios.get(
@@ -138,7 +245,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   // Fetch current clock status
   const fetchCurrentClockStatus = async () => {
     try {
-      const employeeId = employee._id || employee.id;
+      const employeeId = activeEmployee?._id || activeEmployee?.id;
       const { getClockStatus } = await import('../utils/clockApi');
       const response = await getClockStatus({ includeAdmins: true });
       
@@ -155,7 +262,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   // Clock In handler
   const handleClockIn = async () => {
     try {
-      const employeeId = employee._id || employee.id;
+      const employeeId = activeEmployee?._id || activeEmployee?.id;
       console.log('🔵 Clock In initiated for employee:', employeeId);
       
       let gpsData = {};
@@ -213,7 +320,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   // Clock Out handler
   const handleClockOut = async () => {
     try {
-      const employeeId = employee._id || employee.id;
+      const employeeId = activeEmployee?._id || activeEmployee?.id;
       console.log('🔴 Clock Out initiated for employee:', employeeId);
       
       const { clockOut } = await import('../utils/clockApi');
@@ -237,7 +344,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   // Start Break handler
   const handleStartBreak = async () => {
     try {
-      const employeeId = employee._id || employee.id;
+      const employeeId = activeEmployee?._id || activeEmployee?.id;
       console.log('🟡 Start Break initiated for employee:', employeeId);
       
       const { setOnBreak } = await import('../utils/clockApi');
@@ -294,14 +401,14 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
 
-      const employeeId = employee._id || employee.id;
+      const employeeId = activeEmployee?._id || activeEmployee?.id;
       console.log('📋 Fetching timesheet for employee:', {
         employeeId,
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        role: employee.role,
-        fullEmployee: employee
+        firstName: activeEmployee?.firstName,
+        lastName: activeEmployee?.lastName,
+        email: activeEmployee?.email,
+        role: activeEmployee?.role,
+        fullEmployee: activeEmployee
       });
 
       const response = await axios.get(
@@ -373,6 +480,91 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     setWeeklyTotalHours(0);
   };
 
+  const parseHHMM = (timeStr) => {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    const h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return { h, m };
+  };
+
+  const minutesToHHMM = (mins) => {
+    if (mins == null || Number.isNaN(mins)) return '--';
+    const safe = Math.max(0, Math.round(mins));
+    const h = Math.floor(safe / 60);
+    const m = safe % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+
+  const getUKMomentFromTimeValue = (dayMoment, timeValue) => {
+    if (!timeValue) return null;
+    if (typeof timeValue === 'string' && /^\d{1,2}:\d{2}$/.test(timeValue)) {
+      const hm = parseHHMM(timeValue);
+      if (!hm) return null;
+      return dayMoment.clone().hour(hm.h).minute(hm.m).second(0).millisecond(0);
+    }
+
+    const m = moment(timeValue);
+    if (!m.isValid()) return null;
+    return m.tz('Europe/London');
+  };
+
+  const calculateWorkedMinutesForDayEntries = (dayEntries, dayDateStr) => {
+    const baseDay = moment.tz(dayDateStr, 'YYYY-MM-DD', 'Europe/London').startOf('day');
+    let totalMinutes = 0;
+
+    for (const entry of (dayEntries || [])) {
+      const inMoment = getUKMomentFromTimeValue(baseDay, entry?.clockIn);
+      if (!inMoment) continue;
+
+      // No clock-out: show "--" for worked hours
+      if (!entry?.clockOut) {
+        return null;
+      }
+
+      const outMomentRaw = getUKMomentFromTimeValue(baseDay, entry?.clockOut);
+      if (!outMomentRaw) {
+        return null;
+      }
+
+      const outMoment = outMomentRaw.clone();
+      if (outMoment.isBefore(inMoment)) {
+        // Overnight shift (e.g., 22:00 -> 06:00)
+        outMoment.add(1, 'day');
+      }
+
+      let sessionMinutes = outMoment.diff(inMoment, 'minutes');
+
+      // Breaks (missing breaks => 0)
+      let breakMinutes = 0;
+      const breaks = entry?.breaks || [];
+      for (const b of breaks) {
+        if (typeof b?.duration === 'number' && !Number.isNaN(b.duration)) {
+          breakMinutes += b.duration;
+          continue;
+        }
+
+        const bStart = getUKMomentFromTimeValue(baseDay, b?.startTime ?? b?.breakStart ?? b?.start ?? b?.breakIn ?? null);
+        const bEndRaw = getUKMomentFromTimeValue(baseDay, b?.endTime ?? b?.breakEnd ?? b?.end ?? b?.breakOut ?? b?.resume ?? null);
+        if (!bStart || !bEndRaw) continue;
+
+        const bEnd = bEndRaw.clone();
+        if (bEnd.isBefore(bStart)) bEnd.add(1, 'day');
+
+        const diff = bEnd.diff(bStart, 'minutes');
+        if (diff > 0) breakMinutes += diff;
+      }
+
+      sessionMinutes = sessionMinutes - breakMinutes;
+      if (sessionMinutes < 0) sessionMinutes = 0;
+      totalMinutes += sessionMinutes;
+    }
+
+    return totalMinutes;
+  };
+
   const processTimesheetData = (data) => {
     const monday = getMonday(currentDate);
     const weekEntries = [];
@@ -405,19 +597,23 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
       if (dayEntry && dayEntry.clockIn) {
         const clockIn = dayEntry.clockIn;
         const clockOut = dayEntry.clockOut;
-        
-        // Parse hours from backend calculation - sum all entries for this day
-        let hours = 0;
+
+        // Calculate worked time from clock-in/out and breaks (shift-agnostic, supports overnight)
+        const workedMinutes = calculateWorkedMinutesForDayEntries(dayEntries, dateStr);
+        const hasClockOutForAll = workedMinutes != null;
+        const workedHoursDecimal = hasClockOutForAll ? (workedMinutes / 60) : null;
+
+        // Preserve existing overtime aggregation if backend provides it, but keep it safe
         let overtime = 0;
-        
-        // Sum hours from all entries for this day (multiple clock-ins)
         dayEntries.forEach(entry => {
-          hours += parseFloat(entry.hoursWorked || 0);
-          overtime += parseFloat(entry.overtime || 0);
+          const n = typeof entry?.overtime === 'number' ? entry.overtime : parseFloat(entry?.overtime);
+          overtime += Number.isFinite(n) ? n : 0;
         });
-        
-        // Add to weekly total
-        weeklyTotalHoursSum += hours;
+
+        // Add to weekly total only when we have full clock-out data
+        if (workedHoursDecimal != null) {
+          weeklyTotalHoursSum += workedHoursDecimal;
+        }
 
         // Format clock in/out times - handle both HH:mm string and ISO date formats
         const formatTime = (timeValue) => {
@@ -449,10 +645,22 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         const clockInTime = formatTime(clockIn);
         const clockOutTime = clockOut ? formatTime(clockOut) : 'Present';
 
+        const normalizeBreak = (breakItem) => {
+          if (!breakItem) return breakItem;
+          const startRaw = breakItem.startTime ?? breakItem.breakStart ?? breakItem.start ?? breakItem.breakIn ?? null;
+          const endRaw = breakItem.endTime ?? breakItem.breakEnd ?? breakItem.end ?? breakItem.breakOut ?? breakItem.resume ?? null;
+          return {
+            ...breakItem,
+            startTime: breakItem.startTime || formatTime(startRaw),
+            endTime: breakItem.endTime || formatTime(endRaw)
+          };
+        };
+
         // Calculate break time display
         let breakInfo = '';
-        if (dayEntry.breaks && dayEntry.breaks.length > 0) {
-          const totalBreakMinutes = dayEntry.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
+        const normalizedPrimaryBreaks = (dayEntry.breaks || []).map(normalizeBreak);
+        if (normalizedPrimaryBreaks.length > 0) {
+          const totalBreakMinutes = normalizedPrimaryBreaks.reduce((sum, b) => sum + (b.duration || 0), 0);
           if (totalBreakMinutes > 0) {
             const breakHours = Math.floor(totalBreakMinutes / 60);
             const breakMins = totalBreakMinutes % 60;
@@ -465,7 +673,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           entryId: entry._id || entry.id, // Add the MongoDB _id for each session
           clockInTime: formatTime(entry.clockIn),
           clockOutTime: entry.clockOut ? formatTime(entry.clockOut) : 'Present',
-          breaks: entry.breaks || [],
+          breaks: (entry.breaks || []).map(normalizeBreak),
           location: entry.location || 'Work From Office',
           workType: entry.workType || 'Regular'
         }));
@@ -485,6 +693,15 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           clockedHoursDisplay = `${clockInTime} - ${clockOutTime}${breakInfo}`;
         }
 
+        const shiftObj = dayEntry.shift || dayEntry.shiftId || dayEntry.assignedShift || null;
+        const shiftStartTime = dayEntry.shiftStartTime || shiftObj?.startTime || shiftObj?.shiftStartTime || null;
+        const shiftEndTime = dayEntry.shiftEndTime || shiftObj?.endTime || shiftObj?.shiftEndTime || null;
+        const shiftBreakDuration =
+          dayEntry.breakDuration ??
+          shiftObj?.breakDuration ??
+          shiftObj?.break ??
+          null;
+
         weekEntries.push({
           entryId: dayEntry._id || dayEntry.id,
           date: date,
@@ -495,11 +712,11 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           clockInTime: clockInTime,
           clockOut: clockOut,
           clockOutTime: clockOutTime,
-          breaks: dayEntry.breaks || [], // Add breaks data for timeline visualization
+          breaks: normalizedPrimaryBreaks, // Add breaks data for timeline visualization
           location: dayEntry.location || 'N/A',
           overtime: overtime > 0 ? formatHours(overtime) : '--',
-          totalHours: formatHours(hours),
-          hoursDecimal: hours,
+          totalHours: workedHoursDecimal == null ? '--' : minutesToHHMM(workedMinutes),
+          hoursDecimal: workedHoursDecimal == null ? 0 : workedHoursDecimal,
           workType: dayEntry.workType || 'Regular',
           isWeekend: isWeekend,
           isToday: isToday,
@@ -507,9 +724,10 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           // GPS location data for admin view - prioritize clock-in location, fallback to clock-out
           gpsLocation: dayEntry.gpsLocationIn || dayEntry.gpsLocationOut || null,
           // Shift data for timeline coloring
-          shift: dayEntry.shift || null,
-          shiftStartTime: dayEntry.shiftStartTime || null,
-          shiftEndTime: dayEntry.shiftEndTime || null,
+          shift: shiftObj,
+          shiftStartTime: shiftStartTime,
+          shiftEndTime: shiftEndTime,
+          shiftBreakDuration: shiftBreakDuration,
           attendanceStatus: dayEntry.attendanceStatus || null,
           // Multiple sessions support
           sessions: sessions.length > 1 ? sessions : null // Only add if multiple sessions exist
@@ -563,9 +781,107 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   };
 
   const formatHours = (hours) => {
+    if (hours == null || Number.isNaN(hours) || !Number.isFinite(hours)) return '--';
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+
+  const parseTimeToMinutes = (timeStr) => {
+    if (!timeStr || timeStr === 'Present' || timeStr === 'N/A' || timeStr === '--') return null;
+    if (typeof timeStr !== 'string') return null;
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+  };
+
+  const formatMinutesAsHHMM = (mins) => {
+    if (mins == null || Number.isNaN(mins) || mins <= 0) return '--';
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+
+  const formatMinutesAsHuman = (mins) => {
+    if (mins == null || Number.isNaN(mins) || mins <= 0) return '--';
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    return `${h}h ${m}m`;
+  };
+
+  const getNowUKMinutes = () => {
+    const now = moment.tz('Europe/London');
+    return now.hours() * 60 + now.minutes();
+  };
+
+  const getAllSessions = (day) => {
+    if (day.sessions && Array.isArray(day.sessions) && day.sessions.length > 0) return day.sessions;
+    if (day.clockInTime) {
+      return [{
+        clockInTime: day.clockInTime,
+        clockOutTime: day.clockOutTime,
+        breaks: day.breaks || []
+      }];
+    }
+    return [];
+  };
+
+  const getAllBreaks = (day) => {
+    const sessions = getAllSessions(day);
+    const breaks = [];
+    sessions.forEach((s) => {
+      if (s.breaks && Array.isArray(s.breaks)) {
+        s.breaks.forEach((b) => breaks.push(b));
+      }
+    });
+    if (breaks.length > 0) return breaks;
+    return day.breaks || [];
+  };
+
+  const calculateBreakMinutes = (day) => {
+    const breaks = getAllBreaks(day);
+    if (!breaks || breaks.length === 0) return 0;
+    return breaks.reduce((sum, b) => {
+      const duration = typeof b?.duration === 'number' ? b.duration : null;
+      if (duration != null && !Number.isNaN(duration)) return sum + duration;
+      const start = parseTimeToMinutes(b?.startTime);
+      const end = parseTimeToMinutes(b?.endTime);
+      if (start == null || end == null) return sum;
+      const diff = end - start;
+      return diff > 0 ? sum + diff : sum;
+    }, 0);
+  };
+
+  const calculateLateMinutes = (day) => {
+    const shiftStart = parseTimeToMinutes(day.shiftStartTime);
+    if (shiftStart == null) return null;
+    const sessions = getAllSessions(day);
+    const firstClockInMins = sessions
+      .map(s => parseTimeToMinutes(s.clockInTime))
+      .filter(v => v != null)
+      .sort((a, b) => a - b)[0];
+    if (firstClockInMins == null) return null;
+    const late = firstClockInMins - shiftStart;
+    return late > 0 ? late : 0;
+  };
+
+  const calculateOvertimeMinutes = (day) => {
+    const shiftEnd = parseTimeToMinutes(day.shiftEndTime);
+    if (shiftEnd == null) return null;
+    const sessions = getAllSessions(day);
+    const lastClockOutMins = sessions
+      .map(s => {
+        if (!s.clockOutTime || s.clockOutTime === 'Present') return getNowUKMinutes();
+        return parseTimeToMinutes(s.clockOutTime);
+      })
+      .filter(v => v != null)
+      .sort((a, b) => b - a)[0];
+    if (lastClockOutMins == null) return null;
+    const ot = lastClockOutMins - shiftEnd;
+    return ot > 0 ? ot : 0;
   };
 
   const navigateWeek = (direction) => {
@@ -874,11 +1190,18 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   };
 
   const getTotalEmployees = () => {
-    return totalEmployees || 0;
+    if (employeeList && employeeList.length > 0) return employeeList.length;
+    if (activeEmployee) return 1; // Avoid showing "out of 0" while list is loading
+    return 0;
   };
 
   const getCurrentEmployeeIndex = () => {
-    return currentEmployeeIndex;
+    if (employeeList && employeeList.length > 0) {
+      const idx = getEmployeeIndexInList(activeEmployee, employeeList);
+      if (idx >= 0) return idx + 1;
+    }
+    if (activeEmployee) return currentEmployeeIndex || 1;
+    return 0;
   };
 
   // Checkbox handlers
@@ -947,7 +1270,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         // Create new time entry
         const newEntryData = {
           ...timeData,
-          employeeId: employee._id || employee.id
+          employeeId: activeEmployee?._id || activeEmployee?.id
         };
         console.log('Creating new time entry:', newEntryData);
         response = await addTimeEntry(newEntryData);
@@ -970,7 +1293,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
         setEditingEntry(null);
         fetchWeeklyTimesheet(); // Refresh data
         // Trigger global refresh for all pages
-        triggerClockRefresh({ action: 'edit_entry', employeeId: employee._id || employee.id });
+        triggerClockRefresh({ action: 'edit_entry', employeeId: activeEmployee?._id || activeEmployee?.id });
       } else {
         toast.error(response.message || 'Failed to save entry');
       }
@@ -1049,7 +1372,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     sunday.setDate(monday.getDate() + 6);
     
     let csvContent = `Timesheet Report\n`;
-    csvContent += `Employee: ${employee.firstName} ${employee.lastName}\n`;
+    csvContent += `Employee: ${activeEmployee?.firstName || ''} ${activeEmployee?.lastName || ''}\n`;
     csvContent += `Period: ${formatDateDDMMYY(monday)} - ${formatDateDDMMYY(sunday)}\n`;
     csvContent += `Week ${getWeekNumber(currentDate)}\n\n`;
     
@@ -1077,7 +1400,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `timesheet_${employee.firstName}_${employee.lastName}_week${getWeekNumber(currentDate)}.csv`);
+    link.setAttribute('download', `timesheet_${activeEmployee?.firstName || 'employee'}_${activeEmployee?.lastName || ''}_week${getWeekNumber(currentDate)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -1159,90 +1482,58 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
 
       // Format breaks for display
       const formatBreaks = () => {
-        if (!day.breaks || day.breaks.length === 0) return [];
-        return day.breaks.map(breakItem => ({
-          startTime: breakItem.startTime || '--',
-          endTime: breakItem.endTime || '--',
-          duration: breakItem.duration ? `${Math.floor(breakItem.duration / 60)}h ${breakItem.duration % 60}m` : '--'
-        }));
+        const breaks = getAllBreaks(day);
+        if (!breaks || breaks.length === 0) return [];
+        return breaks.map(breakItem => {
+          const durationMins =
+            typeof breakItem?.duration === 'number'
+              ? breakItem.duration
+              : (() => {
+                  const start = parseTimeToMinutes(breakItem?.startTime);
+                  const end = parseTimeToMinutes(breakItem?.endTime);
+                  if (start == null || end == null) return null;
+                  const diff = end - start;
+                  return diff > 0 ? diff : null;
+                })();
+
+          return {
+            startTime: breakItem?.startTime || '--',
+            endTime: breakItem?.endTime || '--',
+            duration: durationMins != null ? formatMinutesAsHuman(durationMins) : '--'
+          };
+        });
       };
 
       // Calculate total break time
       const calculateTotalBreakTime = () => {
-        if (!day.breaks || day.breaks.length === 0) return '--';
-        const totalBreakMinutes = day.breaks.reduce((sum, b) => sum + (b.duration || 0), 0);
-        const hours = Math.floor(totalBreakMinutes / 60);
-        const mins = totalBreakMinutes % 60;
-        return `${hours}h ${mins}m`;
+        const totalBreakMinutes = calculateBreakMinutes(day);
+        return totalBreakMinutes > 0 ? formatMinutesAsHuman(totalBreakMinutes) : '--';
       };
 
       // Calculate late arrival
       const calculateLateArrival = () => {
-        // Check if we have the required data
-        if (!day.shiftStartTime || !day.clockInTime) {
-          console.log(`⏰ Late arrival calc skipped for ${day.dayName}: shiftStartTime=${day.shiftStartTime}, clockInTime=${day.clockInTime}`);
-          return '--';
-        }
-        
-        const parseTime = (timeStr) => {
-          if (!timeStr || timeStr === 'Present' || timeStr === 'N/A' || timeStr === '--') {
-            return null;
-          }
-          
-          // Handle HH:mm format
-          const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
-          if (match) {
-            const hours = parseInt(match[1], 10);
-            const minutes = parseInt(match[2], 10);
-            return hours * 60 + minutes;
-          }
-          
-          return null;
-        };
-        
-        try {
-          const shiftStartMins = parseTime(day.shiftStartTime);
-          const clockInMins = parseTime(day.clockInTime);
-          
-          if (shiftStartMins === null || clockInMins === null) {
-            console.log(`⏰ Late arrival calc failed for ${day.dayName}: Could not parse times`);
-            return '--';
-          }
-          
-          const lateMins = clockInMins - shiftStartMins;
-          
-          console.log(`⏰ Late arrival calc for ${day.dayName}:`, {
-            shiftStartTime: day.shiftStartTime,
-            clockInTime: day.clockInTime,
-            shiftStartMins,
-            clockInMins,
-            lateMins,
-            isLate: lateMins > 0
-          });
-          
-          if (lateMins <= 0) return '--'; // On time or early
-          
-          const hours = Math.floor(lateMins / 60);
-          const mins = lateMins % 60;
-          return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-        } catch (e) {
-          console.error(`❌ Late arrival calc error for ${day.dayName}:`, e);
-          return '--';
-        }
+        const lateMins = calculateLateMinutes(day);
+        return lateMins && lateMins > 0 ? formatMinutesAsHHMM(lateMins) : '--';
       };
+
+      const overtimeMins = calculateOvertimeMinutes(day);
+      const overtimeHours = overtimeMins && overtimeMins > 0 ? formatMinutesAsHHMM(overtimeMins) : '--';
+      const overtimeLabel = overtimeMins && overtimeMins > 0
+        ? (day.shiftEndTime ? `After ${day.shiftEndTime}` : 'Overtime')
+        : '-';
 
       return {
         id: day.entryId || `day-${index}`,
         day: getDayLabel(),
-        date: getDateLabel(),
+        date: day.date,
         sessions: formatSessions(),
         breaks: formatBreaks(),
         totalBreakTime: calculateTotalBreakTime(),
         lateArrival: calculateLateArrival(),
         workType: day.workType || 'Regular',
         location: day.location || 'N/A',
-        overtime: day.overtime || '-',
-        overtimeHours: day.overtimeHours || '--',
+        overtime: overtimeLabel,
+        overtimeHours: overtimeHours,
         geolocation: (() => {
           // `processTimesheetData` normalizes backend fields into `day.gpsLocation`
           // (from `gpsLocationIn`/`gpsLocationOut`). Keep additional fallbacks
@@ -1306,7 +1597,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     handleDeleteEntry(day.entryId);
   };
 
-  if (!employee) return null;
+  if (!activeEmployee) return null;
 
   return (
     <>
@@ -1352,11 +1643,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button
-                onClick={() => {/* Navigate to previous employee */}}
+                onClick={() => navigateEmployee(-1)}
+                disabled={!canNavigatePrev}
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: canNavigatePrev ? 'pointer' : 'not-allowed',
+                  opacity: canNavigatePrev ? 1 : 0.4,
                   padding: '4px',
                   display: 'flex',
                   alignItems: 'center'
@@ -1365,11 +1658,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
                 <ChevronLeftIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </button>
               <button
-                onClick={() => {/* Navigate to next employee */}}
+                onClick={() => navigateEmployee(1)}
+                disabled={!canNavigateNext}
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: canNavigateNext ? 'pointer' : 'not-allowed',
+                  opacity: canNavigateNext ? 1 : 0.4,
                   padding: '4px',
                   display: 'flex',
                   alignItems: 'center'
@@ -1409,29 +1704,29 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               color: '#374151',
               overflow: 'hidden'
             }}>
-              {(employeeProfile?.profilePicture || employee.profilePicture) ? (
+              {(employeeProfile?.profilePicture || activeEmployee?.profilePicture) ? (
                 <img 
-                  src={buildApiUrl((employeeProfile?.profilePicture || employee.profilePicture).startsWith('/') ? (employeeProfile?.profilePicture || employee.profilePicture) : `/uploads/${employeeProfile?.profilePicture || employee.profilePicture}`)} 
+                  src={buildApiUrl((employeeProfile?.profilePicture || activeEmployee?.profilePicture).startsWith('/') ? (employeeProfile?.profilePicture || activeEmployee?.profilePicture) : `/uploads/${employeeProfile?.profilePicture || activeEmployee?.profilePicture}`)} 
                   alt="" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
                     e.target.style.display = 'none';
-                    e.target.parentElement.textContent = `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`;
+                    e.target.parentElement.textContent = `${activeEmployee?.firstName?.[0] || ''}${activeEmployee?.lastName?.[0] || ''}`;
                   }}
                 />
               ) : (
-                `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`
+                `${activeEmployee?.firstName?.[0] || ''}${activeEmployee?.lastName?.[0] || ''}`
               )}
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
-                {employee.firstName} {employee.lastName}
+                {activeEmployee?.firstName} {activeEmployee?.lastName}
               </h2>
               <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#6b7280' }}>
-                <div><span style={{ fontWeight: '500' }}>Role:</span> {employee.jobTitle || employee.jobRole || 'Employee'}</div>
-                <div><span style={{ fontWeight: '500' }}>VTID:</span> {employeeProfile?.vtid || employee.vtid || 'N/A'}</div>
+                <div><span style={{ fontWeight: '500' }}>Role:</span> {activeEmployee?.jobTitle || activeEmployee?.jobRole || 'Employee'}</div>
+                <div><span style={{ fontWeight: '500' }}>EMP_ID:</span> {activeEmployee?.empId || activeEmployee?.empID || activeEmployee?.emp_id || activeEmployee?.employeeId || activeEmployee?.employeeID || activeEmployee?.employeeCode || activeEmployee?.employeeNumber || activeEmployee?.staffId || activeEmployee?.staffID || activeEmployee?.payrollNumber || 'N/A'}</div>
                 <div>
-                  <span style={{ fontWeight: '500' }}>Mobile:</span> {employeeProfile?.mobile || employee.mobile || employeeProfile?.phone || employee.phone || 'N/A'}
+                  <span style={{ fontWeight: '500' }}>Mobile:</span> {employeeProfile?.mobile || activeEmployee?.mobile || employeeProfile?.phone || activeEmployee?.phone || 'N/A'}
                 </div>
               </div>
             </div>
@@ -1513,7 +1808,7 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
               <button
                 onClick={async () => {
                   try {
-                    const employeeId = employee._id || employee.id;
+                    const employeeId = activeEmployee?._id || activeEmployee?.id;
                     console.log('🟢 Resume Work initiated for employee:', employeeId);
                     
                     const { endBreak } = await import('../utils/clockApi');
