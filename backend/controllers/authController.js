@@ -1,8 +1,6 @@
 const EmployeeHub = require('../models/EmployeesHub');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const { sendPasswordResetEmail } = require('../utils/emailService');
 
 /**
  * Unified Authentication Controller
@@ -71,33 +69,14 @@ exports.employeeLogin = async (req, res) => {
       lastLogin: employee.lastLogin
     };
 
-    // Set session
-    req.session.user = {
-      ...employeeResponse,
-      userType: 'employee'
-    };
-
-    // Force session save before sending response
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to save session'
-        });
+    res.status(200).json({
+      success: true,
+      message: `Welcome back, ${employee.firstName}!`,
+      data: {
+        user: employeeResponse,
+        token,
+        userType: 'employee'
       }
-
-      console.log('✅ Session saved successfully for employee:', employee.email);
-      
-      res.status(200).json({
-        success: true,
-        message: `Welcome back, ${employee.firstName}!`,
-        data: {
-          user: employeeResponse,
-          token,
-          userType: 'employee'
-        }
-      });
     });
 
   } catch (error) {
@@ -164,33 +143,14 @@ exports.profileLogin = async (req, res) => {
       lastLogin: profile.lastLogin
     };
 
-    // Set session
-    req.session.user = {
-      ...profileResponse,
-      userType: 'profile'
-    };
-
-    // Force session save before sending response
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to save session'
-        });
+    res.status(200).json({
+      success: true,
+      message: `Welcome back, ${profile.firstName}!`,
+      data: {
+        user: profileResponse,
+        token,
+        userType: 'profile'
       }
-
-      console.log('✅ Session saved successfully for profile:', profile.email);
-      
-      res.status(200).json({
-        success: true,
-        message: `Welcome back, ${profile.firstName}!`,
-        data: {
-          user: profileResponse,
-          token,
-          userType: 'profile'
-        }
-      });
     });
 
   } catch (error) {
@@ -250,33 +210,14 @@ exports.unifiedLogin = async (req, res) => {
           lastLogin: employee.lastLogin
         };
 
-        // Set session for employee
-        req.session.user = {
-          ...employeeResponse,
-          userType: 'employee'
-        };
-
-        // Force session save before sending response
-        return req.session.save((err) => {
-          if (err) {
-            console.error('Session save error:', err);
-            return res.status(500).json({
-              success: false,
-              message: 'Failed to save session'
-            });
+        return res.status(200).json({
+          success: true,
+          message: `Welcome back, ${employee.firstName}!`,
+          data: {
+            user: employeeResponse,
+            token,
+            userType: 'employee'
           }
-
-          console.log('✅ Session saved successfully (unified) for employee:', employee.email);
-          
-          return res.status(200).json({
-            success: true,
-            message: `Welcome back, ${employee.firstName}!`,
-            data: {
-              user: employeeResponse,
-              token,
-              userType: 'employee'
-            }
-          });
         });
       }
     } catch (employeeError) {
@@ -314,33 +255,14 @@ exports.unifiedLogin = async (req, res) => {
           lastLogin: profile.lastLogin
         };
 
-        // Set session for profile
-        req.session.user = {
-          ...profileResponse,
-          userType: 'profile'
-        };
-
-        // Force session save before sending response
-        return req.session.save((err) => {
-          if (err) {
-            console.error('Session save error:', err);
-            return res.status(500).json({
-              success: false,
-              message: 'Failed to save session'
-            });
+        return res.status(200).json({
+          success: true,
+          message: `Welcome back, ${profile.firstName}!`,
+          data: {
+            user: profileResponse,
+            token,
+            userType: 'profile'
           }
-
-          console.log('✅ Session saved successfully (unified) for profile:', profile.email);
-          
-          return res.status(200).json({
-            success: true,
-            message: `Welcome back, ${profile.firstName}!`,
-            data: {
-              user: profileResponse,
-              token,
-              userType: 'profile'
-            }
-          });
         });
       }
     } catch (profileError) {
@@ -564,259 +486,6 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error'
-    });
-  }
-};
-
-// Forgot Password (for both employees and profiles)
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email is required'
-      });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-    let user = null;
-    let userType = null;
-
-    // Try to find in EmployeeHub first
-    user = await EmployeeHub.findOne({ email: normalizedEmail, isActive: true });
-    if (user) {
-      userType = 'employee';
-    } else {
-      // Try User model
-      user = await User.findOne({ email: normalizedEmail });
-      if (user) {
-        userType = 'profile';
-      }
-    }
-
-    // Always return success message for security (don't reveal if email exists)
-    if (!user) {
-      return res.status(200).json({
-        success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.'
-      });
-    }
-
-    // Generate reset token (valid for 1 hour)
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-    
-    // Handle different field names between models
-    if (userType === 'employee') {
-      user.passwordResetToken = resetTokenHash;
-      user.passwordResetExpires = Date.now() + 3600000;
-    } else {
-      user.resetPasswordToken = resetTokenHash;
-      user.resetPasswordExpires = Date.now() + 3600000;
-    }
-    await user.save();
-
-    // Send password reset email
-    const resetUrl = `${process.env.FRONTEND_URL || 'https://hrms.talentshield.co.uk'}/reset-password?token=${resetToken}&email=${email}`;
-    
-    try {
-      console.log('📧 Attempting to send password reset email to:', user.email);
-      console.log('📧 Email config:', {
-        host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT,
-        user: process.env.EMAIL_USER,
-        from: process.env.EMAIL_FROM || process.env.EMAIL_USER
-      });
-      
-      const emailResult = await sendPasswordResetEmail(
-        user.email,
-        user.firstName || 'User',
-        resetUrl,
-        resetToken
-      );
-      
-      if (emailResult && emailResult.success) {
-        console.log(`✅ Password reset email sent successfully to: ${user.email}`);
-        console.log('✅ Message ID:', emailResult.messageId);
-      } else {
-        console.error('❌ Email sending failed:', emailResult?.error);
-      }
-      console.log('📧 Reset URL (for debugging):', resetUrl);
-    } catch (emailError) {
-      console.error('❌ Failed to send reset email:', emailError.message);
-      console.error('❌ Error details:', emailError);
-      console.error('❌ Stack trace:', emailError.stack);
-      console.log('📧 Reset URL (for debugging):', resetUrl);
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'If an account with that email exists, a password reset link has been sent to your email address.',
-      // Only include resetUrl in development for debugging
-      ...(process.env.NODE_ENV === 'development' && { resetUrl })
-    });
-
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-};
-
-// Reset Password (for both employees and profiles)
-exports.resetPassword = async (req, res) => {
-  try {
-    const { token, email, newPassword } = req.body;
-
-    if (!token || !email || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Token, email, and new password are required'
-      });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters long'
-      });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-    const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
-
-    let user = null;
-    let userType = null;
-
-    // Try to find user in EmployeeHub
-    user = await EmployeeHub.findOne({
-      email: normalizedEmail,
-      passwordResetToken: resetTokenHash,
-      passwordResetExpires: { $gt: Date.now() }
-    });
-
-    if (user) {
-      userType = 'employee';
-    } else {
-      // Try User model (different field names)
-      user = await User.findOne({
-        email: normalizedEmail,
-        resetPasswordToken: resetTokenHash,
-        resetPasswordExpires: { $gt: Date.now() }
-      });
-      if (user) {
-        userType = 'profile';
-      }
-    }
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired reset token'
-      });
-    }
-
-    // Update password and clear reset tokens
-    user.password = newPassword;
-    
-    // Clear reset tokens based on model type
-    if (userType === 'employee') {
-      user.passwordResetToken = undefined;
-      user.passwordResetExpires = undefined;
-    } else {
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
-    }
-    
-    await user.save();
-
-    console.log(`✅ Password reset successful for: ${user.email}`);
-    console.log(`   User Type: ${userType}`);
-    console.log(`   Name: ${user.firstName} ${user.lastName}`);
-
-    res.status(200).json({
-      success: true,
-      message: 'Password has been reset successfully. You can now login with your new password.'
-    });
-
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-};
-
-/**
- * Get list of approvers (admins and super-admins) for leave requests
- * Fetches admin/super-admin users and returns their corresponding EmployeeHub records
- */
-exports.getApprovers = async (req, res) => {
-  try {
-    console.log('🔍 Fetching approvers from User collection...');
-    
-    // Fetch all admin and super-admin users from User collection
-    const adminUsers = await User.find({
-      role: { $in: ['admin', 'super-admin'] },
-      isActive: true,
-      isAdminApproved: true
-    }).select('email role firstName lastName');
-
-    console.log(`✅ Found ${adminUsers.length} admin users in User collection`);
-
-    // Get their emails to find corresponding EmployeeHub records
-    const adminEmails = adminUsers.map(user => user.email);
-
-    // Find EmployeeHub records for these admin users
-    const employeeApprovers = await EmployeeHub.find({
-      email: { $in: adminEmails },
-      isActive: true,
-      status: { $ne: 'Terminated' }
-    }).select('_id email firstName lastName role');
-
-    console.log(`✅ Found ${employeeApprovers.length} EmployeeHub records for admins`);
-
-    // Create a map of email to User role for display
-    const userRoleMap = {};
-    adminUsers.forEach(user => {
-      userRoleMap[user.email] = {
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName
-      };
-    });
-
-    // Transform the data to match the expected format with User role for display
-    const approverList = employeeApprovers.map(employee => {
-      const userInfo = userRoleMap[employee.email] || {};
-      return {
-        _id: employee._id, // This is EmployeeHub._id which is what we need for approverId
-        email: employee.email,
-        role: userInfo.role || employee.role, // Use User role for display
-        firstName: employee.firstName || userInfo.firstName || employee.email.split('@')[0],
-        lastName: employee.lastName || userInfo.lastName || ''
-      };
-    });
-
-    console.log('📋 Approvers prepared:', approverList.map(a => `${a.firstName} ${a.lastName} (${a.role})`));
-
-    res.status(200).json({
-      success: true,
-      count: approverList.length,
-      data: approverList
-    });
-
-  } catch (error) {
-    console.error('❌ Error fetching approvers:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch approvers',
-      error: error.message
     });
   }
 };

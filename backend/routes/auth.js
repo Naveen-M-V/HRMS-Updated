@@ -25,13 +25,4 @@ router.post('/logout', authController.logout);
 // POST /api/auth/change-password - Change Password
 router.post('/change-password', authController.changePassword);
 
-// POST /api/auth/forgot-password - Request Password Reset
-router.post('/forgot-password', authController.forgotPassword);
-
-// POST /api/auth/reset-password - Reset Password with Token
-router.post('/reset-password', authController.resetPassword);
-
-// GET /api/auth/approvers - Get list of approvers (admins and super-admins) for leave requests
-router.get('/approvers', authController.getApprovers);
-
 module.exports = router;
