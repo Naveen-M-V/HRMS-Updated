@@ -287,6 +287,24 @@ export const detectConflicts = async (employeeId, startTime, endTime, date) => {
   }
 };
 
+export const getAllRotasUnfiltered = async (filters = {}) => {
+  try {
+    const params = {};
+    if (filters.employeeId) params.employeeId = filters.employeeId;
+    if (filters.location && filters.location !== 'all') params.location = filters.location;
+    if (filters.workType && filters.workType !== 'all') params.workType = filters.workType;
+    if (filters.status) params.status = filters.status;
+
+    const response = await axios.get(
+      buildApiUrl(`${ROTA_BASE}/all`),
+      { withCredentials: true, params }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch all rotas' };
+  }
+};
+
 export const getActiveRotas = async (filters = {}) => {
   try {
     const params = {};

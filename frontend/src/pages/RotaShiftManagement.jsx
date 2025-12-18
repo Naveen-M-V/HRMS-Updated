@@ -17,6 +17,7 @@ import {
   deleteShiftAssignment,
   requestShiftSwap,
   approveShiftSwap,
+  getAllRotasUnfiltered,
   getActiveRotas,
   getOldRotas
 } from '../utils/rotaApi';
@@ -44,7 +45,7 @@ const RotaShiftManagement = () => {
   const [viewMode, setViewMode] = useState('list');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState(null);
-  const [rotaTab, setRotaTab] = useState('active');
+  const [rotaTab, setRotaTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -86,6 +87,8 @@ const RotaShiftManagement = () => {
   };
 
   const [filters, setFilters] = useState(getInitialFilters);
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [employeeFilter, setEmployeeFilter] = useState('all');
   const [formData, setFormData] = useState({
     employeeIds: [], // Array for multiple employee selection
     teamIds: [], // Array for multiple team selection
@@ -112,6 +115,62 @@ const RotaShiftManagement = () => {
     return friday;
   }
 
+  // Get employees filtered by selected team for dropdown
+  const getFilteredEmployeesForDropdown = () => {
+    if (teamFilter === 'all') {
+      return employees;
+    }
+    
+    // Find the selected team
+    const selectedTeam = teams.find(t => (t._id || t.id) === teamFilter);
+    if (!selectedTeam || !selectedTeam.members) {
+      return employees;
+    }
+    
+    // Filter employees who are members of the selected team
+    return employees.filter(emp => {
+      const empId = emp.id || emp._id;
+      return selectedTeam.members.some(memberId => {
+        const memberIdStr = typeof memberId === 'object' ? (memberId._id || memberId.id) : memberId;
+        return memberIdStr?.toString() === empId?.toString();
+      });
+    });
+  };
+
+  // Get filtered shifts based on team and employee filters
+  const getFilteredShifts = () => {
+    let filtered = [...shifts];
+    
+    // Filter by team
+    if (teamFilter !== 'all') {
+      const selectedTeam = teams.find(t => (t._id || t.id) === teamFilter);
+      if (selectedTeam && selectedTeam.members) {
+        filtered = filtered.filter(shift => {
+          const shiftEmployeeId = typeof shift.employeeId === 'object' 
+            ? (shift.employeeId._id || shift.employeeId.id)
+            : shift.employeeId;
+          
+          return selectedTeam.members.some(memberId => {
+            const memberIdStr = typeof memberId === 'object' ? (memberId._id || memberId.id) : memberId;
+            return memberIdStr?.toString() === shiftEmployeeId?.toString();
+          });
+        });
+      }
+    }
+    
+    // Filter by employee
+    if (employeeFilter !== 'all') {
+      filtered = filtered.filter(shift => {
+        const shiftEmployeeId = typeof shift.employeeId === 'object' 
+          ? (shift.employeeId._id || shift.employeeId.id)
+          : shift.employeeId;
+        return shiftEmployeeId?.toString() === employeeFilter;
+      });
+    }
+    
+    return filtered;
+  };
+
   useEffect(() => {
     console.log('🔄 useEffect triggered - filters changed:', filters);
     fetchData();
@@ -137,7 +196,15 @@ const RotaShiftManagement = () => {
 
       console.log('🔍 Fetching with filters:', filters);
 
-      const fetchFunction = rotaTab === 'old' ? getOldRotas : getActiveRotas;
+      let fetchFunction;
+      if (rotaTab === 'all') {
+        fetchFunction = getAllRotasUnfiltered;
+      } else if (rotaTab === 'old') {
+        fetchFunction = getOldRotas;
+      } else {
+        fetchFunction = getActiveRotas;
+      }
+      
       const [shiftsRes, statsRes] = await Promise.all([
         fetchFunction(filters),
         getShiftStatistics(filters.startDate, filters.endDate)
@@ -486,49 +553,39 @@ const RotaShiftManagement = () => {
 
 
   const exportToCSV = () => {
-    if (!shifts || shifts.length === 0) {
-      toast.warning('No rotas to export. Please apply filters and load rotas first.');
-      return;
-    }
+    const csvData = getFilteredShifts().map((shift, index) => {
+      return [
+        `${shift.employeeId?.firstName || ''} ${shift.employeeId?.lastName || ''}`.trim() || 'Unknown',
+        formatDateDDMMYY(shift.date),
+        shift.startTime || '-',
+        shift.endTime || '-',
+        shift.location || '-',
+        shift.workType || '-',
+        shift.status || 'Assigned',
+        shift.breakDuration || '0'
+      ];
+    });
 
     const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
-    const rows = shifts.map(s => [
-      `${s.employeeId?.firstName || ''} ${s.employeeId?.lastName || ''}`.trim() || 'Unknown',
-      formatDateDDMMYY(s.date),
-      s.startTime || '-',
-      s.endTime || '-',
-      s.location || '-',
-      s.workType || '-',
-      s.status || 'Assigned',
-      s.breakDuration || '0'
-    ]);
+    const rows = [headers, ...csvData];
 
     if (rows.length === 0) {
       toast.warning('No shifts data available to export.');
       return;
     }
 
-    // Create CSV with proper escaping for commas and quotes
-    const csv = [headers, ...rows]
-      .map(row => row.map(cell => {
-        // Escape quotes and wrap in quotes if contains comma
-        const cellStr = String(cell);
-        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-          return `"${cellStr.replace(/"/g, '""')}"`;
-        }
-        return cellStr;
-      }).join(','))
-      .join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const tabName = rotaTab === 'old' ? 'old_rotas' : 'active_rotas';
-    a.download = `${tabName}_${filters.startDate || 'all'}_${filters.endDate || 'all'}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success(`CSV exported successfully with ${rows.length} rotas`);
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const tabName = rotaTab === 'all' ? 'all_rotas' : (rotaTab === 'old' ? 'old_rotas' : 'active_rotas');
+    const dateStr = rotaTab === 'all' ? 'complete' : `${filters.startDate}_${filters.endDate}`;
+    link.setAttribute("download", `${tabName}_${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    const tabLabel = rotaTab === 'all' ? 'All' : (rotaTab === 'old' ? 'Old' : 'Active');
+    toast.success(`${tabLabel} rotas exported successfully with ${rows.length} rotas`);
   };
 
   if (loading && shifts.length === 0) {
@@ -582,6 +639,23 @@ const RotaShiftManagement = () => {
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => { setRotaTab('all'); setCurrentPage(1); }}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: rotaTab === 'all' ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+                background: rotaTab === 'all' ? '#eff6ff' : '#ffffff',
+                color: rotaTab === 'all' ? '#1d4ed8' : '#374151',
+                fontSize: '14px',
+                fontWeight: rotaTab === 'all' ? '600' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              All Rotas
+            </button>
             <button
               type="button"
               onClick={() => { setRotaTab('active'); setCurrentPage(1); }}
@@ -676,7 +750,75 @@ const RotaShiftManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                Team
+              </label>
+              <Select
+                value={teamFilter}
+                onValueChange={(value) => {
+                  setTeamFilter(value);
+                  setEmployeeFilter('all');
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger style={{ width: '100%', padding: '10px 12px' }}>
+                  <SelectValue placeholder="All Teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {teams.map(team => (
+                    <SelectItem key={team._id || team.id} value={team._id || team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                Employee
+              </label>
+              <Select
+                value={employeeFilter}
+                onValueChange={(value) => {
+                  setEmployeeFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger style={{ width: '100%', padding: '10px 12px' }}>
+                  <SelectValue placeholder="All Employees" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {getFilteredEmployeesForDropdown().map(emp => (
+                    <SelectItem key={emp.id || emp._id} value={emp.id || emp._id}>
+                      {emp.firstName} {emp.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setTeamFilter('all');
+                  setEmployeeFilter('all');
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: '#ffffff',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Reset Filters
+              </button>
               <button
                 onClick={() => setShowModal(true)}
                 style={{
@@ -729,14 +871,16 @@ const RotaShiftManagement = () => {
                 </tr>
               </thead>
               <tbody>
-                {shifts.length === 0 ? (
+                {getFilteredShifts().length === 0 ? (
                   <tr>
                     <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                      {rotaTab === 'active' ? 'No active rotas found.' : 'No old rotas found.'}
+                      {teamFilter !== 'all' || employeeFilter !== 'all' 
+                        ? 'No shifts found for the selected filters.'
+                        : (rotaTab === 'all' ? 'No rotas found.' : (rotaTab === 'active' ? 'No active rotas today.' : 'No old rotas found.'))}
                     </td>
                   </tr>
                 ) : (
-                  shifts.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((shift, index) => {
+                  getFilteredShifts().slice((currentPage - 1) * pageSize, currentPage * pageSize).map((shift, index) => {
                     // Priority 1: Use populated employeeId from backend (includes firstName, lastName, role)
                     // Priority 2: Try to match with employees list
                     // Priority 3: Show 'Unassigned'
@@ -888,7 +1032,7 @@ const RotaShiftManagement = () => {
             </table>
           </div>
 
-          {shifts.length > 0 && (
+          {getFilteredShifts().length > 0 && (
             <div style={{
               padding: '16px 24px',
               borderTop: '1px solid #f3f4f6',
@@ -897,7 +1041,7 @@ const RotaShiftManagement = () => {
               alignItems: 'center'
             }}>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                Showing {Math.min((currentPage - 1) * pageSize + 1, shifts.length)} to {Math.min(currentPage * pageSize, shifts.length)} of {shifts.length} rotas
+                Showing {Math.min((currentPage - 1) * pageSize + 1, getFilteredShifts().length)} to {Math.min(currentPage * pageSize, getFilteredShifts().length)} of {getFilteredShifts().length} rotas
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
@@ -917,7 +1061,7 @@ const RotaShiftManagement = () => {
                   Previous
                 </button>
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                  {Array.from({ length: Math.ceil(shifts.length / pageSize) }, (_, i) => i + 1).map(page => (
+                  {Array.from({ length: Math.ceil(getFilteredShifts().length / pageSize) }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
@@ -938,17 +1082,17 @@ const RotaShiftManagement = () => {
                   ))}
                 </div>
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(shifts.length / pageSize), prev + 1))}
-                  disabled={currentPage >= Math.ceil(shifts.length / pageSize)}
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(getFilteredShifts().length / pageSize), prev + 1))}
+                  disabled={currentPage >= Math.ceil(getFilteredShifts().length / pageSize)}
                   style={{
                     padding: '8px 16px',
                     borderRadius: '6px',
                     border: '1px solid #d1d5db',
-                    background: currentPage >= Math.ceil(shifts.length / pageSize) ? '#f9fafb' : '#ffffff',
-                    color: currentPage >= Math.ceil(shifts.length / pageSize) ? '#9ca3af' : '#374151',
+                    background: currentPage >= Math.ceil(getFilteredShifts().length / pageSize) ? '#f9fafb' : '#ffffff',
+                    color: currentPage >= Math.ceil(getFilteredShifts().length / pageSize) ? '#9ca3af' : '#374151',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: currentPage >= Math.ceil(shifts.length / pageSize) ? 'not-allowed' : 'pointer'
+                    cursor: currentPage >= Math.ceil(getFilteredShifts().length / pageSize) ? 'not-allowed' : 'pointer'
                   }}
                 >
                   Next

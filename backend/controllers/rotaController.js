@@ -54,22 +54,58 @@ exports.detectShiftConflicts = async (employeeId, startTime, endTime, date, excl
   }
 };
 
+exports.getAllRotas = async (req, res) => {
+  try {
+    const { employeeId, location, workType, status } = req.query;
+
+    const query = {};
+    if (employeeId) query.employeeId = employeeId;
+    if (location) query.location = location;
+    if (workType) query.workType = workType;
+    if (status) query.status = status;
+
+    const shifts = await ShiftAssignment.find(query)
+      .populate({
+        path: 'employeeId',
+        select: '_id firstName lastName email role',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'assignedBy',
+        select: '_id firstName lastName',
+        options: { strictPopulate: false }
+      })
+      .sort({ date: -1, startTime: 1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: shifts.length,
+      data: shifts
+    });
+  } catch (error) {
+    console.error('Get all rotas error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch all rotas',
+      error: error.message
+    });
+  }
+};
+
 exports.getActiveRotas = async (req, res) => {
   try {
+    // Get TODAY's date boundaries in UK timezone
     const todayStartUK = getUKStartOfDay(new Date());
+    const todayEndUK = getUKEndOfDay(new Date());
 
-    const { startDate, endDate, employeeId, location, workType, status } = req.query;
-    
-    const rangeStart = startDate ? getUKStartOfDay(new Date(startDate)) : null;
-    const rangeEnd = endDate ? getUKEndOfDay(new Date(endDate)) : null;
+    const { employeeId, location, workType, status } = req.query;
 
-    const dateQuery = { $gte: todayStartUK };
-    if (rangeStart && !Number.isNaN(rangeStart.valueOf())) {
-      dateQuery.$gte = rangeStart > dateQuery.$gte ? rangeStart : dateQuery.$gte;
-    }
-    if (rangeEnd && !Number.isNaN(rangeEnd.valueOf())) {
-      dateQuery.$lte = rangeEnd;
-    }
+    // Active rotas = shifts occurring TODAY only
+    const dateQuery = { 
+      $gte: todayStartUK,
+      $lte: todayEndUK
+    };
 
     const query = { date: dateQuery };
     if (employeeId) query.employeeId = employeeId;
