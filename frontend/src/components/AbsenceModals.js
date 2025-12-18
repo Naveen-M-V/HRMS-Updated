@@ -464,18 +464,28 @@ export const CarryoverModal = ({ employee, onClose, onSuccess }) => {
 
   const fetchCurrentBalance = async () => {
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/leave/balance/${employee._id}`);
-      if (response.data.success) {
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/leave/balances/current/${employee._id}`);
+      if (response.data.success && response.data.data) {
         setCurrentBalance(response.data.data);
         setCarryoverDays(response.data.data.carryOverDays || 0);
+      } else {
+        console.warn('No balance found for employee:', employee._id);
+        setCurrentBalance(null);
       }
     } catch (err) {
       console.error('Failed to fetch leave balance:', err);
+      setCurrentBalance(null);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!currentBalance || !currentBalance._id) {
+      alert('No leave balance found for this employee. Please ensure leave balances are initialized.');
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -511,6 +521,14 @@ export const CarryoverModal = ({ employee, onClose, onSuccess }) => {
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6">
+          {!currentBalance && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                No leave balance record found for this employee. Please ensure leave balances are initialized before updating carryover.
+              </p>
+            </div>
+          )}
+          
           {currentBalance && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Current Leave Balance</h3>
@@ -543,6 +561,7 @@ export const CarryoverModal = ({ employee, onClose, onSuccess }) => {
               onChange={(e) => setCarryoverDays(e.target.value)}
               placeholder="e.g., 5"
               className="w-full border border-gray-300 rounded-lg p-2"
+              disabled={!currentBalance}
               required
             />
             <p className="text-xs text-gray-500 mt-1">Number of unused days to carry forward to next year (max 10)</p>
@@ -569,7 +588,7 @@ export const CarryoverModal = ({ employee, onClose, onSuccess }) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !currentBalance}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300"
             >
               {loading ? 'Updating...' : 'Update Carryover'}
