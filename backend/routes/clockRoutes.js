@@ -1503,8 +1503,12 @@ router.get('/export', async (req, res) => {
     let csv = 'Date,Employee Name,VTID,Clock In,Clock Out,Total Hours,Breaks,Location\n';
 
     timeEntries.forEach(entry => {
-      const employeeName = entry.employee ?
-        `${entry.employee.firstName} ${entry.employee.lastName}` : 'Unknown';
+      // Skip entries with deleted/missing employees
+      if (!entry.employee) {
+        return;
+      }
+      
+      const employeeName = `${entry.employee.firstName} ${entry.employee.lastName}`;
       const vtid = entry.employee?.vtid || '';
       
       // Date is already a string in YYYY-MM-DD format, convert to DD/MM/YYYY
