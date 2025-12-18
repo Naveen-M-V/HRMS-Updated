@@ -1362,6 +1362,22 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
   };
 
   const exportToExcel = () => {
+    // Check if there's any data to export
+    if (!weekData || weekData.length === 0) {
+      toast.warning('No timesheet data available to export for this week');
+      return;
+    }
+
+    // Check if all days have no data
+    const hasAnyData = weekData.some(day => 
+      day.clockInTime || day.clockOutTime || day.sessions?.length > 0
+    );
+
+    if (!hasAnyData) {
+      toast.warning('No clock-in data available for this week');
+      return;
+    }
+
     // Create CSV content
     const monday = getMonday(currentDate);
     const sunday = new Date(monday);
@@ -1375,8 +1391,13 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     // Headers
     csvContent += `Date,Clocked Hours,Location,Overtime,Total Hours\n`;
     
-    // Data rows
+    // Data rows - only include days with actual data
     weekData.forEach(day => {
+      // Skip days with no clock-in data
+      if (!day.clockInTime && !day.sessions?.length) {
+        return;
+      }
+
       const date = `${day.dayName} ${day.dayNumber}`;
       const clockedHours = day.clockedHours || 'N/A';
       const location = day.location || '--';
@@ -1401,6 +1422,8 @@ const EmployeeTimesheetModal = ({ employee, onClose }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    toast.success('Timesheet exported successfully');
   };
 
   // Transform weekData to table format

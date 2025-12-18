@@ -23,7 +23,7 @@ const EmployeeLeaveSection = () => {
   const fetchMyRequests = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/leave/requests/employee/me');
+      const response = await axios.get('/api/leave-requests/employee/me');
       if (response.data.success) {
         setMyRequests(response.data.data);
       }

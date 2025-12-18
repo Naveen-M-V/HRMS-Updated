@@ -108,7 +108,7 @@ const LeaveForm = ({ selectedDates }) => {
         status: 'pending'
       };
 
-      const response = await axios.post('/api/leave/requests', payload);
+      const response = await axios.post('/api/leave-requests', payload);
 
       if (response.data.success) {
         toast.success('Leave request submitted successfully');
