@@ -357,13 +357,20 @@ exports.createTimeOff = async (req, res) => {
       });
     }
 
+    // Calculate number of days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    const numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
     // Create pre-approved leave request
     const leaveRequest = new LeaveRequest({
       employeeId,
       approverId: adminId,
       leaveType,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
+      numberOfDays, // Explicitly set it
       reason,
       status: 'Approved',
       adminComment: 'Time off added by admin',
@@ -388,9 +395,9 @@ exports.createTimeOff = async (req, res) => {
       user: employeeId,
       type: leaveTypeMap[leaveType] || 'annual',
       status: 'approved',
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      days: leaveRequest.numberOfDays,
+      startDate: start,
+      endDate: end,
+      days: numberOfDays,
       reason,
       approvedBy: adminId,
       approvedAt: new Date(),
