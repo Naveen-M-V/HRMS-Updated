@@ -1932,7 +1932,6 @@ router.post('/user/out', authenticateSession, async (req, res) => {
     }
 
     // Update clock out time - store as UTC Date object
-    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
     const currentTime = ukNow.toTimeString().slice(0, 5); // HH:MM format for display
     timeEntry.clockOut = new Date(); // Store as UTC Date object
     timeEntry.status = 'clocked_out';
