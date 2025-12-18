@@ -24,6 +24,8 @@ exports.createLeaveRequest = async (req, res) => {
     // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     if (start > end) {
       return res.status(400).json({
@@ -32,7 +34,11 @@ exports.createLeaveRequest = async (req, res) => {
       });
     }
 
-    if (start < new Date()) {
+    // Allow today and future dates, but not past dates
+    const startDateOnly = new Date(start);
+    startDateOnly.setHours(0, 0, 0, 0);
+    
+    if (startDateOnly < today) {
       return res.status(400).json({
         success: false,
         message: 'Cannot create leave request for past dates'

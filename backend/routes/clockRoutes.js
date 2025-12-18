@@ -1488,14 +1488,11 @@ router.get('/export', async (req, res) => {
     const { startDate, endDate } = req.query;
 
     let query = {};
+    // Date field is stored as string (YYYY-MM-DD), so use string comparison
     if (startDate || endDate) {
       query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.date.$lte = end;
-      }
+      if (startDate) query.date.$gte = startDate;
+      if (endDate) query.date.$lte = endDate;
     }
 
     const timeEntries = await TimeEntry.find(query)
@@ -2312,15 +2309,11 @@ router.get('/user/entries', authenticateSession, async (req, res) => {
 
     let query = { employee: userId };
 
-    // Date range filter
+    // Date range filter - date field is stored as string (YYYY-MM-DD)
     if (startDate || endDate) {
       query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.date.$lte = end;
-      }
+      if (startDate) query.date.$gte = startDate;
+      if (endDate) query.date.$lte = endDate;
     }
 
     const timeEntries = await TimeEntry.find(query)

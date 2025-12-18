@@ -66,6 +66,7 @@ const ClockIns = () => {
   useEffect(() => {
     fetchData();
     fetchMyStatus(); // Fetch admin's own clock status on page load
+    fetchTodayClockInHistory(); // Load today's clock-in history from server
     // Auto-refresh every 15 seconds for real-time sync (polling-based)
     // Cross-tab updates are handled by ClockStatusContext (instant)
     const interval = setInterval(() => {
@@ -114,6 +115,77 @@ const ClockIns = () => {
     } catch (error) {
       console.error('❌ Failed to fetch admin clock status:', error);
       setMyStatus(null);
+    }
+  };
+
+  const fetchTodayClockInHistory = async () => {
+    try {
+      // Get today's date in YYYY-MM-DD format
+      const today = moment().tz('Europe/London').format('YYYY-MM-DD');
+      
+      // Fetch today's time entries from the server
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL}/clock/entries?startDate=${today}&endDate=${today}`,
+        {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch clock-in history');
+      }
+
+      const data = await response.json();
+      
+      // Transform the time entries into clock-in history format
+      if (data.success && Array.isArray(data.data)) {
+        const history = data.data
+          .filter(entry => entry.clockIn) // Only include entries with clock-in time
+          .map(entry => {
+            const employeeName = entry.employee 
+              ? `${entry.employee.firstName || ''} ${entry.employee.lastName || ''}`.trim()
+              : 'Unknown';
+            
+            // Parse the date and clock-in time
+            const entryDate = moment(entry.date).tz('Europe/London');
+            const clockInTime = entry.clockIn 
+              ? (typeof entry.clockIn === 'string' ? entry.clockIn : moment(entry.clockIn).tz('Europe/London').format('HH:mm'))
+              : 'N/A';
+            
+            // Format location from GPS coordinates if available
+            let location = 'N/A';
+            let accuracy = 'N/A';
+            if (entry.gpsLocation && entry.gpsLocation.coordinates) {
+              const [longitude, latitude] = entry.gpsLocation.coordinates;
+              location = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+              if (entry.gpsLocation.accuracy) {
+                accuracy = `±${Math.round(entry.gpsLocation.accuracy)}m`;
+              }
+            } else if (entry.location) {
+              location = entry.location;
+            }
+
+            return {
+              employeeName,
+              date: entryDate.format('DD/MM/YYYY'),
+              day: entryDate.format('dddd'),
+              clockInTime,
+              location,
+              accuracy
+            };
+          });
+
+        console.log(`📋 Loaded ${history.length} clock-in records from today`);
+        setClockInHistory(history);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch clock-in history:', error);
+      // Don't show error toast to user, just log it
+      // The history will remain empty and show nothing, which is acceptable
     }
   };
 
@@ -446,6 +518,7 @@ const ClockIns = () => {
         // Wait a moment for backend to fully process, then fetch fresh data
         setTimeout(async () => {
           await fetchData();
+          await fetchTodayClockInHistory(); // Refresh clock-in history to include the new entry
           await fetchMyStatus(); // Refresh admin's own status
 
           // Debug: Check what status we actually got back
@@ -1985,17 +2058,81 @@ const ClockIns = () => {
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
           border: '1px solid #e5e7eb'
         }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '700',
-            color: '#111827',
-            marginBottom: '20px',
+          <div style={{
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '8px'
+            marginBottom: '20px'
           }}>
-            📋 Clock-In History
-          </h2>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#111827',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              margin: 0
+            }}>
+              📋 Clock-In History
+            </h2>
+            <button
+              onClick={() => {
+                // Validate data exists
+                if (!clockInHistory || clockInHistory.length === 0) {
+                  toast.warning('No clock-in history data to export');
+                  return;
+                }
+
+                // Create CSV content
+                let csvContent = 'Employee Name,Date,Day,Clock-In Time,Location (GPS),Accuracy\n';
+                
+                // Add data rows
+                clockInHistory.forEach(entry => {
+                  const employeeName = (entry.employeeName || 'N/A').replace(/,/g, ';');
+                  const date = entry.date ? formatDate(entry.date) : 'N/A';
+                  const day = (entry.day || 'N/A').replace(/,/g, ';');
+                  const clockInTime = entry.clockInTime || 'N/A';
+                  const location = (entry.location || 'N/A').replace(/,/g, ';');
+                  const accuracy = entry.accuracy || 'N/A';
+                  
+                  csvContent += `"${employeeName}","${date}","${day}","${clockInTime}","${location}","${accuracy}"\n`;
+                });
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                const timestamp = moment().tz('Europe/London').format('YYYYMMDD_HHmmss');
+                link.setAttribute('download', `clock_in_history_${timestamp}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                toast.success(`Exported ${clockInHistory.length} clock-in records successfully`);
+              }}
+              style={{
+                padding: '10px 20px',
+                background: '#3b82f6',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#2563eb'}
+              onMouseLeave={(e) => e.target.style.background = '#3b82f6'}
+            >
+              📥 Export CSV
+            </button>
+          </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{
