@@ -54,6 +54,11 @@ exports.createLeaveRequest = async (req, res) => {
       });
     }
 
+    // Calculate numberOfDays (including weekends, excluding time)
+    const diffTime = Math.abs(end - start);
+    const numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    console.log('Calculated numberOfDays:', numberOfDays);
+
     // Check for overlapping leave
     const overlappingLeave = await LeaveRequest.findOne({
       employeeId,
@@ -75,6 +80,7 @@ exports.createLeaveRequest = async (req, res) => {
       leaveType,
       startDate: start,
       endDate: end,
+      numberOfDays,
       reason,
       status: status === 'Draft' ? 'Draft' : 'Pending'
     });
