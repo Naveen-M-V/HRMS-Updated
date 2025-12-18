@@ -13,23 +13,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 const LeaveRequestForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
-    approverId: '',
     leaveType: 'Casual',
     startDate: null,
     endDate: null,
     reason: ''
   });
 
-  const [managers, setManagers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [numberOfDays, setNumberOfDays] = useState(0);
 
   const leaveTypes = ['Sick', 'Casual', 'Paid', 'Unpaid', 'Maternity', 'Paternity', 'Bereavement', 'Other'];
 
-  useEffect(() => {
-    fetchManagers();
-  }, []);
+  // No need to fetch managers - unified system sends to all admins automatically
 
   useEffect(() => {
     if (formData.startDate && formData.endDate) {
@@ -41,32 +37,11 @@ const LeaveRequestForm = ({ onSuccess }) => {
     }
   }, [formData.startDate, formData.endDate]);
 
-  const fetchManagers = async () => {
-    try {
-      console.log('📋 Fetching approvers (admin/super-admin only)...');
-      
-      const response = await axios.get('/api/users');
-      console.log('📊 API response:', response.data);
-
-      if (response.data.success && response.data.data) {
-        console.log('✅ Found', response.data.data.length, 'admin/super-admin accounts');
-        console.log('📋 Data:', response.data.data);
-        setManagers(response.data.data);
-      } else {
-        console.warn('⚠️ No approvers found in response');
-        setManagers([]);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching approvers:', error);
-      toast.error('Failed to load approvers');
-      setManagers([]);
-    }
-  };
+  // Removed fetchManagers - unified system automatically routes to all admins
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.approverId) newErrors.approverId = 'Please select an approver';
     if (!formData.leaveType) newErrors.leaveType = 'Please select a leave type';
     if (!formData.startDate) newErrors.startDate = 'Please select a start date';
     if (!formData.endDate) newErrors.endDate = 'Please select an end date';
@@ -99,25 +74,19 @@ const LeaveRequestForm = ({ onSuccess }) => {
 
     setLoading(true);
     try {
-      // Get current user from localStorage or auth context
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      
       const payload = {
-        employeeId: currentUser._id || currentUser.id, // Logged-in employee
-        approverId: formData.approverId,
         leaveType: formData.leaveType,
         startDate: formData.startDate,
         endDate: formData.endDate,
         reason: formData.reason,
-        status: isDraft ? 'draft' : 'pending'
+        status: isDraft ? 'Draft' : 'Pending'
       };
 
-      const response = await axios.post('/api/leave-requests', payload);
+      const response = await axios.post('/api/leave/request', payload);
 
       if (response.data.success) {
         toast.success(response.data.message);
         setFormData({
-          approverId: '',
           leaveType: 'Casual',
           startDate: null,
           endDate: null,
@@ -159,43 +128,23 @@ const LeaveRequestForm = ({ onSuccess }) => {
       </h2>
 
       <form onSubmit={(e) => handleSubmit(e, false)}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-          {/* Approval Manager */}
-          <div>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#374151',
-              marginBottom: '8px'
-            }}>
-              Approval Manager *
-            </label>
-            <Select
-              value={formData.approverId}
-              onValueChange={(value) => setFormData({ ...formData, approverId: value })}
-            >
-              <SelectTrigger className={`w-full ${errors.approverId ? "border-red-500 ring-red-500" : ""}`}>
-                <SelectValue placeholder="Select a manager" />
-              </SelectTrigger>
-              <SelectContent>
-                {managers.map(manager => {
-                  const roleDisplay = manager.role === 'hr' ? 'HR' : 
-                                    manager.role === 'super-admin' ? 'Super Admin' :
-                                    manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
-                  return (
-                    <SelectItem key={manager._id} value={manager._id}>
-                      {manager.firstName} {manager.lastName} — {roleDisplay}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            {errors.approverId && (
-              <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>{errors.approverId}</p>
-            )}
-          </div>
+        {/* Info Banner */}
+        <div style={{
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#1e40af'
+        }}>
+          <CheckCircleIcon style={{ width: '18px', height: '18px' }} />
+          <span>Your request will be sent to all admins and super-admins for approval</span>
+        </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
           {/* Leave Type */}
           <div>
             <label style={{
