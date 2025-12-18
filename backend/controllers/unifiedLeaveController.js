@@ -339,6 +339,15 @@ exports.rejectLeaveRequest = async (req, res) => {
 exports.createTimeOff = async (req, res) => {
   try {
     const { employeeId, leaveType, startDate, endDate, reason } = req.body;
+    
+    // Check authentication first
+    if (!req.user || (!req.user.id && !req.user._id)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const adminId = req.user.id || req.user._id;
 
     if (!employeeId || !leaveType || !startDate || !endDate || !reason) {
@@ -815,12 +824,17 @@ async function notifyEmployeeOfApproval(leaveRequest, comment) {
     const employee = await EmployeeHub.findById(leaveRequest.employeeId);
 
     await Notification.create({
-      userId: leaveRequest.employeeId,
-      type: 'leave_approved',
+      recipientType: 'employee',
+      employeeRef: leaveRequest.employeeId,
+      type: 'leave',
       title: 'Leave Request Approved',
       message: `Your ${leaveRequest.leaveType} leave request for ${leaveRequest.numberOfDays} day(s) has been approved${comment ? ': ' + comment : ''}`,
-      relatedId: leaveRequest._id,
-      read: false
+      priority: 'medium',
+      metadata: {
+        relatedId: leaveRequest._id,
+        leaveType: leaveRequest.leaveType,
+        status: 'approved'
+      }
     });
 
     // Send email
@@ -848,12 +862,18 @@ async function notifyEmployeeOfRejection(leaveRequest, reason) {
     const employee = await EmployeeHub.findById(leaveRequest.employeeId);
 
     await Notification.create({
-      userId: leaveRequest.employeeId,
-      type: 'leave_rejected',
+      recipientType: 'employee',
+      employeeRef: leaveRequest.employeeId,
+      type: 'leave',
       title: 'Leave Request Rejected',
       message: `Your ${leaveRequest.leaveType} leave request has been rejected: ${reason}`,
-      relatedId: leaveRequest._id,
-      read: false
+      priority: 'high',
+      metadata: {
+        relatedId: leaveRequest._id,
+        leaveType: leaveRequest.leaveType,
+        status: 'rejected',
+        rejectionReason: reason
+      }
     });
 
     // Send email
@@ -887,12 +907,16 @@ async function notifyTeamOfLeave(leaveRequest) {
       }).select('_id');
 
       const notifications = teamMembers.map(member => ({
-        userId: member._id,
-        type: 'team_leave',
+        recipientType: 'employee',
+        employeeRef: member._id,
+        type: 'leave',
         title: 'Team Member on Leave',
         message: `${employee.firstName} ${employee.lastName} will be on ${leaveRequest.leaveType} leave from ${leaveRequest.startDate.toLocaleDateString()} to ${leaveRequest.endDate.toLocaleDateString()}`,
         priority: 'low',
-        read: false
+        metadata: {
+          relatedEmployeeId: employee._id,
+          leaveType: leaveRequest.leaveType
+        }
       }));
 
       if (notifications.length > 0) {
