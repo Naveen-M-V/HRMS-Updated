@@ -89,6 +89,7 @@ const RotaShiftManagement = () => {
   const [filters, setFilters] = useState(getInitialFilters);
   const [teamFilter, setTeamFilter] = useState('all');
   const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState('all'); // 'all', 'last7', 'last30'
   const [formData, setFormData] = useState({
     employeeIds: [], // Array for multiple employee selection
     teamIds: [], // Array for multiple team selection
@@ -137,9 +138,34 @@ const RotaShiftManagement = () => {
     });
   };
 
-  // Get filtered shifts based on team and employee filters
+  // Get filtered shifts based on team, employee, and date range filters
   const getFilteredShifts = () => {
     let filtered = [...shifts];
+    
+    // Filter by date range (UK timezone)
+    if (dateRangeFilter !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (dateRangeFilter === 'last7') {
+        startDate.setDate(now.getDate() - 7);
+      } else if (dateRangeFilter === 'last30') {
+        startDate.setDate(now.getDate() - 30);
+      }
+      
+      filtered = filtered.filter(shift => {
+        const shiftStartDate = shift.startDate ? new Date(shift.startDate) : null;
+        const shiftEndDate = shift.endDate ? new Date(shift.endDate) : null;
+        const shiftDate = shift.date ? new Date(shift.date) : null;
+        
+        // Check if startDate OR endDate OR date falls within the selected period
+        return (
+          (shiftStartDate && shiftStartDate >= startDate && shiftStartDate <= now) ||
+          (shiftEndDate && shiftEndDate >= startDate && shiftEndDate <= now) ||
+          (shiftDate && shiftDate >= startDate && shiftDate <= now)
+        );
+      });
+    }
     
     // Filter by team
     if (teamFilter !== 'all') {
@@ -752,6 +778,27 @@ const RotaShiftManagement = () => {
             </div>
             <div style={{ flex: '1', minWidth: '150px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                Filter by date range
+              </label>
+              <Select
+                value={dateRangeFilter}
+                onValueChange={(value) => {
+                  setDateRangeFilter(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger style={{ width: '100%', padding: '10px 12px' }}>
+                  <SelectValue placeholder="All Dates" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="last7">Last 7 days</SelectItem>
+                  <SelectItem value="last30">Last 30 days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div style={{ flex: '1', minWidth: '150px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
                 Team
               </label>
               <Select
@@ -804,6 +851,7 @@ const RotaShiftManagement = () => {
                 onClick={() => {
                   setTeamFilter('all');
                   setEmployeeFilter('all');
+                  setDateRangeFilter('all');
                   setCurrentPage(1);
                 }}
                 style={{
@@ -817,7 +865,7 @@ const RotaShiftManagement = () => {
                   cursor: 'pointer'
                 }}
               >
-                Reset Filters
+                Clear Filters
               </button>
               <button
                 onClick={() => setShowModal(true)}

@@ -375,7 +375,14 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
                     <div>
                       <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '2px' }}>Address</div>
                       <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
-                        {employee.address || 'N/A'}
+                        {[
+                          employee.address1 || employee.addressLine1 || employee.address,
+                          employee.address2 || employee.addressLine2,
+                          employee.address3 || employee.addressLine3,
+                          employee.townCity || employee.city,
+                          employee.county,
+                          employee.postcode || employee.postalCode
+                        ].filter(Boolean).join(', ') || 'N/A'}
                       </div>
                     </div>
                   </div>

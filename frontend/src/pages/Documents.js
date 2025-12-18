@@ -89,8 +89,8 @@ const Documents = () => {
   );
 
   const handleCreateReport = () => {
-    // Implement create report functionality
-    console.log('Create report clicked');
+    // Navigate to report library page
+    navigate('/report-library');
   };
 
   const handlePaginationChange = (newLimit) => {

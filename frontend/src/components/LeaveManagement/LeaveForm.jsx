@@ -33,8 +33,8 @@ const LeaveForm = ({ selectedDates }) => {
   const fetchManagers = async () => {
     try {
       setManagersLoading(true);
-      // Fetch admin and super-admin users as approvers
-      const response = await axios.get('/api/employees?role=admin,super-admin');
+      // Fetch admin and super-admin users as approvers from auth endpoint
+      const response = await axios.get('/api/auth/approvers');
       if (response.data.success) {
         console.log('Fetched admin approvers:', response.data.data); // Debug log
         setManagers(response.data.data);

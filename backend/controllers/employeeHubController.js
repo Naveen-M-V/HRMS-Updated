@@ -351,10 +351,20 @@ exports.getAllEmployees = async (req, res) => {
       .populate('managerId', 'firstName lastName')
       .sort({ firstName: 1, lastName: 1 });
 
+    // Filter out profile users (those with User.role='profile')
+    // Get all profile user emails from User collection
+    const profileUsers = await User.find({ role: 'profile' }).select('email');
+    const profileEmails = profileUsers.map(u => u.email.toLowerCase());
+    
+    // Filter out employees whose emails match profile users
+    const filteredEmployees = employees.filter(emp => 
+      !profileEmails.includes(emp.email.toLowerCase())
+    );
+
     res.status(200).json({
       success: true,
-      count: employees.length,
-      data: employees
+      count: filteredEmployees.length,
+      data: filteredEmployees
     });
   } catch (error) {
     res.status(500).json({

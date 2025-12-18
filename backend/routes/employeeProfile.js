@@ -89,13 +89,25 @@ router.get('/:id', async (req, res) => {
       title: employee.title,
       ethnicity: employee.ethnicity,
       
-      // Address - Map schema fields (address1/2/3) to frontend names (addressLine1/2)
+      // Address - Map schema fields (address1/2/3) to frontend names (addressLine1/2/3)
       addressLine1: employee.address1,
       addressLine2: employee.address2,
+      addressLine3: employee.address3,
       city: employee.townCity,
+      townCity: employee.townCity,
       postalCode: employee.postcode,
+      postcode: employee.postcode,
       country: employee.county,
+      county: employee.county,
       address: employee.address1,
+      address1: employee.address1,
+      address2: employee.address2,
+      address3: employee.address3,
+      
+      // Documents & Folders
+      documents: employee.documents || [],
+      folders: employee.folders || [],
+      documentFolders: employee.documentFolders || [],
       
       // Emergency Contact
       emergencyContactName: employee.emergencyContactName,

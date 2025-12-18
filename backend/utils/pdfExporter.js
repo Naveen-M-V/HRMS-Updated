@@ -157,7 +157,16 @@ const addReportSummary = (doc, reportData) => {
 const addReportTable = (doc, reportData) => {
   const records = reportData.records || [];
   
+  // Add logging for diagnostics
+  console.log(`[PDF Export] Report Type: ${reportData.reportType}`);
+  console.log(`[PDF Export] Records Count: ${records.length}`);
+  if (records.length > 0) {
+    console.log(`[PDF Export] First Record Keys:`, Object.keys(records[0]));
+    console.log(`[PDF Export] Sample Data:`, JSON.stringify(records[0], null, 2));
+  }
+  
   if (records.length === 0) {
+    console.log(`[PDF Export] WARNING: No records found for report type: ${reportData.reportType}`);
     doc.fontSize(10)
        .fillColor('#999999')
        .text('No records found for this report period.', { align: 'center' })
@@ -186,6 +195,46 @@ const addReportTable = (doc, reportData) => {
       headers: ['Employee ID', 'Name', 'Days', 'Instances', 'Bradford', 'Risk'],
       widths: [70, 130, 60, 70, 70, 60],
       fields: ['employeeId', 'fullName', 'totalDays', 'instances', 'bradfordFactor', 'riskLevel']
+    },
+    'annual-leave': {
+      headers: ['Employee ID', 'Name', 'Department', 'Entitled', 'Used', 'Balance'],
+      widths: [80, 130, 100, 70, 70, 70],
+      fields: ['employeeId', 'fullName', 'department', 'entitledDays', 'usedDays', 'balance']
+    },
+    'employee-details': {
+      headers: ['Employee ID', 'Name', 'Department', 'Job Title', 'Email', 'Status'],
+      widths: [70, 110, 90, 90, 120, 60],
+      fields: ['employeeId', 'fullName', 'department', 'jobTitle', 'email', 'status']
+    },
+    'working-status': {
+      headers: ['Employee ID', 'Name', 'Department', 'Status', 'Start Date', 'Active'],
+      widths: [70, 110, 90, 80, 80, 60],
+      fields: ['employeeId', 'fullName', 'department', 'workingStatus', 'startDate', 'isActive']
+    },
+    'rota': {
+      headers: ['Date', 'Employee', 'Shift Type', 'Start Time', 'End Time', 'Status'],
+      widths: [70, 120, 80, 70, 70, 70],
+      fields: ['date', 'employeeName', 'shiftType', 'startTime', 'endTime', 'status']
+    },
+    'overtime': {
+      headers: ['Employee ID', 'Name', 'Department', 'Hours', 'Rate', 'Total Pay'],
+      widths: [70, 130, 100, 60, 70, 80],
+      fields: ['employeeId', 'fullName', 'department', 'overtimeHours', 'rate', 'totalPay']
+    },
+    'turnover': {
+      headers: ['Month', 'New Hires', 'Terminations', 'Total Employees', 'Rate %'],
+      widths: [100, 100, 100, 120, 100],
+      fields: ['month', 'newHires', 'terminations', 'totalEmployees', 'turnoverRate']
+    },
+    'sensitive-info': {
+      headers: ['Employee ID', 'Name', 'SSN', 'DOB', 'Address', 'Phone'],
+      widths: [70, 100, 80, 70, 120, 80],
+      fields: ['employeeId', 'fullName', 'ssn', 'dateOfBirth', 'address', 'phone']
+    },
+    'furloughed': {
+      headers: ['Employee ID', 'Name', 'Department', 'Furlough Start', 'Furlough End', 'Status'],
+      widths: [70, 110, 90, 85, 85, 70],
+      fields: ['employeeId', 'fullName', 'department', 'furloughStart', 'furloughEnd', 'status']
     }
   };
 

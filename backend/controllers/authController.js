@@ -489,3 +489,58 @@ exports.changePassword = async (req, res) => {
     });
   }
 };
+
+// Get Approvers (admins/super-admins with EmployeeHub entries)
+exports.getApprovers = async (req, res) => {
+  try {
+    // Find all active, approved admin and super-admin users
+    const adminUsers = await User.find({
+      role: { $in: ['admin', 'super-admin'] },
+      isActive: true,
+      isAdminApproved: true
+    }).select('email firstName lastName role');
+
+    if (!adminUsers || adminUsers.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: 'No approved admins found'
+      });
+    }
+
+    // Get their emails
+    const adminEmails = adminUsers.map(user => user.email.toLowerCase());
+
+    // Find corresponding EmployeeHub entries
+    const employeeHubRecords = await EmployeeHub.find({
+      email: { $in: adminEmails },
+      isActive: true
+    }).select('_id email firstName lastName role');
+
+    // Map User admins to EmployeeHub records
+    const approvers = employeeHubRecords.map(emp => {
+      // Find the matching User record to get the correct role
+      const userRecord = adminUsers.find(u => u.email.toLowerCase() === emp.email.toLowerCase());
+      return {
+        _id: emp._id, // This is the EmployeeHub ID needed for approverId
+        email: emp.email,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
+        role: userRecord ? userRecord.role : emp.role // Use User role (admin/super-admin)
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: approvers,
+      count: approvers.length
+    });
+
+  } catch (error) {
+    console.error('Get approvers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while fetching approvers'
+    });
+  }
+};

@@ -25,4 +25,7 @@ router.post('/logout', authController.logout);
 // POST /api/auth/change-password - Change Password
 router.post('/change-password', authController.changePassword);
 
+// GET /api/auth/approvers - Get admin/super-admin approvers
+router.get('/approvers', authController.getApprovers);
+
 module.exports = router;
