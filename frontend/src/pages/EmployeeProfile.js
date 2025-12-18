@@ -74,6 +74,31 @@ const EmployeeProfile = () => {
       setLoading(true);
       const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employee-profile/${employeeId}`);
       
+      // STEP 1: LOG FULL API RESPONSE
+      console.log("═══════════════════════════════════════");
+      console.log("PROFILE API PAYLOAD:", response.data);
+      console.log("═══════════════════════════════════════");
+      console.log("Address Fields:", {
+        address1: response.data?.address1,
+        address2: response.data?.address2,
+        address3: response.data?.address3,
+        addressLine1: response.data?.addressLine1,
+        addressLine2: response.data?.addressLine2,
+        addressLine3: response.data?.addressLine3,
+        city: response.data?.city,
+        townCity: response.data?.townCity,
+        county: response.data?.county,
+        postcode: response.data?.postcode
+      });
+      console.log("Emergency Contact:", {
+        name: response.data?.emergencyContactName,
+        relation: response.data?.emergencyContactRelation,
+        phone: response.data?.emergencyContactPhone,
+        email: response.data?.emergencyContactEmail
+      });
+      console.log("Documents:", response.data?.folders);
+      console.log("═══════════════════════════════════════");
+      
       // The employee-profile endpoint returns data directly, not wrapped in success/data
       if (response.data) {
         setEmployee(response.data);
@@ -608,19 +633,23 @@ const PersonalTab = ({ employee }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Full name</label>
-              <div className="text-gray-900 font-medium">{employee.name || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.name || `${employee?.firstName || ''} ${employee?.lastName || ''}`.trim() || 'Not provided'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-              <div className="text-gray-900 font-medium">{employee.gender || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.gender || 'Not provided'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date of birth</label>
-              <div className="text-gray-900 font-medium">{employee.dateOfBirth ? formatDateDDMMYY(employee.dateOfBirth) : 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.dateOfBirth ? formatDateDDMMYY(employee.dateOfBirth) : 'Not provided'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Mobile number</label>
-              <div className="text-gray-900 font-medium">{employee.phone || employee.phoneNumber || employee.mobileNumber || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.phone || employee?.phoneNumber || employee?.mobileNumber || 'Not provided'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+              <div className="text-gray-900 font-medium">{employee?.email || employee?.emailAddress || 'Not provided'}</div>
             </div>
           </div>
         </div>
@@ -635,27 +664,27 @@ const PersonalTab = ({ employee }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="col-span-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">Address line 1</label>
-              <div className="text-gray-900 font-medium">{employee.address1 || employee.addressLine1 || employee.address || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.address1 || employee?.addressLine1 || employee?.address || 'Not provided'}</div>
             </div>
             <div className="col-span-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">Address line 2</label>
-              <div className="text-gray-900 font-medium">{employee.address2 || employee.addressLine2 || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.address2 || employee?.addressLine2 || 'Not provided'}</div>
             </div>
             <div className="col-span-full">
               <label className="block text-sm font-medium text-gray-700 mb-2">Address line 3</label>
-              <div className="text-gray-900 font-medium">{employee.address3 || employee.addressLine3 || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.address3 || employee?.addressLine3 || 'Not provided'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Town/City</label>
-              <div className="text-gray-900 font-medium">{employee.townCity || employee.city || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.townCity || employee?.city || 'Not provided'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">County</label>
-              <div className="text-gray-900 font-medium">{employee.county || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.county || 'Not provided'}</div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Postcode</label>
-              <div className="text-gray-900 font-medium">{employee.postcode || employee.postalCode || 'Not specified'}</div>
+              <div className="text-gray-900 font-medium">{employee?.postcode || employee?.postalCode || 'Not provided'}</div>
             </div>
           </div>
         </div>
@@ -665,10 +694,10 @@ const PersonalTab = ({ employee }) => {
 };
 
 const EmergenciesTab = ({ employee }) => {
-  const contactName = employee.emergencyContactName || employee.emergencyContact;
-  const contactRelation = employee.emergencyContactRelation || employee.emergencyRelationship;
-  const contactPhone = employee.emergencyContactPhone || employee.emergencyPhone || employee.emergencyMobile;
-  const contactEmail = employee.emergencyContactEmail || employee.emergencyEmail;
+  const contactName = employee?.emergencyContactName || employee?.emergencyContact;
+  const contactRelation = employee?.emergencyContactRelation || employee?.emergencyRelationship;
+  const contactPhone = employee?.emergencyContactPhone || employee?.emergencyPhone || employee?.emergencyMobile;
+  const contactEmail = employee?.emergencyContactEmail || employee?.emergencyEmail;
   const hasContact = contactName || contactRelation || contactPhone || contactEmail;
 
   return (
@@ -680,7 +709,7 @@ const EmergenciesTab = ({ employee }) => {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
           <div className="flex items-center gap-4 mb-2">
             <Users className="w-8 h-8 text-blue-600" />
-            <span className="text-gray-900 text-lg font-semibold">{contactName || '-'}</span>
+            <span className="text-gray-900 text-lg font-semibold">{contactName || 'Not provided'}</span>
             {contactRelation && (
               <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-full">{contactRelation}</span>
             )}
@@ -713,13 +742,15 @@ const EmergenciesTab = ({ employee }) => {
 // Documents Tab with Document Manager
 const DocumentsTab = ({ employee }) => {
   // Check multiple possible data structures
-  const folders = employee.folders || employee.documents || employee.documentFolders || [];
+  const folders = employee?.folders || employee?.documents || employee?.documentFolders || [];
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [documents, setDocuments] = useState([]);
 
+  console.log("DocumentsTab - folders:", folders);
+
   const handleFolderClick = (folder) => {
     setSelectedFolder(folder);
-    setDocuments(folder.documents || folder.files || []);
+    setDocuments(folder?.documents || folder?.files || []);
   };
 
   const handleBackToFolders = () => {
@@ -727,7 +758,14 @@ const DocumentsTab = ({ employee }) => {
     setDocuments([]);
   };
 
-  if (!folders.length) {
+  const handleDownload = (doc) => {
+    if (doc.fileUrl) {
+      // Open document URL in new tab
+      window.open(`${process.env.REACT_APP_API_BASE_URL}${doc.fileUrl}`, '_blank');
+    }
+  };
+
+  if (!folders || folders.length === 0) {
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
         <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -746,21 +784,21 @@ const DocumentsTab = ({ employee }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {folders.map((folder) => (
             <div
-              key={folder.id}
+              key={folder?.id || folder?._id}
               onClick={() => handleFolderClick(folder)}
               className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between mb-4">
                 <FolderOpen className="w-10 h-10 text-blue-600 group-hover:text-blue-700 transition-colors" />
                 <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                  {folder.documents ? folder.documents.length : 0} files
+                  {folder?.documents?.length || 0} files
                 </span>
               </div>
               <h4 className="font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                {folder.name}
+                {folder?.name || 'Unnamed Folder'}
               </h4>
               <p className="text-sm text-gray-500">
-                Last updated: {folder.documents?.[0]?.uploaded || 'N/A'}
+                Last updated: {folder?.documents?.[0]?.uploaded || 'N/A'}
               </p>
             </div>
           ))}
@@ -776,26 +814,26 @@ const DocumentsTab = ({ employee }) => {
                 ← Back
               </button>
               <div>
-                <h4 className="font-semibold text-gray-900">{selectedFolder.name}</h4>
-                <p className="text-sm text-gray-500">{documents.length} documents</p>
+                <h4 className="font-semibold text-gray-900">{selectedFolder?.name || 'Unnamed Folder'}</h4>
+                <p className="text-sm text-gray-500">{documents?.length || 0} documents</p>
               </div>
             </div>
           </div>
           <div className="divide-y divide-gray-200">
-            {documents.length ? documents.map((doc) => (
-              <div key={doc.id} className="p-4 hover:bg-gray-50 transition-colors">
+            {documents && documents.length > 0 ? documents.map((doc) => (
+              <div key={doc?.id || doc?._id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                       <FileText className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h5 className="font-medium text-gray-900">{doc.name}</h5>
+                      <h5 className="font-medium text-gray-900">{doc?.name || 'Unnamed Document'}</h5>
                       <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                        <span>{doc.size}</span>
+                        <span>{doc?.size || 'Unknown size'}</span>
                         <span>•</span>
-                        <span>Uploaded {doc.uploaded}</span>
-                        {doc.version && (
+                        <span>Uploaded {doc?.uploaded || 'Unknown'}</span>
+                        {doc?.version && (
                           <>
                             <span>•</span>
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
@@ -803,7 +841,7 @@ const DocumentsTab = ({ employee }) => {
                             </span>
                           </>
                         )}
-                        {doc.expiry && (
+                        {doc?.expiry && (
                           <>
                             <span>•</span>
                             <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
@@ -815,7 +853,11 @@ const DocumentsTab = ({ employee }) => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => handleDownload(doc)}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Download document"
+                    >
                       <Download className="w-4 h-4" />
                     </button>
                     <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">

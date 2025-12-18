@@ -203,6 +203,25 @@ router.get('/:id', async (req, res) => {
       notes: employee.notes
     };
 
+    // BACKEND LOGGING: Log what we're sending
+    console.log("═══════════════════════════════════════");
+    console.log("BACKEND: Sending profile for employee:", employee.employeeId);
+    console.log("Address fields being sent:", {
+      address1: profileData.address1,
+      address2: profileData.address2,
+      address3: profileData.address3,
+      city: profileData.city,
+      county: profileData.county,
+      postcode: profileData.postcode
+    });
+    console.log("Emergency contact being sent:", {
+      name: profileData.emergencyContactName,
+      relation: profileData.emergencyContactRelation,
+      phone: profileData.emergencyContactPhone
+    });
+    console.log("Folders being sent:", profileData.folders?.length || 0, "folders");
+    console.log("═══════════════════════════════════════");
+
     res.json(profileData);
   } catch (error) {
     console.error('Error fetching employee profile:', error);
