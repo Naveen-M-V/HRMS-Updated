@@ -14,13 +14,14 @@ const LeaveForm = ({ selectedDates }) => {
   const [errors, setErrors] = useState({});
 
   const leaveTypes = [
-    'Sick Leave',
-    'Casual Leave', 
-    'Paid Leave',
-    'Unpaid Leave',
-    'Maternity Leave',
-    'Paternity Leave',
-    'Bereavement Leave'
+    'Sick',
+    'Casual', 
+    'Paid',
+    'Unpaid',
+    'Maternity',
+    'Paternity',
+    'Bereavement',
+    'Other'
   ];
 
   // No need to fetch managers - unified system sends to all admins automatically
