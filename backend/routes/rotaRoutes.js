@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const rotaController = require('../controllers/rotaController');
+const { validateShiftAssignment, validateBulkShiftAssignments } = require('../middleware/shiftValidation');
 
 router.post('/generate', rotaController.generateRota);
 router.post('/init-shifts', rotaController.initializeShifts);
 
-// Shift Assignment Routes
-router.post('/assign-shift', rotaController.assignShiftToEmployee); // NEW: Direct assign-shift route
-router.post('/shift-assignments', rotaController.assignShiftToEmployee); // Legacy route for backward compatibility
+// Shift Assignment Routes (with leave validation)
+router.post('/assign-shift', validateShiftAssignment, rotaController.assignShiftToEmployee); // NEW: Direct assign-shift route
+router.post('/shift-assignments', validateShiftAssignment, rotaController.assignShiftToEmployee); // Legacy route for backward compatibility
 
 router.get('/shift-assignments/all', rotaController.getAllShiftAssignments);
 router.get('/shift-assignments/statistics', rotaController.getShiftStatistics);

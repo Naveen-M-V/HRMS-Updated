@@ -2813,6 +2813,7 @@ const rotaRoutes = require('./routes/rotaRoutes');
 const clockRoutes = require('./routes/clockRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
 const leaveRequestRoutes = require('./routes/leaveRequestRoutes');
+const unifiedLeaveRoutes = require('./routes/unifiedLeaveRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const employeeHubRoutes = require('./routes/employeeHubRoutes');
 const documentManagementRoutes = require('./routes/documentManagement');
@@ -3432,8 +3433,12 @@ app.use('/api/job-levels', jobLevelsRoutes);
 // Core HR features
 app.use('/api/rota', authenticateSession, rotaRoutes);
 app.use('/api/clock', authenticateSession, clockRoutes);
-app.use('/api/leave', authenticateSession, leaveRoutes);
-app.use('/api/leave-requests', authenticateSession, leaveRequestRoutes);
+// Legacy leave routes (kept for backward compatibility with balance/record endpoints)
+app.use('/api/leave-legacy', authenticateSession, leaveRoutes);
+// DEPRECATED: Old leave request routes - use /api/leave-unified instead
+// app.use('/api/leave-requests', authenticateSession, leaveRequestRoutes);
+// NEW: Unified leave management system
+app.use('/api/leave', authenticateSession, unifiedLeaveRoutes);
 app.use('/api/teams', authenticateSession, teamRoutes);
 app.use('/api/employees', employeeHubRoutes);
 app.use('/api/employee-profile', authenticateSession, employeeProfileRoutes);
@@ -3828,6 +3833,11 @@ cron.schedule('0 9 * * *', async () => {
   await runExpiryChecks();
 });
 console.log('📅 Scheduled document expiry checks to run daily at 9 AM');
+
+// NEW: Schedule absence detection to run daily at 12 PM
+const { scheduleAbsenceDetection } = require('./cron/absenceDetectionCron');
+scheduleAbsenceDetection();
+console.log('✅ Absence detection cron job initialized');
 
 // ==================== SERVER START ====================
 app.listen(PORT, () => {
