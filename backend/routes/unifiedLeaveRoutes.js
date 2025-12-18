@@ -170,6 +170,66 @@ router.get('/user/current', async (req, res) => {
   }
 });
 
+// Update leave balance by ID (for carryover, adjustments, etc.)
+router.put('/balances/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { entitlementDays, carryOverDays, adjustment, notes } = req.body;
+    
+    const balance = await AnnualLeaveBalance.findById(id);
+    
+    if (!balance) {
+      return res.status(404).json({
+        success: false,
+        message: 'Leave balance not found'
+      });
+    }
+    
+    // Update fields
+    if (entitlementDays !== undefined) balance.entitlementDays = entitlementDays;
+    if (carryOverDays !== undefined) balance.carryOverDays = carryOverDays;
+    if (notes !== undefined) balance.notes = notes;
+    
+    // Add adjustment if provided
+    if (adjustment && adjustment.days !== undefined && adjustment.reason) {
+      const adminId = req.user?.id || req.user?._id;
+      balance.adjustments.push({
+        days: adjustment.days,
+        reason: adjustment.reason,
+        adjustedBy: adminId,
+        at: new Date()
+      });
+    }
+    
+    await balance.save();
+    
+    // Recalculate used days if method exists
+    if (AnnualLeaveBalance.recalculateUsedDays) {
+      await AnnualLeaveBalance.recalculateUsedDays(
+        balance.user,
+        balance.leaveYearStart,
+        balance.leaveYearEnd
+      );
+    }
+    
+    const updatedBalance = await AnnualLeaveBalance.findById(id)
+      .populate('user', 'firstName lastName email vtid');
+    
+    res.json({
+      success: true,
+      message: 'Leave balance updated successfully',
+      data: updatedBalance
+    });
+    
+  } catch (error) {
+    console.error('Update balance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error updating leave balance'
+    });
+  }
+});
+
 // Admin: Update employee annual leave balance
 router.put('/admin/balance/:userId', async (req, res) => {
   try {

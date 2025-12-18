@@ -448,12 +448,19 @@ exports.addAnnualLeave = async (req, res) => {
       });
     }
 
+    // Calculate number of days
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end - start);
+    const numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
     const leaveRequest = new LeaveRequest({
       employeeId,
       approverId: adminId,
       leaveType: 'Paid',
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
+      numberOfDays, // Explicitly set it
       reason: reason || 'Annual leave added by admin',
       status: 'Approved',
       adminComment: 'Added from EmployeeHub',
@@ -466,16 +473,16 @@ exports.addAnnualLeave = async (req, res) => {
       user: employeeId,
       type: 'annual',
       status: 'approved',
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      days: leaveRequest.numberOfDays,
+      startDate: start,
+      endDate: end,
+      days: numberOfDays,
       reason: reason || 'Annual leave',
       approvedBy: adminId,
       approvedAt: new Date(),
       createdBy: adminId
     });
 
-    await updateLeaveBalance(employeeId, leaveRequest.numberOfDays);
+    await updateLeaveBalance(employeeId, numberOfDays);
     await cancelShiftsForLeave(leaveRequest);
 
     res.status(201).json({
