@@ -549,7 +549,11 @@ exports.createEmployee = async (req, res) => {
       employeeData.startDate = new Date(); // Set current date as default
     }
 
-    // Transform flat address fields to nested address object
+    // ✅ KEEP flat fields for schema compatibility (address1, address2, etc.)
+    // The schema has both flat fields AND nested objects, so we keep both
+    // The flat fields remain unchanged from the incoming payload
+    
+    // Also create nested address object for backward compatibility (if needed)
     if (employeeData.address1 || employeeData.address2 || employeeData.townCity || employeeData.postcode || employeeData.county) {
       employeeData.address = {
         line1: employeeData.address1 || '',
@@ -558,18 +562,9 @@ exports.createEmployee = async (req, res) => {
         postCode: employeeData.postcode || '',
         country: employeeData.county || 'United Kingdom'
       };
-    } else {
-      // Provide default address if none provided
-      employeeData.address = {
-        line1: 'Office Address',
-        line2: '',
-        city: 'London',
-        postCode: 'SW1A 0AA',
-        country: 'United Kingdom'
-      };
     }
 
-    // Transform emergency contact fields
+    // Also create nested emergencyContact object for backward compatibility (if needed)
     if (employeeData.emergencyContactName || employeeData.emergencyContactPhone || employeeData.emergencyContactEmail) {
       employeeData.emergencyContact = {
         name: employeeData.emergencyContactName || '',
@@ -577,26 +572,11 @@ exports.createEmployee = async (req, res) => {
         phone: employeeData.emergencyContactPhone || '',
         email: employeeData.emergencyContactEmail || ''
       };
-    } else {
-      // Provide default emergency contact
-      employeeData.emergencyContact = {
-        name: 'Emergency Contact',
-        relationship: 'Emergency',
-        phone: '0000000000',
-        email: ''
-      };
     }
 
-    // Remove flat address fields to avoid conflicts
-    delete employeeData.address1;
-    delete employeeData.address2;
-    delete employeeData.townCity;
-    delete employeeData.postcode;
-    delete employeeData.county;
-    delete employeeData.emergencyContactName;
-    delete employeeData.emergencyContactPhone;
-    delete employeeData.emergencyContactEmail;
-    delete employeeData.emergencyContactRelation;
+    // ✅ DO NOT delete flat fields - schema expects them
+    // The flat fields (address1, address2, townCity, county, emergencyContactName, etc.)
+    // are the PRIMARY storage in the schema
 
     console.log('🔍 Final employee data before save:', JSON.stringify(employeeData, null, 2));
 

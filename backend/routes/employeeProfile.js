@@ -15,6 +15,25 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
+    // BACKEND: Log raw database values
+    console.log("═══════════════════════════════════════");
+    console.log("DATABASE RECORD for employee:", employee.employeeId);
+    console.log("Address fields in DB:", {
+      address1: employee.address1,
+      address2: employee.address2,
+      address3: employee.address3,
+      townCity: employee.townCity,
+      county: employee.county,
+      postcode: employee.postcode
+    });
+    console.log("Emergency contact in DB:", {
+      name: employee.emergencyContactName,
+      relation: employee.emergencyContactRelation,
+      phone: employee.emergencyContactPhone,
+      email: employee.emergencyContactEmail
+    });
+    console.log("═══════════════════════════════════════");
+
     // Fetch documents and folders for this employee
     const documents = await DocumentManagement.find({ employeeId: req.params.id })
       .populate('folderId', 'name description')

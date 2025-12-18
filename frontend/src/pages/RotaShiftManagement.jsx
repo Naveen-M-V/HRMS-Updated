@@ -142,6 +142,9 @@ const RotaShiftManagement = () => {
   const getFilteredShifts = () => {
     let filtered = [...shifts];
     
+    // 🔥 CRITICAL: Filter out deleted rotas FIRST
+    filtered = filtered.filter(shift => !shift.deleted && shift.deleted !== true);
+    
     // Filter by date range (UK timezone)
     if (dateRangeFilter !== 'all') {
       const now = new Date();
@@ -579,39 +582,72 @@ const RotaShiftManagement = () => {
 
 
   const exportToCSV = () => {
-    const csvData = getFilteredShifts().map((shift, index) => {
+    // Get the SAME filtered data that the table displays
+    const visibleShifts = getFilteredShifts();
+    
+    if (visibleShifts.length === 0) {
+      toast.warning('No rotas available to export.');
+      return;
+    }
+
+    // Transform visible shifts to CSV format - matching table columns exactly
+    const csvData = visibleShifts.map((shift, index) => {
+      // Get employee name the same way the table does
+      let employeeName = 'Unassigned';
+      if (shift.employeeId) {
+        if (typeof shift.employeeId === 'object' && shift.employeeId !== null && shift.employeeId.firstName) {
+          employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
+        } else {
+          let employeeIdStr;
+          if (typeof shift.employeeId === 'object' && shift.employeeId !== null) {
+            employeeIdStr = shift.employeeId._id?.toString() || shift.employeeId.id?.toString() || shift.employeeId.toString();
+          } else {
+            employeeIdStr = shift.employeeId?.toString();
+          }
+          if (employeeIdStr) {
+            const employee = employees.find(emp =>
+              emp.id?.toString() === employeeIdStr || emp._id?.toString() === employeeIdStr
+            );
+            if (employee) {
+              employeeName = `${employee.firstName} ${employee.lastName}`;
+            }
+          }
+        }
+      }
+
       return [
-        `${shift.employeeId?.firstName || ''} ${shift.employeeId?.lastName || ''}`.trim() || 'Unknown',
-        formatDateDDMMYY(shift.date),
-        shift.startTime || '-',
-        shift.endTime || '-',
-        shift.location || '-',
-        shift.workType || '-',
+        employeeName || '',
+        shift.date ? formatDateDDMMYY(shift.date) : '',
+        shift.startTime || '',
+        shift.endTime || '',
+        shift.location || '',
+        shift.workType || '',
         shift.status || 'Assigned',
-        shift.breakDuration || '0'
+        shift.breakDuration?.toString() || '0'
       ];
     });
 
     const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
     const rows = [headers, ...csvData];
 
-    if (rows.length === 0) {
-      toast.warning('No shifts data available to export.');
-      return;
-    }
-
+    // Generate CSV content
     const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    const tabName = rotaTab === 'all' ? 'all_rotas' : (rotaTab === 'old' ? 'old_rotas' : 'active_rotas');
-    const dateStr = rotaTab === 'all' ? 'complete' : `${filters.startDate}_${filters.endDate}`;
+    
+    // Filename format: All_Rotas_<yyyy-mm-dd>.csv
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // yyyy-mm-dd format
+    const tabName = rotaTab === 'all' ? 'All_Rotas' : (rotaTab === 'old' ? 'Old_Rotas' : 'Active_Rotas');
     link.setAttribute("download", `${tabName}_${dateStr}.csv`);
+    
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
     const tabLabel = rotaTab === 'all' ? 'All' : (rotaTab === 'old' ? 'Old' : 'Active');
-    toast.success(`${tabLabel} rotas exported successfully with ${rows.length} rotas`);
+    toast.success(`${tabLabel} rotas exported successfully (${visibleShifts.length} rotas)`);
   };
 
   if (loading && shifts.length === 0) {
