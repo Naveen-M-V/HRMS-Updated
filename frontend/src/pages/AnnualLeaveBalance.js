@@ -35,10 +35,20 @@ const AnnualLeaveBalance = () => {
       try {
         setLoading(true);
         setError(null);
+        
+        console.log('Fetching leave balances...');
         const response = await getLeaveBalances({ current: true });
+        console.log('API Response:', response);
+        
+        if (!response || !response.data) {
+          console.error('No data in response:', response);
+          setError('No leave balance data available');
+          setEmployees([]);
+          return;
+        }
         
         // Transform API data to match component structure
-        const transformedData = response.data?.map(balance => {
+        const transformedData = response.data.map(balance => {
           // API populates 'user' object with firstName, lastName, department from EmployeeHub
           const userName = balance.user 
             ? `${balance.user.firstName || ''} ${balance.user.lastName || ''}`.trim()
@@ -58,12 +68,14 @@ const AnnualLeaveBalance = () => {
             yearStart: balance.leaveYearStart,
             yearEnd: balance.leaveYearEnd
           };
-        }) || [];
+        });
         
+        console.log('Transformed data:', transformedData);
         setEmployees(transformedData);
       } catch (err) {
         console.error('Failed to fetch leave balances:', err);
-        setError(err.message || 'Failed to load leave balances');
+        console.error('Error details:', err.response?.data);
+        setError(err.response?.data?.message || err.message || 'Failed to load leave balances');
       } finally {
         setLoading(false);
       }
@@ -108,16 +120,36 @@ const AnnualLeaveBalance = () => {
   if (error && employees.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto p-6">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Leave Balances</h3>
           <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Check the browser console (F12) for more details
+          </p>
           <button
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Retry
           </button>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!loading && employees.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center max-w-md mx-auto p-6">
+          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Leave Balance Data</h3>
+          <p className="text-gray-600 mb-4">
+            No leave balance records found. Leave balances need to be initialized for employees.
+          </p>
+          <p className="text-sm text-gray-500">
+            Contact your administrator to set up leave balances.
+          </p>
         </div>
       </div>
     );
