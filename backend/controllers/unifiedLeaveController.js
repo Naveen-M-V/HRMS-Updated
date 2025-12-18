@@ -21,7 +21,18 @@ const mongoose = require('mongoose');
 exports.createLeaveRequest = async (req, res) => {
   try {
     const { leaveType, startDate, endDate, reason, status } = req.body;
+    
+    // Check if user is authenticated
+    if (!req.user || (!req.user.id && !req.user._id)) {
+      console.error('Authentication error: req.user not found or missing ID');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please log in again.'
+      });
+    }
+    
     const employeeId = req.user.id || req.user._id;
+    console.log('Creating leave request for employee:', employeeId);
 
     // Validation
     if (!leaveType || !startDate || !endDate || !reason) {
