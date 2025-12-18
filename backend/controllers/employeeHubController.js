@@ -482,6 +482,20 @@ exports.createEmployee = async (req, res) => {
   try {
     const employeeData = req.body;
     console.log('🔍 Incoming employee data:', JSON.stringify(employeeData, null, 2));
+    console.log('🔍 CRITICAL - Address fields in req.body:', {
+      address1: req.body.address1,
+      address2: req.body.address2,
+      address3: req.body.address3,
+      townCity: req.body.townCity,
+      county: req.body.county,
+      postcode: req.body.postcode
+    });
+    console.log('🔍 CRITICAL - Emergency contact fields in req.body:', {
+      emergencyContactName: req.body.emergencyContactName,
+      emergencyContactRelation: req.body.emergencyContactRelation,
+      emergencyContactPhone: req.body.emergencyContactPhone,
+      emergencyContactEmail: req.body.emergencyContactEmail
+    });
 
     const normalizedEmail = employeeData.email?.toString().trim().toLowerCase();
     if (!normalizedEmail) {
@@ -579,10 +593,38 @@ exports.createEmployee = async (req, res) => {
     // are the PRIMARY storage in the schema
 
     console.log('🔍 Final employee data before save:', JSON.stringify(employeeData, null, 2));
+    console.log('🔍 Address fields before save:', {
+      address1: employeeData.address1,
+      address2: employeeData.address2,
+      address3: employeeData.address3,
+      townCity: employeeData.townCity,
+      county: employeeData.county,
+      postcode: employeeData.postcode
+    });
+    console.log('🔍 Emergency contact fields before save:', {
+      emergencyContactName: employeeData.emergencyContactName,
+      emergencyContactRelation: employeeData.emergencyContactRelation,
+      emergencyContactPhone: employeeData.emergencyContactPhone,
+      emergencyContactEmail: employeeData.emergencyContactEmail
+    });
 
     // Create new employee with built-in authentication
     const employee = await EmployeeHub.create(employeeData);
     console.log('✅ Employee created successfully:', employee.employeeId);
+    console.log('🔍 Saved address fields:', {
+      address1: employee.address1,
+      address2: employee.address2,
+      address3: employee.address3,
+      townCity: employee.townCity,
+      county: employee.county,
+      postcode: employee.postcode
+    });
+    console.log('🔍 Saved emergency contact fields:', {
+      emergencyContactName: employee.emergencyContactName,
+      emergencyContactRelation: employee.emergencyContactRelation,
+      emergencyContactPhone: employee.emergencyContactPhone,
+      emergencyContactEmail: employee.emergencyContactEmail
+    });
 
     // Send credentials via email
     try {
@@ -1361,6 +1403,72 @@ exports.bulkDeleteEmployees = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting employees',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Bulk delete archived employee records (permanent deletion from ArchiveEmployee collection)
+ */
+exports.bulkDeleteArchivedEmployees = async (req, res) => {
+  try {
+    console.log('🔍 Starting bulk delete archived employees process...');
+    console.log('🔍 Request body:', req.body);
+
+    const { ids } = req.body;
+
+    // Validate input
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      console.log('❌ Invalid archived employee IDs provided');
+      return res.status(400).json({
+        success: false,
+        message: 'Archived employee IDs array is required'
+      });
+    }
+
+    console.log(`🔍 Attempting to delete ${ids.length} archived employee record(s)`);
+
+    // Check database connection
+    const dbState = mongoose.connection.readyState;
+    if (dbState !== 1) {
+      console.log('❌ Database not connected');
+      return res.status(500).json({
+        success: false,
+        message: 'Database not connected'
+      });
+    }
+
+    const ArchiveEmployee = require('../models/ArchiveEmployee');
+
+    // Find archived employees to be deleted
+    const archivedEmployees = await ArchiveEmployee.find({ _id: { $in: ids } });
+
+    if (archivedEmployees.length === 0) {
+      console.log('❌ No archived employees found with provided IDs');
+      return res.status(404).json({
+        success: false,
+        message: 'No archived employees found with the provided IDs'
+      });
+    }
+
+    console.log(`✅ Found ${archivedEmployees.length} archived employee(s) to delete`);
+
+    // Permanently delete archived employee records
+    const deleteResult = await ArchiveEmployee.deleteMany({ _id: { $in: ids } });
+    console.log(`✅ Permanently deleted ${deleteResult.deletedCount} archived employee record(s)`);
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} archived employee record(s)`,
+      deletedCount: deleteResult.deletedCount
+    });
+
+  } catch (error) {
+    console.error('❌ Error in bulk delete archived employees:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting archived employees',
       error: error.message
     });
   }
