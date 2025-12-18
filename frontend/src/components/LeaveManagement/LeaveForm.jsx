@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Calendar, MessageSquare } from 'lucide-react';
+import { User, Calendar, MessageSquare, CheckCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import axios from '../../utils/axiosConfig';
 import { toast } from 'react-toastify';
@@ -108,7 +108,7 @@ const LeaveForm = ({ selectedDates }) => {
       {/* Info Banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
         <p className="text-sm text-blue-800 flex items-center gap-2">
-          <CheckCircleIcon className="h-4 w-4" />
+          <CheckCircle className="h-4 w-4" />
           Your request will be sent to all admins and super-admins for approval
         </p>
       </div>
