@@ -3,6 +3,8 @@ const router = express.Router();
 const EmployeeHub = require('../models/EmployeesHub');
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
 const LeaveRecord = require('../models/LeaveRecord');
+const Folder = require('../models/Folder');
+const DocumentManagement = require('../models/DocumentManagement');
 
 // Get employee by ID with complete profile data
 router.get('/:id', async (req, res) => {
@@ -12,6 +14,42 @@ router.get('/:id', async (req, res) => {
     if (!employee) {
       return res.status(404).json({ message: 'Employee not found' });
     }
+
+    // Fetch documents and folders for this employee
+    const documents = await DocumentManagement.find({ employeeId: req.params.id })
+      .populate('folderId', 'name description')
+      .lean();
+    
+    // Get unique folder IDs from the documents
+    const folderIds = [...new Set(documents.map(doc => doc.folderId?._id?.toString()).filter(Boolean))];
+    
+    // Fetch full folder data
+    const folders = await Folder.find({ _id: { $in: folderIds } }).lean();
+    
+    // Group documents by folder
+    const foldersWithDocuments = folders.map(folder => {
+      const folderDocs = documents.filter(doc => 
+        doc.folderId && doc.folderId._id.toString() === folder._id.toString()
+      ).map(doc => ({
+        id: doc._id,
+        name: doc.fileName,
+        size: doc.fileSize ? `${(doc.fileSize / 1024).toFixed(2)} KB` : 'Unknown',
+        uploaded: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en-GB') : 'Unknown',
+        version: doc.version ? `v${doc.version}` : null,
+        expiry: doc.expiresOn ? new Date(doc.expiresOn).toLocaleDateString('en-GB') : null,
+        mimeType: doc.mimeType,
+        fileUrl: doc.fileUrl,
+        category: doc.category
+      }));
+      
+      return {
+        id: folder._id,
+        name: folder.name,
+        description: folder.description,
+        documents: folderDocs,
+        createdAt: folder.createdAt
+      };
+    });
 
     // Fetch real leave balance data for current year
     const now = new Date();
@@ -104,10 +142,10 @@ router.get('/:id', async (req, res) => {
       address2: employee.address2,
       address3: employee.address3,
       
-      // Documents & Folders
-      documents: employee.documents || [],
-      folders: employee.folders || [],
-      documentFolders: employee.documentFolders || [],
+      // Documents & Folders - populated from DocumentManagement
+      documents: documents || [],
+      folders: foldersWithDocuments || [],
+      documentFolders: foldersWithDocuments || [],
       
       // Emergency Contact
       emergencyContactName: employee.emergencyContactName,
