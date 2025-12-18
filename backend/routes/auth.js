@@ -31,4 +31,7 @@ router.post('/forgot-password', authController.forgotPassword);
 // POST /api/auth/reset-password - Reset Password with Token
 router.post('/reset-password', authController.resetPassword);
 
+// GET /api/auth/approvers - Get list of approvers (admins and super-admins) for leave requests
+router.get('/approvers', authController.getApprovers);
+
 module.exports = router;

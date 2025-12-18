@@ -751,3 +751,72 @@ exports.resetPassword = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get list of approvers (admins and super-admins) for leave requests
+ * Fetches admin/super-admin users and returns their corresponding EmployeeHub records
+ */
+exports.getApprovers = async (req, res) => {
+  try {
+    console.log('🔍 Fetching approvers from User collection...');
+    
+    // Fetch all admin and super-admin users from User collection
+    const adminUsers = await User.find({
+      role: { $in: ['admin', 'super-admin'] },
+      isActive: true,
+      isAdminApproved: true
+    }).select('email role firstName lastName');
+
+    console.log(`✅ Found ${adminUsers.length} admin users in User collection`);
+
+    // Get their emails to find corresponding EmployeeHub records
+    const adminEmails = adminUsers.map(user => user.email);
+
+    // Find EmployeeHub records for these admin users
+    const employeeApprovers = await EmployeeHub.find({
+      email: { $in: adminEmails },
+      isActive: true,
+      status: { $ne: 'Terminated' }
+    }).select('_id email firstName lastName role');
+
+    console.log(`✅ Found ${employeeApprovers.length} EmployeeHub records for admins`);
+
+    // Create a map of email to User role for display
+    const userRoleMap = {};
+    adminUsers.forEach(user => {
+      userRoleMap[user.email] = {
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
+    });
+
+    // Transform the data to match the expected format with User role for display
+    const approverList = employeeApprovers.map(employee => {
+      const userInfo = userRoleMap[employee.email] || {};
+      return {
+        _id: employee._id, // This is EmployeeHub._id which is what we need for approverId
+        email: employee.email,
+        role: userInfo.role || employee.role, // Use User role for display
+        firstName: employee.firstName || userInfo.firstName || employee.email.split('@')[0],
+        lastName: employee.lastName || userInfo.lastName || ''
+      };
+    });
+
+    console.log('📋 Approvers prepared:', approverList.map(a => `${a.firstName} ${a.lastName} (${a.role})`));
+
+    res.status(200).json({
+      success: true,
+      count: approverList.length,
+      data: approverList
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching approvers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch approvers',
+      error: error.message
+    });
+  }
+};

@@ -317,13 +317,15 @@ exports.getAllEmployees = async (req, res) => {
 
     // If requesting approvers, filter by specific roles
     if (approvers === 'true') {
-      query.role = { $in: ['admin', 'super-admin', 'hr', 'manager'] };
+      query.role = { $in: ['admin', 'super-admin', 'hr', 'manager', 'senior-manager'] };
     }
     
     // If specific roles are requested (comma-separated)
     if (role) {
       const roles = role.split(',').map(r => r.trim());
       query.role = { $in: roles };
+      console.log('🔍 Filtering employees by roles:', roles);
+      console.log('🔍 Query:', JSON.stringify(query));
     }
 
     if (team) query.team = team;
@@ -351,12 +353,18 @@ exports.getAllEmployees = async (req, res) => {
       .populate('managerId', 'firstName lastName')
       .sort({ firstName: 1, lastName: 1 });
 
+    console.log(`✅ Found ${employees.length} employees matching query`);
+    if (role) {
+      console.log('📋 Employees found:', employees.map(e => `${e.firstName} ${e.lastName} (${e.role})`));
+    }
+
     res.status(200).json({
       success: true,
       count: employees.length,
       data: employees
     });
   } catch (error) {
+    console.error('❌ Error fetching employees:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching employees',

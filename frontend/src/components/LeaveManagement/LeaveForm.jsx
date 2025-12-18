@@ -33,15 +33,24 @@ const LeaveForm = ({ selectedDates }) => {
   const fetchManagers = async () => {
     try {
       setManagersLoading(true);
-      // Fetch admin and super-admin users as approvers
-      const response = await axios.get('/api/employees?role=admin,super-admin');
+      // Fetch admin and super-admin users from User collection
+      const response = await axios.get('/api/auth/approvers');
+      console.log('API Response:', response.data); // Debug log
       if (response.data.success) {
-        console.log('Fetched admin approvers:', response.data.data); // Debug log
+        console.log('Fetched approvers:', response.data.data); // Debug log
         setManagers(response.data.data);
+        if (response.data.data.length === 0) {
+          console.warn('⚠️ No approvers found. Ensure admin/super-admin users exist and are approved.');
+          toast.warning('No approvers available. Please contact your administrator.');
+        }
+      } else {
+        console.error('Failed to fetch approvers:', response.data);
+        toast.error(response.data.message || 'Failed to load approvers');
       }
     } catch (error) {
       console.error('Error fetching approvers:', error);
-      toast.error('Failed to load approvers');
+      console.error('Error response:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Failed to load approvers');
     } finally {
       setManagersLoading(false);
     }
@@ -146,17 +155,23 @@ const LeaveForm = ({ selectedDates }) => {
           </SelectTrigger>
           <SelectContent>
             {managersLoading ? (
-              <div className="p-2 text-sm text-gray-500">Loading managers...</div>
+              <div className="p-2 text-sm text-gray-500">Loading approvers...</div>
             ) : managers.length === 0 ? (
               <div className="p-2 text-sm text-gray-500">No approvers available</div>
             ) : (
               managers.map(manager => {
-                const roleDisplay = manager.role === 'hr' ? 'HR' : 
-                                  manager.role === 'super-admin' ? 'Super Admin' :
+                const roleDisplay = manager.role === 'super-admin' ? 'Super Admin' :
+                                  manager.role === 'admin' ? 'Admin' :
                                   manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
+                
+                // Handle cases where firstName/lastName might be empty
+                const displayName = manager.firstName && manager.lastName 
+                  ? `${manager.firstName} ${manager.lastName}`
+                  : manager.firstName || manager.lastName || manager.email;
+                
                 return (
                   <SelectItem key={manager._id} value={manager._id}>
-                    {manager.firstName} {manager.lastName} — {roleDisplay}
+                    {displayName} — {roleDisplay}
                   </SelectItem>
                 );
               })
