@@ -711,31 +711,35 @@ router.put('/admin/balance/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { entitlementDays, carryOverDays, reason } = req.body;
-    const adminId = req.session.user._id;
+    const adminId = req.session?.user?._id || req.user?.id || req.user?._id;
 
-    // Check if user is admin or super-admin
-    const admin = await User.findById(adminId);
-    if (!admin || !['admin', 'super-admin'].includes(admin.role)) {
-      return res.status(403).json({ message: 'Admin access required' });
+    if (!adminId) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
     }
 
     // Find current leave year balance
-    const currentYear = new Date().getFullYear();
-    const leaveYearStart = new Date(currentYear, 3, 1); // April 1st
-    const leaveYearEnd = new Date(currentYear + 1, 2, 31); // March 31st next year
-
+    const now = new Date();
     let balance = await AnnualLeaveBalance.findOne({
       user: userId,
-      leaveYearStart: leaveYearStart
+      leaveYearStart: { $lte: now },
+      leaveYearEnd: { $gte: now }
     });
 
     if (!balance) {
-      // Create new balance record
+      // Create new balance record for current year
+      const currentYear = now.getFullYear();
+      const month = now.getMonth();
+      const leaveYearStart = month >= 3 ? new Date(currentYear, 3, 1) : new Date(currentYear - 1, 3, 1);
+      const leaveYearEnd = month >= 3 ? new Date(currentYear + 1, 2, 31) : new Date(currentYear, 2, 31);
+
       balance = new AnnualLeaveBalance({
         user: userId,
         leaveYearStart,
         leaveYearEnd,
-        entitlementDays: entitlementDays || 20,
+        entitlementDays: entitlementDays || 28,
         carryOverDays: carryOverDays || 0,
         usedDays: 0
       });
@@ -764,19 +768,21 @@ router.put('/admin/balance/:userId', async (req, res) => {
 
     await balance.save();
 
+    // Populate user details
+    await balance.populate('user', 'firstName lastName email');
+
     res.json({
       success: true,
       message: 'Leave balance updated successfully',
-      balance: {
-        entitlementDays: balance.entitlementDays,
-        carryOverDays: balance.carryOverDays,
-        usedDays: balance.usedDays,
-        remainingDays: balance.remainingDays
-      }
+      data: balance
     });
   } catch (error) {
     console.error('Error updating leave balance:', error);
-    res.status(500).json({ message: 'Failed to update leave balance', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to update leave balance', 
+      error: error.message 
+    });
   }
 });
 

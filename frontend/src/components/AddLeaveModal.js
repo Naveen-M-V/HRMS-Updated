@@ -17,14 +17,13 @@ export default function AddLeaveModal({ employee, onClose, onSuccess }) {
     setError("");
     try {
       const userId = employee._id || employee.id;
-      const leaveType = type === "Annual leave" ? "annual" : type === "Sick leave" ? "sick" : "unpaid";
       
       // Calculate end date based on number of days
       const startDate = new Date();
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + Number(totalDays) - 1);
       
-      const response = await axios.post("/api/leave/employee-hub/annual-leave", {
+      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/leave/employee-hub/annual-leave`, {
         employeeId: userId,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],

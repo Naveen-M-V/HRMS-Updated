@@ -353,7 +353,7 @@ const AnnualLeaveBalance = () => {
 
 // Edit Leave Balance Modal Component
 const EditLeaveBalanceModal = ({ employee, onClose, onSuccess }) => {
-  const [entitlementDays, setEntitlementDays] = useState(employee.totalLeave);
+  const [entitlementDays, setEntitlementDays] = useState(employee.totalLeave || 28);
   const [carryOverDays, setCarryOverDays] = useState(0);
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
@@ -361,17 +361,26 @@ const EditLeaveBalanceModal = ({ employee, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!reason || reason.trim().length === 0) {
+      setError('Please provide a reason for the adjustment');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      await axios.put(`/api/leave/admin/balance/${employee.userId}`, {
+      const response = await axios.put(`/api/leave/admin/balance/${employee.userId}`, {
         entitlementDays: parseInt(entitlementDays),
         carryOverDays: parseInt(carryOverDays),
-        reason: reason || 'Admin adjustment'
+        reason: reason.trim()
       });
 
-      onSuccess();
+      if (response.data.success) {
+        alert('Leave balance updated successfully!');
+        onSuccess();
+      }
     } catch (err) {
       console.error('Error updating leave balance:', err);
       setError(err.response?.data?.message || 'Failed to update leave balance');
@@ -413,13 +422,14 @@ const EditLeaveBalanceModal = ({ employee, onClose, onSuccess }) => {
             <input
               type="number"
               min="0"
+              max="60"
               value={entitlementDays}
               onChange={(e) => setEntitlementDays(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Current: {employee.totalLeave} days
+              Current: {employee.totalLeave} days | Standard UK: 28 days
             </p>
           </div>
 
