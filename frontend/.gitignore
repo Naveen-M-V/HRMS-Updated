@@ -67,6 +67,6 @@ backend/temp_auth.txt
 backend/public/
 
 # -------------------------
-# Middleware (custom)
+# Middleware (custom) - COMMENTED OUT to allow unified leave system files
 # -------------------------
-backend/middleware/
+# backend/middleware/
