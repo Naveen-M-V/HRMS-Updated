@@ -5,14 +5,22 @@
  */
 
 const mongoose = require('mongoose');
+const path = require('path');
+
+// Load environment configuration the same way server.js does
+const envConfig = require('../config/environment');
+const config = envConfig.getConfig();
+
 const EmployeeHub = require('../models/EmployeesHub');
 const User = require('../models/User');
-require('dotenv').config();
 
 async function checkApprovers() {
   try {
     console.log('🔍 Connecting to MongoDB...');
-    await mongoose.connect(process.env.MONGODB_URI);
+    console.log(`   Environment: ${config.environment}`);
+    console.log(`   MongoDB URI: ${config.database.uri.substring(0, 50)}...`);
+    
+    await mongoose.connect(config.database.uri);
     console.log('✅ Connected to MongoDB\n');
 
     // Check User collection for admin roles
