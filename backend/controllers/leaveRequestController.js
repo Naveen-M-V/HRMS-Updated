@@ -106,7 +106,6 @@ exports.createLeaveRequest = async (req, res) => {
     // Populate references for response
     console.log('🔍 Populating employee and approver references...');
     await leaveRequest.populate('employeeId', 'firstName lastName email');
-    await leaveRequest.populate('approverId', 'firstName lastName email');
     console.log('✅ References populated');
 
     // Create notifications for all admins and super admins if status is Pending
@@ -114,14 +113,31 @@ exports.createLeaveRequest = async (req, res) => {
       console.log('🔍 Creating notifications for admins...');
       const employee = await EmployeeHub.findById(employeeId);
       
-      // Find all admin and super-admin employees in EmployeeHub
-      const admins = await EmployeeHub.find({
+      // Find admins from BOTH User schema (profile users) AND EmployeeHub (employee admins)
+      const User = require('../models/User');
+      
+      // Get profile admins (User schema)
+      const profileAdmins = await User.find({
         role: { $in: ['admin', 'super-admin'] },
         isActive: true
       }).select('_id');
       
+      // Get employee admins (EmployeeHub schema)
+      const employeeAdmins = await EmployeeHub.find({
+        role: { $in: ['admin', 'super-admin'] },
+        isActive: true
+      }).select('_id');
+      
+      // Combine both admin lists
+      const allAdmins = [
+        ...profileAdmins.map(a => ({ _id: a._id, source: 'User' })),
+        ...employeeAdmins.map(a => ({ _id: a._id, source: 'EmployeeHub' }))
+      ];
+      
+      console.log(`✅ Found ${profileAdmins.length} profile admins and ${employeeAdmins.length} employee admins`);
+      
       // Create notification for each admin
-      const notifications = admins.map(admin => ({
+      const notifications = allAdmins.map(admin => ({
         userId: admin._id,
         type: 'leave_request',
         title: 'New Leave Request',
@@ -132,7 +148,7 @@ exports.createLeaveRequest = async (req, res) => {
       }));
       
       // Also notify the specific approver if they're not already in the admin list
-      const adminIds = admins.map(a => a._id.toString());
+      const adminIds = allAdmins.map(a => a._id.toString());
       if (!adminIds.includes(approverId.toString())) {
         notifications.push({
           userId: approverId,
