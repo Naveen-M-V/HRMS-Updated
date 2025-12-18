@@ -5,6 +5,7 @@ const User = require('../models/User');
 const EmployeesHub = require('../models/EmployeesHub');
 const TimeEntry = require('../models/TimeEntry');
 const mongoose = require('mongoose');
+const { getUKStartOfDay, getUKEndOfDay } = require('../utils/timeFormatter');
 
 const nextDay = (date) => {
   const d = new Date(date);
@@ -50,6 +51,111 @@ exports.detectShiftConflicts = async (employeeId, startTime, endTime, date, excl
   } catch (error) {
     console.error('Detect conflicts error:', error);
     throw error;
+  }
+};
+
+exports.getActiveRotas = async (req, res) => {
+  try {
+    const todayStartUK = getUKStartOfDay(new Date());
+
+    const { startDate, endDate, employeeId, location, workType, status } = req.query;
+    
+    const rangeStart = startDate ? getUKStartOfDay(new Date(startDate)) : null;
+    const rangeEnd = endDate ? getUKEndOfDay(new Date(endDate)) : null;
+
+    const dateQuery = { $gte: todayStartUK };
+    if (rangeStart && !Number.isNaN(rangeStart.valueOf())) {
+      dateQuery.$gte = rangeStart > dateQuery.$gte ? rangeStart : dateQuery.$gte;
+    }
+    if (rangeEnd && !Number.isNaN(rangeEnd.valueOf())) {
+      dateQuery.$lte = rangeEnd;
+    }
+
+    const query = { date: dateQuery };
+    if (employeeId) query.employeeId = employeeId;
+    if (location) query.location = location;
+    if (workType) query.workType = workType;
+    if (status) query.status = status;
+
+    const shifts = await ShiftAssignment.find(query)
+      .populate({
+        path: 'employeeId',
+        select: '_id firstName lastName email role',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'assignedBy',
+        select: '_id firstName lastName',
+        options: { strictPopulate: false }
+      })
+      .sort({ date: 1, startTime: 1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: shifts.length,
+      data: shifts
+    });
+  } catch (error) {
+    console.error('Get active rotas error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch active rotas',
+      error: error.message
+    });
+  }
+};
+
+exports.getOldRotas = async (req, res) => {
+  try {
+    const todayStartUK = getUKStartOfDay(new Date());
+
+    const { startDate, endDate, employeeId, location, workType, status } = req.query;
+    
+    const rangeStart = startDate ? getUKStartOfDay(new Date(startDate)) : null;
+    const rangeEnd = endDate ? getUKEndOfDay(new Date(endDate)) : null;
+
+    const dateQuery = { $lt: todayStartUK };
+    if (rangeStart && !Number.isNaN(rangeStart.valueOf())) {
+      dateQuery.$gte = rangeStart;
+    }
+    if (rangeEnd && !Number.isNaN(rangeEnd.valueOf())) {
+      const maxEnd = rangeEnd < todayStartUK ? rangeEnd : new Date(todayStartUK.getTime() - 1);
+      dateQuery.$lte = maxEnd;
+    }
+
+    const query = { date: dateQuery };
+    if (employeeId) query.employeeId = employeeId;
+    if (location) query.location = location;
+    if (workType) query.workType = workType;
+    if (status) query.status = status;
+
+    const shifts = await ShiftAssignment.find(query)
+      .populate({
+        path: 'employeeId',
+        select: '_id firstName lastName email role',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'assignedBy',
+        select: '_id firstName lastName',
+        options: { strictPopulate: false }
+      })
+      .sort({ date: -1, startTime: 1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: shifts.length,
+      data: shifts
+    });
+  } catch (error) {
+    console.error('Get old rotas error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch old rotas',
+      error: error.message
+    });
   }
 };
 

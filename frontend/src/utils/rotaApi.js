@@ -286,3 +286,43 @@ export const detectConflicts = async (employeeId, startTime, endTime, date) => {
     throw error.response?.data || { message: 'Failed to detect conflicts' };
   }
 };
+
+export const getActiveRotas = async (filters = {}) => {
+  try {
+    const params = {};
+    if (filters.startDate) params.startDate = filters.startDate;
+    if (filters.endDate) params.endDate = filters.endDate;
+    if (filters.employeeId) params.employeeId = filters.employeeId;
+    if (filters.location && filters.location !== 'all') params.location = filters.location;
+    if (filters.workType && filters.workType !== 'all') params.workType = filters.workType;
+    if (filters.status) params.status = filters.status;
+
+    const response = await axios.get(
+      buildApiUrl(`${ROTA_BASE}/active`),
+      { withCredentials: true, params }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch active rotas' };
+  }
+};
+
+export const getOldRotas = async (filters = {}) => {
+  try {
+    const params = {};
+    if (filters.startDate) params.startDate = filters.startDate;
+    if (filters.endDate) params.endDate = filters.endDate;
+    if (filters.employeeId) params.employeeId = filters.employeeId;
+    if (filters.location && filters.location !== 'all') params.location = filters.location;
+    if (filters.workType && filters.workType !== 'all') params.workType = filters.workType;
+    if (filters.status) params.status = filters.status;
+
+    const response = await axios.get(
+      buildApiUrl(`${ROTA_BASE}/old`),
+      { withCredentials: true, params }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch old rotas' };
+  }
+};

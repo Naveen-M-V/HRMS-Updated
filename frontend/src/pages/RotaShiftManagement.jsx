@@ -16,7 +16,9 @@ import {
   updateShiftAssignment,
   deleteShiftAssignment,
   requestShiftSwap,
-  approveShiftSwap
+  approveShiftSwap,
+  getActiveRotas,
+  getOldRotas
 } from '../utils/rotaApi';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -42,6 +44,9 @@ const RotaShiftManagement = () => {
   const [viewMode, setViewMode] = useState('list');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState(null);
+  const [rotaTab, setRotaTab] = useState('active');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   // Modal state
   const [assignmentType, setAssignmentType] = useState('employee'); // 'employee' or 'team'
@@ -111,7 +116,7 @@ const RotaShiftManagement = () => {
     console.log('🔄 useEffect triggered - filters changed:', filters);
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.startDate, filters.endDate, filters.employeeId, filters.location, filters.workType, filters.status]);
+  }, [filters.startDate, filters.endDate, filters.employeeId, filters.location, filters.workType, filters.status, rotaTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -132,8 +137,9 @@ const RotaShiftManagement = () => {
 
       console.log('🔍 Fetching with filters:', filters);
 
+      const fetchFunction = rotaTab === 'old' ? getOldRotas : getActiveRotas;
       const [shiftsRes, statsRes] = await Promise.all([
-        getAllShiftAssignments(filters),
+        fetchFunction(filters),
         getShiftStatistics(filters.startDate, filters.endDate)
       ]);
 
@@ -163,6 +169,7 @@ const RotaShiftManagement = () => {
         })));
         console.log('✅ Setting', shiftsRes.data?.length || 0, 'shifts to state');
         setShifts(shiftsRes.data || []);
+        setCurrentPage(1);
       } else {
         console.warn('⚠️ Shifts fetch unsuccessful:', shiftsRes);
         setShifts([]);
@@ -480,7 +487,7 @@ const RotaShiftManagement = () => {
 
   const exportToCSV = () => {
     if (!shifts || shifts.length === 0) {
-      toast.warning('No shifts to export. Please apply filters and load shifts first.');
+      toast.warning('No rotas to export. Please apply filters and load rotas first.');
       return;
     }
 
@@ -517,10 +524,11 @@ const RotaShiftManagement = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `shifts_${filters.startDate}_${filters.endDate}.csv`;
+    const tabName = rotaTab === 'old' ? 'old_rotas' : 'active_rotas';
+    a.download = `${tabName}_${filters.startDate || 'all'}_${filters.endDate || 'all'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`CSV exported successfully with ${rows.length} shifts`);
+    toast.success(`CSV exported successfully with ${rows.length} rotas`);
   };
 
   if (loading && shifts.length === 0) {
@@ -565,6 +573,51 @@ const RotaShiftManagement = () => {
             </div>
           </div>
         )}
+
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => { setRotaTab('active'); setCurrentPage(1); }}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: rotaTab === 'active' ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+                background: rotaTab === 'active' ? '#eff6ff' : '#ffffff',
+                color: rotaTab === 'active' ? '#1d4ed8' : '#374151',
+                fontSize: '14px',
+                fontWeight: rotaTab === 'active' ? '600' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Active Rotas
+            </button>
+            <button
+              type="button"
+              onClick={() => { setRotaTab('old'); setCurrentPage(1); }}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '8px',
+                border: rotaTab === 'old' ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+                background: rotaTab === 'old' ? '#eff6ff' : '#ffffff',
+                color: rotaTab === 'old' ? '#1d4ed8' : '#374151',
+                fontSize: '14px',
+                fontWeight: rotaTab === 'old' ? '600' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Old Rotas
+            </button>
+          </div>
+        </div>
 
         <div style={{ background: '#ffffff', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end' }}>
@@ -679,11 +732,11 @@ const RotaShiftManagement = () => {
                 {shifts.length === 0 ? (
                   <tr>
                     <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                      No shifts found. Create your first shift assignment.
+                      {rotaTab === 'active' ? 'No active rotas found.' : 'No old rotas found.'}
                     </td>
                   </tr>
                 ) : (
-                  shifts.map((shift, index) => {
+                  shifts.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((shift, index) => {
                     // Priority 1: Use populated employeeId from backend (includes firstName, lastName, role)
                     // Priority 2: Try to match with employees list
                     // Priority 3: Show 'Unassigned'
@@ -767,7 +820,7 @@ const RotaShiftManagement = () => {
                     return (
                       <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
-                          {index + 1}
+                          {(currentPage - 1) * pageSize + index + 1}
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
                           {employeeName}
@@ -834,6 +887,75 @@ const RotaShiftManagement = () => {
               </tbody>
             </table>
           </div>
+
+          {shifts.length > 0 && (
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid #f3f4f6',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                Showing {Math.min((currentPage - 1) * pageSize + 1, shifts.length)} to {Math.min(currentPage * pageSize, shifts.length)} of {shifts.length} rotas
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    background: currentPage === 1 ? '#f9fafb' : '#ffffff',
+                    color: currentPage === 1 ? '#9ca3af' : '#374151',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Previous
+                </button>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                  {Array.from({ length: Math.ceil(shifts.length / pageSize) }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: currentPage === page ? '1px solid #3b82f6' : '1px solid #d1d5db',
+                        background: currentPage === page ? '#eff6ff' : '#ffffff',
+                        color: currentPage === page ? '#1d4ed8' : '#374151',
+                        fontSize: '14px',
+                        fontWeight: currentPage === page ? '600' : '500',
+                        cursor: 'pointer',
+                        minWidth: '36px'
+                      }}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(shifts.length / pageSize), prev + 1))}
+                  disabled={currentPage >= Math.ceil(shifts.length / pageSize)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    background: currentPage >= Math.ceil(shifts.length / pageSize) ? '#f9fafb' : '#ffffff',
+                    color: currentPage >= Math.ceil(shifts.length / pageSize) ? '#9ca3af' : '#374151',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: currentPage >= Math.ceil(shifts.length / pageSize) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

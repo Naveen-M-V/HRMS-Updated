@@ -21,6 +21,8 @@ router.post('/shift-assignments/:shiftId/swap-request', rotaController.requestSh
 router.post('/shift-assignments/:shiftId/swap-approve', rotaController.approveShiftSwap);
 
 // Rota Routes
+router.get('/active', rotaController.getActiveRotas);
+router.get('/old', rotaController.getOldRotas);
 router.get('/', rotaController.getAllRota);
 router.get('/:employeeId', rotaController.getEmployeeRota);
 router.put('/:rotaId', rotaController.updateRota);
