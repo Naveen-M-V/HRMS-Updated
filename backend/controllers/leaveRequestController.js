@@ -110,62 +110,71 @@ exports.createLeaveRequest = async (req, res) => {
 
     // Create notifications for all admins and super admins if status is Pending
     if (leaveRequest.status === 'Pending') {
-      console.log('🔍 Creating notifications for admins...');
-      const employee = await EmployeeHub.findById(employeeId);
-      
-      // Find admins from BOTH User schema (profile users) AND EmployeeHub (employee admins)
-      const User = require('../models/User');
-      
-      // Get profile admins (User schema)
-      const profileAdmins = await User.find({
-        role: { $in: ['admin', 'super-admin'] },
-        isActive: true
-      }).select('_id');
-      
-      // Get employee admins (EmployeeHub schema)
-      const employeeAdmins = await EmployeeHub.find({
-        role: { $in: ['admin', 'super-admin'] },
-        isActive: true
-      }).select('_id');
-      
-      // Combine both admin lists
-      const allAdmins = [
-        ...profileAdmins.map(a => ({ _id: a._id, source: 'User' })),
-        ...employeeAdmins.map(a => ({ _id: a._id, source: 'EmployeeHub' }))
-      ];
-      
-      console.log(`✅ Found ${profileAdmins.length} profile admins and ${employeeAdmins.length} employee admins`);
-      
-      // Create notification for each admin
-      const notifications = allAdmins.map(admin => ({
-        userId: admin._id,
-        type: 'leave_request',
-        title: 'New Leave Request',
-        message: `${employee.firstName} ${employee.lastName} has submitted a leave request for ${leaveType} leave from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
-        relatedId: leaveRequest._id,
-        priority: 'high',
-        read: false
-      }));
-      
-      // Also notify the specific approver if they're not already in the admin list
-      const adminIds = allAdmins.map(a => a._id.toString());
-      if (!adminIds.includes(approverId.toString())) {
-        notifications.push({
-          userId: approverId,
+      try {
+        console.log('🔍 Creating notifications for admins...');
+        const employee = await EmployeeHub.findById(employeeId);
+        
+        // Find admins from BOTH User schema (profile users) AND EmployeeHub (employee admins)
+        const User = require('../models/User');
+        
+        console.log('🔍 Fetching profile admins from User schema...');
+        // Get profile admins (User schema)
+        const profileAdmins = await User.find({
+          role: { $in: ['admin', 'super-admin'] },
+          isActive: true
+        }).select('_id');
+        
+        console.log('🔍 Fetching employee admins from EmployeeHub schema...');
+        // Get employee admins (EmployeeHub schema)
+        const employeeAdmins = await EmployeeHub.find({
+          role: { $in: ['admin', 'super-admin'] },
+          isActive: true
+        }).select('_id');
+        
+        // Combine both admin lists
+        const allAdmins = [
+          ...profileAdmins.map(a => ({ _id: a._id, source: 'User' })),
+          ...employeeAdmins.map(a => ({ _id: a._id, source: 'EmployeeHub' }))
+        ];
+        
+        console.log(`✅ Found ${profileAdmins.length} profile admins and ${employeeAdmins.length} employee admins`);
+        
+        // Create notification for each admin
+        const notifications = allAdmins.map(admin => ({
+          userId: admin._id,
           type: 'leave_request',
-          title: 'New Leave Request Assigned',
-          message: `${employee.firstName} ${employee.lastName} has assigned you to approve their ${leaveType} leave request`,
+          title: 'New Leave Request',
+          message: `${employee.firstName} ${employee.lastName} has submitted a leave request for ${leaveType} leave from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
           relatedId: leaveRequest._id,
           priority: 'high',
           read: false
-        });
-      }
-      
-      if (notifications.length > 0) {
-        await Notification.insertMany(notifications);
-        console.log(`✅ Created ${notifications.length} leave request notifications`);
-      } else {
-        console.log('⚠️ No notifications created - no admins found');
+        }));
+        
+        // Also notify the specific approver if they're not already in the admin list
+        const adminIds = allAdmins.map(a => a._id.toString());
+        if (!adminIds.includes(approverId.toString())) {
+          notifications.push({
+            userId: approverId,
+            type: 'leave_request',
+            title: 'New Leave Request Assigned',
+            message: `${employee.firstName} ${employee.lastName} has assigned you to approve their ${leaveType} leave request`,
+            relatedId: leaveRequest._id,
+            priority: 'high',
+            read: false
+          });
+        }
+        
+        if (notifications.length > 0) {
+          console.log('🔍 Inserting notifications...');
+          await Notification.insertMany(notifications);
+          console.log(`✅ Created ${notifications.length} leave request notifications`);
+        } else {
+          console.log('⚠️ No notifications created - no admins found');
+        }
+      } catch (notificationError) {
+        // Don't fail the entire request if notifications fail
+        console.error('⚠️ Failed to create notifications (non-critical):', notificationError.message);
+        console.error('⚠️ Notification error stack:', notificationError.stack);
       }
     }
 
