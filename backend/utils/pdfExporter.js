@@ -15,13 +15,13 @@ const generatePDFReport = (reportData) => {
     bufferPages: true
   });
 
-  // Header
+  // Header - Company Name
   doc.fontSize(20)
      .font('Helvetica-Bold')
-     .text('HRMS Report Library', { align: 'center' })
+     .text('TalentShield', { align: 'center' })
      .moveDown(0.5);
 
-  // Report Title
+  // Report Title (Main Heading)
   const reportTitles = {
     'absence': 'Absence Report',
     'annual-leave': 'Annual Leave Report',
@@ -119,6 +119,30 @@ const addReportSummary = (doc, reportData) => {
     case 'absence':
       const totalDays = reportData.records?.reduce((sum, r) => sum + (r.totalAbsenceDays || 0), 0);
       doc.text(`Total Absence Days: ${totalDays || 0}`);
+      if (reportData.unrecordedAbsences) {
+        doc.text(`Unrecorded Absences: ${reportData.unrecordedAbsences.length || 0}`);
+      }
+      break;
+
+    case 'lateness':
+      const totalLateIncidents = reportData.records?.reduce((sum, r) => sum + (r.totalIncidents || 0), 0);
+      const totalMinutes = reportData.records?.reduce((sum, r) => sum + (r.totalMinutesLate || 0), 0);
+      doc.text(`Total Late Incidents: ${totalLateIncidents || 0}`);
+      doc.text(`Total Minutes Late: ${totalMinutes?.toFixed(0) || 0}`);
+      break;
+
+    case 'annual-leave':
+      const totalUsed = reportData.records?.reduce((sum, r) => sum + (r.used || 0), 0);
+      const totalRemaining = reportData.records?.reduce((sum, r) => sum + (r.remaining || 0), 0);
+      doc.text(`Total Days Used: ${totalUsed?.toFixed(1) || 0}`);
+      doc.text(`Total Days Remaining: ${totalRemaining?.toFixed(1) || 0}`);
+      break;
+
+    case 'sickness':
+      const highRisk = reportData.records?.filter(r => r.riskLevel === 'high').length || 0;
+      const mediumRisk = reportData.records?.filter(r => r.riskLevel === 'medium').length || 0;
+      doc.text(`High Risk Employees: ${highRisk}`);
+      doc.text(`Medium Risk Employees: ${mediumRisk}`);
       break;
 
     case 'expenses':
@@ -141,10 +165,32 @@ const addReportSummary = (doc, reportData) => {
       break;
 
     case 'overtime':
-      const totalOT = reportData.records?.reduce((sum, r) => sum + (r.totalOvertimeHours || 0), 0);
-      const totalCost = reportData.records?.reduce((sum, r) => sum + (r.estimatedCost || 0), 0);
+      const totalOT = reportData.records?.reduce((sum, r) => sum + parseFloat(r.totalOvertimeHours || 0), 0);
+      const totalCost = reportData.records?.reduce((sum, r) => sum + parseFloat(r.totalOvertimePay || 0), 0);
       doc.text(`Total Overtime Hours: ${totalOT?.toFixed(2) || 0}`);
-      doc.text(`Estimated Total Cost: £${totalCost?.toFixed(2) || 0}`);
+      doc.text(`Total Overtime Pay: £${totalCost?.toFixed(2) || 0}`);
+      break;
+
+    case 'rota':
+      const uniqueDates = new Set(reportData.records?.map(r => new Date(r.date).toDateString())).size;
+      doc.text(`Total Shifts: ${reportData.totalRecords || 0}`);
+      doc.text(`Days Covered: ${uniqueDates || 0}`);
+      break;
+
+    case 'sensitive-info':
+      const expired = reportData.records?.filter(r => r.status === 'expired').length || 0;
+      const urgent = reportData.records?.filter(r => r.status === 'urgent').length || 0;
+      doc.text(`Expired Certificates: ${expired}`);
+      doc.text(`Urgent (< 7 days): ${urgent}`);
+      break;
+
+    case 'working-status':
+      doc.text(`Total Employees: ${reportData.totalEmployees || 0}`);
+      break;
+
+    case 'length-of-service':
+      const avgYears = reportData.records?.reduce((sum, r) => sum + (r.years || 0), 0) / (reportData.records?.length || 1);
+      doc.text(`Average Service: ${avgYears?.toFixed(1) || 0} years`);
       break;
   }
 
@@ -197,44 +243,54 @@ const addReportTable = (doc, reportData) => {
       fields: ['employeeId', 'fullName', 'totalDays', 'instances', 'bradfordFactor', 'riskLevel']
     },
     'annual-leave': {
-      headers: ['Employee ID', 'Name', 'Department', 'Entitled', 'Used', 'Balance'],
+      headers: ['Employee ID', 'Name', 'Department', 'Entitled', 'Used', 'Remaining'],
       widths: [80, 130, 100, 70, 70, 70],
-      fields: ['employeeId', 'fullName', 'department', 'entitledDays', 'usedDays', 'balance']
+      fields: ['employeeId', 'fullName', 'department', 'entitled', 'used', 'remaining']
     },
     'employee-details': {
-      headers: ['Employee ID', 'Name', 'Department', 'Job Title', 'Email', 'Status'],
-      widths: [70, 110, 90, 90, 120, 60],
-      fields: ['employeeId', 'fullName', 'department', 'jobTitle', 'email', 'status']
+      headers: ['Employee ID', 'First Name', 'Last Name', 'Department', 'Job Title', 'Email'],
+      widths: [80, 100, 100, 100, 100, 120],
+      fields: ['employeeId', 'firstName', 'lastName', 'department', 'jobTitle', 'email']
     },
     'working-status': {
-      headers: ['Employee ID', 'Name', 'Department', 'Status', 'Start Date', 'Active'],
-      widths: [70, 110, 90, 80, 80, 60],
-      fields: ['employeeId', 'fullName', 'department', 'workingStatus', 'startDate', 'isActive']
+      headers: ['Status', 'Count', 'Percentage', 'Employees'],
+      widths: [120, 100, 100, 220],
+      fields: ['status', 'count', 'percentage', 'employees']
     },
     'rota': {
-      headers: ['Date', 'Employee', 'Shift Type', 'Start Time', 'End Time', 'Status'],
-      widths: [70, 120, 80, 70, 70, 70],
-      fields: ['date', 'employeeName', 'shiftType', 'startTime', 'endTime', 'status']
+      headers: ['Date', 'Employee ID', 'Name', 'Shift', 'Start', 'End'],
+      widths: [80, 80, 130, 100, 70, 70],
+      fields: ['date', 'employeeId', 'fullName', 'shiftName', 'startTime', 'endTime']
     },
     'overtime': {
-      headers: ['Employee ID', 'Name', 'Department', 'Hours', 'Rate', 'Total Pay'],
-      widths: [70, 130, 100, 60, 70, 80],
-      fields: ['employeeId', 'fullName', 'department', 'overtimeHours', 'rate', 'totalPay']
+      headers: ['Employee ID', 'Name', 'Department', 'OT Hours', 'Rate', 'Total Pay'],
+      widths: [70, 130, 100, 70, 70, 80],
+      fields: ['employeeId', 'fullName', 'department', 'totalOvertimeHours', 'hourlyRate', 'totalOvertimePay']
     },
     'turnover': {
-      headers: ['Month', 'New Hires', 'Terminations', 'Total Employees', 'Rate %'],
-      widths: [100, 100, 100, 120, 100],
-      fields: ['month', 'newHires', 'terminations', 'totalEmployees', 'turnoverRate']
+      headers: ['Type', 'Employee ID', 'Name', 'Department', 'Date'],
+      widths: [80, 90, 130, 120, 100],
+      fields: ['type', 'employeeId', 'fullName', 'department', 'date']
     },
     'sensitive-info': {
-      headers: ['Employee ID', 'Name', 'SSN', 'DOB', 'Address', 'Phone'],
-      widths: [70, 100, 80, 70, 120, 80],
-      fields: ['employeeId', 'fullName', 'ssn', 'dateOfBirth', 'address', 'phone']
+      headers: ['Employee ID', 'Name', 'Certificate', 'Expiry Date', 'Days Left', 'Status'],
+      widths: [70, 110, 110, 90, 70, 70],
+      fields: ['employeeId', 'employeeName', 'certificateName', 'expiryDate', 'daysUntilExpiry', 'status']
     },
     'furloughed': {
-      headers: ['Employee ID', 'Name', 'Department', 'Furlough Start', 'Furlough End', 'Status'],
-      widths: [70, 110, 90, 85, 85, 70],
-      fields: ['employeeId', 'fullName', 'department', 'furloughStart', 'furloughEnd', 'status']
+      headers: ['Employee ID', 'Name', 'Department', 'Start Date', 'End Date', 'Days'],
+      widths: [70, 130, 100, 90, 90, 60],
+      fields: ['employeeId', 'fullName', 'department', 'furloughStartDate', 'furloughEndDate', 'daysOnFurlough']
+    },
+    'length-of-service': {
+      headers: ['Employee ID', 'Name', 'Department', 'Start Date', 'Years', 'Total Days'],
+      widths: [70, 130, 110, 90, 60, 80],
+      fields: ['employeeId', 'fullName', 'department', 'startDate', 'years', 'totalDays']
+    },
+    'payroll-exceptions': {
+      headers: ['Employee ID', 'Name', 'Type', 'Severity', 'Description', 'Status'],
+      widths: [70, 110, 80, 70, 130, 60],
+      fields: ['employeeId', 'employeeName', 'type', 'severity', 'description', 'resolved']
     }
   };
 
@@ -282,6 +338,11 @@ const addReportTable = (doc, reportData) => {
       const x = startX + config.widths.slice(0, colIndex).reduce((a, b) => a + b, 0);
       let value = record[field];
 
+      // Special handling for working-status employees array
+      if (field === 'employees' && Array.isArray(value)) {
+        value = value.length > 0 ? `${value.length} employees` : '-';
+      }
+
       // Format values
       if (value === null || value === undefined) {
         value = '-';
@@ -289,6 +350,10 @@ const addReportTable = (doc, reportData) => {
         value = value.toFixed(2);
       } else if (value instanceof Date) {
         value = formatDate(value);
+      } else if (typeof value === 'boolean') {
+        value = value ? 'Yes' : 'No';
+      } else if (Array.isArray(value)) {
+        value = value.join(', ');
       } else {
         value = String(value);
       }

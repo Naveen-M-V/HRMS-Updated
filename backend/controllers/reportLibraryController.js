@@ -750,13 +750,14 @@ exports.generateSicknessReport = async (req, res) => {
     const { startDate, endDate, employeeIds } = req.body;
 
     const matchStage = {
-      date: { $gte: new Date(startDate), $lte: new Date(endDate) },
-      leaveType: 'sick',
+      startDate: { $lte: endDate },
+      endDate: { $gte: startDate },
+      type: 'sick',
       status: 'approved'
     };
 
     if (employeeIds && employeeIds.length > 0) {
-      matchStage.employee = { $in: employeeIds };
+      matchStage.user = { $in: employeeIds };
     }
 
     const sicknessData = await LeaveRecord.aggregate([
@@ -764,7 +765,7 @@ exports.generateSicknessReport = async (req, res) => {
       {
         $lookup: {
           from: 'employeeshubs',
-          localField: 'employee',
+          localField: 'user',
           foreignField: '_id',
           as: 'employeeDetails'
         }
@@ -772,9 +773,9 @@ exports.generateSicknessReport = async (req, res) => {
       { $unwind: '$employeeDetails' },
       {
         $group: {
-          _id: '$employee',
+          _id: '$user',
           employee: { $first: '$employeeDetails' },
-          totalDays: { $sum: '$daysUsed' },
+          totalDays: { $sum: '$days' },
           instances: { $sum: 1 },
           records: { $push: '$$ROOT' }
         }
@@ -1070,11 +1071,32 @@ exports.generateTurnoverReport = async (req, res) => {
       byDepartment[dept].employees.push(emp);
     });
 
+    // Create a flattened records array for PDF/CSV export
+    const allEmployeeRecords = [
+      ...newHires.map(emp => ({
+        type: 'New Hire',
+        employeeId: emp.employeeId,
+        fullName: `${emp.firstName} ${emp.lastName}`,
+        department: emp.department,
+        jobTitle: emp.jobTitle,
+        date: emp.createdAt
+      })),
+      ...terminated.map(emp => ({
+        type: 'Terminated',
+        employeeId: emp.employeeId,
+        fullName: `${emp.firstName} ${emp.lastName}`,
+        department: emp.department,
+        jobTitle: emp.jobTitle,
+        date: emp.terminatedDate
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
     res.json({
       success: true,
       data: {
         reportType: 'turnover',
         dateRange: { startDate, endDate },
+        totalRecords: allEmployeeRecords.length,
         summary: {
           startingHeadcount: startCount,
           endingHeadcount: endCount,
@@ -1082,6 +1104,7 @@ exports.generateTurnoverReport = async (req, res) => {
           terminations: terminated.length,
           turnoverRate: `${turnoverRate}%`
         },
+        records: allEmployeeRecords, // Flattened for export
         terminatedEmployees: terminated,
         newHires: newHires,
         byDepartment: byDepartment
