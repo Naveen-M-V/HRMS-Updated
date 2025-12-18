@@ -34,7 +34,7 @@ const Calendar = () => {
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [leaveType, setLeaveType] = useState('annual');
+  const [leaveType, setLeaveType] = useState('Paid');
   const [leaveReason, setLeaveReason] = useState('');
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -512,7 +512,7 @@ const Calendar = () => {
   const closeTimeOffModal = () => {
     setShowTimeOffModal(false);
     setSelectedEmployee('');
-    setLeaveType('annual');
+    setLeaveType('Paid');
     setLeaveReason('');
     setStartDate(null);
     setEndDate(null);
@@ -571,12 +571,15 @@ const Calendar = () => {
 
   // Check if form is valid for submission
   const isFormValid = () => {
+    // Reason must be at least 10 characters (backend requirement)
+    const hasValidReason = leaveReason && leaveReason.trim().length >= 10;
+    
     // For admin users, they must select an employee
     if (user?.role === 'admin' || user?.role === 'super-admin') {
-      return selectedEmployee && startDate && endDate && !weekendWarning;
+      return selectedEmployee && startDate && endDate && hasValidReason && !weekendWarning;
     }
-    // For employee users, just need dates
-    return startDate && endDate && !weekendWarning;
+    // For regular users
+    return startDate && endDate && hasValidReason && !weekendWarning;
   };
 
   const handleApproveRequest = async (requestId) => {
@@ -996,13 +999,14 @@ const Calendar = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="annual">Annual Leave</SelectItem>
-                    <SelectItem value="sick">Sick Leave</SelectItem>
-                    <SelectItem value="unpaid">Unpaid Leave</SelectItem>
-                    <SelectItem value="maternity">Maternity Leave</SelectItem>
-                    <SelectItem value="paternity">Paternity Leave</SelectItem>
-                    <SelectItem value="bereavement">Bereavement Leave</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="Paid">Paid Leave</SelectItem>
+                    <SelectItem value="Casual">Casual Leave</SelectItem>
+                    <SelectItem value="Sick">Sick Leave</SelectItem>
+                    <SelectItem value="Unpaid">Unpaid Leave</SelectItem>
+                    <SelectItem value="Maternity">Maternity Leave</SelectItem>
+                    <SelectItem value="Paternity">Paternity Leave</SelectItem>
+                    <SelectItem value="Bereavement">Bereavement Leave</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1010,12 +1014,12 @@ const Calendar = () => {
               {/* Reason */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reason (Optional)
+                  Reason <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={leaveReason}
                   onChange={(e) => setLeaveReason(e.target.value)}
-                  placeholder="Enter reason for leave request..."
+                  placeholder="Enter reason for leave request (minimum 10 characters)..."
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
