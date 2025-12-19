@@ -85,9 +85,9 @@ const Documents = ({ userProfile }) => {
   };
 
   // Filter folders based on search
-  const filteredFolders = folders.filter(folder =>
+  const filteredFolders = Array.isArray(folders) ? folders.filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) : [];
 
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
 

@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
+const authMiddleware = require('./middleware/authMiddleware');
 
 // Global Async Error Handler Wrapper
 const asyncHandler = (fn) => (req, res, next) => {
@@ -2825,78 +2826,11 @@ const expenseRoutes = require('./routes/expenseRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
 const certificatesRoutes = require('./routes/certificates');
 
-// Session-based authentication middleware
-const authenticateSession = async (req, res, next) => {
-  try {
-    const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
-    const authHeader = req.headers['authorization'];
-    const queryToken = req.query.token; // Check for token in query params
-
-    console.log('=== Authentication Debug ===');
-    console.log('Path:', req.path);
-    console.log('Is Multipart:', isMultipart);
-    console.log('Auth Header:', authHeader ? 'Present' : 'Missing');
-    console.log('Query Token:', queryToken ? 'Present' : 'Missing');
-    console.log('Has Session:', !!req.session);
-    console.log('Session User:', !!req.session?.user);
-
-    // Check JWT token first - from header, query param, or for multipart
-    if (authHeader || queryToken || isMultipart) {
-      const token = queryToken || (authHeader && authHeader.split(' ')[1]);
-      console.log('Token extracted:', token ? 'Yes' : 'No');
-
-      if (token) {
-        try {
-          const decoded = await jwt.verify(token, JWT_SECRET);
-          console.log('JWT verified successfully for user:', decoded.email);
-          req.user = decoded;
-          // Update session with token data and save it
-          if (req.session) {
-            req.session.user = decoded;
-            // Save the session to persist user data
-            req.session.save((err) => {
-              if (err) {
-                console.error('❌ Session save error in middleware:', err);
-              } else {
-                console.log('✅ Session updated in middleware for:', decoded.email);
-              }
-            });
-          }
-          return next();
-        } catch (tokenError) {
-          console.error('JWT verification failed:', tokenError.message);
-          // Fall through to session check if JWT fails
-        }
-      }
-    }
-
-    // Fall back to session check
-    if (req.session && req.session.user) {
-      console.log('Using session auth for:', req.session.user.email);
-      req.user = req.session.user;
-      return next();
-    }
-
-    // No valid authentication found
-    console.error('Authentication failed - no valid JWT or session');
-    return res.status(401).json({ message: 'Authentication required' });
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return res.status(500).json({ message: 'Internal server error during authentication' });
-  }
-};
-
-// Legacy JWT middleware for backward compatibility
-const authenticateToken = authenticateSession;
-
-// Export authenticateSession for use in routes
-module.exports.authenticateSession = authenticateSession;
-
-// Use notification routes (now that authenticateSession is defined)
-app.use('/api/notifications', authenticateSession, notificationRoutes);
+// Use notification routes
+app.use('/api/notifications', notificationRoutes);
 
 // Force profile creation/fix endpoint
-app.post('/api/fix-my-profile', authenticateSession, async (req, res) => {
+app.post('/api/fix-my-profile', async (req, res) => {
   try {
     console.log('===== FORCE FIX PROFILE REQUEST =====');
     console.log('User email:', req.user?.email);
@@ -3424,6 +3358,7 @@ app.post('/api/users/create', authenticateSession, async (req, res) => {
 // ==================== ROUTE MOUNTING ====================
 // Mount auth routes (login, logout, password reset, etc.)
 app.use('/api/auth', authRoutes);
+app.use('/api', authMiddleware);
 
 // Bulk operations and job management
 app.use('/api', bulkJobRolesRoutes);
@@ -3431,8 +3366,8 @@ app.use('/api/job-roles', jobRolesRoutes);
 app.use('/api/job-levels', jobLevelsRoutes);
 
 // Core HR features
-app.use('/api/rota', authenticateSession, rotaRoutes);
-app.use('/api/clock', authenticateSession, clockRoutes);
+app.use('/api/rota', rotaRoutes);
+app.use('/api/clock', clockRoutes);
 // Legacy leave routes (kept for backward compatibility with balance/record endpoints)
 app.use('/api/leave-legacy', authenticateSession, leaveRoutes);
 // DEPRECATED: Old leave request routes - use /api/leave-unified instead
