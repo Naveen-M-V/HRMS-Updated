@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
-const authMiddleware = require('./middleware/authMiddleware');
+const authMiddleware = require('./middleware/authMiddleware.js');
 
 // Global Async Error Handler Wrapper
 const asyncHandler = (fn) => (req, res, next) => {
