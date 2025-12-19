@@ -1,3 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
+const Folder = require('../models/Folder');
+const DocumentManagement = require('../models/DocumentManagement');
+const EmployeeHub = require('../models/EmployeesHub');
+
 // ==================== UNIFIED DOCUMENT FETCH LOGIC ====================
 
 // Get all documents (admin: all, employee: permitted only)
@@ -36,14 +45,7 @@ router.get('/documents', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs').promises;
-const Folder = require('../models/Folder');
-const DocumentManagement = require('../models/DocumentManagement');
-const EmployeeHub = require('../models/EmployeesHub');
+
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
