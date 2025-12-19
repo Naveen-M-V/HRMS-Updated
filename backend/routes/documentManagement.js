@@ -159,23 +159,16 @@ router.get('/test-folder', async (req, res) => {
 router.get('/folders', async (req, res) => {
   try {
     console.log("📂 Fetching folders...");
-    const userRole = req.user?.role || 'employee';
-
     const folders = await Folder.find({ isActive: true })
       .sort({ name: 1 });
-
+    
+    // Add document count to each folder
     const foldersWithCount = await Promise.all(folders.map(async (folder) => {
-      const query = {
+      const documentCount = await DocumentManagement.countDocuments({ 
         folderId: folder._id,
         isActive: true,
         isArchived: false
-      };
-
-      if (userRole !== 'admin' && userRole !== 'super-admin') {
-        query['permissions.view'] = userRole;
-      }
-
-      const documentCount = await DocumentManagement.countDocuments(query);
+      });
       return {
         ...folder.toObject(),
         documentCount
@@ -183,10 +176,7 @@ router.get('/folders', async (req, res) => {
     }));
     
     console.log("✅ Folders fetched successfully:", foldersWithCount.length);
-    res.json({
-      folders: foldersWithCount,
-      total: foldersWithCount.length
-    });
+    res.json(foldersWithCount);
   } catch (error) {
     console.error("💥 Error fetching folders:", error);
     res.status(500).json({ 
@@ -205,19 +195,7 @@ router.get('/folders/:folderId', async (req, res) => {
       return res.status(404).json({ message: 'Folder not found' });
     }
     
-    const userRole = req.user?.role || 'employee';
-
-    const documentQuery = {
-      folderId: req.params.folderId,
-      isActive: true,
-      isArchived: false
-    };
-
-    if (userRole !== 'admin' && userRole !== 'super-admin') {
-      documentQuery['permissions.view'] = userRole;
-    }
-
-    const documents = await DocumentManagement.find(documentQuery);
+    const documents = await DocumentManagement.getByFolder(req.params.folderId);
     
     // Get subfolders
     const subfolders = await Folder.find({ parentId: req.params.folderId, isActive: true });
@@ -381,9 +359,9 @@ router.post('/folders/:folderId/documents',
         uploadedBy: uploaderId,
         uploaderType: uploaderType,
         permissions: permissions ? JSON.parse(permissions) : {
-          view: ['admin', 'super-admin'],
-          download: ['admin', 'super-admin'],
-          share: ['admin', 'super-admin']
+          view: ['admin', 'hr', 'manager', 'employee'],
+          download: ['admin', 'hr', 'manager'],
+          share: ['admin', 'hr']
         },
         expiresOn: expiresOn ? new Date(expiresOn) : null,
         reminderEnabled: reminderEnabled === 'true'

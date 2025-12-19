@@ -20,11 +20,6 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
   const [uploadProgress, setUploadProgress] = useState({});
   const [dragActive, setDragActive] = useState(false);
   const [errors, setErrors] = useState({});
-  const [permissions, setPermissions] = useState({
-    view: ['admin'],
-    download: ['admin'],
-    share: ['admin']
-  });
 
   const fileInputRef = useRef(null);
 
@@ -123,7 +118,6 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
         const formData = new FormData();
         formData.append('file', fileItem.file);
         formData.append('folderId', folderId);
-        formData.append('permissions', JSON.stringify(permissions));
 
         // Update file status
         setFiles(prev => prev.map(f => 
@@ -274,43 +268,6 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
               {errors.files && (
                 <p className="mt-1 text-sm text-red-600">{errors.files}</p>
               )}
-            </div>
-
-            {/* Permissions */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Employee Permissions</h3>
-              <div className="space-y-2">
-                <label className="flex items-center">
-                  <input type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" onChange={(e) => {
-                    if (e.target.checked) {
-                      setPermissions(prev => ({ ...prev, view: [...prev.view, 'employee'] }));
-                    } else {
-                      setPermissions(prev => ({ ...prev, view: prev.view.filter(role => role !== 'employee') }));
-                    }
-                  }} />
-                  <span className="ml-2 text-sm text-gray-600">Allow view</span>
-                </label>
-                <label className="flex items-center">
-                  <input type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" onChange={(e) => {
-                    if (e.target.checked) {
-                      setPermissions(prev => ({ ...prev, download: [...prev.download, 'employee'] }));
-                    } else {
-                      setPermissions(prev => ({ ...prev, download: prev.download.filter(role => role !== 'employee') }));
-                    }
-                  }} />
-                  <span className="ml-2 text-sm text-gray-600">Allow download</span>
-                </label>
-                <label className="flex items-center">
-                  <input type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" onChange={(e) => {
-                    if (e.target.checked) {
-                      setPermissions(prev => ({ ...prev, share: [...prev.share, 'employee'] }));
-                    } else {
-                      setPermissions(prev => ({ ...prev, share: prev.share.filter(role => role !== 'employee') }));
-                    }
-                  }} />
-                  <span className="ml-2 text-sm text-gray-600">Allow share</span>
-                </label>
-              </div>
             </div>
 
             {/* File List */}

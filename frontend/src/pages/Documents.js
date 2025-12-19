@@ -13,9 +13,8 @@ import {
   MoreVertical
 } from 'lucide-react';
 import axios from 'axios';
-import DocumentUploadModal from '../components/DocumentUploadModal';
 
-const Documents = ({ userProfile }) => {
+const Documents = () => {
   const navigate = useNavigate();
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,19 +84,13 @@ const Documents = ({ userProfile }) => {
   };
 
   // Filter folders based on search
-  const filteredFolders = Array.isArray(folders) ? folders.filter(folder =>
+  const filteredFolders = folders.filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) : [];
-
-  const [isUploadModalOpen, setUploadModalOpen] = useState(false);
+  );
 
   const handleCreateReport = () => {
-    setUploadModalOpen(true);
-  };
-
-  const handleCloseUploadModal = () => {
-    setUploadModalOpen(false);
-    fetchFolders(); // Refresh folder list after upload
+    // Navigate to report library page
+    navigate('/report-library');
   };
 
   const handlePaginationChange = (newLimit) => {
@@ -112,11 +105,6 @@ const Documents = ({ userProfile }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <DocumentUploadModal 
-        isOpen={isUploadModalOpen} 
-        onClose={handleCloseUploadModal} 
-        employeeId={userProfile?._id}
-      />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -167,7 +155,7 @@ const Documents = ({ userProfile }) => {
                 className="px-4 py-2.5 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium text-sm"
                 style={{ backgroundColor: '#e00070' }}
               >
-                Upload Document
+                Create report
               </button>
             </div>
           </div>
