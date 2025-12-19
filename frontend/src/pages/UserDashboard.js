@@ -1183,7 +1183,7 @@ const UserDashboard = () => {
         {/* Documents Tab - Only for Employee Users */}
         {activeTab === 'documents' && isEmployeeUser && (
           <div style={{ margin: '-32px', padding: '0' }}>
-            <Documents />
+            <Documents userProfile={userProfile} />
           </div>
         )}
 
