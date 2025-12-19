@@ -24,6 +24,38 @@ const folderSchema = new mongoose.Schema({
     ref: 'Folder',
     default: null
   },
+
+  // Access Control
+  permissions: {
+    view: {
+      type: [{
+        type: String,
+        enum: ['admin', 'hr', 'manager', 'employee']
+      }],
+      default: ['admin', 'hr']
+    },
+    upload: {
+      type: [{
+        type: String,
+        enum: ['admin', 'hr', 'manager', 'employee']
+      }],
+      default: ['admin', 'hr']
+    },
+    download: {
+      type: [{
+        type: String,
+        enum: ['admin', 'hr', 'manager', 'employee']
+      }],
+      default: ['admin', 'hr']
+    },
+    delete: {
+      type: [{
+        type: String,
+        enum: ['admin', 'hr', 'manager', 'employee']
+      }],
+      default: ['admin', 'hr']
+    }
+  },
   
   // Metadata
   createdBy: {
@@ -39,6 +71,13 @@ const folderSchema = new mongoose.Schema({
 }, {
   timestamps: true // Automatically adds createdAt and updatedAt
 });
+
+// Instance method to check permission
+folderSchema.methods.hasPermission = function(action, userRole) {
+  if (userRole === 'admin') return true;
+  if (!this.permissions[action]) return false;
+  return this.permissions[action].includes(userRole);
+};
 
 // Prevent model re-compilation
 const Folder = mongoose.models.Folder || mongoose.model('Folder', folderSchema);

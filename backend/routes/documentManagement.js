@@ -665,16 +665,6 @@ router.post('/documents/:documentId/version',
         console.error('Error logging new version:', auditError);
         // Continue to return document even if audit fails
       }
-      // The `createNewVersion` method should ideally return an unsaved document.
-      // We add the initial audit log here before the first save.
-      newVersion.auditLog = [{
-        action: 'uploaded',
-        performedBy: userId,
-        timestamp: new Date(),
-        details: `New version uploaded by ${req.user.firstName || ''} ${req.user.lastName || ''}`.trim()
-      }];
-
-      await newVersion.save();
       
       res.status(201).json(newVersion);
     } catch (error) {
