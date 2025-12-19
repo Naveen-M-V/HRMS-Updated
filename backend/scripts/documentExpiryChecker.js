@@ -48,14 +48,14 @@ async function checkExpiringDocuments() {
           await sendExpiryNotificationEmail(
             employee.email,
             `${employee.firstName} ${employee.lastName}`,
-            doc.fileName,
+            doc.name || doc.fileName,
             'Document',
             doc.expiresOn,
             days,
             documentUrl
           );
           
-          console.log(`✅ Sent expiry reminder to ${employee.email} for document: ${doc.fileName}`);
+          console.log(`✅ Sent expiry reminder to ${employee.email} for document: ${doc.name || doc.fileName}`);
           totalReminders++;
           
         } catch (emailError) {
@@ -83,7 +83,7 @@ async function checkExpiringDocuments() {
         doc.archivedBy = 'system-auto-archive';
         await doc.save();
         
-        console.log(`📁 Auto-archived expired document: ${doc.fileName}`);
+        console.log(`📁 Auto-archived expired document: ${doc.name || doc.fileName}`);
         
       } catch (archiveError) {
         console.error(`❌ Failed to archive document ${doc._id}:`, archiveError.message);

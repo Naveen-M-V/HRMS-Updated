@@ -1,153 +1,58 @@
 const mongoose = require('mongoose');
 
+
 /**
- * Document Schema for Document Management Module
- * Enhanced version with folder support and comprehensive permissions
+ * Unified Document Schema for Document Management
+ * Supports admin and employee uploads, folder organization, and robust access control
  */
 const documentManagementSchema = new mongoose.Schema({
-  // Document Reference
-  folderId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Folder',
-    required: [true, 'Folder reference is required'],
-    index: true
-  },
-  employeeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'EmployeeHub',
-    default: null
-  },
-  
   // Document Information
-  fileName: {
-    type: String,
-    required: [true, 'File name is required'],
-    trim: true,
-    maxlength: [255, 'File name cannot exceed 255 characters']
-  },
-  fileUrl: {
-    type: String,
-    required: false, // Now optional since we store in DB
-    trim: true
-  },
-  fileData: {
-    type: Buffer,
-    required: [true, 'File data is required']
-  },
-  fileSize: {
-    type: Number,
-    required: [true, 'File size is required']
-  },
-  mimeType: {
-    type: String,
-    required: [true, 'MIME type is required']
-  },
-  
-  // Version Control
-  version: {
-    type: Number,
-    default: 1
-  },
-  parentDocument: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'DocumentManagement',
-    default: null
-  },
-  
-  // Categorization
-  category: {
-    type: String,
-    enum: ['passport', 'visa', 'contract', 'certificate', 'id_proof', 'resume', 'other'],
-    default: 'other'
-  },
-  tags: [{
-    type: String,
-    trim: true,
-    maxlength: [50, 'Tag cannot exceed 50 characters']
-  }],
-  
+  name: { type: String, required: true, trim: true, maxlength: 255 },
+  fileUrl: { type: String, required: false, trim: true }, // Optional if using fileData
+  fileData: { type: Buffer, required: false }, // Optional if using fileUrl
+  fileSize: { type: Number, required: true },
+  mimeType: { type: String, required: true },
+
+  // Ownership and Upload Info
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  uploadedByRole: { type: String, enum: ['admin', 'employee'], required: true },
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeHub', default: null },
+
+  // Folder Organization
+  folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
+
   // Access Control
-  uploadedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: [true, 'Uploaded by reference is required']
+  accessControl: {
+    visibility: { type: String, enum: ['all', 'admin', 'employee', 'custom'], default: 'all' },
+    allowedUserIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
   },
-  uploaderType: {
-    type: String,
-    enum: ['User', 'EmployeeHub'],
-    default: 'EmployeeHub'
-  },
-  permissions: {
-    view: [{
-      type: String,
-      enum: ['admin', 'hr', 'manager', 'employee']
-    }],
-    download: [{
-      type: String,
-      enum: ['admin', 'hr', 'manager', 'employee']
-    }],
-    share: [{
-      type: String,
-      enum: ['admin', 'hr', 'manager', 'employee']
-    }]
-  },
-  
+
+  // Categorization
+  category: { type: String, enum: ['passport', 'visa', 'contract', 'certificate', 'id_proof', 'resume', 'other'], default: 'other' },
+  tags: [{ type: String, trim: true, maxlength: 50 }],
+
+  // Version Control
+  version: { type: Number, default: 1 },
+  parentDocument: { type: mongoose.Schema.Types.ObjectId, ref: 'DocumentManagement', default: null },
+
   // Expiry and Reminders
-  expiresOn: {
-    type: Date,
-    default: null
-  },
-  reminderEnabled: {
-    type: Boolean,
-    default: false
-  },
-  reminderDays: {
-    type: Number,
-    default: 30,
-    min: 1,
-    max: 365
-  },
-  lastReminderSent: {
-    type: Date,
-    default: null
-  },
-  
+  expiresOn: { type: Date, default: null },
+  reminderEnabled: { type: Boolean, default: false },
+  reminderDays: { type: Number, default: 30, min: 1, max: 365 },
+  lastReminderSent: { type: Date, default: null },
+
   // Status and Metadata
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  isArchived: {
-    type: Boolean,
-    default: false
-  },
-  downloadCount: {
-    type: Number,
-    default: 0
-  },
-  lastAccessedAt: {
-    type: Date,
-    default: null
-  },
-  
+  isActive: { type: Boolean, default: true },
+  isArchived: { type: Boolean, default: false },
+  downloadCount: { type: Number, default: 0 },
+  lastAccessedAt: { type: Date, default: null },
+
   // Audit Trail
   auditLog: [{
-    action: {
-      type: String,
-      enum: ['uploaded', 'viewed', 'downloaded', 'shared', 'updated', 'archived', 'deleted'],
-      required: true
-    },
-    performedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: false // Made optional since it can be User or EmployeeHub
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now
-    },
-    details: {
-      type: String,
-      maxlength: [500, 'Details cannot exceed 500 characters']
-    }
+    action: { type: String, enum: ['uploaded', 'viewed', 'downloaded', 'shared', 'updated', 'archived', 'deleted'], required: true },
+    performedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+    timestamp: { type: Date, default: Date.now },
+    details: { type: String, maxlength: 500 }
   }]
 }, {
   timestamps: true
@@ -156,11 +61,11 @@ const documentManagementSchema = new mongoose.Schema({
 // Indexes for better query performance
 documentManagementSchema.index({ folderId: 1, isActive: 1 });
 documentManagementSchema.index({ uploadedBy: 1 });
-documentManagementSchema.index({ employeeId: 1 });
+documentManagementSchema.index({ ownerId: 1 });
 documentManagementSchema.index({ expiresOn: 1 });
 documentManagementSchema.index({ category: 1 });
 documentManagementSchema.index({ createdAt: -1 });
-documentManagementSchema.index({ fileName: 'text', category: 'text' });
+documentManagementSchema.index({ name: 'text', category: 'text' });
 
 // Virtual for document age in days
 documentManagementSchema.virtual('ageInDays').get(function() {
@@ -193,6 +98,20 @@ documentManagementSchema.virtual('fileSizeFormatted').get(function() {
   return `${size.toFixed(1)} ${units[unitIndex]}`;
 });
 
+// Provide legacy-compatible virtuals
+documentManagementSchema.virtual('fileName').get(function() {
+  return this.name;
+});
+
+// Backwards-compat: expose employeeId as alias for ownerId
+documentManagementSchema.virtual('employeeId').get(function() {
+  return this.ownerId;
+});
+
+// Ensure virtuals are included when converting to JSON / Object
+documentManagementSchema.set('toObject', { virtuals: true });
+documentManagementSchema.set('toJSON', { virtuals: true });
+
 // Pre-save middleware to handle expiry
 documentManagementSchema.pre('save', function(next) {
   if (this.expiresOn && this.expiresOn < new Date() && this.isActive) {
@@ -204,18 +123,13 @@ documentManagementSchema.pre('save', function(next) {
 // Static method to get documents by folder
 documentManagementSchema.statics.getByFolder = function(folderId, options = {}) {
   const query = { folderId, isActive: true };
-  
-  if (options.category) {
-    query.category = options.category;
-  }
-  
-  if (options.employeeId) {
-    query.employeeId = options.employeeId;
-  }
-  
+
+  if (options.category) query.category = options.category;
+  if (options.ownerId) query.ownerId = options.ownerId;
+
   return this.find(query)
-    .populate('uploadedBy', 'firstName lastName employeeId')
-    .populate('employeeId', 'firstName lastName employeeId')
+    .populate('uploadedBy', 'firstName lastName email')
+    .populate('ownerId', 'firstName lastName employeeId')
     .sort({ createdAt: -1 });
 };
 
@@ -250,15 +164,35 @@ documentManagementSchema.statics.searchDocuments = function(searchTerm, options 
   
   return this.find(query)
     .populate('folderId', 'name')
-    .populate('uploadedBy', 'firstName lastName employeeId')
-    .populate('employeeId', 'firstName lastName employeeId')
+    .populate('uploadedBy', 'firstName lastName email')
+    .populate('ownerId', 'firstName lastName employeeId')
     .sort({ score: { $meta: 'textScore' } });
 };
 
 // Instance method to check permission
-documentManagementSchema.methods.hasPermission = function(action, userRole) {
-  if (!this.permissions[action]) return false;
-  return this.permissions[action].includes(userRole) || this.permissions[action].includes('admin');
+documentManagementSchema.methods.hasPermission = function(action, user) {
+  // action is currently unused but kept for future extension
+  if (!user) return false;
+  const userRole = user.role || 'employee';
+  const userId = user._id || user.userId || null;
+
+  if (userRole === 'admin' || userRole === 'super-admin') return true;
+
+  const ac = this.accessControl || { visibility: 'all', allowedUserIds: [] };
+
+  if (ac.visibility === 'all') return true;
+  if (ac.visibility === 'admin') return false;
+  if (ac.visibility === 'employee') {
+    // allow if ownerId matches or uploader matches
+    if (this.ownerId && user.employeeId && String(this.ownerId) === String(user.employeeId)) return true;
+    if (this.uploadedBy && userId && String(this.uploadedBy) === String(userId)) return true;
+    return false;
+  }
+  if (ac.visibility === 'custom') {
+    if (!Array.isArray(ac.allowedUserIds)) return false;
+    return ac.allowedUserIds.some(id => String(id) === String(userId));
+  }
+  return false;
 };
 
 // Instance method to add audit log entry
@@ -284,8 +218,8 @@ documentManagementSchema.methods.incrementDownload = function(userId) {
 documentManagementSchema.methods.createNewVersion = function(fileData, newFileName, newFileSize, newMimeType, uploadedBy) {
   const newDocument = new this.constructor({
     folderId: this.folderId,
-    employeeId: this.employeeId,
-    fileName: newFileName,
+    ownerId: this.ownerId,
+    name: newFileName,
     fileData: fileData,
     fileUrl: null,
     fileSize: newFileSize,
@@ -295,12 +229,13 @@ documentManagementSchema.methods.createNewVersion = function(fileData, newFileNa
     category: this.category,
     tags: [...this.tags],
     uploadedBy: uploadedBy,
-    permissions: { ...this.permissions },
+    uploadedByRole: this.uploadedByRole,
+    accessControl: { ...this.accessControl },
     expiresOn: this.expiresOn,
     reminderEnabled: this.reminderEnabled,
     reminderDays: this.reminderDays
   });
-  
+
   return newDocument.save();
 };
 

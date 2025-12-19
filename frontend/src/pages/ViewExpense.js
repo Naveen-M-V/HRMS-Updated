@@ -344,11 +344,11 @@ const ViewExpense = () => {
               {expense.attachments.map((att, index) => (
                 <button
                   key={index}
-                  onClick={() => handleDownloadAttachment(att._id, att.fileName)}
+                  onClick={() => handleDownloadAttachment(att._id, att.name || att.fileName)}
                   className="border border-gray-300 rounded-lg p-4 hover:bg-gray-50 transition text-left"
                 >
                   <FileText size={32} className="text-gray-400 mb-2" />
-                  <p className="text-sm font-medium text-gray-700 truncate">{att.fileName}</p>
+                  <p className="text-sm font-medium text-gray-700 truncate">{att.name || att.fileName}</p>
                   <p className="text-xs text-gray-500">{(att.fileSize / 1024).toFixed(1)} KB</p>
                   <div className="flex items-center gap-1 mt-2 text-blue-600 text-xs">
                     <Download size={12} />

@@ -117,7 +117,7 @@ async function testDocumentOperations(folderId) {
     );
     
     const document = uploadResponse.data;
-    console.log('  ✅ Document uploaded successfully:', document.fileName);
+    console.log('  ✅ Document uploaded successfully:', document.name || document.fileName);
     
     // Test getting document by ID
     console.log('  🔍 Getting document by ID...');

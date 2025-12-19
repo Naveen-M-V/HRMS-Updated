@@ -130,9 +130,7 @@ const DocumentUpload = ({
   const validateForm = () => {
     const newErrors = {};
     
-    if (!selectedFolder) {
-      newErrors.folder = 'Please select a folder';
-    }
+    // Folder is optional now; documents can be uploaded without selecting a folder
     
     if (files.length === 0) {
       newErrors.files = 'Please select at least one file';
@@ -159,7 +157,17 @@ const DocumentUpload = ({
         formData.append('category', documentMetadata.category);
         formData.append('tags', documentMetadata.tags);
         formData.append('employeeId', documentMetadata.employeeId || '');
-        formData.append('permissions', JSON.stringify(documentMetadata.permissions));
+        // Map legacy permissions to new accessControl structure
+        const viewRoles = documentMetadata.permissions && documentMetadata.permissions.view ? documentMetadata.permissions.view : [];
+        let accessControl = { visibility: 'all', allowedUserIds: [] };
+        if (viewRoles.includes('employee')) {
+          accessControl.visibility = 'all';
+        } else if (viewRoles.includes('admin') && !viewRoles.includes('employee')) {
+          accessControl.visibility = 'admin';
+        } else {
+          accessControl.visibility = 'custom';
+        }
+        formData.append('accessControl', JSON.stringify(accessControl));
         formData.append('expiresOn', documentMetadata.expiresOn || '');
         formData.append('reminderEnabled', documentMetadata.reminderEnabled);
 
@@ -174,8 +182,12 @@ const DocumentUpload = ({
           console.log('Uploading file - Token available:', !!token);
           console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
           
+          const uploadUrl = selectedFolder && selectedFolder._id
+            ? `/api/documentManagement/folders/${selectedFolder._id}/documents`
+            : `/api/documentManagement/documents`;
+
           const response = await axios.post(
-            `/api/documentManagement/folders/${selectedFolder._id}/documents`,
+            uploadUrl,
             formData,
             {
               headers: {

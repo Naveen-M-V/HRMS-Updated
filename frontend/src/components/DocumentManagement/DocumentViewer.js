@@ -31,11 +31,11 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
     try {
       setLoading(true);
       const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
-      
-      // For now, we'll use the file URL directly
-      // In production, you might want to fetch through the API
-      const fullUrl = `${apiUrl}${document.fileUrl}`;
-      setFileUrl(fullUrl);
+      const token = localStorage.getItem('auth_token');
+
+      // Prefer using the secure view endpoint which accepts token as query param
+      const viewUrl = `${apiUrl}/api/documentManagement/documents/${document._id}/view` + (token ? `?token=${encodeURIComponent(token)}` : '');
+      setFileUrl(viewUrl);
     } catch (err) {
       console.error('Error loading document preview:', err);
       setError('Failed to load document preview');
@@ -63,7 +63,8 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
   };
 
   const getFileIcon = () => {
-    const extension = document.fileName.split('.').pop().toLowerCase();
+    const filename = document.name || document.fileName || '';
+    const extension = filename.split('.').pop().toLowerCase();
     
     if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension)) {
       return ImageIcon;
@@ -75,7 +76,8 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
   };
 
   const canPreview = () => {
-    const extension = document.fileName.split('.').pop().toLowerCase();
+    const filename = document.name || document.fileName || '';
+    const extension = filename.split('.').pop().toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'svg', 'pdf'].includes(extension);
   };
 
@@ -111,7 +113,7 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
             <div className="flex items-center space-x-3">
               <FileIcon className="w-6 h-6 text-white" />
               <div>
-                <h2 className="text-xl font-bold text-white">{document.fileName}</h2>
+                <h2 className="text-xl font-bold text-white">{document.name || document.fileName}</h2>
                 <p className="text-sm text-blue-100">
                   {formatFileSize(document.fileSize)} • Uploaded {formatDate(document.createdAt)}
                 </p>
@@ -156,17 +158,17 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
                 </div>
               ) : canPreview() ? (
                 <div className="w-full h-full p-4">
-                  {document.mimeType.startsWith('image/') ? (
+                  {document.mimeType && document.mimeType.startsWith('image/') ? (
                     <img 
                       src={fileUrl} 
-                      alt={document.fileName}
+                      alt={document.name || document.fileName}
                       className="max-w-full max-h-full object-contain mx-auto"
                     />
                   ) : document.mimeType === 'application/pdf' ? (
                     <iframe
                       src={fileUrl}
                       className="w-full h-full border-0"
-                      title={document.fileName}
+                      title={document.name || document.fileName}
                     />
                   ) : null}
                 </div>
@@ -243,31 +245,21 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
                 )}
 
                 {/* Permissions */}
-                {document.permissions && (
+                {document.accessControl && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-2">
                       <Shield className="w-3 h-3 inline mr-1" />
-                      Access Permissions
+                      Access
                     </p>
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <span className="text-gray-600">View: </span>
-                        <span className="text-gray-900">
-                          {document.permissions.view?.join(', ') || 'None'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Download: </span>
-                        <span className="text-gray-900">
-                          {document.permissions.download?.join(', ') || 'None'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Share: </span>
-                        <span className="text-gray-900">
-                          {document.permissions.share?.join(', ') || 'None'}
-                        </span>
-                      </div>
+                    <div className="text-sm text-gray-900">
+                      {document.accessControl.visibility === 'all' && 'Visible to all users'}
+                      {document.accessControl.visibility === 'admin' && 'Admin only'}
+                      {document.accessControl.visibility === 'employee' && 'Employees (owner or uploader)'}
+                      {document.accessControl.visibility === 'custom' && (
+                        <>
+                          Custom — allowed users: {document.accessControl.allowedUserIds?.length || 0}
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

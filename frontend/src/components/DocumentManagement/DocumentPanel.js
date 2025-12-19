@@ -43,7 +43,9 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
     try {
       setLoading(true);
       const response = await axios.get(`/api/documentManagement/folders/${folder._id}`);
-      setDocuments(response.data.documents || []);
+      // documents may include legacy fileName or new name field
+      const docs = (response.data.documents || []).map(d => ({ ...d, name: d.name || d.fileName }));
+      setDocuments(docs);
     } catch (error) {
       console.error('Error fetching documents:', error);
     } finally {
@@ -68,7 +70,7 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = window.document.createElement('a');
       link.href = url;
-      link.setAttribute('download', doc.fileName);
+      link.setAttribute('download', doc.name || doc.fileName);
       window.document.body.appendChild(link);
       link.click();
       link.remove();
@@ -81,7 +83,7 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
   };
 
   const handleArchive = async (doc) => {
-    if (!window.confirm(`Are you sure you want to archive "${doc.fileName}"?`)) {
+    if (!window.confirm(`Are you sure you want to archive "${doc.name || doc.fileName}"?`)) {
       return;
     }
 
@@ -104,7 +106,7 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
   };
 
   const handleDelete = async (doc) => {
-    if (!window.confirm(`Are you sure you want to delete "${doc.fileName}"?`)) {
+    if (!window.confirm(`Are you sure you want to delete "${doc.name || doc.fileName}"?`)) {
       return;
     }
 
@@ -135,18 +137,25 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
     });
   };
 
-  const getPermissionBadge = (permissions, action) => {
-    if (!permissions || !permissions[action]) return null;
+  const getPermissionBadge = (accessControl) => {
+    if (!accessControl) return null;
+    const v = accessControl.visibility;
+    let label = '';
+    if (v === 'all') label = 'All users';
+    if (v === 'admin') label = 'Admin only';
+    if (v === 'employee') label = 'Employees';
+    if (v === 'custom') label = `Custom (${accessControl.allowedUserIds?.length || 0})`;
     return (
       <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-        {permissions[action].join(', ')}
+        {label}
       </span>
     );
   };
 
   // Filter documents based on search and archived status
-  const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const filteredDocuments = documents.filter(doc => {
+    const filename = (doc.name || doc.fileName || '').toLowerCase();
+    const matchesSearch = filename.includes(searchQuery.toLowerCase()) ||
       (doc.category && doc.category.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesArchived = showArchived ? doc.isArchived : !doc.isArchived;
     return matchesSearch && matchesArchived;
@@ -275,7 +284,7 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
                         <div className="flex items-center space-x-2 mb-2">
                           <FileText className="w-4 h-4 text-gray-500" />
                           <h4 className="font-medium text-gray-900 text-sm truncate">
-                            {document.fileName}
+                            {document.name || document.fileName}
                           </h4>
                         </div>
                         
@@ -309,7 +318,7 @@ const DocumentPanel = ({ folder, onClose, onDocumentUploaded }) => {
                               {document.category}
                             </span>
                           )}
-                          {getPermissionBadge(document.permissions, 'view')}
+                          {getPermissionBadge(document.accessControl)}
                           {document.expiresOn && (
                             <div className="flex items-center space-x-1 text-xs text-orange-600">
                               <Clock className="w-3 h-3" />

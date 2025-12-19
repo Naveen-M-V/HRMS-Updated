@@ -1,3 +1,41 @@
+// ==================== UNIFIED DOCUMENT FETCH LOGIC ====================
+
+// Get all documents (admin: all, employee: permitted only)
+router.get('/documents', async (req, res) => {
+  try {
+    if (!req.user || (!req.user._id && !req.user.userId)) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    const userRole = req.user.role === 'admin' ? 'admin' : 'employee';
+    const userId = req.user._id || req.user.userId;
+    let query = { isActive: true };
+
+    if (userRole === 'admin') {
+      // Admin sees all
+    } else {
+      // Employee: only permitted documents
+      query.$or = [
+        { 'accessControl.visibility': 'all' },
+        { 'accessControl.visibility': 'employee', ownerId: req.user.employeeId },
+        { 'accessControl.allowedUserIds': userId }
+      ];
+    }
+
+    // Optional: filter by folder, category, etc.
+    if (req.query.folderId) query.folderId = req.query.folderId;
+    if (req.query.category) query.category = req.query.category;
+
+    const documents = await DocumentManagement.find(query)
+      .populate('uploadedBy', 'firstName lastName email')
+      .populate('ownerId', 'firstName lastName employeeId')
+      .populate('folderId', 'name')
+      .sort({ createdAt: -1 });
+
+    res.json(documents);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -94,7 +132,7 @@ const checkPermission = (action) => {
           return res.status(404).json({ message: 'Document not found' });
         }
         
-        if (!document.hasPermission(action, userRole)) {
+        if (!document.hasPermission(action, req.user)) {
           return res.status(403).json({ message: 'Insufficient permissions' });
         }
       }
@@ -164,11 +202,22 @@ router.get('/folders', async (req, res) => {
     
     // Add document count to each folder
     const foldersWithCount = await Promise.all(folders.map(async (folder) => {
-      const documentCount = await DocumentManagement.countDocuments({ 
-        folderId: folder._id,
-        isActive: true,
-        isArchived: false
-      });
+      // Count documents respecting access control
+      let documentCountQuery = { folderId: folder._id, isActive: true, isArchived: false };
+      if (req.user && req.user.role !== 'admin' && req.user.role !== 'super-admin') {
+        const userId = req.user._id || req.user.userId;
+        documentCountQuery = {
+          folderId: folder._id,
+          isActive: true,
+          isArchived: false,
+          $or: [
+            { 'accessControl.visibility': 'all' },
+            { 'accessControl.visibility': 'employee', ownerId: req.user.employeeId },
+            { 'accessControl.allowedUserIds': userId }
+          ]
+        };
+      }
+      const documentCount = await DocumentManagement.countDocuments(documentCountQuery);
       return {
         ...folder.toObject(),
         documentCount
@@ -195,7 +244,28 @@ router.get('/folders/:folderId', async (req, res) => {
       return res.status(404).json({ message: 'Folder not found' });
     }
     
-    const documents = await DocumentManagement.getByFolder(req.params.folderId);
+    // Apply access control: admin sees all, others see permitted documents
+    let documents;
+    const userRole = req.user && (req.user.role === 'admin' ? 'admin' : 'employee');
+    const userId = req.user && (req.user._id || req.user.userId);
+
+    if (userRole === 'admin') {
+      documents = await DocumentManagement.getByFolder(req.params.folderId);
+    } else {
+      const query = {
+        folderId: req.params.folderId,
+        isActive: true,
+        $or: [
+          { 'accessControl.visibility': 'all' },
+          { 'accessControl.visibility': 'employee', ownerId: req.user.employeeId },
+          { 'accessControl.allowedUserIds': userId }
+        ]
+      };
+      documents = await DocumentManagement.find(query)
+        .populate('uploadedBy', 'firstName lastName email')
+        .populate('ownerId', 'firstName lastName employeeId')
+        .sort({ createdAt: -1 });
+    }
     
     // Get subfolders
     const subfolders = await Folder.find({ parentId: req.params.folderId, isActive: true });
@@ -291,132 +361,113 @@ router.delete('/folders/:folderId', checkPermission('delete'), async (req, res) 
 
 // Upload document to folder
 router.post('/folders/:folderId/documents', 
-  checkPermission('edit'), 
-  upload.single('file'), 
+  checkPermission('edit'),
+  upload.single('file'),
   async (req, res) => {
     try {
-      console.log('=== Document Upload Request ===');
-      console.log('User:', req.user);
-      console.log('Folder ID:', req.params.folderId);
-      console.log('File received:', req.file ? req.file.originalname : 'No file');
-      console.log('Body:', req.body);
-      
+      // --- Unified Document Upload Logic ---
       if (!req.user || (!req.user._id && !req.user.userId)) {
-        console.error('No authenticated user found');
         return res.status(401).json({ message: 'Authentication required' });
       }
-      
       if (!req.file) {
-        console.error('No file in request');
         return res.status(400).json({ message: 'No file uploaded' });
       }
-      
-      const { category, tags, employeeId, permissions, expiresOn, reminderEnabled } = req.body;
-      
-      // Check if folder exists
-      const folder = await Folder.findById(req.params.folderId);
-      if (!folder) {
-        return res.status(404).json({ message: 'Folder not found' });
-      }
-      
-      // Determine uploader ID and type
-      // JWT token has userId field, not _id
-      let uploaderId = req.user._id || req.user.userId;
-      let uploaderType = 'User';
-      
-      console.log('Initial uploader:', { uploaderId, userId: req.user.userId, _id: req.user._id, email: req.user.email });
-      
-      if (req.user.email) {
-        const employee = await EmployeeHub.findOne({ email: req.user.email });
-        console.log('EmployeeHub lookup result:', employee ? employee._id : 'Not found');
-        if (employee) {
-          uploaderId = employee._id;
-          uploaderType = 'EmployeeHub';
+
+      // Folder is optional, but if provided, check existence
+      let folderId = req.params.folderId || null;
+      if (folderId) {
+        const folder = await Folder.findById(folderId);
+        if (!folder) {
+          return res.status(404).json({ message: 'Folder not found' });
         }
+      } else {
+        folderId = null;
       }
-      
-      console.log('Final uploader - ID:', uploaderId, 'Type:', uploaderType);
-      
-      if (!uploaderId) {
-        console.error('Upload failed: No valid uploader ID determined');
-        return res.status(400).json({ message: 'Could not determine uploader identity' });
+
+      // Determine uploader info
+      const userRole = req.user.role === 'admin' ? 'admin' : 'employee';
+      const uploadedBy = req.user._id || req.user.userId;
+      const uploadedByRole = userRole;
+
+      // OwnerId: for employee uploads, set to employeeId; for admin, can be null or set by admin
+      let ownerId = null;
+      if (userRole === 'employee') {
+        // Try to get employeeId from user or request
+        ownerId = req.user.employeeId || req.body.ownerId || null;
+      } else if (req.body.ownerId) {
+        ownerId = req.body.ownerId;
       }
-      
+
+      // Access control
+      let accessControl = { visibility: 'all', allowedUserIds: [] };
+      if (req.body.accessControl) {
+        try {
+          const parsed = typeof req.body.accessControl === 'string' ? JSON.parse(req.body.accessControl) : req.body.accessControl;
+          accessControl = {
+            visibility: parsed.visibility || 'all',
+            allowedUserIds: Array.isArray(parsed.allowedUserIds) ? parsed.allowedUserIds : []
+          };
+        } catch (e) {
+          // fallback to default
+        }
+      } else if (userRole === 'employee') {
+        // Employees can only upload for themselves, default to employee-only
+        accessControl = { visibility: 'employee', allowedUserIds: [uploadedBy] };
+      }
+
       // Read file data into buffer
       const fileBuffer = await fs.readFile(req.file.path);
-      
-      // Create document with binary data
+
+      // Create document
       const document = new DocumentManagement({
-        folderId: req.params.folderId,
-        employeeId: employeeId || null,
-        fileName: req.file.originalname,
-        fileData: fileBuffer, // Store file content in MongoDB
-        fileUrl: null, // No longer storing in filesystem
+        name: req.file.originalname,
+        fileUrl: null,
+        fileData: fileBuffer,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
-        category: category || 'other',
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-        uploadedBy: uploaderId,
-        uploaderType: uploaderType,
-        permissions: permissions ? JSON.parse(permissions) : {
-          view: ['admin', 'hr', 'manager', 'employee'],
-          download: ['admin', 'hr', 'manager'],
-          share: ['admin', 'hr']
-        },
-        expiresOn: expiresOn ? new Date(expiresOn) : null,
-        reminderEnabled: reminderEnabled === 'true'
+        uploadedBy,
+        uploadedByRole,
+        ownerId,
+        folderId,
+        accessControl,
+        category: req.body.category || 'other',
+        tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
+        version: 1,
+        parentDocument: null,
+        expiresOn: req.body.expiresOn ? new Date(req.body.expiresOn) : null,
+        reminderEnabled: req.body.reminderEnabled === 'true',
+        isActive: true,
+        isArchived: false,
+        downloadCount: 0,
+        lastAccessedAt: null,
+        auditLog: [{
+          action: 'uploaded',
+          performedBy: uploadedBy,
+          timestamp: new Date(),
+          details: `Document uploaded by ${req.user.firstName || ''} ${req.user.lastName || ''}`
+        }]
       });
-      
+
       // Delete uploaded file from filesystem after reading into buffer
       try {
         await fs.unlink(req.file.path);
-      } catch (unlinkError) {
-        console.error('Error deleting temp file:', unlinkError);
-      }
-      
+      } catch (unlinkError) {}
+
       await document.save();
-      
-      // Populate with correct model based on uploaderType
-      if (document.uploaderType === 'User') {
-        await document.populate({ path: 'uploadedBy', model: 'User', select: 'firstName lastName email' });
-      } else {
-        await document.populate({ path: 'uploadedBy', model: 'EmployeeHub', select: 'firstName lastName employeeId' });
-      }
-      
+
       await document.populate([
-        { path: 'employeeId', select: 'firstName lastName employeeId' },
+        { path: 'uploadedBy', select: 'firstName lastName email' },
+        { path: 'ownerId', select: 'firstName lastName employeeId' },
         { path: 'folderId', select: 'name' }
       ]);
-      
-      // Add audit log directly to array (document already saved)
-      document.auditLog.push({
-        action: 'uploaded',
-        performedBy: uploaderId,
-        timestamp: new Date(),
-        details: `Document uploaded by ${req.user.firstName} ${req.user.lastName}`
-      });
-      await document.save();
-      
-      console.log('Document uploaded successfully:', document._id);
+
       res.status(201).json(document);
     } catch (error) {
-      console.error('=== Document Upload Error ===');
-      console.error('Error:', error.message);
-      console.error('Stack:', error.stack);
-      
       // Clean up uploaded file if there's an error
       if (req.file) {
-        try {
-          await fs.unlink(req.file.path);
-          console.log('Cleaned up failed upload file:', req.file.path);
-        } catch (cleanupError) {
-          console.error('Failed to clean up file:', cleanupError);
-        }
+        try { await fs.unlink(req.file.path); } catch {}
       }
-      res.status(500).json({ 
-        message: error.message,
-        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+      res.status(500).json({ message: error.message });
     }
   }
 );
@@ -426,8 +477,8 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
   try {
     const document = await DocumentManagement.findById(req.params.documentId)
       .populate('folderId', 'name')
-      .populate('uploadedBy', 'firstName lastName employeeId')
-      .populate('employeeId', 'firstName lastName employeeId');
+      .populate('uploadedBy', 'firstName lastName email')
+      .populate('ownerId', 'firstName lastName employeeId');
     
     if (!document) {
       return res.status(404).json({ message: 'Document not found' });
@@ -486,13 +537,12 @@ router.get('/documents/:documentId/view', async (req, res) => {
     }
     
     // Check permissions
-    const userRole = user.role || 'employee';
-    if (userRole !== 'admin' && userRole !== 'super-admin') {
+    if (user.role !== 'admin' && user.role !== 'super-admin') {
       const document = await DocumentManagement.findById(req.params.documentId);
       if (!document) {
         return res.status(404).json({ message: 'Document not found' });
       }
-      if (!document.hasPermission('view', userRole)) {
+      if (!document.hasPermission('view', user)) {
         return res.status(403).json({ message: 'Insufficient permissions' });
       }
     }
@@ -509,7 +559,7 @@ router.get('/documents/:documentId/view', async (req, res) => {
     
     // Send file inline (for viewing in browser)
     res.setHeader('Content-Type', document.mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
+    res.setHeader('Content-Disposition', `inline; filename="${document.name || document.fileName}"`);
     res.setHeader('Content-Length', document.fileData.length);
     res.send(document.fileData);
   } catch (error) {
@@ -517,6 +567,88 @@ router.get('/documents/:documentId/view', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// Upload document without folder (optional folder)
+router.post('/documents',
+  checkPermission('edit'),
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.user || (!req.user._id && !req.user.userId)) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      // No folder provided
+      const folderId = null;
+
+      const userRole = req.user.role === 'admin' ? 'admin' : 'employee';
+      const uploadedBy = req.user._id || req.user.userId;
+      const uploadedByRole = userRole;
+
+      let ownerId = null;
+      if (userRole === 'employee') {
+        ownerId = req.user.employeeId || req.body.ownerId || null;
+      } else if (req.body.ownerId) {
+        ownerId = req.body.ownerId;
+      }
+
+      let accessControl = { visibility: 'all', allowedUserIds: [] };
+      if (req.body.accessControl) {
+        try {
+          const parsed = typeof req.body.accessControl === 'string' ? JSON.parse(req.body.accessControl) : req.body.accessControl;
+          accessControl = {
+            visibility: parsed.visibility || 'all',
+            allowedUserIds: Array.isArray(parsed.allowedUserIds) ? parsed.allowedUserIds : []
+          };
+        } catch (e) {}
+      } else if (userRole === 'employee') {
+        accessControl = { visibility: 'employee', allowedUserIds: [uploadedBy] };
+      }
+
+      const fileBuffer = await fs.readFile(req.file.path);
+
+      const document = new DocumentManagement({
+        name: req.file.originalname,
+        fileUrl: null,
+        fileData: fileBuffer,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedBy,
+        uploadedByRole,
+        ownerId,
+        folderId,
+        accessControl,
+        category: req.body.category || 'other',
+        tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
+        version: 1,
+        parentDocument: null,
+        expiresOn: req.body.expiresOn ? new Date(req.body.expiresOn) : null,
+        reminderEnabled: req.body.reminderEnabled === 'true',
+        isActive: true,
+        isArchived: false,
+        downloadCount: 0,
+        lastAccessedAt: null,
+        auditLog: [{ action: 'uploaded', performedBy: uploadedBy, timestamp: new Date(), details: `Document uploaded by ${req.user.firstName || ''} ${req.user.lastName || ''}` }]
+      });
+
+      try { await fs.unlink(req.file.path); } catch {}
+
+      await document.save();
+      await document.populate([
+        { path: 'uploadedBy', select: 'firstName lastName email' },
+        { path: 'ownerId', select: 'firstName lastName employeeId' }
+      ]);
+
+      res.status(201).json(document);
+    } catch (error) {
+      if (req.file) { try { await fs.unlink(req.file.path); } catch {} }
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
 
 // Download document
 router.get('/documents/:documentId/download', checkPermission('download'), async (req, res) => {
@@ -552,7 +684,7 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
     
     // Send file from MongoDB buffer
     res.setHeader('Content-Type', document.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${document.name || document.fileName}"`);
     res.setHeader('Content-Length', document.fileData.length);
     res.send(document.fileData);
   } catch (error) {

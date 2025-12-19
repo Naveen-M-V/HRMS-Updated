@@ -51,7 +51,7 @@ router.get('/:id', async (req, res) => {
         doc.folderId && doc.folderId._id.toString() === folder._id.toString()
       ).map(doc => ({
         id: doc._id,
-        name: doc.fileName,
+        name: doc.name || doc.fileName,
         size: doc.fileSize ? `${(doc.fileSize / 1024).toFixed(2)} KB` : 'Unknown',
         uploaded: doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en-GB') : 'Unknown',
         version: doc.version ? `v${doc.version}` : null,

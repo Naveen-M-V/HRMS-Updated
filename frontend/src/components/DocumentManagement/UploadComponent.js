@@ -117,7 +117,7 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
       for (const fileItem of files) {
         const formData = new FormData();
         formData.append('file', fileItem.file);
-        formData.append('folderId', folderId);
+        if (folderId) formData.append('folderId', folderId);
 
         // Update file status
         setFiles(prev => prev.map(f => 
@@ -125,8 +125,12 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
         ));
 
         try {
+          const uploadUrl = folderId
+            ? `${apiUrl}/api/documentManagement/folders/${folderId}/documents`
+            : `${apiUrl}/api/documentManagement/documents`;
+
           const response = await axios.post(
-            `${apiUrl}/api/documentManagement/folders/${folderId}/documents`,
+            uploadUrl,
             formData,
             {
               headers: {

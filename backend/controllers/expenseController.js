@@ -582,7 +582,7 @@ exports.getAttachment = async (req, res) => {
     }
 
     res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${attachment.fileName}"`);
+    res.setHeader('Content-Disposition', `inline; filename="${attachment.name || attachment.fileName}"`);
     res.send(attachment.fileData);
   } catch (error) {
     console.error('Error retrieving attachment:', error);
