@@ -78,7 +78,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
   };
 
   const filteredDocuments = documents.filter(doc =>
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase())
+    doc.name && doc.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {

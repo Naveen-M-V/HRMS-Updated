@@ -64,7 +64,7 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
 
   const getFileIcon = () => {
     const filename = document.name || document.fileName || '';
-    const extension = filename.split('.').pop().toLowerCase();
+    const extension = filename && filename.split('.').pop().toLowerCase();
     
     if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension)) {
       return ImageIcon;
@@ -77,8 +77,8 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
 
   const canPreview = () => {
     const filename = document.name || document.fileName || '';
-    const extension = filename.split('.').pop().toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'gif', 'svg', 'pdf'].includes(extension);
+    const extension = filename && filename.split('.').pop().toLowerCase();
+    return extension && ['jpg', 'jpeg', 'png', 'gif', 'svg', 'pdf'].includes(extension);
   };
 
   const FileIcon = getFileIcon();

@@ -106,7 +106,7 @@ const DocumentUpload = ({
   };
 
   const getFileIcon = (fileName) => {
-    const extension = fileName.split('.').pop().toLowerCase();
+    const extension = fileName && fileName.split('.').pop().toLowerCase();
     
     if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension)) {
       return Image;
