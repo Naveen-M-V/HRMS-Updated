@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const mongoose = require('mongoose');
 const Folder = require('../models/Folder');
 const DocumentManagement = require('../models/DocumentManagement');
 const EmployeeHub = require('../models/EmployeesHub');
@@ -318,26 +319,56 @@ router.post("/folders", async (req, res) => {
 
     const { name, createdBy, parentFolderId, parentId } = req.body;
 
-    if (!name) {
+    if (!name || !String(name).trim()) {
       return res.status(400).json({ message: "Folder name is required" });
     }
 
     const createdById = createdBy || (req.user && (req.user._id || req.user.userId || req.user.id)) || null;
-    const resolvedParentFolder = parentFolderId || parentId || null;
+    const rawParent = parentFolderId || parentId || null;
+    const resolvedParentFolder = rawParent && String(rawParent).trim() ? String(rawParent).trim() : null;
+    if (resolvedParentFolder && !mongoose.Types.ObjectId.isValid(resolvedParentFolder)) {
+      return res.status(400).json({ message: 'Invalid parentFolderId' });
+    }
+
+    const rawPermissions = req.body.permissions;
+    let normalizedPermissions;
+    if (rawPermissions && typeof rawPermissions === 'object') {
+      const normalize = (value) => {
+        if (!value) return undefined;
+        if (Array.isArray(value)) return value;
+        if (typeof value === 'string') return [value];
+        return undefined;
+      };
+      normalizedPermissions = {
+        view: normalize(rawPermissions.view),
+        edit: normalize(rawPermissions.edit),
+        upload: normalize(rawPermissions.upload),
+        download: normalize(rawPermissions.download),
+        delete: normalize(rawPermissions.delete)
+      };
+      Object.keys(normalizedPermissions).forEach((key) => {
+        if (!normalizedPermissions[key]) delete normalizedPermissions[key];
+      });
+      if (Object.keys(normalizedPermissions).length === 0) normalizedPermissions = undefined;
+    }
 
     const folder = await Folder.create({
       name: name.trim(),
       description: req.body.description || '',
       createdBy: createdById,
       parentFolder: resolvedParentFolder,
-      permissions: req.body.permissions,
+      ...(normalizedPermissions ? { permissions: normalizedPermissions } : {}),
     });
 
     console.log("✅ Folder created successfully:", folder);
     return res.status(201).json({ success: true, folder });
   } catch (err) {
     console.error("FOLDER CREATION ERROR:", err);
-    return res.status(500).json({ success: false, message: "Server error creating folder" });
+    return res.status(500).json({
+      success: false,
+      message: "Server error creating folder",
+      error: err.message
+    });
   }
 });
 

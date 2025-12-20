@@ -10,7 +10,8 @@ import {
   FileText,
   Download,
   Filter,
-  MoreVertical
+  MoreVertical,
+  Plus
 } from 'lucide-react';
 import axios from 'axios';
 import {
@@ -20,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '../components/ui/select';
+import CreateFolderModal from '../components/DocumentManagement/CreateFolderModal';
 
 const Documents = () => {
   const navigate = useNavigate();
@@ -29,6 +31,7 @@ const Documents = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
 
   // Fetch folders from API
   useEffect(() => {
@@ -102,6 +105,11 @@ const Documents = () => {
     navigate('/report-library');
   };
 
+  const handleFolderCreated = () => {
+    setShowCreateFolderModal(false);
+    fetchFolders();
+  };
+
   const handlePaginationChange = (newLimit) => {
     setPagination(prev => ({ ...prev, limit: parseInt(newLimit), page: 1 }));
   };
@@ -163,6 +171,14 @@ const Documents = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <button
+                onClick={() => setShowCreateFolderModal(true)}
+                className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Folder
+              </button>
 
               {/* Create Report Button */}
               <button
@@ -283,6 +299,14 @@ const Documents = () => {
           )}
         </div>
       </div>
+
+      {showCreateFolderModal && (
+        <CreateFolderModal
+          onClose={() => setShowCreateFolderModal(false)}
+          onCreate={handleFolderCreated}
+          parentFolderId={null}
+        />
+      )}
     </div>
   );
 };
