@@ -112,7 +112,6 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
 
       for (const fileItem of files) {
         const formData = new FormData();
@@ -126,16 +125,15 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
 
         try {
           const uploadUrl = folderId
-            ? `${apiUrl}/api/documentManagement/folders/${folderId}/documents`
-            : `${apiUrl}/api/documentManagement/documents`;
+            ? `/api/documentManagement/folders/${folderId}/documents`
+            : `/api/documentManagement/documents`;
 
           const response = await axios.post(
             uploadUrl,
             formData,
             {
               headers: {
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${token}`
+                ...(token && { 'Authorization': `Bearer ${token}` })
               },
               onUploadProgress: (progressEvent) => {
                 const progress = Math.round(
@@ -156,7 +154,11 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
             f.id === fileItem.id ? { ...f, status: 'completed' } : f
           ));
         } catch (error) {
-          console.error('Error uploading file:', error);
+          console.error('Error uploading file:', {
+            status: error?.response?.status,
+            message: error?.response?.data?.message || error?.message,
+            url: error?.config?.url
+          });
           // Update file status
           setFiles(prev => prev.map(f => 
             f.id === fileItem.id ? { ...f, status: 'error' } : f

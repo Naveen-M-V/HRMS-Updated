@@ -53,12 +53,10 @@ const FolderView = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
-      const response = await axios.get(`${apiUrl}/api/documentManagement/folders/${folderId}`, {
+      const response = await axios.get(`/api/documentManagement/folders/${folderId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          ...(token && { Authorization: `Bearer ${token}` })
         }
       });
       
@@ -84,13 +82,12 @@ const FolderView = () => {
   const handleDownload = async (document) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
       const response = await axios.get(
-        `${apiUrl}/api/documentManagement/documents/${document._id}/download`,
+        `/api/documentManagement/documents/${document._id}/download`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            ...(token && { Authorization: `Bearer ${token}` })
           },
           responseType: 'blob'
         }
@@ -117,15 +114,14 @@ const FolderView = () => {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
       if (item.type === 'folder') {
-        await axios.delete(`${apiUrl}/api/documentManagement/folders/${item._id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        await axios.delete(`/api/documentManagement/folders/${item._id}`, {
+          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
         });
       } else {
-        await axios.delete(`${apiUrl}/api/documentManagement/documents/${item._id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        await axios.delete(`/api/documentManagement/documents/${item._id}`, {
+          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
         });
       }
       
