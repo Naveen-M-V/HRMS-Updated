@@ -835,7 +835,7 @@ router.put('/documents/:documentId', checkPermission('edit'), async (req, res) =
     ).populate([
       { path: 'folderId', select: 'name' },
       { path: 'uploadedBy', select: 'firstName lastName employeeId' },
-      { path: 'employeeId', select: 'firstName lastName employeeId' }
+      { path: 'ownerId', select: 'firstName lastName employeeId' }
     ]);
     
     if (!document) {
