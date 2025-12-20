@@ -124,6 +124,9 @@ documentManagementSchema.pre('save', function(next) {
 documentManagementSchema.statics.getByFolder = function(folderId, options = {}) {
   const query = { folderId, isActive: true };
 
+  // By default, hide archived documents to match folder counts and standard UI behavior
+  if (!options.includeArchived) query.isArchived = false;
+
   if (options.category) query.category = options.category;
   if (options.ownerId) query.ownerId = options.ownerId;
 

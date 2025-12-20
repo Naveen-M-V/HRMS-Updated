@@ -13,6 +13,13 @@ import {
   MoreVertical
 } from 'lucide-react';
 import axios from 'axios';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../components/ui/select';
 
 const Documents = () => {
   const navigate = useNavigate();
@@ -124,11 +131,11 @@ const Documents = () => {
                   placeholder="Search all folders..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 <button
                   type="submit"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
                 >
                   <Search className="w-4 h-4" />
                 </button>
@@ -138,22 +145,27 @@ const Documents = () => {
             {/* Right Actions */}
             <div className="flex items-center gap-3">
               {/* Pagination Dropdown */}
-              <select
-                value={pagination.limit}
-                onChange={(e) => handlePaginationChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
+              <div className="w-40">
+                <Select
+                  value={String(pagination.limit)}
+                  onValueChange={(value) => handlePaginationChange(value)}
+                >
+                  <SelectTrigger className="focus:ring-green-500">
+                    <SelectValue placeholder="10 per page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10 per page</SelectItem>
+                    <SelectItem value="25">25 per page</SelectItem>
+                    <SelectItem value="50">50 per page</SelectItem>
+                    <SelectItem value="100">100 per page</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Create Report Button */}
               <button
                 onClick={handleCreateReport}
-                className="px-4 py-2.5 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors font-medium text-sm"
-                style={{ backgroundColor: '#e00070' }}
+                className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
               >
                 Create report
               </button>
@@ -164,7 +176,7 @@ const Documents = () => {
         {/* Folders Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           {/* Table Header */}
-          <div className="bg-blue-50 border-b border-gray-200">
+          <div className="bg-green-50 border-b border-gray-200">
             <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm font-medium text-gray-700">
               <div className="col-span-5">Name</div>
               <div className="col-span-2">Type</div>
@@ -177,7 +189,7 @@ const Documents = () => {
           <div className="divide-y divide-gray-200">
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
               </div>
             ) : filteredFolders.length === 0 ? (
               <div className="text-center py-12">

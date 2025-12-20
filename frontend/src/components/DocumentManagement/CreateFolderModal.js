@@ -150,7 +150,7 @@ const CreateFolderModal = ({ onClose, onCreate, parentFolderId }) => {
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+          className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -171,7 +171,7 @@ const CreateFolderModal = ({ onClose, onCreate, parentFolderId }) => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 88px)' }}>
             {/* Folder Name */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">

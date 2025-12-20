@@ -105,16 +105,16 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-indigo-600">
+          <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-green-600 to-emerald-600">
             <div className="flex items-center space-x-3">
               <FileIcon className="w-6 h-6 text-white" />
               <div>
                 <h2 className="text-xl font-bold text-white">{document.name || document.fileName}</h2>
-                <p className="text-sm text-blue-100">
+                <p className="text-sm text-green-100">
                   {formatFileSize(document.fileSize)} • Uploaded {formatDate(document.createdAt)}
                 </p>
               </div>
@@ -142,7 +142,7 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
             <div className="flex-1 bg-gray-100 flex items-center justify-center overflow-auto">
               {loading ? (
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading preview...</p>
                 </div>
               ) : error ? (
@@ -151,7 +151,7 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
                   <p className="text-red-600 mb-2">{error}</p>
                   <button
                     onClick={() => onDownload(document)}
-                    className="text-blue-600 hover:underline"
+                    className="text-green-600 hover:underline"
                   >
                     Download instead
                   </button>
@@ -178,7 +178,7 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
                   <p className="text-gray-600 mb-4">Preview not available for this file type</p>
                   <button
                     onClick={() => onDownload(document)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
                   >
                     <Download className="w-4 h-4" />
                     <span>Download File</span>
@@ -211,7 +211,7 @@ const DocumentViewer = ({ document, onClose, onDownload }) => {
                       {document.tags.map((tag, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                          className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
                         >
                           {tag}
                         </span>

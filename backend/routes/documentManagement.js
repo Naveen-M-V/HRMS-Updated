@@ -246,23 +246,26 @@ router.get('/folders/:folderId', async (req, res) => {
       return res.status(404).json({ message: 'Folder not found' });
     }
     
-    // Apply access control: admin sees all, others see permitted documents
+    // Apply access control: admin/super-admin sees all, others see permitted documents
     let documents;
-    const userRole = req.user && (req.user.role === 'admin' ? 'admin' : 'employee');
+    const role = req.user?.role;
+    const isAdminLike = role === 'admin' || role === 'super-admin';
     const userId = req.user && (req.user._id || req.user.userId || req.user.id);
 
-    if (userRole === 'admin') {
+    if (isAdminLike) {
       documents = await DocumentManagement.getByFolder(req.params.folderId);
     } else {
       const query = {
         folderId: req.params.folderId,
         isActive: true,
+        isArchived: false,
         $or: [
           { 'accessControl.visibility': 'all' },
           { 'accessControl.visibility': 'employee', ownerId: req.user.employeeId },
           { 'accessControl.allowedUserIds': userId }
         ]
       };
+
       documents = await DocumentManagement.find(query)
         .populate('uploadedBy', 'firstName lastName email')
         .populate('ownerId', 'firstName lastName employeeId')
@@ -694,9 +697,17 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
       // Continue with download even if audit fails
     }
     
+    const originalName = document.name || document.fileName || 'document';
+    const isPdf = document.mimeType === 'application/pdf';
+    let downloadName = originalName;
+    if (isPdf) {
+      const base = downloadName.replace(/\.[^/.]+$/, '');
+      downloadName = base.endsWith('.pdf') ? base : `${base}.pdf`;
+    }
+
     // Send file from MongoDB buffer
-    res.setHeader('Content-Type', document.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${document.name || document.fileName}"`);
+    res.setHeader('Content-Type', isPdf ? 'application/pdf' : document.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
     res.setHeader('Content-Length', document.fileData.length);
     res.send(document.fileData);
   } catch (error) {
