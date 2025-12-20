@@ -46,10 +46,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
+import { useAlert } from '../components/AlertNotification';
 
 const FolderView = () => {
   const { folderId } = useParams();
   const navigate = useNavigate();
+  const { error: showError, success: showSuccess } = useAlert();
   const [folder, setFolder] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,10 +165,11 @@ const FolderView = () => {
       }
       
       setShowItemMenu(null);
+      showSuccess(item.type === 'folder' ? 'Folder deleted successfully' : 'Document deleted successfully');
       fetchFolderContents();
     } catch (error) {
       console.error('Error deleting item:', error);
-      alert('Failed to delete item');
+      showError('Failed to delete item');
     }
   };
 
@@ -199,10 +202,11 @@ const FolderView = () => {
       );
       setRenameDialogOpen(false);
       setDocToRename(null);
+      showSuccess('Document renamed successfully');
       fetchFolderContents();
     } catch (error) {
       console.error('Error renaming document:', error);
-      alert('Failed to rename document');
+      showError('Failed to rename document');
     }
   };
 

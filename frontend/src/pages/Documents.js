@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
+import { useAlert } from '../components/AlertNotification';
 import {
   Select,
   SelectContent,
@@ -37,6 +38,7 @@ import CreateFolderModal from '../components/DocumentManagement/CreateFolderModa
 
 const Documents = () => {
   const navigate = useNavigate();
+  const { error: showError, success: showSuccess } = useAlert();
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,10 +122,11 @@ const Documents = () => {
       );
       setRenameFolderOpen(false);
       setActiveFolder(null);
+      showSuccess('Folder renamed successfully');
       fetchFolders();
     } catch (error) {
       console.error('Error renaming folder:', error);
-      alert('Failed to rename folder');
+      showError('Failed to rename folder');
     }
   };
 
@@ -140,10 +143,11 @@ const Documents = () => {
       });
       setDeleteFolderOpen(false);
       setActiveFolder(null);
+      showSuccess('Folder deleted successfully');
       fetchFolders();
     } catch (error) {
       console.error('Error deleting folder:', error);
-      alert('Failed to delete folder');
+      showError('Failed to delete folder');
     }
   };
 
