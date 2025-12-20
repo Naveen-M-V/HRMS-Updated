@@ -198,7 +198,13 @@ router.get('/test-folder', async (req, res) => {
 router.get('/folders', async (req, res) => {
   try {
     console.log("📂 Fetching folders...");
-    const folders = await Folder.find({ isActive: true })
+    const includeSubfolders = String(req.query.includeSubfolders || '').toLowerCase() === 'true';
+    const folderQuery = {
+      isActive: true,
+      ...(includeSubfolders ? {} : { parentFolder: null })
+    };
+
+    const folders = await Folder.find(folderQuery)
       .sort({ name: 1 });
     
     // Add document count to each folder
@@ -296,10 +302,15 @@ router.get('/folders/:folderId', async (req, res) => {
 router.put('/folders/:folderId', checkPermission('edit'), async (req, res) => {
   try {
     const { name, description, permissions } = req.body;
+
+    const update = {};
+    if (typeof name === 'string' && name.trim()) update.name = name.trim();
+    if (typeof description === 'string') update.description = description;
+    if (permissions !== undefined) update.permissions = permissions;
     
     const folder = await Folder.findByIdAndUpdate(
       req.params.folderId,
-      { name, description, permissions },
+      update,
       { new: true, runValidators: true }
     ).populate('createdBy', 'firstName lastName employeeId');
     
@@ -375,23 +386,31 @@ router.post("/folders", async (req, res) => {
 // Delete folder (soft delete)
 router.delete('/folders/:folderId', checkPermission('delete'), async (req, res) => {
   try {
-    const folder = await Folder.findByIdAndUpdate(
-      req.params.folderId,
-      { isActive: false },
-      { new: true }
-    );
-    
-    if (!folder) {
+    const rootFolder = await Folder.findById(req.params.folderId);
+    if (!rootFolder) {
       return res.status(404).json({ message: 'Folder not found' });
     }
-    
-    // Also archive all documents in the folder
-    await DocumentManagement.updateMany(
-      { folderId: req.params.folderId },
-      { isActive: false, isArchived: true }
-    );
-    
-    res.json({ message: 'Folder deleted successfully' });
+
+    // Collect folder + all descendants
+    const folderIds = [String(rootFolder._id)];
+    for (let i = 0; i < folderIds.length; i++) {
+      const currentId = folderIds[i];
+      const children = await Folder.find({ parentFolder: currentId }).select('_id');
+      for (const child of children) {
+        folderIds.push(String(child._id));
+      }
+    }
+
+    const deleteDocsResult = await DocumentManagement.deleteMany({
+      folderId: { $in: folderIds },
+    });
+    const deleteFoldersResult = await Folder.deleteMany({ _id: { $in: folderIds } });
+
+    res.json({
+      message: 'Folder deleted successfully',
+      deletedDocuments: deleteDocsResult.deletedCount,
+      deletedFolders: deleteFoldersResult.deletedCount,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -750,17 +769,39 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
 // Update document
 router.put('/documents/:documentId', checkPermission('edit'), async (req, res) => {
   try {
-    const { category, tags, permissions, expiresOn, reminderEnabled } = req.body;
+    const { name, fileName, category, tags, permissions, expiresOn, reminderEnabled } = req.body;
+
+    const update = {};
+    if (typeof name === 'string' && name.trim()) update.name = name.trim();
+    if (typeof fileName === 'string' && fileName.trim()) update.fileName = fileName.trim();
+    if (category !== undefined) update.category = category;
+
+    if (tags !== undefined) {
+      if (Array.isArray(tags)) {
+        update.tags = tags.map((tag) => String(tag).trim()).filter(Boolean);
+      } else if (typeof tags === 'string') {
+        update.tags = tags.split(',').map(tag => tag.trim()).filter(Boolean);
+      }
+    }
+
+    if (permissions !== undefined) {
+      if (typeof permissions === 'string') {
+        try {
+          update.permissions = JSON.parse(permissions);
+        } catch {
+          // ignore invalid permissions payload
+        }
+      } else {
+        update.permissions = permissions;
+      }
+    }
+
+    if (expiresOn !== undefined) update.expiresOn = expiresOn ? new Date(expiresOn) : undefined;
+    if (reminderEnabled !== undefined) update.reminderEnabled = reminderEnabled;
     
     const document = await DocumentManagement.findByIdAndUpdate(
       req.params.documentId,
-      {
-        category,
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : undefined,
-        permissions: permissions ? JSON.parse(permissions) : undefined,
-        expiresOn: expiresOn ? new Date(expiresOn) : undefined,
-        reminderEnabled: reminderEnabled !== undefined ? reminderEnabled : undefined
-      },
+      update,
       { new: true, runValidators: true }
     ).populate([
       { path: 'folderId', select: 'name' },

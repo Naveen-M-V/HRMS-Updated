@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
   Folder,
@@ -11,7 +11,9 @@ import {
   Download,
   Filter,
   MoreVertical,
-  Plus
+  Plus,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import axios from 'axios';
 import {
@@ -32,6 +34,7 @@ const Documents = () => {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [showFolderMenu, setShowFolderMenu] = useState(null);
 
   // Fetch folders from API
   useEffect(() => {
@@ -68,6 +71,54 @@ const Documents = () => {
 
   const handleFolderClick = (folderId) => {
     navigate(`/documents/${folderId}`);
+  };
+
+  const handleRenameFolder = async (folder) => {
+    setShowFolderMenu(null);
+    const nextName = window.prompt('Enter new folder name', folder?.name || '');
+    if (!nextName || !String(nextName).trim()) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
+      await axios.put(
+        `${apiUrl}/api/documentManagement/folders/${folder._id}`,
+        { name: String(nextName).trim() },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      fetchFolders();
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      alert('Failed to rename folder');
+    }
+  };
+
+  const handleDeleteFolder = async (folder) => {
+    setShowFolderMenu(null);
+    const ok = window.confirm(
+      `Delete folder "${folder?.name || 'Folder'}" and all files/subfolders inside it?`
+    );
+    if (!ok) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
+      await axios.delete(`${apiUrl}/api/documentManagement/folders/${folder._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      fetchFolders();
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      alert('Failed to delete folder');
+    }
   };
 
   const handleSearch = (e) => {
@@ -261,7 +312,46 @@ const Documents = () => {
                     <span className="text-sm text-gray-600">
                       {formatDate(folder.createdAt)}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowFolderMenu(showFolderMenu === folder._id ? null : folder._id);
+                        }}
+                        className="p-1 hover:bg-gray-200 rounded transition-colors"
+                        aria-label="Folder actions"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-400" />
+                      </button>
+                      <ChevronRight className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                      <AnimatePresence>
+                        {showFolderMenu === folder._id && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            className="absolute right-0 top-8 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => handleRenameFolder(folder)}
+                              className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteFolder(folder)}
+                              className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span>Delete</span>
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </motion.div>
               ))

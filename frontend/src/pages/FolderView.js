@@ -10,6 +10,7 @@ import {
   Plus,
   Eye,
   MoreVertical,
+  Pencil,
   Image,
   File,
   FileArchive,
@@ -75,6 +76,28 @@ const FolderView = () => {
       console.error('Error fetching folder contents:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRenameDocument = async (doc) => {
+    setShowItemMenu(null);
+    const currentName = doc?.name || doc?.fileName || '';
+    const nextName = window.prompt('Enter new document name', currentName);
+    if (!nextName || !String(nextName).trim()) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      await axios.put(
+        `/api/documentManagement/documents/${doc._id}`,
+        { name: String(nextName).trim() },
+        {
+          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
+        }
+      );
+      fetchFolderContents();
+    } catch (error) {
+      console.error('Error renaming document:', error);
+      alert('Failed to rename document');
     }
   };
 
@@ -385,11 +408,11 @@ const FolderView = () => {
                   >
                     {/* Name */}
                     <div className="col-span-5 flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 rounded-lg">
-                        <Icon className="w-5 h-5 text-blue-600" />
+                      <div className="p-2 bg-green-50 rounded-lg">
+                        <Icon className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900 hover:text-blue-600 transition-colors">
+                        <div className="font-medium text-gray-900 hover:text-green-600 transition-colors">
                           {item.name || item.fileName}
                         </div>
                         {item.description && (
@@ -449,6 +472,13 @@ const FolderView = () => {
                                   >
                                     <Eye className="w-4 h-4" />
                                     <span>View</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleRenameDocument(item)}
+                                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                    <span>Edit</span>
                                   </button>
                                   <button
                                     onClick={() => handleDownload(item)}
