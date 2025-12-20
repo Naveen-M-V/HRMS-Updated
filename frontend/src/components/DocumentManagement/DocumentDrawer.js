@@ -136,7 +136,7 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
 
   // Filter folders based on search
   const filteredFolders = folders.filter(folder =>
-    folder.name.toLowerCase().includes(searchQuery.toLowerCase())
+    folder.name && folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Animation variants
@@ -208,82 +208,30 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
                 </div>
               </div>
             ) : (
-              <div className="bg-white border-b border-gray-200">
-                <div className="p-4">
-                  {/* Tabs */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex space-x-6">
-                      <button className="text-blue-600 font-medium border-b-2 border-blue-600 pb-2">
-                        All folders
-                      </button>
-                      <button className="text-gray-500 font-medium hover:text-gray-700 pb-2">
-                        My documents
-                      </button>
-                    </div>
-                    <button
-                      onClick={onClose}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <X className="w-5 h-5 text-gray-500" />
-                    </button>
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <Folder className="w-6 h-6" />
+                    <h2 className="text-xl font-semibold">Documents</h2>
                   </div>
-                  
-                  {/* Search and Actions Bar */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 flex-1">
-                      <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                          type="text"
-                          placeholder="Search"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                          Search
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3">
-                      <button className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center space-x-2">
-                        <Download className="w-4 h-4" />
-                        <span>Download</span>
-                      </button>
-                      
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-500">View</span>
-                        <select className="border border-gray-300 rounded px-3 py-1 text-sm">
-                          <option>10 per page</option>
-                          <option>25 per page</option>
-                          <option>50 per page</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex items-center space-x-3 mt-4">
-                    <button
-                      onClick={handleUploadDocument}
-                      className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Upload</span>
-                    </button>
-                    <button
-                      onClick={() => setShowFolderModal(true)}
-                      className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>New folder</span>
-                    </button>
-                    <button className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2">
-                      <FileText className="w-4 h-4" />
-                      <span>Create report</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={onClose}
+                    className="p-2 hover:bg-blue-800 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-200 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search folders..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-blue-800 bg-opacity-50 border border-blue-600 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
                 </div>
               </div>
             )}
