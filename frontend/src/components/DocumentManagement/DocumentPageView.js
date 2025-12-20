@@ -12,29 +12,31 @@ import {
   Grid3X3,
   List
 } from 'lucide-react';
+import DocumentUpload from './DocumentUpload';
+import FolderModal from './FolderModal';
 
 const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
-  const [documents, setDocuments] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [selectedItems, setSelectedItems] = useState([]);
   const [viewMode, setViewMode] = useState('list');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(false);
 
   useEffect(() => {
-    if (selectedFolder) {
-      fetchDocuments();
-    }
-  }, [selectedFolder]);
+    fetchFolders();
+  }, []);
 
-  const fetchDocuments = async () => {
+  const fetchFolders = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
       const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       
-      const response = await fetch(`${apiUrl}/api/documentManagement/folders/${selectedFolder._id}`, {
+      const response = await fetch(`${apiUrl}/api/documentManagement/folders`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -43,10 +45,10 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
       
       if (response.ok) {
         const data = await response.json();
-        setDocuments(data.documents || []);
+        setFolders(data.folders || []);
       }
     } catch (error) {
-      console.error('Error fetching documents:', error);
+      console.error('Error fetching folders:', error);
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedItems(documents.map(doc => doc._id));
+      setSelectedItems(folders.map(folder => folder._id));
     } else {
       setSelectedItems([]);
     }
@@ -77,11 +79,29 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
     }
   };
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.name && doc.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleUploadClick = () => {
+    setShowUploadModal(true);
+  };
+
+  const handleNewFolderClick = () => {
+    setShowFolderModal(true);
+  };
+
+  const handleDocumentUploaded = (documents) => {
+    setShowUploadModal(false);
+    fetchFolders(); // Refresh folders to update document counts
+  };
+
+  const handleFolderCreated = () => {
+    setShowFolderModal(false);
+    fetchFolders(); // Refresh folders to show the new folder
+  };
+
+  const filteredFolders = folders.filter(folder =>
+    folder.name && folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
+  const sortedFolders = [...filteredFolders].sort((a, b) => {
     const aValue = a[sortBy] || '';
     const bValue = b[sortBy] || '';
     const modifier = sortOrder === 'asc' ? 1 : -1;
@@ -120,7 +140,8 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <>
+      <div className="h-full flex flex-col bg-white">
       {/* Header */}
       <div className="border-b border-gray-200 p-6">
         <div className="flex items-center justify-between mb-6">
@@ -135,15 +156,21 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
           </div>
           
           <div className="flex items-center space-x-3">
-            <button className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2">
+            <button 
+              onClick={handleUploadClick}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center space-x-2"
+            >
               <Upload className="w-4 h-4" />
               <span>Upload</span>
             </button>
-            <button className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2">
+            <button 
+              onClick={handleNewFolderClick}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center space-x-2"
+            >
               <Plus className="w-4 h-4" />
               <span>New folder</span>
             </button>
-            <button className="px-4 py-2 border border-pink-500 text-pink-500 rounded-lg hover:bg-pink-50 flex items-center space-x-2">
+            <button className="px-4 py-2 border border-green-500 text-green-500 rounded-lg hover:bg-green-50 flex items-center space-x-2">
               <FileText className="w-4 h-4" />
               <span>Create report</span>
             </button>
@@ -220,7 +247,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
                 <input
                   type="checkbox"
                   className="rounded border-gray-300"
-                  checked={selectedItems.length === documents.length && documents.length > 0}
+                  checked={selectedItems.length === folders.length && folders.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 />
               </th>
@@ -266,32 +293,30 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {sortedDocuments.map((document) => (
-              <tr key={document._id} className="hover:bg-gray-50">
+            {sortedFolders.map((folder) => (
+              <tr key={folder._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300"
-                    checked={selectedItems.includes(document._id)}
-                    onChange={(e) => handleSelectItem(document._id, e.target.checked)}
+                    checked={selectedItems.includes(folder._id)}
+                    onChange={(e) => handleSelectItem(folder._id, e.target.checked)}
                   />
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center">
-                    <FileText className="w-5 h-5 text-blue-500 mr-3" />
-                    <span className="text-sm font-medium text-gray-900">{document.name}</span>
+                    <Folder className="w-5 h-5 text-blue-500 mr-3" />
+                    <span className="text-sm font-medium text-gray-900">{folder.name}</span>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm text-gray-500">
-                    {document.mimeType?.split('/')[1] || 'Unknown'}
-                  </span>
+                  <span className="text-sm text-gray-500">Folder</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm text-gray-500">{formatFileSize(document.fileSize)}</span>
+                  <span className="text-sm text-gray-500">-</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm text-gray-500">{formatDate(document.createdAt)}</span>
+                  <span className="text-sm text-gray-500">{formatDate(folder.createdAt)}</span>
                 </td>
                 <td className="px-6 py-4">
                   <button className="text-gray-400 hover:text-gray-600">
@@ -305,15 +330,34 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
           </tbody>
         </table>
         
-        {sortedDocuments.length === 0 && (
+        {sortedFolders.length === 0 && (
           <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found</h3>
+            <Folder className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No folders found</h3>
             <p className="text-gray-500">Try adjusting your search or filters</p>
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <DocumentUpload
+          onClose={() => setShowUploadModal(false)}
+          onUpload={handleDocumentUploaded}
+          selectedFolder={selectedFolder}
+        />
+      )}
+
+      {/* Folder Modal */}
+      {showFolderModal && (
+        <FolderModal
+          onClose={() => setShowFolderModal(false)}
+          onSubmit={handleFolderCreated}
+          isFirstFolder={folders.length === 0}
+        />
+      )}
+    </>
   );
 };
 
