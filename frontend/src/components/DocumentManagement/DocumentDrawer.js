@@ -16,12 +16,14 @@ import {
   Archive,
   Download,
   Eye,
-  Share2
+  Share2,
+  ChevronLeft
 } from 'lucide-react';
 import FolderCard from './FolderCard';
 import DocumentPanel from './DocumentPanel';
 import FolderModal from './FolderModal';
 import DocumentUpload from './DocumentUpload';
+import DocumentPageView from './DocumentPageView';
 
 const DocumentDrawer = ({ isOpen, onClose }) => {
   const [folders, setFolders] = useState([]);
@@ -31,6 +33,8 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showUploadZone, setShowUploadZone] = useState(false);
+  const [isDrawerShortened, setIsDrawerShortened] = useState(false);
+  const [showFullPageView, setShowFullPageView] = useState(false);
 
   // Fetch folders from API
   useEffect(() => {
@@ -107,7 +111,14 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
 
   const handleFolderClick = (folder) => {
     setSelectedFolder(folder);
-    setShowDocumentPanel(true);
+    setIsDrawerShortened(true);
+    setShowFullPageView(true);
+  };
+
+  const handleBackToFolders = () => {
+    setIsDrawerShortened(false);
+    setShowFullPageView(false);
+    setSelectedFolder(null);
   };
 
   const handleUploadDocument = () => {
@@ -134,6 +145,7 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
     visible: { 
       x: 0, 
       opacity: 1,
+      width: isDrawerShortened ? '80px' : '384px',
       transition: { 
         type: 'spring', 
         stiffness: 300, 
@@ -177,97 +189,228 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed left-0 top-0 h-full w-96 bg-white shadow-2xl z-50"
+            className="fixed left-0 top-0 h-full bg-white shadow-2xl z-50"
+            style={{ width: isDrawerShortened ? '80px' : '384px' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <Folder className="w-6 h-6" />
-                  <h2 className="text-xl font-semibold">Documents</h2>
-                </div>
+            {isDrawerShortened ? (
+              <div className="p-4">
                 <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-blue-800 rounded-lg transition-colors"
+                  onClick={handleBackToFolders}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <ChevronLeft className="w-5 h-5 text-gray-500" />
                 </button>
-              </div>
-              
-              {/* Search Bar */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-200 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search folders..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-blue-800 bg-opacity-50 border border-blue-600 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6" style={{ height: 'calc(100vh - 200px)' }}>
-              {loading ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <div className="mt-4 text-center">
+                  <Folder className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-xs text-gray-500 truncate">{selectedFolder?.name}</p>
                 </div>
-              ) : folders.length === 0 ? (
-                /* Empty State */
-                <div className="text-center py-12">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-4 bg-gray-100 rounded-full">
-                      <FileText className="w-12 h-12 text-gray-400" />
+              </div>
+            ) : (
+              <div className="bg-white border-b border-gray-200">
+                <div className="p-4">
+                  {/* Tabs */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex space-x-6">
+                      <button className="text-blue-600 font-medium border-b-2 border-blue-600 pb-2">
+                        All folders
+                      </button>
+                      <button className="text-gray-500 font-medium hover:text-gray-700 pb-2">
+                        My documents
+                      </button>
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
+                  
+                  {/* Search and Actions Bar */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                          type="text"
+                          placeholder="Search"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                          Search
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <button className="px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center space-x-2">
+                        <Download className="w-4 h-4" />
+                        <span>Download</span>
+                      </button>
+                      
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500">View</span>
+                        <select className="border border-gray-300 rounded px-3 py-1 text-sm">
+                          <option>10 per page</option>
+                          <option>25 per page</option>
+                          <option>50 per page</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No documents yet</h3>
-                  <p className="text-gray-500 mb-6">Get started by uploading your first document</p>
-                  <button
-                    onClick={handleUploadDocument}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Document
-                  </button>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-3 mt-4">
+                    <button
+                      onClick={handleUploadDocument}
+                      className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload</span>
+                    </button>
+                    <button
+                      onClick={() => setShowFolderModal(true)}
+                      className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>New folder</span>
+                    </button>
+                    <button className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 flex items-center space-x-2">
+                      <FileText className="w-4 h-4" />
+                      <span>Create report</span>
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                /* Folder Grid */
-                <div className="grid grid-cols-1 gap-4">
-                  {filteredFolders.map((folder) => (
-                    <FolderCard
-                      key={folder._id}
-                      folder={folder}
-                      onClick={() => handleFolderClick(folder)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Floating Add Button */}
-            {folders.length > 0 && (
-              <button
-                onClick={() => setShowFolderModal(true)}
-                className="absolute bottom-6 right-6 w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all hover:scale-110 flex items-center justify-center"
-              >
-                <Plus className="w-6 h-6" />
-              </button>
+            {/* Content */}
+            {!isDrawerShortened && (
+              <div className="flex-1 overflow-y-auto" style={{ height: 'calc(100vh - 280px)' }}>
+                {loading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : folders.length === 0 ? (
+                  /* Empty State */
+                  <div className="text-center py-12">
+                    <div className="flex justify-center mb-4">
+                      <div className="p-4 bg-gray-100 rounded-full">
+                        <FileText className="w-12 h-12 text-gray-400" />
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No documents yet</h3>
+                    <p className="text-gray-500 mb-6">Get started by uploading your first document</p>
+                    <button
+                      onClick={handleUploadDocument}
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Document
+                    </button>
+                  </div>
+                ) : (
+                  /* Table View */
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input type="checkbox" className="rounded border-gray-300" />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Name
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Type
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Size
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date created
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredFolders.map((folder) => (
+                          <tr key={folder._id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleFolderClick(folder)}>
+                            <td className="px-4 py-3">
+                              <input type="checkbox" className="rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center">
+                                <Folder className="w-5 h-5 text-blue-500 mr-3" />
+                                <span className="text-sm font-medium text-gray-900">{folder.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm text-gray-500">Folder</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm text-gray-500">-</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-sm text-gray-500">
+                                {new Date(folder.createdAt).toLocaleDateString()}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button className="text-gray-400 hover:text-gray-600" onClick={(e) => e.stopPropagation()}>
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             )}
           </motion.div>
 
-          {/* Document Panel (Right Side) */}
+          {/* Full Page View */}
           <AnimatePresence>
-            {showDocumentPanel && selectedFolder && (
-              <DocumentPanel
-                folder={selectedFolder}
-                onClose={() => {
-                  setShowDocumentPanel(false);
-                  setSelectedFolder(null);
+            {showFullPageView && selectedFolder && (
+              <motion.div
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ 
+                  x: 0, 
+                  opacity: 1,
+                  transition: { 
+                    type: 'spring', 
+                    stiffness: 300, 
+                    damping: 30,
+                    duration: 0.3
+                  }
                 }}
-                onDocumentUploaded={handleDocumentUploaded}
-              />
+                exit={{ 
+                  x: '100%', 
+                  opacity: 0,
+                  transition: { 
+                    duration: 0.25,
+                    ease: 'easeInOut'
+                  }
+                }}
+                className="fixed left-20 top-0 h-full right-0 bg-white z-40"
+                style={{ left: isDrawerShortened ? '80px' : '384px' }}
+              >
+                <DocumentPageView
+                  selectedFolder={selectedFolder}
+                  onClose={onClose}
+                  onBack={handleBackToFolders}
+                />
+              </motion.div>
             )}
           </AnimatePresence>
 

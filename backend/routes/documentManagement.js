@@ -100,11 +100,10 @@ const upload = multer({
 const checkPermission = (action) => {
   return async (req, res, next) => {
     try {
-      // If no user at this point, something is wrong with auth middleware
-      // But we should not block here - let it pass and fail in the route handler
+      // If no user at this point, return 401 immediately
       if (!req.user) {
-        console.warn('checkPermission: No user found, skipping permission check');
-        return next();
+        console.warn('checkPermission: No user found, returning 401');
+        return res.status(401).json({ message: 'Authentication required' });
       }
       
       const user = req.user;
