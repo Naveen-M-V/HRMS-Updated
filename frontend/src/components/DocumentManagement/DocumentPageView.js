@@ -64,7 +64,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
   };
 
   const handleSelectAll = (checked) => {
-    if (checked) {
+    if (checked && folders) {
       setSelectedItems(folders.map(folder => folder._id));
     } else {
       setSelectedItems([]);
@@ -97,7 +97,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
     fetchFolders(); // Refresh folders to show the new folder
   };
 
-  const filteredFolders = folders.filter(folder =>
+  const filteredFolders = (folders || []).filter(folder =>
     folder.name && searchQuery && folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -247,7 +247,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
                 <input
                   type="checkbox"
                   className="rounded border-gray-300"
-                  checked={selectedItems.length === folders.length && folders.length > 0}
+                  checked={folders && selectedItems.length === folders.length && folders.length > 0}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 />
               </th>
@@ -330,7 +330,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
           </tbody>
         </table>
         
-        {sortedFolders.length === 0 && (
+        {(!sortedFolders || sortedFolders.length === 0) && (
           <div className="text-center py-12">
             <Folder className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No folders found</h3>
@@ -354,7 +354,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
         <FolderModal
           onClose={() => setShowFolderModal(false)}
           onSubmit={handleFolderCreated}
-          isFirstFolder={folders.length === 0}
+          isFirstFolder={!folders || folders.length === 0}
         />
       )}
     </>
