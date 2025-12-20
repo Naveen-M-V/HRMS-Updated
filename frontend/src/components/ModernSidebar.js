@@ -482,10 +482,13 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
         <div>
           <button
             onClick={() => {
-              // Don't expand sidebar, just open drawer
-              setOpenDocumentsDrawer(true);
+              handleMenuClick();
+              navigate('/documents');
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all hover:bg-sidebar-accent/50`}
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${location.pathname.startsWith('/documents')
+                ? 'bg-sidebar-primary text-sidebar-primary-foreground font-medium'
+                : 'hover:bg-sidebar-accent/50'
+              }`}
           >
             <DocumentDuplicateIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (

@@ -34,6 +34,13 @@ const folderSchema = new mongoose.Schema({
       }],
       default: ['admin', 'hr']
     },
+    edit: {
+      type: [{
+        type: String,
+        enum: ['admin', 'hr', 'manager', 'employee']
+      }],
+      default: ['admin', 'hr']
+    },
     upload: {
       type: [{
         type: String,

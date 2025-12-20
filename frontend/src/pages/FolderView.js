@@ -248,7 +248,6 @@ const FolderView = () => {
                   <span>{folder?.name || 'Folder'}</span>
                 </div>
               </div>
-              
               {/* Search and Actions */}
               <div className="flex items-center space-x-4">
                 <div className="relative">
@@ -268,6 +267,14 @@ const FolderView = () => {
                   <option>View 25 per page</option>
                   <option>View 50 per page</option>
                 </select>
+
+                <button
+                  onClick={() => setShowCreateFolderModal(true)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Folder
+                </button>
                 
                 {/* Create Report Button */}
                 <button
@@ -320,7 +327,7 @@ const FolderView = () => {
               </div>
             ) : (
               /* Folders Table */
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-visible">
                 {/* Table Header */}
                 <div className="border-b border-gray-200">
                   <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm font-medium text-gray-700">

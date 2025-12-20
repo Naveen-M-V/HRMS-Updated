@@ -270,7 +270,7 @@ router.get('/folders/:folderId', async (req, res) => {
     }
     
     // Get subfolders
-    const subfolders = await Folder.find({ parentId: req.params.folderId, isActive: true });
+    const subfolders = await Folder.find({ parentFolder: req.params.folderId, isActive: true });
     
     // Format contents with type field for frontend
     const contents = [
@@ -313,18 +313,21 @@ router.post("/folders", async (req, res) => {
   try {
     console.log("FOLDER API BODY:", req.body);
 
-    const { name, createdBy } = req.body;
+    const { name, createdBy, parentFolderId, parentId } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Folder name is required" });
     }
 
     const createdById = createdBy || (req.user && (req.user._id || req.user.userId || req.user.id)) || null;
+    const resolvedParentFolder = parentFolderId || parentId || null;
 
     const folder = await Folder.create({
       name: name.trim(),
       description: req.body.description || '',
       createdBy: createdById,
+      parentFolder: resolvedParentFolder,
+      permissions: req.body.permissions,
     });
 
     console.log("✅ Folder created successfully:", folder);
