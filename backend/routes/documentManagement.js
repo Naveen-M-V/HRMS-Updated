@@ -12,11 +12,11 @@ const EmployeeHub = require('../models/EmployeesHub');
 // Get all documents (admin: all, employee: permitted only)
 router.get('/documents', async (req, res) => {
   try {
-    if (!req.user || (!req.user._id && !req.user.userId)) {
+    if (!req.user || (!req.user._id && !req.user.userId && !req.user.id)) {
       return res.status(401).json({ message: 'Authentication required' });
     }
     const userRole = req.user.role === 'admin' ? 'admin' : 'employee';
-    const userId = req.user._id || req.user.userId;
+    const userId = req.user._id || req.user.userId || req.user.id;
     let query = { isActive: true };
 
     if (userRole === 'admin') {
@@ -45,7 +45,6 @@ router.get('/documents', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -206,7 +205,7 @@ router.get('/folders', async (req, res) => {
       // Count documents respecting access control
       let documentCountQuery = { folderId: folder._id, isActive: true, isArchived: false };
       if (req.user && req.user.role !== 'admin' && req.user.role !== 'super-admin') {
-        const userId = req.user._id || req.user.userId;
+        const userId = req.user?._id || req.user?.userId || req.user?.id;
         documentCountQuery = {
           folderId: folder._id,
           isActive: true,
@@ -250,7 +249,7 @@ router.get('/folders/:folderId', async (req, res) => {
     // Apply access control: admin sees all, others see permitted documents
     let documents;
     const userRole = req.user && (req.user.role === 'admin' ? 'admin' : 'employee');
-    const userId = req.user && (req.user._id || req.user.userId);
+    const userId = req.user && (req.user._id || req.user.userId || req.user.id);
 
     if (userRole === 'admin') {
       documents = await DocumentManagement.getByFolder(req.params.folderId);
@@ -289,33 +288,6 @@ router.get('/folders/:folderId', async (req, res) => {
   }
 });
 
-// Create new folder - WORKING VERSION
-router.post("/folders", async (req, res) => {
-  try {
-    console.log("FOLDER API BODY:", req.body);
-
-    const { name, createdBy } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ message: "Folder name is required" });
-    }
-
-    const createdById = createdBy || (req.user && (req.user._id || req.user.userId)) || null;
-
-    const folder = await Folder.create({
-      name: name.trim(),
-      description: req.body.description || '',
-      createdBy: createdById,
-    });
-
-    console.log("✅ Folder created successfully:", folder);
-    return res.status(201).json({ success: true, folder });
-  } catch (err) {
-    console.error("FOLDER CREATION ERROR:", err);
-    return res.status(500).json({ success: false, message: "Server error creating folder" });
-  }
-});
-
 // Update folder
 router.put('/folders/:folderId', checkPermission('edit'), async (req, res) => {
   try {
@@ -334,6 +306,32 @@ router.put('/folders/:folderId', checkPermission('edit'), async (req, res) => {
     res.json(folder);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/folders", async (req, res) => {
+  try {
+    console.log("FOLDER API BODY:", req.body);
+
+    const { name, createdBy } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Folder name is required" });
+    }
+
+    const createdById = createdBy || (req.user && (req.user._id || req.user.userId || req.user.id)) || null;
+
+    const folder = await Folder.create({
+      name: name.trim(),
+      description: req.body.description || '',
+      createdBy: createdById,
+    });
+
+    console.log("✅ Folder created successfully:", folder);
+    return res.status(201).json({ success: true, folder });
+  } catch (err) {
+    console.error("FOLDER CREATION ERROR:", err);
+    return res.status(500).json({ success: false, message: "Server error creating folder" });
   }
 });
 
@@ -362,8 +360,6 @@ router.delete('/folders/:folderId', checkPermission('delete'), async (req, res) 
   }
 });
 
-// ==================== DOCUMENT ROUTES ====================
-
 // Upload document to folder
 router.post('/folders/:folderId/documents', 
   checkPermission('edit'),
@@ -371,7 +367,11 @@ router.post('/folders/:folderId/documents',
   async (req, res) => {
     try {
       // --- Unified Document Upload Logic ---
-      if (!req.user || (!req.user._id && !req.user.userId)) {
+      const authenticatedUserId = req.user?._id || req.user?.userId || req.user?.id;
+      if (!req.user || !authenticatedUserId) {
+        if (req.file) {
+          try { await fs.unlink(req.file.path); } catch {}
+        }
         return res.status(401).json({ message: 'Authentication required' });
       }
       if (!req.file) {
@@ -391,7 +391,7 @@ router.post('/folders/:folderId/documents',
 
       // Determine uploader info
       const userRole = req.user.role === 'admin' ? 'admin' : 'employee';
-      const uploadedBy = req.user._id || req.user.userId;
+      const uploadedBy = authenticatedUserId;
       const uploadedByRole = userRole;
 
       // OwnerId: for employee uploads, set to employeeId; for admin, can be null or set by admin
@@ -491,7 +491,7 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
     
     // Add audit log for viewing
     try {
-      const userId = req.user._id || req.user.userId;
+      const userId = req.user?._id || req.user?.userId || req.user?.id;
       if (userId) {
         document.auditLog.push({
           action: 'viewed',
@@ -579,7 +579,11 @@ router.post('/documents',
   upload.single('file'),
   async (req, res) => {
     try {
-      if (!req.user || (!req.user._id && !req.user.userId)) {
+      const authenticatedUserId = req.user?._id || req.user?.userId || req.user?.id;
+      if (!req.user || !authenticatedUserId) {
+        if (req.file) {
+          try { await fs.unlink(req.file.path); } catch {}
+        }
         return res.status(401).json({ message: 'Authentication required' });
       }
       if (!req.file) {
@@ -590,7 +594,7 @@ router.post('/documents',
       const folderId = null;
 
       const userRole = req.user.role === 'admin' ? 'admin' : 'employee';
-      const uploadedBy = req.user._id || req.user.userId;
+      const uploadedBy = authenticatedUserId;
       const uploadedByRole = userRole;
 
       let ownerId = null;
@@ -670,7 +674,7 @@ router.get('/documents/:documentId/download', checkPermission('download'), async
     
     // Increment download count - don't block download if this fails
     try {
-      const userId = req.user._id || req.user.userId;
+      const userId = req.user?._id || req.user?.userId || req.user?.id;
       document.downloadCount += 1;
       document.lastAccessedAt = new Date();
       if (userId) {
@@ -725,7 +729,7 @@ router.put('/documents/:documentId', checkPermission('edit'), async (req, res) =
     
     // Add audit log
     try {
-      const userId = req.user._id || req.user.userId;
+      const userId = req.user?._id || req.user?.userId || req.user?.id;
       if (userId) {
         document.auditLog.push({
           action: 'updated',
@@ -772,7 +776,7 @@ router.post('/documents/:documentId/version',
       }
       
       // Create new version
-      const userId = req.user._id || req.user.userId;
+      const userId = req.user._id || req.user.userId || req.user.id;
       const newVersion = await originalDocument.createNewVersion(
         fileBuffer,
         req.file.originalname,
@@ -827,7 +831,7 @@ router.post('/documents/:documentId/archive', checkPermission('delete'), async (
       return res.status(404).json({ message: 'Document not found' });
     }
     
-    const userId = req.user._id || req.user.userId;
+    const userId = req.user?._id || req.user?.userId || req.user?.id;
     document.isArchived = true;
     document.isActive = false;
     if (userId) {
