@@ -40,6 +40,9 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       fetchFolders();
+      // Auto-show full page view when drawer opens
+      setIsDrawerShortened(true);
+      setShowFullPageView(true);
     }
   }, [isOpen]);
 

@@ -118,7 +118,7 @@ const FolderModal = ({ onClose, onSubmit, isFirstFolder = false }) => {
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+          className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -140,7 +140,7 @@ const FolderModal = ({ onClose, onSubmit, isFirstFolder = false }) => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit} className="p-6 flex-1 overflow-y-auto">
             {/* Folder Name */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">

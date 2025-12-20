@@ -45,7 +45,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
       
       if (response.ok) {
         const data = await response.json();
-        setFolders(data.folders || []);
+        setFolders(Array.isArray(data) ? data : (data.folders || []));
       }
     } catch (error) {
       console.error('Error fetching folders:', error);
@@ -98,7 +98,7 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
   };
 
   const filteredFolders = folders.filter(folder =>
-    folder.name && folder.name.toLowerCase().includes(searchQuery.toLowerCase())
+    folder.name && searchQuery && folder.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const sortedFolders = [...filteredFolders].sort((a, b) => {
