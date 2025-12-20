@@ -124,9 +124,13 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
         ));
 
         try {
-          const uploadUrl = folderId
+          const uploadUrlBase = folderId
             ? `/api/documentManagement/folders/${folderId}/documents`
             : `/api/documentManagement/documents`;
+
+          const uploadUrl = token
+            ? `${uploadUrlBase}?token=${encodeURIComponent(token)}`
+            : uploadUrlBase;
 
           const response = await axios.post(
             uploadUrl,
@@ -135,6 +139,7 @@ const UploadComponent = ({ onClose, onUpload, folderId }) => {
               headers: {
                 ...(token && { 'Authorization': `Bearer ${token}` })
               },
+              withCredentials: true,
               onUploadProgress: (progressEvent) => {
                 const progress = Math.round(
                   (progressEvent.loaded * 100) / progressEvent.total

@@ -193,9 +193,13 @@ const DocumentUpload = ({
           console.log('Uploading file - Token available:', !!token);
           console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
           
-          const uploadUrl = selectedFolder && selectedFolder._id
+          const uploadUrlBase = selectedFolder && selectedFolder._id
             ? `/api/documentManagement/folders/${selectedFolder._id}/documents`
             : `/api/documentManagement/documents`;
+
+          const uploadUrl = token
+            ? `${uploadUrlBase}?token=${encodeURIComponent(token)}`
+            : uploadUrlBase;
 
           const response = await axios.post(
             uploadUrl,
@@ -206,6 +210,7 @@ const DocumentUpload = ({
                 // Explicitly set Authorization header for multipart uploads
                 ...(token && { 'Authorization': `Bearer ${token}` })
               },
+              withCredentials: true,
               onUploadProgress: (progressEvent) => {
                 const progress = Math.round(
                   (progressEvent.loaded * 100) / progressEvent.total
@@ -227,7 +232,11 @@ const DocumentUpload = ({
             f.id === fileItem.id ? { ...f, status: 'completed' } : f
           ));
         } catch (error) {
-          console.error('Error uploading file:', error);
+          console.error('Error uploading file:', {
+            status: error?.response?.status,
+            message: error?.response?.data?.message || error?.message,
+            url: error?.config?.url
+          });
           // Update file status
           setFiles(prev => prev.map(f => 
             f.id === fileItem.id ? { ...f, status: 'error' } : f
