@@ -181,7 +181,8 @@ const FolderView = () => {
   };
 
   const getFileIcon = (fileName) => {
-    const extension = fileName.split('.').pop().toLowerCase();
+    const safeName = String(fileName || '');
+    const extension = safeName.includes('.') ? safeName.split('.').pop().toLowerCase() : '';
     
     if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension)) {
       return Image;
@@ -210,9 +211,11 @@ const FolderView = () => {
   };
 
   // Filter items based on search
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = items.filter((item) => {
+    const query = String(searchQuery || '').toLowerCase();
+    const name = String(item?.name || item?.fileName || '').toLowerCase();
+    return name.includes(query);
+  });
 
   const isEmpty = filteredItems.length === 0;
 

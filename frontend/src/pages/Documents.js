@@ -91,9 +91,11 @@ const Documents = () => {
   };
 
   // Filter folders based on search
-  const filteredFolders = folders.filter(folder =>
-    folder.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredFolders = folders.filter((folder) => {
+    const query = String(searchQuery || '').toLowerCase();
+    const name = String(folder?.name || folder?.fileName || '').toLowerCase();
+    return name.includes(query);
+  });
 
   const handleCreateReport = () => {
     // Navigate to report library page
