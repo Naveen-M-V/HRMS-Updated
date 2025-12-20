@@ -43,6 +43,7 @@ router.get('/documents', async (req, res) => {
 
     res.json(documents);
   } catch (error) {
+    console.error('Get documents error:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -140,6 +141,7 @@ const checkPermission = (action) => {
       
       next();
     } catch (error) {
+      console.error('checkPermission error:', { action, error });
       res.status(500).json({ message: error.message });
     }
   };
@@ -279,6 +281,23 @@ router.get('/folders/:folderId', async (req, res) => {
         .sort({ createdAt: -1 });
     }
     
+    // Build breadcrumb (ancestors) for UI
+    const breadcrumb = [];
+    try {
+      let current = folder;
+      while (current) {
+        breadcrumb.unshift({
+          _id: current._id,
+          name: current.name,
+          parentFolder: current.parentFolder || null
+        });
+        if (!current.parentFolder) break;
+        current = await Folder.findById(current.parentFolder).select('name parentFolder');
+      }
+    } catch (breadcrumbError) {
+      console.error('Error building folder breadcrumb:', breadcrumbError);
+    }
+
     // Get subfolders
     const subfolders = await Folder.find({ parentFolder: req.params.folderId, isActive: true });
     
@@ -290,6 +309,7 @@ router.get('/folders/:folderId', async (req, res) => {
     
     res.json({
       folder,
+      breadcrumb,
       contents,
       documents // Keep for backwards compatibility
     });
@@ -564,7 +584,12 @@ router.get('/documents/:documentId', checkPermission('view'), async (req, res) =
     
     res.json(document);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Update document error:', error);
+    res.status(500).json({
+      message: error.message,
+      name: error.name,
+      code: error.code
+    });
   }
 });
 
@@ -796,7 +821,11 @@ router.put('/documents/:documentId', checkPermission('edit'), async (req, res) =
       }
     }
 
-    if (expiresOn !== undefined) update.expiresOn = expiresOn ? new Date(expiresOn) : undefined;
+    if (expiresOn !== undefined) {
+      const parsed = expiresOn ? new Date(expiresOn) : null;
+      if (!expiresOn) update.expiresOn = null;
+      else if (!Number.isNaN(parsed.getTime())) update.expiresOn = parsed;
+    }
     if (reminderEnabled !== undefined) update.reminderEnabled = reminderEnabled;
     
     const document = await DocumentManagement.findByIdAndUpdate(
@@ -816,7 +845,7 @@ router.put('/documents/:documentId', checkPermission('edit'), async (req, res) =
     // Add audit log
     try {
       const userId = req.user?._id || req.user?.userId || req.user?.id;
-      if (userId) {
+      if (userId && mongoose.Types.ObjectId.isValid(String(userId))) {
         document.auditLog.push({
           action: 'updated',
           performedBy: userId,

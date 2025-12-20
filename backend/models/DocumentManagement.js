@@ -177,7 +177,7 @@ documentManagementSchema.methods.hasPermission = function(action, user) {
   // action is currently unused but kept for future extension
   if (!user) return false;
   const userRole = user.role || 'employee';
-  const userId = user._id || user.userId || null;
+  const userId = user._id || user.userId || user.id || null;
 
   if (userRole === 'admin' || userRole === 'super-admin') return true;
 

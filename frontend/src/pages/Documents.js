@@ -17,6 +17,16 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -35,6 +45,10 @@ const Documents = () => {
   const [sortOrder, setSortOrder] = useState('asc');
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [showFolderMenu, setShowFolderMenu] = useState(null);
+  const [renameFolderOpen, setRenameFolderOpen] = useState(false);
+  const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
+  const [activeFolder, setActiveFolder] = useState(null);
+  const [renameFolderValue, setRenameFolderValue] = useState('');
 
   // Fetch folders from API
   useEffect(() => {
@@ -75,15 +89,28 @@ const Documents = () => {
 
   const handleRenameFolder = async (folder) => {
     setShowFolderMenu(null);
-    const nextName = window.prompt('Enter new folder name', folder?.name || '');
-    if (!nextName || !String(nextName).trim()) return;
+    setActiveFolder(folder);
+    setRenameFolderValue(folder?.name || '');
+    setRenameFolderOpen(true);
+  };
+
+  const handleDeleteFolder = async (folder) => {
+    setShowFolderMenu(null);
+    setActiveFolder(folder);
+    setDeleteFolderOpen(true);
+  };
+
+  const submitRenameFolder = async () => {
+    if (!activeFolder?._id) return;
+    const nextName = String(renameFolderValue || '').trim();
+    if (!nextName) return;
 
     try {
       const token = localStorage.getItem('auth_token');
       const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
       await axios.put(
-        `${apiUrl}/api/documentManagement/folders/${folder._id}`,
-        { name: String(nextName).trim() },
+        `${apiUrl}/api/documentManagement/folders/${activeFolder._id}`,
+        { name: nextName },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -91,6 +118,8 @@ const Documents = () => {
           }
         }
       );
+      setRenameFolderOpen(false);
+      setActiveFolder(null);
       fetchFolders();
     } catch (error) {
       console.error('Error renaming folder:', error);
@@ -98,22 +127,19 @@ const Documents = () => {
     }
   };
 
-  const handleDeleteFolder = async (folder) => {
-    setShowFolderMenu(null);
-    const ok = window.confirm(
-      `Delete folder "${folder?.name || 'Folder'}" and all files/subfolders inside it?`
-    );
-    if (!ok) return;
-
+  const confirmDeleteFolder = async () => {
+    if (!activeFolder?._id) return;
     try {
       const token = localStorage.getItem('auth_token');
       const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
-      await axios.delete(`${apiUrl}/api/documentManagement/folders/${folder._id}`, {
+      await axios.delete(`${apiUrl}/api/documentManagement/folders/${activeFolder._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+      setDeleteFolderOpen(false);
+      setActiveFolder(null);
       fetchFolders();
     } catch (error) {
       console.error('Error deleting folder:', error);
@@ -397,6 +423,68 @@ const Documents = () => {
           parentFolderId={null}
         />
       )}
+
+      <AlertDialog open={renameFolderOpen} onOpenChange={setRenameFolderOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit folder name</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update the folder name below.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <input
+              value={renameFolderValue}
+              onChange={(e) => setRenameFolderValue(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Folder name"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setActiveFolder(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={submitRenameFolder}
+              className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-600"
+              disabled={!String(renameFolderValue || '').trim()}
+            >
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteFolderOpen} onOpenChange={setDeleteFolderOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the folder and all files/subfolders inside it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setActiveFolder(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteFolder}
+              className="bg-red-600 hover:bg-red-700 focus-visible:ring-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

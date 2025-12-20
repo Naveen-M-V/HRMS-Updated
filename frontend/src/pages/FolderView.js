@@ -36,6 +36,16 @@ import {
   SelectTrigger,
   SelectValue
 } from '../components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 const FolderView = () => {
   const { folderId } = useParams();
@@ -51,6 +61,12 @@ const FolderView = () => {
   const [showItemMenu, setShowItemMenu] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
+  const [breadcrumb, setBreadcrumb] = useState([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [docToRename, setDocToRename] = useState(null);
+  const [renameDocValue, setRenameDocValue] = useState('');
 
   // Fetch folder contents
   useEffect(() => {
@@ -71,6 +87,7 @@ const FolderView = () => {
       });
       
       setFolder(response.data.folder);
+      setBreadcrumb(Array.isArray(response.data.breadcrumb) ? response.data.breadcrumb : []);
       setItems(response.data.contents || []);
     } catch (error) {
       console.error('Error fetching folder contents:', error);
@@ -81,24 +98,9 @@ const FolderView = () => {
 
   const handleRenameDocument = async (doc) => {
     setShowItemMenu(null);
-    const currentName = doc?.name || doc?.fileName || '';
-    const nextName = window.prompt('Enter new document name', currentName);
-    if (!nextName || !String(nextName).trim()) return;
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      await axios.put(
-        `/api/documentManagement/documents/${doc._id}`,
-        { name: String(nextName).trim() },
-        {
-          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
-        }
-      );
-      fetchFolderContents();
-    } catch (error) {
-      console.error('Error renaming document:', error);
-      alert('Failed to rename document');
-    }
+    setDocToRename(doc);
+    setRenameDocValue(doc?.name || doc?.fileName || '');
+    setRenameDialogOpen(true);
   };
 
   const handleItemClick = (item) => {
@@ -147,10 +149,6 @@ const FolderView = () => {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Are you sure you want to delete "${item.name || item.fileName}"?`)) {
-      return;
-    }
-
     try {
       const token = localStorage.getItem('auth_token');
       
@@ -169,6 +167,42 @@ const FolderView = () => {
     } catch (error) {
       console.error('Error deleting item:', error);
       alert('Failed to delete item');
+    }
+  };
+
+  const openDeleteDialog = (item) => {
+    setShowItemMenu(null);
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    await handleDelete(itemToDelete);
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
+
+  const submitRenameDocument = async () => {
+    if (!docToRename?._id) return;
+    const nextName = String(renameDocValue || '').trim();
+    if (!nextName) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      await axios.put(
+        `/api/documentManagement/documents/${docToRename._id}`,
+        { name: nextName },
+        {
+          headers: { ...(token && { Authorization: `Bearer ${token}` }) }
+        }
+      );
+      setRenameDialogOpen(false);
+      setDocToRename(null);
+      fetchFolderContents();
+    } catch (error) {
+      console.error('Error renaming document:', error);
+      alert('Failed to rename document');
     }
   };
 
@@ -276,13 +310,30 @@ const FolderView = () => {
                     Documents
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                {folderId && (
-                  <>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>{folder?.name || 'Folder'}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </>
+                {breadcrumb && breadcrumb.length > 0 && (
+                  breadcrumb.map((crumb, idx) => {
+                    const isLast = idx === breadcrumb.length - 1;
+                    return (
+                      <React.Fragment key={crumb._id}>
+                        <BreadcrumbSeparator />
+                        <BreadcrumbItem>
+                          {isLast ? (
+                            <BreadcrumbPage>{crumb.name || 'Folder'}</BreadcrumbPage>
+                          ) : (
+                            <BreadcrumbLink
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/documents/${crumb._id}`);
+                              }}
+                            >
+                              {crumb.name || 'Folder'}
+                            </BreadcrumbLink>
+                          )}
+                        </BreadcrumbItem>
+                      </React.Fragment>
+                    );
+                  })
                 )}
               </BreadcrumbList>
             </Breadcrumb>
@@ -490,7 +541,7 @@ const FolderView = () => {
                                 </>
                               )}
                               <button
-                                onClick={() => handleDelete(item)}
+                                onClick={() => openDeleteDialog(item)}
                                 className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -531,17 +582,84 @@ const FolderView = () => {
         )}
       </AnimatePresence>
 
-      {/* Document Viewer */}
-      {showDocumentViewer && selectedDocument && (
-        <DocumentViewer
-          document={selectedDocument}
-          onClose={() => {
-            setShowDocumentViewer(false);
-            setSelectedDocument(null);
-          }}
-          onDownload={handleDownload}
-        />
-      )}
+      {/* Document Viewer Modal */}
+      <AnimatePresence>
+        {showDocumentViewer && selectedDocument && (
+          <DocumentViewer
+            document={selectedDocument}
+            onClose={() => setShowDocumentViewer(false)}
+            onDownload={handleDownload}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Rename Document Dialog */}
+      <AlertDialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit document name</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update the document name below.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <input
+              value={renameDocValue}
+              onChange={(e) => setRenameDocValue(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Document name"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setDocToRename(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={submitRenameDocument}
+              className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-600"
+              disabled={!String(renameDocValue || '').trim()}
+            >
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {itemToDelete?.type === 'folder' ? 'folder' : 'document'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {itemToDelete?.type === 'folder'
+                ? 'This will permanently delete the folder and all files/subfolders inside it.'
+                : 'This will permanently delete the document.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setItemToDelete(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus-visible:ring-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
