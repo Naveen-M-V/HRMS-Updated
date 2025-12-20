@@ -92,14 +92,39 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
     fetchFolders(); // Refresh folders to update document counts
   };
 
-  const handleFolderCreated = () => {
-    setShowFolderModal(false);
-    fetchFolders(); // Refresh folders to show the new folder
+  const handleFolderCreated = async (folderData) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
+
+      const response = await fetch(`${apiUrl}/api/documentManagement/folders`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(folderData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setShowFolderModal(false);
+      await fetchFolders();
+    } catch (error) {
+      console.error('Error creating folder:', error);
+    }
   };
 
-  const filteredFolders = (folders || []).filter(folder =>
-    folder.name && searchQuery && folder.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const q = (searchQuery || '').toLowerCase();
+  const filteredFolders = (folders || []).filter((folder) => {
+    const name = (folder?.name || '').toLowerCase();
+    if (!q) return true;
+    return name.includes(q);
+  });
 
   const sortedFolders = [...filteredFolders].sort((a, b) => {
     const aValue = a[sortBy] || '';
@@ -345,7 +370,8 @@ const DocumentPageView = ({ selectedFolder, onClose, onBack }) => {
         <DocumentUpload
           onClose={() => setShowUploadModal(false)}
           onUpload={handleDocumentUploaded}
-          selectedFolder={selectedFolder}
+          folders={folders}
+          defaultFolder={selectedFolder}
         />
       )}
 

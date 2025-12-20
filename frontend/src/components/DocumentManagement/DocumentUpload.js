@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -21,7 +21,7 @@ import '../../utils/axiosConfig';
 const DocumentUpload = ({ 
   onClose, 
   onUpload, 
-  folders, 
+  folders = [], 
   defaultFolder = null 
 }) => {
   const [files, setFiles] = useState([]);
@@ -46,6 +46,17 @@ const DocumentUpload = ({
   const fileInputRef = useRef(null);
   const roles = ['admin', 'hr', 'manager', 'employee'];
   const categories = ['passport', 'visa', 'contract', 'certificate', 'id_proof', 'resume', 'other'];
+
+  useEffect(() => {
+    if (defaultFolder) {
+      setSelectedFolder(defaultFolder);
+      return;
+    }
+
+    if (!selectedFolder && Array.isArray(folders) && folders.length === 1) {
+      setSelectedFolder(folders[0]);
+    }
+  }, [defaultFolder, folders, selectedFolder]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -316,13 +327,13 @@ const DocumentUpload = ({
               </label>
               <select
                 value={selectedFolder?._id || ''}
-                onChange={(e) => setSelectedFolder(folders.find(f => f._id === e.target.value))}
+                onChange={(e) => setSelectedFolder((folders || []).find(f => f._id === e.target.value) || null)}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 ${
                   errors.folder ? 'border-red-500' : 'border-gray-300'
                 }`}
               >
                 <option value="">Choose a folder...</option>
-                {folders.map(folder => (
+                {(folders || []).map(folder => (
                   <option key={folder._id} value={folder._id}>
                     {folder.name}
                   </option>

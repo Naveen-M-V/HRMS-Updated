@@ -68,7 +68,7 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
       }
       
       const data = await response.json();
-      setFolders(data);
+      setFolders(Array.isArray(data) ? data : (data.folders || []));
     } catch (error) {
       console.error('Error fetching folders:', error);
       if (error.message.includes('401') || error.message.includes('403')) {
@@ -102,7 +102,8 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
       }
       
       const data = await response.json();
-      setFolders([...folders, data]);
+      const createdFolder = data && data.folder ? data.folder : data;
+      setFolders((prev) => [...(Array.isArray(prev) ? prev : []), createdFolder]);
       setShowFolderModal(false);
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -332,7 +333,7 @@ const DocumentDrawer = ({ isOpen, onClose }) => {
 
           {/* Full Page View */}
           <AnimatePresence>
-            {showFullPageView && selectedFolder && (
+            {showFullPageView && (
               <motion.div
                 initial={{ x: '100%', opacity: 0 }}
                 animate={{ 

@@ -226,10 +226,12 @@ router.get('/folders', async (req, res) => {
     }));
     
     console.log("✅ Folders fetched successfully:", foldersWithCount.length);
-    res.json(foldersWithCount);
+    res.set('Cache-Control', 'no-store');
+    res.json({ success: true, folders: foldersWithCount });
   } catch (error) {
     console.error("💥 Error fetching folders:", error);
     res.status(500).json({ 
+      success: false,
       message: error.message || 'Internal server error while fetching folders' 
     });
   }
@@ -298,17 +300,19 @@ router.post("/folders", async (req, res) => {
       return res.status(400).json({ message: "Folder name is required" });
     }
 
+    const createdById = createdBy || (req.user && (req.user._id || req.user.userId)) || null;
+
     const folder = await Folder.create({
       name: name.trim(),
       description: req.body.description || '',
-      createdBy: createdBy || null,
+      createdBy: createdById,
     });
 
     console.log("✅ Folder created successfully:", folder);
-    return res.status(201).json(folder);
+    return res.status(201).json({ success: true, folder });
   } catch (err) {
     console.error("FOLDER CREATION ERROR:", err);
-    return res.status(500).json({ message: "Server error creating folder" });
+    return res.status(500).json({ success: false, message: "Server error creating folder" });
   }
 });
 
