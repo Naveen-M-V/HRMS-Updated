@@ -2848,7 +2848,10 @@ const authenticateSession = async (req, res, next) => {
       if (token) {
         try {
           const decoded = await jwt.verify(token, JWT_SECRET);
-          console.log('JWT verified successfully for user:', decoded.email);
+          // Normalize payload: some tokens use `id` while controllers expect `_id`
+          if (decoded && decoded.id && !decoded._id) decoded._id = decoded.id;
+          if (decoded && decoded._id && !decoded.id) decoded.id = decoded._id;
+          console.log('JWT verified successfully for user:', decoded.email, 'ids:', { id: decoded.id, _id: decoded._id });
           req.user = decoded;
           // Update session with token data and save it
           if (req.session) {
@@ -2858,7 +2861,7 @@ const authenticateSession = async (req, res, next) => {
               if (err) {
                 console.error('❌ Session save error in middleware:', err);
               } else {
-                console.log('✅ Session updated in middleware for:', decoded.email);
+                console.log('✅ Session updated in middleware for:', decoded.email, 'sessionUserKeys:', Object.keys(req.session.user));
               }
             });
           }
