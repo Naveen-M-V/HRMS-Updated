@@ -95,9 +95,9 @@ exports.getPendingApprovals = async (req, res) => {
     const userId = req.session.user._id;
     const user = await User.findById(userId);
 
-    // Check if user is manager or admin
-    if (!user || !['manager', 'admin'].includes(user.role)) {
-      return res.status(403).json({ message: 'Access denied. Manager or Admin role required.' });
+    // Check if user is manager, admin, or super-admin
+    if (!user || !['manager', 'admin', 'super-admin'].includes(user.role)) {
+      return res.status(403).json({ message: 'Access denied. Manager, Admin or Super-Admin role required.' });
     }
 
     // Query parameters
@@ -177,7 +177,7 @@ exports.getExpenseById = async (req, res) => {
     const user = await User.findById(userId);
     
     const isOwnExpense = employee && expense.employee._id.toString() === employee._id.toString();
-    const isManagerOrAdmin = user && ['manager', 'admin'].includes(user.role);
+    const isManagerOrAdmin = user && ['manager', 'admin', 'super-admin'].includes(user.role);
 
     if (!isOwnExpense && !isManagerOrAdmin) {
       return res.status(403).json({ message: 'Access denied' });
@@ -626,7 +626,7 @@ exports.getAttachment = async (req, res) => {
     const user = await User.findById(userId);
     
     const isOwnExpense = employee && expense.employee.toString() === employee._id.toString();
-    const isManagerOrAdmin = user && ['manager', 'admin'].includes(user.role);
+    const isManagerOrAdmin = user && ['manager', 'admin', 'super-admin'].includes(user.role);
 
     if (!isOwnExpense && !isManagerOrAdmin) {
       return res.status(403).json({ message: 'Access denied' });

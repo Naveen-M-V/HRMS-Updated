@@ -33,7 +33,8 @@ const AdminExpenses = () => {
   const fetchEmployees = async () => {
     try {
       const res = await axios.get('/api/employeeHub');
-      setEmployees(res.data || []);
+      // API returns { success, count, data: [...] } — handle both shapes
+      setEmployees((res.data && (res.data.data || res.data)) || []);
     } catch (err) {
       console.error('Failed to fetch employees', err);
     }
