@@ -14,6 +14,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { format } from 'date-fns';
+import ModernDatePicker from '../components/ModernDatePicker';
 
 const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) => {
   const navigate = useNavigate();
@@ -183,8 +184,17 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
     }
   };
 
+  const containerClass = embed ? 'bg-white rounded-lg shadow p-6' : 'p-6 bg-gray-50 min-h-screen';
+
+  const handleDatePickerChange = (e) => {
+    // ModernDatePicker emits a synthetic event with target.name and target.value
+    if (e && e.target) {
+      handleInputChange(e.target.name, e.target.value);
+    }
+  };
+
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className={containerClass}>
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -249,16 +259,13 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => handleInputChange('date', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
+                <ModernDatePicker
+                  name="date"
+                  label="Date"
+                  value={formData.date}
+                  onChange={handleDatePickerChange}
+                  required
+                />
             </div>
 
             {/* Category */}

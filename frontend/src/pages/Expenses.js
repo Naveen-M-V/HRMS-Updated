@@ -22,6 +22,8 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AddExpense from './AddExpense';
+import ModernDatePicker from '../components/ModernDatePicker';
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover';
 
 const Expenses = () => {
   const navigate = useNavigate();
@@ -43,7 +45,6 @@ const Expenses = () => {
     limit: 25
   });
 
-  const dropdownRef = useRef(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addType, setAddType] = useState('receipt');
@@ -191,32 +192,28 @@ const Expenses = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setShowAddMenu((s) => !s)}
-              className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
-            >
-              <Plus size={18} />
-              Add new claim
-            </button>
-
-            {showAddMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50">
-                <button
-                  onClick={() => { setShowAddMenu(false); setAddType('receipt'); setShowAddForm(true); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
-                >
-                  Receipt
-                </button>
-                <button
-                  onClick={() => { setShowAddMenu(false); setAddType('mileage'); setShowAddForm(true); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
-                >
-                  Mileage
-                </button>
-              </div>
-            )}
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+                <Plus size={18} />
+                Add new claim
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-40 right-0">
+              <button
+                onClick={() => { setAddType('receipt'); setShowAddForm(true); }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-50"
+              >
+                Receipt
+              </button>
+              <button
+                onClick={() => { setAddType('mileage'); setShowAddForm(true); }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-50"
+              >
+                Mileage
+              </button>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -251,29 +248,21 @@ const Expenses = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Date From */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Calendar size={16} className="inline mr-1" />
-              From
-            </label>
-            <input
-              type="date"
+            <ModernDatePicker
+              name="fromDate"
+              label={<><Calendar size={16} className="inline mr-1" /> From</>}
               value={filters.fromDate}
               onChange={(e) => handleFilterChange('fromDate', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           {/* Date To */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Calendar size={16} className="inline mr-1" />
-              To
-            </label>
-            <input
-              type="date"
+            <ModernDatePicker
+              name="toDate"
+              label={<><Calendar size={16} className="inline mr-1" /> To</>}
               value={filters.toDate}
               onChange={(e) => handleFilterChange('toDate', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
@@ -482,18 +471,20 @@ const Expenses = () => {
       {/* Embedded Add Expense Modal */}
       {showAddForm && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-6 bg-black bg-opacity-40">
-          <div className="w-full max-w-3xl">
-            <AddExpense
-              embed
-              initialType={addType}
-              onClose={(opts) => {
-                setShowAddForm(false);
-                // If an expense was created, refresh the list
-                if (opts && opts.created) {
-                  fetchExpenses();
-                }
-              }}
-            />
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-lg">
+            <div className="p-4">
+              <AddExpense
+                embed
+                initialType={addType}
+                onClose={(opts) => {
+                  setShowAddForm(false);
+                  // If an expense was created, refresh the list
+                  if (opts && opts.created) {
+                    fetchExpenses();
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
