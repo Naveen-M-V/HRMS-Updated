@@ -233,7 +233,7 @@ exports.createExpense = async (req, res) => {
     const expenseData = {
       ...req.body,
       employee: employee._id,
-      submittedBy: userId,
+      submittedBy: employee._id,
       status: 'pending'
     };
 
@@ -396,6 +396,10 @@ exports.approveExpense = async (req, res) => {
     const { id } = req.params;
     const userId = req.session.user._id;
 
+    // Resolve approver as EmployeeHub record (userId may be a profile id or employee id)
+    const approverEmp = await findEmployeeByUserIdentifier(userId);
+    const approverId = approverEmp ? approverEmp._id : null;
+
     const expense = await Expense.findById(id).populate('employee', '_id');
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
@@ -405,13 +409,17 @@ exports.approveExpense = async (req, res) => {
       return res.status(400).json({ message: 'Only pending expenses can be approved' });
     }
 
+    // Debug log: show resolved approver and target employee
+    console.log('Approve request - approverEmp:', approverEmp ? { id: approverEmp._id, role: approverEmp.role } : null, 'expense.employee:', expense.employee ? expense.employee._id : null);
+
     // Check hierarchy permission (employees only, not profiles)
-    const canApprove = await hierarchyHelper.canApproveExpense(userId, expense.employee._id);
+    const canApprove = await hierarchyHelper.canApproveExpense(approverId, expense.employee._id);
     if (!canApprove) {
+      console.warn('Approve denied - approverId:', approverId, 'employeeId:', expense.employee._id);
       return res.status(403).json({ message: 'You do not have permission to approve this expense' });
     }
 
-    await expense.approve(userId);
+    await expense.approve(approverId);
 
     const updatedExpense = await Expense.findById(expense._id)
       .populate('employee', 'firstName lastName employeeId')
@@ -433,6 +441,8 @@ exports.declineExpense = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
     const userId = req.session.user._id;
+    const approverEmp = await findEmployeeByUserIdentifier(userId);
+    const approverId = approverEmp ? approverEmp._id : null;
 
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({ message: 'Decline reason is required' });
@@ -444,7 +454,7 @@ exports.declineExpense = async (req, res) => {
     }
 
     // Check hierarchy permission (employees only, not profiles)
-    const canApprove = await hierarchyHelper.canApproveExpense(userId, expense.employee._id);
+    const canApprove = await hierarchyHelper.canApproveExpense(approverId, expense.employee._id);
     if (!canApprove) {
       return res.status(403).json({ message: 'You do not have permission to decline this expense' });
     }
@@ -453,7 +463,7 @@ exports.declineExpense = async (req, res) => {
       return res.status(400).json({ message: 'Only pending expenses can be declined' });
     }
 
-    await expense.decline(userId, reason);
+    await expense.decline(approverId, reason);
 
     const updatedExpense = await Expense.findById(expense._id)
       .populate('employee', 'firstName lastName employeeId')
@@ -475,8 +485,12 @@ exports.markAsPaid = async (req, res) => {
     const { id } = req.params;
     const userId = req.session.user._id;
 
+    // Resolve approver EmployeeHub id
+    const approverEmp = await findEmployeeByUserIdentifier(userId);
+    const approverId = approverEmp ? approverEmp._id : null;
+
     // Check if user has permission to mark as paid (admin/super-admin only)
-    const canMarkPaid = await hierarchyHelper.canMarkExpenseAsPaid(userId);
+    const canMarkPaid = await hierarchyHelper.canMarkExpenseAsPaid(approverId);
     if (!canMarkPaid) {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
@@ -490,7 +504,7 @@ exports.markAsPaid = async (req, res) => {
       return res.status(400).json({ message: 'Only approved expenses can be marked as paid' });
     }
 
-    await expense.markAsPaid(userId);
+    await expense.markAsPaid(approverId);
 
     const updatedExpense = await Expense.findById(expense._id)
       .populate('employee', 'firstName lastName employeeId')
@@ -513,8 +527,16 @@ exports.revertToPending = async (req, res) => {
     const { id } = req.params;
     const userId = req.session.user._id;
 
+    // Allow admin/super-admin from either User (profile) or EmployeeHub (employee)
     const user = await User.findById(userId);
-    if (!user || user.role !== 'admin') {
+    let isAdmin = false;
+    if (user && user.role === 'admin') isAdmin = true;
+    if (!isAdmin) {
+      const approverEmp = await findEmployeeByUserIdentifier(userId);
+      if (approverEmp && (approverEmp.role === 'admin' || approverEmp.role === 'super-admin')) isAdmin = true;
+    }
+
+    if (!isAdmin) {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }
 
