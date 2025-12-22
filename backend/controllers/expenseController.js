@@ -4,6 +4,21 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const hierarchyHelper = require('../utils/hierarchyHelper');
 
+// Helper to resolve employee record from a user identifier which may be either
+// the EmployeeHub.userId (reference to User) OR the EmployeeHub._id itself.
+async function findEmployeeByUserIdentifier(id) {
+  if (!id) return null;
+  // Try lookup by userId field first (links to User model)
+  let emp = await Employee.findOne({ userId: id });
+  if (emp) return emp;
+  // Fallback: id might already be an EmployeeHub._id
+  if (mongoose.Types.ObjectId.isValid(id)) {
+    emp = await Employee.findById(id);
+    if (emp) return emp;
+  }
+  return null;
+}
+
 function haversineMeters(a, b) {
   const toRad = (v) => (v * Math.PI) / 180;
   const R = 6371000; // Earth radius meters
@@ -24,9 +39,9 @@ function haversineMeters(a, b) {
 exports.getMyExpenses = async (req, res) => {
   try {
     const userId = req.session.user._id;
-    
-    // Find employee record
-    const employee = await Employee.findOne({ user: userId });
+
+    // Find employee record (supports Employee.userId or Employee._id identifiers)
+    const employee = await findEmployeeByUserIdentifier(userId);
     if (!employee) {
       return res.status(404).json({ message: 'Employee record not found' });
     }
@@ -99,11 +114,11 @@ exports.getPendingApprovals = async (req, res) => {
     let user = await User.findById(userId);
     if (!user) {
       // Fallback: maybe the approver exists in EmployeeHub (admins/super-admins sometimes stored there)
-      const emp = await Employee.findOne({ user: userId });
-      if (emp) {
-        console.log('User not found in User model, using EmployeeHub record for role lookup:', { id: emp._id, role: emp.role });
-        user = { _id: emp._id, role: emp.role, email: emp.email };
-      }
+      const emp = await findEmployeeByUserIdentifier(userId);
+        if (emp) {
+          console.log('User not found in User model, using EmployeeHub record for role lookup:', { id: emp._id, role: emp.role });
+          user = { _id: emp._id, role: emp.role, email: emp.email };
+        }
     }
 
     // Check if user is manager, admin, or super-admin
@@ -185,7 +200,7 @@ exports.getExpenseById = async (req, res) => {
     }
 
     // Check access: employee can see their own, managers/admins can see all
-    const employee = await Employee.findOne({ user: userId });
+    const employee = await findEmployeeByUserIdentifier(userId);
     const user = await User.findById(userId);
     
     const isOwnExpense = employee && expense.employee._id.toString() === employee._id.toString();
@@ -208,9 +223,9 @@ exports.getExpenseById = async (req, res) => {
 exports.createExpense = async (req, res) => {
   try {
     const userId = req.session.user._id;
-    
+
     // Find employee record
-    const employee = await Employee.findOne({ user: userId });
+    const employee = await findEmployeeByUserIdentifier(userId);
     if (!employee) {
       return res.status(404).json({ message: 'Employee record not found' });
     }
@@ -316,7 +331,7 @@ exports.updateExpense = async (req, res) => {
     }
 
     // Check ownership
-    const employee = await Employee.findOne({ user: userId });
+    const employee = await findEmployeeByUserIdentifier(userId);
     if (!employee || expense.employee.toString() !== employee._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -360,7 +375,7 @@ exports.deleteExpense = async (req, res) => {
     }
 
     // Check ownership
-    const employee = await Employee.findOne({ user: userId });
+    const employee = await findEmployeeByUserIdentifier(userId);
     if (!employee || expense.employee.toString() !== employee._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -552,7 +567,7 @@ exports.uploadAttachment = async (req, res) => {
     }
 
     // Check ownership
-    const employee = await Employee.findOne({ user: userId });
+    const employee = await findEmployeeByUserIdentifier(userId);
     if (!employee || expense.employee.toString() !== employee._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -598,7 +613,7 @@ exports.deleteAttachment = async (req, res) => {
     }
 
     // Check ownership
-    const employee = await Employee.findOne({ user: userId });
+    const employee = await findEmployeeByUserIdentifier(userId);
     if (!employee || expense.employee.toString() !== employee._id.toString()) {
       return res.status(403).json({ message: 'Access denied' });
     }
@@ -634,7 +649,7 @@ exports.getAttachment = async (req, res) => {
     }
 
     // Check access
-    const employee = await Employee.findOne({ user: userId });
+    const employee = await findEmployeeByUserIdentifier(userId);
     const user = await User.findById(userId);
     
     const isOwnExpense = employee && expense.employee.toString() === employee._id.toString();
