@@ -519,13 +519,13 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
             onClick={() => {
               handleMenuClick();
               if (user && (user.role === 'admin' || user.role === 'super-admin')) {
-                navigate('/expenses');
+                navigate('/admin/expenses');
               } else {
                 navigate('/user-dashboard?tab=expenses');
               }
             }}
             className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${(
-                location.pathname.startsWith('/expenses') || (location.pathname.startsWith('/user-dashboard') && new URLSearchParams(location.search).get('tab') === 'expenses')
+                location.pathname.startsWith('/expenses') || location.pathname.startsWith('/admin/expenses') || (location.pathname.startsWith('/user-dashboard') && new URLSearchParams(location.search).get('tab') === 'expenses')
               )
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                 : 'hover:bg-sidebar-accent/50'
@@ -546,34 +546,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           </button>
         </div>
 
-        {/* Admin Expenses - visible to admin and super-admin */}
-        {(user && (user.role === 'admin' || user.role === 'super-admin')) && (
-          <div>
-            <button
-              onClick={() => {
-                handleMenuClick();
-                navigate('/admin/expenses');
-              }}
-              className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive('/admin/expenses')
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'hover:bg-sidebar-accent/50'
-                }`}
-            >
-              <svg
-                className="h-5 w-5 flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
-              </svg>
-              {isOpen && (
-                <span className="text-sm font-medium flex-1 text-left">Admin Expenses</span>
-              )}
-            </button>
-          </div>
-        )}
+        
 
         {/* Report Library */}
         <div>
