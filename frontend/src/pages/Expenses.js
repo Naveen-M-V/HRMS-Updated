@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { 
@@ -19,10 +19,13 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Expenses = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('my-expenses');
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,6 +43,9 @@ const Expenses = () => {
     limit: 25
   });
 
+  const dropdownRef = useRef(null);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
   const [pagination, setPagination] = useState({
     total: 0,
     page: 1,
@@ -49,17 +55,8 @@ const Expenses = () => {
 
   // Fetch user role
   useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const response = await axios.get('/api/auth/check-session');
-        if (response.data.role) {
-          setUserRole(response.data.role);
-        }
-      } catch (err) {
-        console.error('Error fetching user role:', err);
-      }
-    };
-    fetchUserRole();
+    // Ensure we use role from stored session when available
+    if (user?.role) setUserRole(user.role);
   }, []);
 
   // Fetch expenses
@@ -71,8 +68,14 @@ const Expenses = () => {
     setLoading(true);
     setError(null);
     try {
+      // For employee-specific route, always fetch only the logged-in user's expenses
       const endpoint = activeTab === 'my-expenses' ? '/api/expenses' : '/api/expenses/approvals';
-      const response = await axios.get(endpoint, { params: filters });
+      const params = { ...filters };
+      if (location.pathname.startsWith('/employee')) {
+        // include employeeId to ensure backend returns only this user's data
+        params.employeeId = user?.id || user?._id || user?.employeeId || user?.email;
+      }
+      const response = await axios.get(endpoint, { params });
       setExpenses(response.data.expenses || []);
       setPagination(response.data.pagination || { total: 0, page: 1, pages: 1, limit: 25 });
     } catch (err) {
@@ -129,22 +132,35 @@ const Expenses = () => {
   };
 
   const handleExportCSV = async () => {
+    // Client-side CSV export of currently visible rows
     try {
-      const response = await axios.post('/api/expenses/export/csv', 
-        { expenses }, 
-        { responseType: 'blob' }
-      );
-      const blob = new Blob([response.data], { type: 'text/csv' });
+      if (!expenses || expenses.length === 0) return;
+      const visible = expenses;
+      const headers = ['Type', 'Status', 'Submitted On', 'Total'];
+      const rows = visible.map((r) => [
+        r.category || r.type || 'Expense',
+        (r.status || '').toString(),
+        r.date ? format(new Date(r.date), 'dd/MM/yyyy') : '',
+        r.totalAmount != null ? `${r.currency || ''} ${Number(r.totalAmount).toFixed(2)}` : ''
+      ]);
+
+      let csv = headers.join(',') + '\n';
+      rows.forEach((row) => {
+        csv += row.map((cell) => `"${(cell ?? '').toString().replace(/"/g, '""')}"`).join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `expenses_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.setAttribute('download', `expenses_${format(new Date(), 'yyyy-MM-dd')}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to export expenses');
+      console.error('CSV export failed', err);
+      alert('Failed to export expenses');
     }
   };
 
@@ -168,7 +184,7 @@ const Expenses = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Expenses</h1>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
@@ -177,13 +193,34 @@ const Expenses = () => {
             <Download size={20} />
             Export to CSV
           </button>
-          <button
-            onClick={() => navigate('/expenses/add')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            <Plus size={20} />
-            Add new claim
-          </button>
+
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowAddMenu((s) => !s)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              <Plus size={18} />
+              Add New Claim
+              <span className="ml-1">▾</span>
+            </button>
+
+            {showAddMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50">
+                <button
+                  onClick={() => { setShowAddMenu(false); navigate('/expenses/add'); }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
+                >
+                  New Expense
+                </button>
+                <button
+                  onClick={() => { setShowAddMenu(false); navigate('/expenses/add?type=mileage'); }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
+                >
+                  Mileage Claim
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -322,24 +359,11 @@ const Expenses = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted On</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Options</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -351,79 +375,35 @@ const Expenses = () => {
                     className="hover:bg-gray-50 transition"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(expense.date), 'dd/MM/yyyy')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {expense.category}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                      {expense.notes || expense.supplier || 'No description'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {expense.currency} {expense.totalAmount.toFixed(2)}
+                      {expense.category || expense.type || 'Expense'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(expense.status)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {expense.submittedOn ? format(new Date(expense.submittedOn), 'dd/MM/yyyy') : (expense.date ? format(new Date(expense.date), 'dd/MM/yyyy') : '')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {expense.currency ? `${expense.currency} ` : ''}{expense.totalAmount != null ? Number(expense.totalAmount).toFixed(2) : ''}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex gap-2">
-                        {activeTab === 'my-expenses' ? (
-                          <>
-                            <button
-                              onClick={() => navigate(`/expenses/${expense._id}`)}
-                              className="text-blue-600 hover:text-blue-800 transition"
-                              title="View"
-                            >
-                              <Eye size={18} />
-                            </button>
-                            {expense.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => navigate(`/expenses/edit/${expense._id}`)}
-                                  className="text-yellow-600 hover:text-yellow-800 transition"
-                                  title="Edit"
-                                >
-                                  <Edit size={18} />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(expense._id)}
-                                  className="text-red-600 hover:text-red-800 transition"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={18} />
-                                </button>
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => navigate(`/expenses/${expense._id}`)}
-                              className="text-blue-600 hover:text-blue-800 transition"
-                              title="View"
-                            >
-                              <Eye size={18} />
-                            </button>
-                            {expense.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(expense._id)}
-                                  className="text-green-600 hover:text-green-800 transition"
-                                  title="Approve"
-                                >
-                                  <CheckCircle size={18} />
-                                </button>
-                                <button
-                                  onClick={() => handleDecline(expense._id)}
-                                  className="text-red-600 hover:text-red-800 transition"
-                                  title="Decline"
-                                >
-                                  <XCircle size={18} />
-                                </button>
-                              </>
-                            )}
-                          </>
-                        )}
+                      {/* Options 3-dots menu */}
+                      <div className="relative inline-block text-left">
+                        <button onClick={(e) => {
+                          const menu = e.currentTarget.nextElementSibling;
+                          if (menu) menu.classList.toggle('hidden');
+                        }} className="p-1 rounded hover:bg-gray-100">
+                          ⋯
+                        </button>
+                        <div className="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
+                          <button onClick={() => navigate(`/expenses/${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">View</button>
+                          {expense.status === 'pending' && (
+                            <>
+                              <button onClick={() => navigate(`/expenses/edit/${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Edit</button>
+                              <button onClick={() => handleDelete(expense._id)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Delete</button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </motion.tr>
