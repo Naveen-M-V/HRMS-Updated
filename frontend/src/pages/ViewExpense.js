@@ -157,7 +157,7 @@ const ViewExpense = () => {
           {error || 'Expense not found'}
         </div>
         <button
-          onClick={() => navigate('/expenses')}
+          onClick={() => navigate('/user-dashboard?tab=expenses')}
           className="mt-4 flex items-center gap-2 text-blue-600 hover:text-blue-800"
         >
           <ArrowLeft size={20} />

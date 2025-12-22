@@ -290,7 +290,8 @@ function App() {
                     element={
                       <EmployeeProtectedRoute>
                         <ErrorBoundary>
-                          <Expenses />
+                          {/* Redirect to dashboard tab so expenses appears as a tab under navbar */}
+                          <Navigate to="/user-dashboard?tab=expenses" replace />
                         </ErrorBoundary>
                       </EmployeeProtectedRoute>
                     }

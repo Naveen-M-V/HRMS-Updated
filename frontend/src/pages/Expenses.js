@@ -200,13 +200,13 @@ const Expenses = () => {
             {showAddMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50">
                 <button
-                  onClick={() => { setShowAddMenu(false); navigate('/expenses/add'); }}
+                  onClick={() => { setShowAddMenu(false); navigate('/user-dashboard?tab=expenses&action=add'); }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-50"
                 >
                   New Expense
                 </button>
                 <button
-                  onClick={() => { setShowAddMenu(false); navigate('/expenses/add?type=mileage'); }}
+                  onClick={() => { setShowAddMenu(false); navigate('/user-dashboard?tab=expenses&action=add&type=mileage'); }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-50"
                 >
                   Mileage Claim
@@ -403,7 +403,7 @@ const Expenses = () => {
                     className={`transition ${idx % 2 === 0 ? 'bg-blue-50' : ''} hover:bg-blue-100`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-700">
-                      <button onClick={() => navigate(`/expenses/${expense._id}`)} className="text-left font-medium text-blue-700 hover:underline">
+                      <button onClick={() => navigate(`/user-dashboard?tab=expenses&action=view&id=${expense._id}`)} className="text-left font-medium text-blue-700 hover:underline">
                         {expense.type || expense.category || 'Expense'}
                       </button>
                       <div className="text-xs text-gray-600 mt-1">{expense.category || expense.subCategory || ''}</div>
@@ -427,10 +427,10 @@ const Expenses = () => {
                           ⋯
                         </button>
                         <div className="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
-                          <button onClick={() => navigate(`/expenses/${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">View</button>
+                          <button onClick={() => navigate(`/user-dashboard?tab=expenses&action=view&id=${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">View</button>
                           {expense.status === 'pending' && (
                             <>
-                              <button onClick={() => navigate(`/expenses/edit/${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Edit</button>
+                              <button onClick={() => navigate(`/user-dashboard?tab=expenses&action=edit&id=${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Edit</button>
                               <button onClick={() => handleDelete(expense._id)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Delete</button>
                             </>
                           )}

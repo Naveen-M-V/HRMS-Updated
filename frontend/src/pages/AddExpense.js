@@ -160,7 +160,7 @@ const AddExpense = () => {
         }
       }
 
-      navigate('/expenses');
+      navigate('/user-dashboard?tab=expenses');
     } catch (err) {
       console.error('Error creating expense:', err);
       setError(err.response?.data?.message || 'Failed to create expense claim');
@@ -183,18 +183,18 @@ const AddExpense = () => {
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => navigate('/expenses')}
+          onClick={() => navigate('/user-dashboard?tab=expenses')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
         >
           <ArrowLeft size={20} />
           Back to Expenses
+        <button
+          onClick={() => navigate('/user-dashboard?tab=expenses')}
+          className="mt-4 flex items-center gap-2 text-blue-600 hover:text-blue-800"
+        >
+          <ArrowLeft size={20} />
+          Back to Expenses
         </button>
-        <h1 className="text-3xl font-bold text-gray-800">Add New Claim</h1>
-      </div>
-
-      {/* Claim Type Toggle */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-3">Claim Type</label>
         <div className="flex gap-4">
           <button
             type="button"
