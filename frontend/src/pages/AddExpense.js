@@ -188,12 +188,6 @@ const AddExpense = () => {
         >
           <ArrowLeft size={20} />
           Back to Expenses
-        <button
-          onClick={() => navigate('/user-dashboard?tab=expenses')}
-          className="mt-4 flex items-center gap-2 text-blue-600 hover:text-blue-800"
-        >
-          <ArrowLeft size={20} />
-          Back to Expenses
         </button>
         <div className="flex gap-4">
           <button
