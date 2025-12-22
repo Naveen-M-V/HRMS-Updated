@@ -284,6 +284,18 @@ function App() {
                     }
                   />
 
+                  {/* Employee-specific routes (employee portal) */}
+                  <Route
+                    path="/employee/expenses"
+                    element={
+                      <EmployeeProtectedRoute>
+                        <ErrorBoundary>
+                          <Expenses />
+                        </ErrorBoundary>
+                      </EmployeeProtectedRoute>
+                    }
+                  />
+
                   {/* User Certificate Routes */}
                   <Route
                     path="/user/certificates/create"
