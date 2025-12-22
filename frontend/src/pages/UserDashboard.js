@@ -16,6 +16,7 @@ import ShiftInfoCard from '../components/ShiftInfoCard';
 import UserNavigation from '../components/UserNavigation';
 import EmployeeMap from '../components/employeeLiveMap';
 import { jobRoleCertificateMapping } from '../data/new';
+import Expenses from './Expenses';
 import {
   PencilIcon,
   PlusIcon,
@@ -1184,6 +1185,12 @@ const UserDashboard = () => {
         {activeTab === 'documents' && isEmployeeUser && (
           <div style={{ margin: '-32px', padding: '0' }}>
             <Documents />
+          </div>
+        )}
+        {/* Expenses Tab - render inside dashboard for employee users */}
+        {activeTab === 'expenses' && isEmployeeUser && (
+          <div style={{ margin: '-32px', padding: '0' }}>
+            <Expenses />
           </div>
         )}
 

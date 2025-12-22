@@ -30,7 +30,7 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
     { id: 'shifts', name: 'My Shifts', icon: CalendarDaysIcon, showForProfile: false },
     { id: 'documents', name: 'Documents', icon: FolderIcon, showForProfile: false },
     { id: 'calendar', name: 'Calendar', icon: CalendarIcon, showForProfile: false, tooltip: 'Calendar & Leave' },
-    { id: 'expenses', name: 'Expenses', icon: CurrencyDollarIcon, showForProfile: false, path: '/employee/expenses' },
+    { id: 'expenses', name: 'Expenses', icon: CurrencyDollarIcon, showForProfile: false },
     { id: 'notifications', name: 'Notifications', icon: BellIcon, badge: notifications?.length || 0, showForProfile: true },
   ].filter(item => isEmployeeUser || item.showForProfile);
 
@@ -68,7 +68,8 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
                     key={item.id}
                     onClick={() => {
                       setActiveTab(item.id);
-                      if (item.path) navigate(item.path);
+                      // Do not navigate away for user dashboard tabs (expenses should open as a tab)
+                      if (item.path && item.id !== 'expenses') navigate(item.path);
                     }}
                     className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${isActive
                         ? 'bg-green-50 text-green-700'
@@ -147,7 +148,7 @@ const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user
                     key={item.id}
                     onClick={() => {
                       setActiveTab(item.id);
-                      if (item.path) navigate(item.path);
+                      if (item.path && item.id !== 'expenses') navigate(item.path);
                       setMobileMenuOpen(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive

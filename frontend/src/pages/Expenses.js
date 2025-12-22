@@ -19,12 +19,11 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Expenses = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('my-expenses');
   const [expenses, setExpenses] = useState([]);
@@ -71,10 +70,8 @@ const Expenses = () => {
       // For employee-specific route, always fetch only the logged-in user's expenses
       const endpoint = activeTab === 'my-expenses' ? '/api/expenses' : '/api/expenses/approvals';
       const params = { ...filters };
-      if (location.pathname.startsWith('/employee')) {
-        // include employeeId to ensure backend returns only this user's data
-        params.employeeId = user?.id || user?._id || user?.employeeId || user?.email;
-      }
+      // Always include employee identifier to scope results to the logged-in user
+      params.employeeId = user?.id || user?._id || user?.employeeId || user?.email;
       const response = await axios.get(endpoint, { params });
       setExpenses(response.data.expenses || []);
       setPagination(response.data.pagination || { total: 0, page: 1, pages: 1, limit: 25 });
