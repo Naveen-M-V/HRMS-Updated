@@ -182,26 +182,22 @@ const Expenses = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Expenses</h1>
-        <div className="flex gap-3 items-center">
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-            disabled={expenses.length === 0}
-          >
-            <Download size={20} />
-            Export to CSV
-          </button>
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white">
+            <DollarSign size={20} />
+          </div>
+          <h1 className="text-2xl font-semibold text-gray-800">Expenses</h1>
+        </div>
 
+        <div className="flex items-center gap-3">
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowAddMenu((s) => !s)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
             >
               <Plus size={18} />
-              Add New Claim
-              <span className="ml-1">▾</span>
+              Add new claim
             </button>
 
             {showAddMenu && (
@@ -251,7 +247,7 @@ const Expenses = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white rounded-lg shadow p-4 mb-2">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Date From */}
           <div>
@@ -332,6 +328,41 @@ const Expenses = () => {
         </div>
       </div>
 
+      <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+        <div>
+          Showing <span className="font-medium">{expenses.length > 0 ? ((pagination.page - 1) * pagination.limit) + 1 : 0}</span>-<span className="font-medium">{Math.min(pagination.page * pagination.limit, pagination.total || expenses.length)}</span> of <span className="font-medium">{pagination.total || expenses.length}</span> expenses.
+          <button onClick={() => {
+            setFilters({ status: '', category: '', tags: '', fromDate: '', toDate: '', page: 1, limit: filters.limit });
+            fetchExpenses();
+          }} className="ml-2 text-blue-600 underline">Reset filters</button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">View</span>
+            <select
+              value={filters.limit}
+              onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
+              className="px-2 py-1 border border-gray-300 rounded"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+
+          <button
+            onClick={handleExportCSV}
+            className="px-3 py-2 border border-pink-500 text-pink-600 rounded hover:bg-pink-50"
+            disabled={expenses.length === 0}
+          >
+            Export to CSV
+          </button>
+        </div>
+      </div>
+
       {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
@@ -357,7 +388,7 @@ const Expenses = () => {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-blue-50 border-b border-blue-100">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -367,21 +398,24 @@ const Expenses = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {expenses.map((expense) => (
+                {expenses.map((expense, idx) => (
                   <motion.tr
                     key={expense._id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-gray-50 transition"
+                    className={`transition ${idx % 2 === 0 ? 'bg-blue-50' : ''} hover:bg-blue-100`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {expense.category || expense.type || 'Expense'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-700">
+                      <button onClick={() => navigate(`/expenses/${expense._id}`)} className="text-left font-medium text-blue-700 hover:underline">
+                        {expense.type || expense.category || 'Expense'}
+                      </button>
+                      <div className="text-xs text-gray-600 mt-1">{expense.category || expense.subCategory || ''}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(expense.status)}
+                      <div className="flex items-center justify-center">{getStatusBadge(expense.status)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {expense.submittedOn ? format(new Date(expense.submittedOn), 'dd/MM/yyyy') : (expense.date ? format(new Date(expense.date), 'dd/MM/yyyy') : '')}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                      {expense.submittedOn ? format(new Date(expense.submittedOn), 'EEE dd LLL yyyy') : (expense.date ? format(new Date(expense.date), 'EEE dd LLL yyyy') : '')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {expense.currency ? `${expense.currency} ` : ''}{expense.totalAmount != null ? Number(expense.totalAmount).toFixed(2) : ''}
