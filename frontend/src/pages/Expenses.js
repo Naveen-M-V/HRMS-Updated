@@ -21,6 +21,7 @@ import {
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AddExpense from './AddExpense';
 
 const Expenses = () => {
   const navigate = useNavigate();
@@ -44,6 +45,8 @@ const Expenses = () => {
 
   const dropdownRef = useRef(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addType, setAddType] = useState('receipt');
 
   const [pagination, setPagination] = useState({
     total: 0,
@@ -200,16 +203,16 @@ const Expenses = () => {
             {showAddMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-50">
                 <button
-                  onClick={() => { setShowAddMenu(false); navigate('/user-dashboard?tab=expenses&action=add'); }}
+                  onClick={() => { setShowAddMenu(false); setAddType('receipt'); setShowAddForm(true); }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-50"
                 >
-                  New Expense
+                  Receipt
                 </button>
                 <button
-                  onClick={() => { setShowAddMenu(false); navigate('/user-dashboard?tab=expenses&action=add&type=mileage'); }}
+                  onClick={() => { setShowAddMenu(false); setAddType('mileage'); setShowAddForm(true); }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-50"
                 >
-                  Mileage Claim
+                  Mileage
                 </button>
               </div>
             )}
@@ -474,6 +477,24 @@ const Expenses = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+      {/* Embedded Add Expense Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-6 bg-black bg-opacity-40">
+          <div className="w-full max-w-3xl">
+            <AddExpense
+              embed
+              initialType={addType}
+              onClose={(opts) => {
+                setShowAddForm(false);
+                // If an expense was created, refresh the list
+                if (opts && opts.created) {
+                  fetchExpenses();
+                }
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

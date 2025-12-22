@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-const AddExpense = () => {
+const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) => {
   const navigate = useNavigate();
-  const [claimType, setClaimType] = useState('receipt');
+  const [claimType, setClaimType] = useState(initialType || 'receipt');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -160,7 +160,12 @@ const AddExpense = () => {
         }
       }
 
-      navigate('/user-dashboard?tab=expenses');
+      // If embedded, call onClose so parent can close modal and refresh
+      if (embed && typeof onClose === 'function') {
+        onClose({ created: true, id: expenseId });
+      } else {
+        navigate('/user-dashboard?tab=expenses');
+      }
     } catch (err) {
       console.error('Error creating expense:', err);
       setError(err.response?.data?.message || 'Failed to create expense claim');
@@ -181,14 +186,28 @@ const AddExpense = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate('/user-dashboard?tab=expenses')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
-        >
-          <ArrowLeft size={20} />
-          Back to Expenses
-        </button>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          {!embed ? (
+            <button
+              onClick={() => navigate('/user-dashboard?tab=expenses')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+            >
+              <ArrowLeft size={20} />
+              Back to Expenses
+            </button>
+          ) : (
+            <button
+              onClick={() => onClose && onClose()}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
+            >
+              <ArrowLeft size={20} />
+              Close
+            </button>
+          )}
+
+        </div>
+
         <div className="flex gap-4">
           <button
             type="button"
@@ -518,12 +537,15 @@ const AddExpense = () => {
         {/* Form Actions */}
         <div className="flex gap-4">
           <button
-            type="button"
-            onClick={() => navigate('/expenses')}
-            className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-          >
-            Cancel
-          </button>
+              type="button"
+              onClick={() => {
+                if (embed && typeof onClose === 'function') return onClose({ cancelled: true });
+                navigate('/user-dashboard?tab=expenses');
+              }}
+              className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
           <button
             type="submit"
             disabled={!isFormValid() || loading}

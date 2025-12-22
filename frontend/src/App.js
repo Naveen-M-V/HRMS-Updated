@@ -297,6 +297,29 @@ function App() {
                     }
                   />
 
+                  {/* Add new receipt/mileage paths — redirect into dashboard expenses tab (inline) */}
+                  <Route
+                    path="/employee/expenses/receipt/new"
+                    element={
+                      <EmployeeProtectedRoute>
+                        <ErrorBoundary>
+                          <Navigate to="/user-dashboard?tab=expenses&action=add&type=receipt" replace />
+                        </ErrorBoundary>
+                      </EmployeeProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/employee/expenses/mileage/new"
+                    element={
+                      <EmployeeProtectedRoute>
+                        <ErrorBoundary>
+                          <Navigate to="/user-dashboard?tab=expenses&action=add&type=mileage" replace />
+                        </ErrorBoundary>
+                      </EmployeeProtectedRoute>
+                    }
+                  />
+
                   {/* User Certificate Routes */}
                   <Route
                     path="/user/certificates/create"
