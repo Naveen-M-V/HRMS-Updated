@@ -93,10 +93,22 @@ exports.getMyExpenses = async (req, res) => {
 exports.getPendingApprovals = async (req, res) => {
   try {
     const userId = req.session.user._id;
-    const user = await User.findById(userId);
+    const sessionUser = req.session.user;
+    console.log('Fetching pending approvals - sessionUser:', sessionUser ? { id: sessionUser._id, email: sessionUser.email, role: sessionUser.role } : null);
+
+    let user = await User.findById(userId);
+    if (!user) {
+      // Fallback: maybe the approver exists in EmployeeHub (admins/super-admins sometimes stored there)
+      const emp = await Employee.findOne({ user: userId });
+      if (emp) {
+        console.log('User not found in User model, using EmployeeHub record for role lookup:', { id: emp._id, role: emp.role });
+        user = { _id: emp._id, role: emp.role, email: emp.email };
+      }
+    }
 
     // Check if user is manager, admin, or super-admin
     if (!user || !['manager', 'admin', 'super-admin'].includes(user.role)) {
+      console.warn('Access denied for pending approvals - user role:', user ? user.role : null);
       return res.status(403).json({ message: 'Access denied. Manager, Admin or Super-Admin role required.' });
     }
 
