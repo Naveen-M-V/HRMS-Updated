@@ -33,8 +33,14 @@ const AdminExpenses = () => {
   const fetchEmployees = async () => {
     try {
       const res = await axios.get('/api/employeeHub');
-      // API returns { success, count, data: [...] } — handle both shapes
-      setEmployees((res.data && (res.data.data || res.data)) || []);
+      // Normalize possible response shapes. API may return { success, count, data: [...] }
+      let data = res.data;
+      if (data && data.data) data = data.data;
+      if (!Array.isArray(data)) {
+        console.warn('Unexpected /api/employeeHub response shape, normalizing to empty array', res.data);
+        data = [];
+      }
+      setEmployees(data);
     } catch (err) {
       console.error('Failed to fetch employees', err);
     }
@@ -51,8 +57,12 @@ const AdminExpenses = () => {
       if (tab === 'my-expenses') url = '/api/expenses';
 
       const res = await axios.get(url, { params });
-      setExpenses(res.data.expenses || []);
-      setPagination(res.data.pagination || { total: 0, page: 1, pages: 1, limit: 25 });
+      // Normalize response shapes: backend may return { expenses, pagination } or wrapper { success, data: { expenses, pagination }}
+      let payload = res.data;
+      if (payload && payload.data) payload = payload.data;
+      const expenseList = Array.isArray(payload?.expenses) ? payload.expenses : Array.isArray(payload) ? payload : [];
+      setExpenses(expenseList);
+      setPagination(payload?.pagination || { total: 0, page: 1, pages: 1, limit: 25 });
     } catch (err) {
       console.error('Failed to fetch expenses', err);
     } finally {
