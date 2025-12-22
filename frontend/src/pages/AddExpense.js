@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -14,6 +14,8 @@ import {
   DollarSign
 } from 'lucide-react';
 import { format } from 'date-fns';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import ModernDatePicker from '../components/ModernDatePicker';
 
 const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) => {
@@ -39,7 +41,8 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
       distance: 0,
       unit: 'miles',
       ratePerUnit: 0.45,
-      destinations: [{ address: '', latitude: null, longitude: null, order: 0 }]
+      destinations: [{ address: '', latitude: null, longitude: null, order: 0 }],
+      routePoints: []
     }
   });
 
@@ -64,6 +67,100 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
       mileage: { ...prev.mileage, destinations: newDestinations }
     }));
   };
+
+  // MapLibre route picker state
+  const mapContainer = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
+
+  const addRoutePoint = (lat, lng) => {
+    const newPoints = [...(formData.mileage.routePoints || []), { latitude: lat, longitude: lng }];
+    setFormData(prev => ({ ...prev, mileage: { ...prev.mileage, routePoints: newPoints } }));
+    computeDistanceFromRoute(newPoints);
+  };
+
+  const removeRoutePoint = (index) => {
+    const newPoints = (formData.mileage.routePoints || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, mileage: { ...prev.mileage, routePoints: newPoints } }));
+    computeDistanceFromRoute(newPoints);
+  };
+
+  const computeDistanceFromRoute = (points) => {
+    if (!points || points.length < 2) {
+      setFormData(prev => ({ ...prev, mileage: { ...prev.mileage, distance: 0 } }));
+      return 0;
+    }
+    const toRad = (v) => (v * Math.PI) / 180;
+    const R = 6371000;
+    let total = 0;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1];
+      const b = points[i];
+      const dLat = toRad(b.latitude - a.latitude);
+      const dLon = toRad(b.longitude - a.longitude);
+      const lat1 = toRad(a.latitude);
+      const lat2 = toRad(b.latitude);
+      const sinDlat = Math.sin(dLat / 2);
+      const sinDlon = Math.sin(dLon / 2);
+      const aa = sinDlat * sinDlat + Math.cos(lat1) * Math.cos(lat2) * sinDlon * sinDlon;
+      const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+      total += R * c;
+    }
+    // total is meters - convert to miles or km based on unit
+    let distanceValue = total / 1609.344; // miles
+    if (formData.mileage.unit === 'km') distanceValue = total / 1000;
+    setFormData(prev => ({ ...prev, mileage: { ...prev.mileage, distance: Number(distanceValue.toFixed(2)) } }));
+    return total;
+  };
+
+  useEffect(() => {
+    if (claimType !== 'mileage') return;
+    if (!mapContainer.current) return;
+
+    try {
+      if (mapRef.current) {
+        // clear existing markers
+        markersRef.current.forEach(m => m.remove());
+        markersRef.current = [];
+      }
+
+      const map = new maplibregl.Map({
+        container: mapContainer.current,
+        style: {
+          version: 8,
+          sources: {
+            'osm-tiles': {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256
+            }
+          },
+          layers: [{ id: 'osm-tiles', type: 'raster', source: 'osm-tiles' }]
+        },
+        center: [0, 0],
+        zoom: 2
+      });
+
+      map.addControl(new maplibregl.NavigationControl());
+
+      map.on('click', (e) => {
+        const { lat, lng } = e.lngLat.wrap ? { lat: e.lngLat.lat, lng: e.lngLat.lng } : { lat: e.lngLat.lat, lng: e.lngLat.lng };
+        const marker = new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
+        markersRef.current.push(marker);
+        addRoutePoint(lat, lng);
+      });
+
+      mapRef.current = map;
+
+      return () => {
+        try { map.remove(); } catch (e) { }
+        mapRef.current = null;
+        markersRef.current = [];
+      };
+    } catch (err) {
+      console.error('Map init error', err);
+    }
+  }, [claimType]);
 
   const addDestination = () => {
     if (formData.mileage.destinations.length < 10) {
@@ -142,7 +239,8 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
           distance: formData.mileage.distance,
           unit: formData.mileage.unit,
           ratePerUnit: formData.mileage.ratePerUnit,
-          destinations: formData.mileage.destinations
+          destinations: formData.mileage.destinations,
+          routePoints: formData.mileage.routePoints
         };
       }
 
@@ -180,7 +278,7 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
     if (claimType === 'receipt') {
       return formData.supplier && formData.receiptValue > 0;
     } else {
-      return formData.mileage.distance > 0 && formData.mileage.ratePerUnit > 0;
+      return (formData.mileage.distance > 0 || (formData.mileage.routePoints && formData.mileage.routePoints.length >= 2)) && formData.mileage.ratePerUnit > 0;
     }
   };
 
@@ -456,47 +554,29 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Journey Planner</h3>
             <div className="space-y-4">
-              {formData.mileage.destinations.map((dest, index) => (
-                <div key={index} className="flex gap-3 items-start">
-                  <div className="flex-shrink-0 mt-2">
-                    <MapPin size={20} className="text-gray-400" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Waypoints (click on map to add)</label>
+                  <div className="max-h-48 overflow-auto border rounded p-2">
+                    {(formData.mileage.routePoints || []).length === 0 ? (
+                      <div className="text-sm text-gray-500">No points yet. Click on the map to add waypoints in order.</div>
+                    ) : (
+                      (formData.mileage.routePoints || []).map((pt, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-1">
+                          <div className="text-sm">{idx + 1}. {pt.latitude.toFixed(5)}, {pt.longitude.toFixed(5)}</div>
+                          <button type="button" onClick={() => removeRoutePoint(idx)} className="text-red-600">Remove</button>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={dest.address}
-                      onChange={(e) => handleDestinationChange(index, 'address', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder={`Destination ${index + 1}`}
-                    />
-                  </div>
-                  {formData.mileage.destinations.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeDestination(index)}
-                      className="flex-shrink-0 mt-2 text-red-600 hover:text-red-800"
-                    >
-                      <X size={20} />
-                    </button>
-                  )}
+                  <div className="mt-2 text-xs text-gray-500">Distance: {formData.mileage.distance} {formData.mileage.unit}</div>
                 </div>
-              ))}
-              {formData.mileage.destinations.length < 10 && (
-                <button
-                  type="button"
-                  onClick={addDestination}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
-                >
-                  <Plus size={18} />
-                  Add destination
-                </button>
-              )}
-            </div>
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-600">
-                <strong>Note:</strong> Map integration for route visualization and distance calculation will be available soon. 
-                For now, please manually enter the total distance traveled.
-              </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Map</label>
+                  <div ref={mapContainer} className="w-full h-48 rounded border" />
+                </div>
+              </div>
             </div>
           </div>
         )}

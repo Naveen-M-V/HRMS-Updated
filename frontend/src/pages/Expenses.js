@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AddExpense from './AddExpense';
+import ExpenseDetailsModal from '../components/ExpenseDetailsModal';
 import ModernDatePicker from '../components/ModernDatePicker';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover';
 
@@ -48,6 +49,7 @@ const Expenses = () => {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addType, setAddType] = useState('receipt');
+  const [viewingId, setViewingId] = useState(null);
 
   const [pagination, setPagination] = useState({
     total: 0,
@@ -395,7 +397,7 @@ const Expenses = () => {
                     className={`transition ${idx % 2 === 0 ? 'bg-blue-50' : ''} hover:bg-blue-100`}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-700">
-                      <button onClick={() => navigate(`/user-dashboard?tab=expenses&action=view&id=${expense._id}`)} className="text-left font-medium text-blue-700 hover:underline">
+                      <button onClick={() => setViewingId(expense._id)} className="text-left font-medium text-blue-700 hover:underline">
                         {expense.type || expense.category || 'Expense'}
                       </button>
                       <div className="text-xs text-gray-600 mt-1">{expense.category || expense.subCategory || ''}</div>
@@ -419,7 +421,7 @@ const Expenses = () => {
                           ⋯
                         </button>
                         <div className="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
-                          <button onClick={() => navigate(`/user-dashboard?tab=expenses&action=view&id=${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">View</button>
+                          <button onClick={() => setViewingId(expense._id)} className="w-full text-left px-4 py-2 hover:bg-gray-50">View</button>
                           {expense.status === 'pending' && (
                             <>
                               <button onClick={() => navigate(`/user-dashboard?tab=expenses&action=edit&id=${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Edit</button>
@@ -467,6 +469,9 @@ const Expenses = () => {
             </div>
           )}
         </div>
+      )}
+      {viewingId && (
+        <ExpenseDetailsModal id={viewingId} onClose={() => setViewingId(null)} onUpdated={() => { setViewingId(null); fetchExpenses(); }} />
       )}
       {/* Embedded Add Expense Modal */}
       {showAddForm && (

@@ -4,6 +4,20 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const hierarchyHelper = require('../utils/hierarchyHelper');
 
+function haversineMeters(a, b) {
+  const toRad = (v) => (v * Math.PI) / 180;
+  const R = 6371000; // Earth radius meters
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const lat1 = toRad(a.latitude);
+  const lat2 = toRad(b.latitude);
+  const sinDlat = Math.sin(dLat / 2);
+  const sinDlon = Math.sin(dLon / 2);
+  const aa = sinDlat * sinDlat + Math.cos(lat1) * Math.cos(lat2) * sinDlon * sinDlon;
+  const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+  return R * c;
+}
+
 /**
  * Get all expenses for the logged-in employee
  */
@@ -202,13 +216,59 @@ exports.createExpense = async (req, res) => {
         return res.status(400).json({ message: 'Supplier is required for receipt claims' });
       }
     } else if (expenseData.claimType === 'mileage') {
-      if (!expenseData.mileage || !expenseData.mileage.distance || !expenseData.mileage.ratePerUnit) {
-        return res.status(400).json({ message: 'Distance and rate are required for mileage claims' });
+      if (!expenseData.mileage || !expenseData.mileage.ratePerUnit) {
+        return res.status(400).json({ message: 'Rate is required for mileage claims and destinations or manual distance must be provided' });
       }
-      // Auto-calculate total if not provided
-      if (!expenseData.totalAmount) {
-        expenseData.totalAmount = expenseData.mileage.distance * expenseData.mileage.ratePerUnit;
+
+      // Compute distance without Google: prefer client-supplied routePoints (lat/lng array)
+      if (expenseData.mileage.routePoints && Array.isArray(expenseData.mileage.routePoints) && expenseData.mileage.routePoints.length >= 2) {
+        // routePoints expected as [{latitude, longitude}, ...]
+        const pts = expenseData.mileage.routePoints;
+        let totalMeters = 0;
+        for (let i = 1; i < pts.length; i++) {
+          totalMeters += haversineMeters(pts[i - 1], pts[i]);
+        }
+        expenseData.mileage.calculatedDistance = totalMeters; // meters
+        const miles = totalMeters / 1609.344;
+        const mileageAmount = miles * expenseData.mileage.ratePerUnit;
+        expenseData.totalAmount = Number((mileageAmount + (expenseData.tax || 0)).toFixed(2));
+      } else if (expenseData.mileage.destinations && Array.isArray(expenseData.mileage.destinations) && expenseData.mileage.destinations.length >= 2 && expenseData.mileage.destinations.every(d => d.latitude && d.longitude)) {
+        // If destinations include lat/lng, compute distance from those points
+        const pts = expenseData.mileage.destinations.map(d => ({ latitude: d.latitude, longitude: d.longitude }));
+        let totalMeters = 0;
+        for (let i = 1; i < pts.length; i++) totalMeters += haversineMeters(pts[i - 1], pts[i]);
+        expenseData.mileage.calculatedDistance = totalMeters;
+        expenseData.mileage.routePoints = pts;
+        const miles = totalMeters / 1609.344;
+        const mileageAmount = miles * expenseData.mileage.ratePerUnit;
+        expenseData.totalAmount = Number((mileageAmount + (expenseData.tax || 0)).toFixed(2));
+      } else if (expenseData.mileage.distance) {
+        // client provided distance (assumed in miles if unit==miles)
+        const distance = expenseData.mileage.distance;
+        const unit = expenseData.mileage.unit || 'miles';
+        let miles = distance;
+        if (unit === 'km') miles = distance * 0.621371;
+        const mileageAmount = miles * expenseData.mileage.ratePerUnit;
+        expenseData.totalAmount = Number((mileageAmount + (expenseData.tax || 0)).toFixed(2));
+        expenseData.mileage.calculatedDistance = unit === 'km' ? distance * 1000 : miles * 1609.344;
+      } else {
+        return res.status(422).json({ message: 'Unable to calculate distance. Provide routePoints with lat/lng or manual distance.' });
       }
+    }
+
+    // If client provided an overviewPolyline but routePoints are missing, decode it server-side so frontend MapLibre can render route without Google
+    try {
+      if (expenseData.mileage && expenseData.mileage.overviewPolyline && (!expenseData.mileage.routePoints || expenseData.mileage.routePoints.length === 0)) {
+        try {
+          const decoded = polyline.decode(expenseData.mileage.overviewPolyline).map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
+          expenseData.mileage.routePoints = decoded;
+        } catch (decErr) {
+          console.warn('Failed to decode overviewPolyline:', decErr.message);
+        }
+      }
+    } catch (e) {
+      // non-fatal
+      console.warn('Polyline decode step failed', e && e.message);
     }
 
     const expense = new Expense(expenseData);

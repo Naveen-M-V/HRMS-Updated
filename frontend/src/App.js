@@ -68,6 +68,7 @@ import ReportLibrary from './pages/ReportLibrary';
 import Expenses from './pages/Expenses';
 import AddExpense from './pages/AddExpense';
 import ViewExpense from './pages/ViewExpense';
+import AdminExpenses from './pages/AdminExpenses';
 import Goals from './pages/Goals';
 import Reviews from './pages/Reviews';
 import ELearningPage from './pages/ELearningPage';
@@ -391,6 +392,7 @@ function App() {
                     <Route path="/manager-approvals" element={<ManagerApprovalDashboard />} />
                     <Route path="/report-library" element={<ReportLibrary />} />
                     <Route path="/expenses" element={<Expenses />} />
+                    <Route path="/admin/expenses" element={<AdminExpenses />} />
                     <Route path="/expenses/add" element={<AddExpense />} />
                     <Route path="/expenses/:id" element={<ViewExpense />} />
                     <Route path="/documents" element={<Documents />} />
