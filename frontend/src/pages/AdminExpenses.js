@@ -32,7 +32,8 @@ const AdminExpenses = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get('/api/employeeHub');
+      // Backend mounts employee hub routes at `/api/employees`
+      const res = await axios.get('/api/employees');
       // Normalize possible response shapes. API may return { success, count, data: [...] }
       let data = res.data;
       if (data && data.data) data = data.data;
