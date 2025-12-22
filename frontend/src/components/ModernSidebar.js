@@ -518,7 +518,11 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           <button
             onClick={() => {
               handleMenuClick();
-              navigate('/user-dashboard?tab=expenses');
+              if (user && (user.role === 'admin' || user.role === 'super-admin')) {
+                navigate('/expenses');
+              } else {
+                navigate('/user-dashboard?tab=expenses');
+              }
             }}
             className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${(
                 location.pathname.startsWith('/expenses') || (location.pathname.startsWith('/user-dashboard') && new URLSearchParams(location.search).get('tab') === 'expenses')
