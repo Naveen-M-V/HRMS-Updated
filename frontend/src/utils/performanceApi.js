@@ -100,8 +100,17 @@ export const reviewsApi = {
 
     // Get my reviews
     getMyReviews: async () => {
-        const response = await api.get('/reviews/my-reviews');
-        return response.data;
+        try {
+            const response = await api.get('/reviews/my-reviews');
+            return response.data;
+        } catch (err) {
+            // If endpoint is not available (404) or other client error, return empty array
+            if (err.response && err.response.status === 404) {
+                console.warn('reviewsApi.getMyReviews: endpoint not found (404), returning empty array');
+                return [];
+            }
+            throw err;
+        }
     },
 
     // Get review by ID

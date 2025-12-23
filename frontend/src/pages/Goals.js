@@ -26,10 +26,14 @@ export default function Goals() {
                 });
                 // Ensure we always set an array
                 const employeeData = response.data;
+                // Accept several response shapes returned by different employee endpoints
                 if (Array.isArray(employeeData)) {
                     setEmployees(employeeData);
                 } else if (employeeData && Array.isArray(employeeData.employees)) {
                     setEmployees(employeeData.employees);
+                } else if (employeeData && Array.isArray(employeeData.data)) {
+                    // Backend sometimes returns { success, count, data: [...] }
+                    setEmployees(employeeData.data);
                 } else {
                     console.warn('Employees data is not in expected format:', employeeData);
                     setEmployees([]);
