@@ -96,35 +96,57 @@ exports.createGoal = async (req, res) => {
         // Ensure description is always set (Goal model expects a value)
         const safeDescription = description || '';
 
+        // Validate assignee exists
+        const assigneeEmployee = await EmployeesHub.findById(assignee);
+        if (!assigneeEmployee) return res.status(400).json({ message: 'Assignee employee not found' });
+
+        // Validate dates
+        const sDate = new Date(startDate);
+        const dDate = new Date(dueDate);
+        if (isNaN(sDate.getTime()) || isNaN(dDate.getTime())) {
+            return res.status(400).json({ message: 'Invalid startDate or dueDate' });
+        }
+        if (dDate <= sDate) return res.status(400).json({ message: 'dueDate must be after startDate' });
+
+        // Validate measurementType
+        const allowedMeasurements = ['Yes/No', 'Progress (%)', 'Numeric Target', 'Milestones'];
+        if (!allowedMeasurements.includes(measurementType)) return res.status(400).json({ message: 'Invalid measurementType' });
+
+        // Determine createdBy value from session
+        const createdBy = (req.user && (req.user.id || req.user._id)) || null;
+        if (!createdBy) return res.status(400).json({ message: 'Authenticated user required' });
+
         // Create goal
         const goal = new Goal({
             goalName,
             description: safeDescription,
             assignee,
-            startDate,
-            dueDate,
+            startDate: sDate,
+            dueDate: dDate,
             measurementType,
-            createdBy: req.user.id
+            createdBy
         });
 
         await goal.save();
 
-        // Get assignee details to find manager
-        const assigneeEmployee = await EmployeesHub.findById(assignee);
-
-        // Create linked review
-        const review = new Review({
-            reviewTitle: goalName,
-            assignedTo: assignee,
-            manager: assigneeEmployee?.managerId || null,
-            startDate,
-            dueDate,
-            status: 'Not complete',
-            linkedGoal: goal._id,
-            reviewType: 'Goal-based'
-        });
-
-        await review.save();
+        // Create linked review (non-fatal if it fails)
+        let review = null;
+        try {
+            review = new Review({
+                reviewTitle: goalName,
+                assignedTo: assignee,
+                manager: assigneeEmployee?.managerId || null,
+                startDate: sDate,
+                dueDate: dDate,
+                status: 'Not complete',
+                linkedGoal: goal._id,
+                reviewType: 'Goal-based'
+            });
+            await review.save();
+        } catch (rvErr) {
+            console.error('Failed to create linked review:', rvErr);
+            // don't fail the whole request; return goal with warning
+        }
 
         // Populate and return the created goal
         const populatedGoal = await Goal.findById(goal._id)
