@@ -8,6 +8,13 @@ Admin pages:
 - `/admin/performance/disciplinary/create` - Create disciplinary record.
 - `/admin/performance/pips` - List improvement plans.
 - `/admin/performance/pips/create` - Create improvement plan.
+ - `/admin/performance` - Index linking to sections. (removed)
+ - `/admin/performance/notes` - List notes for a given employee (enter employee ID and Load). (removed)
+ - `/admin/performance/notes/create` - Create a note (employeeId, visibility, content). (removed)
+ - `/admin/performance/disciplinary` - List disciplinary records for employee. (removed)
+ - `/admin/performance/disciplinary/create` - Create disciplinary record. (removed)
+ - `/admin/performance/pips` - List improvement plans. (removed)
+ - `/admin/performance/pips/create` - Create improvement plan. (removed)
 
 Frontend API helper: `frontend/src/utils/performanceApi.js` exposes `goalsApi`, `reviewsApi`, `notesApi`, `disciplinaryApi`, `pipsApi`.
 

@@ -475,38 +475,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
                 <span>Reviews</span>
               </button>
               
-              <button
-                onClick={() => handleNavigation("/performance/notes")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/notes")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                <span>Notes</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigation("/performance/disciplinary")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/disciplinary")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                <span>Disciplinary</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigation("/performance/pips")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/performance/pips")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <DocumentTextIcon className="h-4 w-4" />
-                <span>PIPs</span>
-              </button>
+              {/* Notes, Disciplinary, and PIPs links removed */}
             </div>
           )}
         </div>

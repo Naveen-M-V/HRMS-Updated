@@ -43,4 +43,13 @@ const PipsList = () => {
   );
 };
 
-export default PipsList;
+import React from 'react';
+
+export default function PipsListRemoved() {
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold">PIPs Page Removed</h1>
+      <p>The admin PIPs page has been removed.</p>
+    </div>
+  );
+}

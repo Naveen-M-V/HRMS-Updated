@@ -73,13 +73,7 @@ import Goals from './pages/Goals';
 import Reviews from './pages/Reviews';
 import ELearningPage from './pages/ELearningPage';
 // Admin performance management
-import AdminPerformance from './pages/admin/performance/AdminPerformance';
-import NotesList from './pages/admin/performance/NotesList';
-import NoteCreate from './pages/admin/performance/NoteCreate';
-import DisciplinaryList from './pages/admin/performance/DisciplinaryList';
-import DisciplinaryCreate from './pages/admin/performance/DisciplinaryCreate';
-import PipsList from './pages/admin/performance/PipsList';
-import PipCreate from './pages/admin/performance/PipCreate';
+// Admin performance pages removed
 
 // Note: ProtectedRoute removed as it's unused - AdminProtectedRoute and UserProtectedRoute handle all cases
 
@@ -407,13 +401,7 @@ function App() {
                     <Route path="/documents/:folderId" element={<FolderView />} />
                     <Route path="/performance/goals" element={<Goals />} />
                     <Route path="/performance/reviews" element={<Reviews />} />
-                    <Route path="/admin/performance" element={<AdminPerformance />} />
-                    <Route path="/admin/performance/notes" element={<NotesList />} />
-                    <Route path="/admin/performance/notes/create" element={<NoteCreate />} />
-                    <Route path="/admin/performance/disciplinary" element={<DisciplinaryList />} />
-                    <Route path="/admin/performance/disciplinary/create" element={<DisciplinaryCreate />} />
-                    <Route path="/admin/performance/pips" element={<PipsList />} />
-                    <Route path="/admin/performance/pips/create" element={<PipCreate />} />
+                    {/* Admin performance routes removed */}
                     <Route path="/e-learning/*" element={<ELearningPage />} />
                   </Route>
                 </Routes>
