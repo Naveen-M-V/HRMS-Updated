@@ -14,30 +14,33 @@ const PerformanceTab = ({ user, userProfile }) => {
     const load = async () => {
       try {
         setLoading(true);
-        if (!employeeId) return;
+        if (!employeeId) {
+          setLoading(false);
+          return;
+        }
 
         // Reviews (employee view uses my-reviews endpoint)
         if (user?.userType === 'employee') {
           const myReviews = await reviewsApi.getMyReviews();
-          setReviews(myReviews);
+          setReviews(Array.isArray(myReviews) ? myReviews : (myReviews && myReviews.reviews) || []);
         } else {
           const allReviews = await reviewsApi.getAllReviews();
-          setReviews(allReviews);
+          setReviews(Array.isArray(allReviews) ? allReviews : (allReviews && allReviews.reviews) || []);
         }
 
         // Goals
         if (user?.userType === 'employee') {
           const myGoals = await goalsApi.getMyGoals();
-          setGoals(myGoals);
+          setGoals(Array.isArray(myGoals) ? myGoals : (myGoals && myGoals.goals) || []);
         } else {
           const allGoals = await goalsApi.getAllGoals();
-          setGoals(allGoals);
+          setGoals(Array.isArray(allGoals) ? allGoals : (allGoals && allGoals.goals) || []);
         }
 
         // Notes (only visible to admin/hr/managers)
         try {
           const notesResp = await notesApi.getNotesForEmployee(employeeId);
-          setNotes(notesResp);
+          setNotes(Array.isArray(notesResp) ? notesResp : (notesResp && notesResp.notes) || []);
         } catch (err) {
           // not allowed or none
           setNotes([]);
@@ -46,7 +49,7 @@ const PerformanceTab = ({ user, userProfile }) => {
         // PIPs
         try {
           const pipsResp = await pipsApi.getForEmployee(employeeId);
-          setPips(pipsResp);
+          setPips(Array.isArray(pipsResp) ? pipsResp : (pipsResp && pipsResp.pips) || []);
         } catch (err) {
           setPips([]);
         }
