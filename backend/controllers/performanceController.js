@@ -88,15 +88,18 @@ exports.createGoal = async (req, res) => {
     try {
         const { goalName, description, assignee, startDate, dueDate, measurementType } = req.body;
 
-        // Validate required fields (description is now optional)
+        // Validate required fields (description is optional on the API)
         if (!goalName || !assignee || !startDate || !dueDate || !measurementType) {
             return res.status(400).json({ message: 'Goal name, assignee, start date, due date, and measurement type are required' });
         }
 
+        // Ensure description is always set (Goal model expects a value)
+        const safeDescription = description || '';
+
         // Create goal
         const goal = new Goal({
             goalName,
-            description,
+            description: safeDescription,
             assignee,
             startDate,
             dueDate,
@@ -135,6 +138,14 @@ exports.createGoal = async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating goal:', error);
+        // If validation error from Mongoose, return 400 with details
+        if (error.name === 'ValidationError') {
+            const details = Object.keys(error.errors).reduce((acc, key) => {
+                acc[key] = error.errors[key].message;
+                return acc;
+            }, {});
+            return res.status(400).json({ message: 'Validation failed', details });
+        }
         res.status(500).json({ message: 'Error creating goal', error: error.message });
     }
 };
