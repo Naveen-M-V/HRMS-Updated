@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import CreateGoalDrawer from '../components/Performance/CreateGoalDrawer';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5004/api';
+const API_BASE_URL = '/api';
 
 export default function Goals() {
     const [activeTab, setActiveTab] = useState('all'); // 'my' or 'all'
@@ -21,7 +21,7 @@ export default function Goals() {
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
-                const response = await axios.get(`${API_BASE_URL}/employee-hub`, {
+                const response = await axios.get(`${API_BASE_URL}/employees`, {
                     withCredentials: true,
                 });
                 // Ensure we always set an array

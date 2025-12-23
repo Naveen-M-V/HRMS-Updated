@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5004/api';
+const API_BASE_URL = '/api/performance';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -21,37 +21,37 @@ export const goalsApi = {
         if (filters.assignee && filters.assignee !== 'all') params.append('assignee', filters.assignee);
         if (filters.search) params.append('search', filters.search);
 
-        const response = await api.get(`/performance/goals?${params.toString()}`);
+        const response = await api.get(`/goals?${params.toString()}`);
         return response.data;
     },
 
     // Get my goals
     getMyGoals: async () => {
-        const response = await api.get('/performance/goals/my-goals');
+        const response = await api.get('/goals/my-goals');
         return response.data;
     },
 
     // Get goal by ID
     getGoalById: async (id) => {
-        const response = await api.get(`/performance/goals/${id}`);
+        const response = await api.get(`/goals/${id}`);
         return response.data;
     },
 
     // Create new goal
     createGoal: async (goalData) => {
-        const response = await api.post('/performance/goals', goalData);
+        const response = await api.post('/goals', goalData);
         return response.data;
     },
 
     // Update goal
     updateGoal: async (id, updates) => {
-        const response = await api.put(`/performance/goals/${id}`, updates);
+        const response = await api.put(`/goals/${id}`, updates);
         return response.data;
     },
 
     // Delete goal
     deleteGoal: async (id) => {
-        const response = await api.delete(`/performance/goals/${id}`);
+        const response = await api.delete(`/goals/${id}`);
         return response.data;
     },
 };
@@ -65,31 +65,31 @@ export const reviewsApi = {
         if (filters.status && filters.status !== 'all') params.append('status', filters.status);
         if (filters.assignedTo && filters.assignedTo !== 'all') params.append('assignedTo', filters.assignedTo);
 
-        const response = await api.get(`/performance/reviews?${params.toString()}`);
+        const response = await api.get(`/reviews?${params.toString()}`);
         return response.data;
     },
 
     // Get my reviews
     getMyReviews: async () => {
-        const response = await api.get('/performance/reviews/my-reviews');
+        const response = await api.get('/reviews/my-reviews');
         return response.data;
     },
 
     // Get review by ID
     getReviewById: async (id) => {
-        const response = await api.get(`/performance/reviews/${id}`);
+        const response = await api.get(`/reviews/${id}`);
         return response.data;
     },
 
     // Update review
     updateReview: async (id, updates) => {
-        const response = await api.put(`/performance/reviews/${id}`, updates);
+        const response = await api.put(`/reviews/${id}`, updates);
         return response.data;
     },
 
     // Delete review
     deleteReview: async (id) => {
-        const response = await api.delete(`/performance/reviews/${id}`);
+        const response = await api.delete(`/reviews/${id}`);
         return response.data;
     },
 };
@@ -97,15 +97,15 @@ export const reviewsApi = {
 // ==================== NOTES API ====================
 export const notesApi = {
     createNote: async (noteData) => {
-        const response = await api.post('/performance/notes', noteData);
+        const response = await api.post('/notes', noteData);
         return response.data;
     },
     getNotesForEmployee: async (employeeId) => {
-        const response = await api.get(`/performance/notes/${employeeId}`);
+        const response = await api.get(`/notes/${employeeId}`);
         return response.data;
     },
     deleteNote: async (id) => {
-        const response = await api.delete(`/performance/notes/${id}`);
+        const response = await api.delete(`/notes/${id}`);
         return response.data;
     }
 };
@@ -113,11 +113,11 @@ export const notesApi = {
 // ==================== DISCIPLINARY API ====================
 export const disciplinaryApi = {
     createRecord: async (data) => {
-        const response = await api.post('/performance/disciplinary', data);
+        const response = await api.post('/disciplinary', data);
         return response.data;
     },
     getForEmployee: async (employeeId) => {
-        const response = await api.get(`/performance/disciplinary/${employeeId}`);
+        const response = await api.get(`/disciplinary/${employeeId}`);
         return response.data;
     }
 };
@@ -125,11 +125,11 @@ export const disciplinaryApi = {
 // ==================== IMPROVEMENT PLANS API ====================
 export const pipsApi = {
     createPlan: async (data) => {
-        const response = await api.post('/performance/pips', data);
+        const response = await api.post('/pips', data);
         return response.data;
     },
     getForEmployee: async (employeeId) => {
-        const response = await api.get(`/performance/pips/${employeeId}`);
+        const response = await api.get(`/pips/${employeeId}`);
         return response.data;
     }
 };
