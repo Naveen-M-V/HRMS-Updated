@@ -1,6 +1,9 @@
 const Goal = require('../models/Goal');
 const Review = require('../models/Review');
 const EmployeesHub = require('../models/EmployeesHub');
+const PerformanceNote = require('../models/PerformanceNote');
+const DisciplinaryRecord = require('../models/DisciplinaryRecord');
+const ImprovementPlan = require('../models/ImprovementPlan');
 
 // ==================== GOAL CONTROLLERS ====================
 
@@ -319,3 +322,207 @@ exports.deleteReview = async (req, res) => {
         res.status(500).json({ message: 'Error deleting review', error: error.message });
     }
 };
+
+// ==================== PERFORMANCE NOTES ====================
+
+// Create a performance note (admin/hr/manager)
+exports.createNote = async (req, res) => {
+    try {
+        const { employeeId, content, visibility } = req.body;
+
+        if (!employeeId || !content) return res.status(400).json({ message: 'employeeId and content are required' });
+
+        // Check permissions: admin/super-admin or manager of the employee or hr
+        const userRole = req.user.role;
+
+        const employee = await EmployeesHub.findById(employeeId);
+        if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+        let allowed = false;
+        if (userRole === 'admin' || userRole === 'super-admin') allowed = true;
+
+        if (!allowed) {
+            // Determine if current user is manager of employee
+            const managerRecord = await EmployeesHub.findOne({ userId: req.user.id });
+            if (managerRecord && managerRecord._id.equals(employee.managerId)) allowed = true;
+            if (managerRecord && managerRecord.role === 'hr') allowed = true;
+        }
+
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
+
+        const note = new PerformanceNote({
+            employee: employeeId,
+            createdBy: req.user.id,
+            content,
+            visibility: visibility || 'hr_manager_only'
+        });
+
+        await note.save();
+
+        res.status(201).json({ message: 'Note created', note });
+    } catch (error) {
+        console.error('Error creating note:', error);
+        res.status(500).json({ message: 'Error creating note', error: error.message });
+    }
+};
+
+// Get notes for an employee (only hr/manager/admin or the manager can view)
+exports.getNotesForEmployee = async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        if (!employeeId) return res.status(400).json({ message: 'employeeId required' });
+
+        const employee = await EmployeesHub.findById(employeeId);
+        if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+        const userRole = req.user.role;
+        let allowed = false;
+        if (userRole === 'admin' || userRole === 'super-admin') allowed = true;
+
+        if (!allowed) {
+            const managerRecord = await EmployeesHub.findOne({ userId: req.user.id });
+            if (managerRecord && managerRecord._id.equals(employee.managerId)) allowed = true;
+            if (managerRecord && managerRecord.role === 'hr') allowed = true;
+        }
+
+        if (!allowed) return res.status(403).json({ message: 'Access denied' });
+
+        const notes = await PerformanceNote.find({ employee: employeeId }).populate('createdBy', 'firstName lastName email').sort({ createdAt: -1 });
+
+        res.json(notes);
+    } catch (error) {
+        console.error('Error fetching notes:', error);
+        res.status(500).json({ message: 'Error fetching notes', error: error.message });
+    }
+};
+
+// Delete a note (admin or creator)
+exports.deleteNote = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const note = await PerformanceNote.findById(id);
+        if (!note) return res.status(404).json({ message: 'Note not found' });
+
+        const userRole = req.user.role;
+        if (userRole !== 'admin' && userRole !== 'super-admin' && note.createdBy.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        await note.remove();
+        res.json({ message: 'Note deleted' });
+    } catch (error) {
+        console.error('Error deleting note:', error);
+        res.status(500).json({ message: 'Error deleting note', error: error.message });
+    }
+};
+
+// ==================== DISCIPLINARY RECORDS ====================
+
+exports.createDisciplinary = async (req, res) => {
+    try {
+        const { employeeId, type, reason, outcome, attachments } = req.body;
+        if (!employeeId || !type || !reason) return res.status(400).json({ message: 'employeeId, type and reason are required' });
+
+        // Only admin/super-admin or hr can create disciplinary records
+        const userRole = req.user.role;
+        if (userRole !== 'admin' && userRole !== 'super-admin') {
+            const requester = await EmployeesHub.findOne({ userId: req.user.id });
+            if (!requester || requester.role !== 'hr') return res.status(403).json({ message: 'Access denied' });
+        }
+
+        const record = new DisciplinaryRecord({
+            employee: employeeId,
+            createdBy: req.user.id,
+            type,
+            reason,
+            outcome: outcome || '',
+            attachments: attachments || []
+        });
+
+        await record.save();
+        res.status(201).json({ message: 'Disciplinary record created', record });
+    } catch (error) {
+        console.error('Error creating disciplinary record:', error);
+        res.status(500).json({ message: 'Error creating record', error: error.message });
+    }
+};
+
+exports.getDisciplinaryForEmployee = async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        if (!employeeId) return res.status(400).json({ message: 'employeeId required' });
+
+        const userRole = req.user.role;
+        // Admin/super-admin and hr can view; employees can view their own records
+        if (userRole !== 'admin' && userRole !== 'super-admin') {
+            const requester = await EmployeesHub.findOne({ userId: req.user.id });
+            if (!requester) return res.status(403).json({ message: 'Access denied' });
+            if (requester._id.equals(employeeId) === false && requester.role !== 'hr') {
+                // allow managers to view if they are manager
+                const target = await EmployeesHub.findById(employeeId);
+                if (!target) return res.status(404).json({ message: 'Employee not found' });
+                if (!requester._id.equals(target.managerId)) return res.status(403).json({ message: 'Access denied' });
+            }
+        }
+
+        const records = await DisciplinaryRecord.find({ employee: employeeId }).populate('createdBy', 'firstName lastName email').sort({ createdAt: -1 });
+        res.json(records);
+    } catch (error) {
+        console.error('Error fetching disciplinary records:', error);
+        res.status(500).json({ message: 'Error fetching records', error: error.message });
+    }
+};
+
+// ==================== IMPROVEMENT PLANS (PIP) ====================
+
+exports.createImprovementPlan = async (req, res) => {
+    try {
+        const { employeeId, startDate, endDate, goals } = req.body;
+        if (!employeeId || !startDate) return res.status(400).json({ message: 'employeeId and startDate are required' });
+
+        const userRole = req.user.role;
+        if (userRole !== 'admin' && userRole !== 'super-admin') {
+            const requester = await EmployeesHub.findOne({ userId: req.user.id });
+            if (!requester || (requester.role !== 'hr' && requester.role !== 'manager')) return res.status(403).json({ message: 'Access denied' });
+        }
+
+        const pip = new ImprovementPlan({
+            employee: employeeId,
+            createdBy: req.user.id,
+            startDate,
+            endDate,
+            goals: goals || []
+        });
+
+        await pip.save();
+        res.status(201).json({ message: 'Improvement plan created', pip });
+    } catch (error) {
+        console.error('Error creating improvement plan:', error);
+        res.status(500).json({ message: 'Error creating plan', error: error.message });
+    }
+};
+
+exports.getImprovementPlansForEmployee = async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        if (!employeeId) return res.status(400).json({ message: 'employeeId required' });
+
+        const userRole = req.user.role;
+        if (userRole !== 'admin' && userRole !== 'super-admin') {
+            const requester = await EmployeesHub.findOne({ userId: req.user.id });
+            if (!requester) return res.status(403).json({ message: 'Access denied' });
+            if (!requester._id.equals(employeeId) && requester.role !== 'hr') {
+                const target = await EmployeesHub.findById(employeeId);
+                if (!target) return res.status(404).json({ message: 'Employee not found' });
+                if (!requester._id.equals(target.managerId)) return res.status(403).json({ message: 'Access denied' });
+            }
+        }
+
+        const plans = await ImprovementPlan.find({ employee: employeeId }).sort({ startDate: -1 });
+        res.json(plans);
+    } catch (error) {
+        console.error('Error fetching improvement plans:', error);
+        res.status(500).json({ message: 'Error fetching plans', error: error.message });
+    }
+};
+

@@ -17,4 +17,17 @@ router.get('/reviews/:id', performanceController.getReviewById);
 router.put('/reviews/:id', performanceController.updateReview);
 router.delete('/reviews/:id', performanceController.deleteReview);
 
+// Performance Notes
+router.post('/notes', performanceController.createNote);
+router.get('/notes/:employeeId', performanceController.getNotesForEmployee);
+router.delete('/notes/:id', performanceController.deleteNote);
+
+// Disciplinary records
+router.post('/disciplinary', performanceController.createDisciplinary);
+router.get('/disciplinary/:employeeId', performanceController.getDisciplinaryForEmployee);
+
+// Improvement plans (PIP)
+router.post('/pips', performanceController.createImprovementPlan);
+router.get('/pips/:employeeId', performanceController.getImprovementPlansForEmployee);
+
 module.exports = router;

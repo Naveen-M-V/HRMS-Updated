@@ -17,6 +17,7 @@ import UserNavigation from '../components/UserNavigation';
 import EmployeeMap from '../components/employeeLiveMap';
 import { jobRoleCertificateMapping } from '../data/new';
 import Expenses from './Expenses';
+import PerformanceTab from '../components/Performance/PerformanceTab';
 import {
   PencilIcon,
   PlusIcon,
@@ -1185,6 +1186,12 @@ const UserDashboard = () => {
         {activeTab === 'documents' && isEmployeeUser && (
           <div style={{ margin: '-32px', padding: '0' }}>
             <Documents />
+          </div>
+        )}
+        {/* Performance Tab */}
+        {activeTab === 'performance' && isEmployeeUser && (
+          <div style={{ margin: '-32px', padding: '0' }}>
+            <PerformanceTab user={user} userProfile={userProfile} />
           </div>
         )}
         {/* Expenses Tab - render inside dashboard for employee users */}

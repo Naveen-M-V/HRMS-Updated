@@ -94,4 +94,44 @@ export const reviewsApi = {
     },
 };
 
-export default { goalsApi, reviewsApi };
+// ==================== NOTES API ====================
+export const notesApi = {
+    createNote: async (noteData) => {
+        const response = await api.post('/performance/notes', noteData);
+        return response.data;
+    },
+    getNotesForEmployee: async (employeeId) => {
+        const response = await api.get(`/performance/notes/${employeeId}`);
+        return response.data;
+    },
+    deleteNote: async (id) => {
+        const response = await api.delete(`/performance/notes/${id}`);
+        return response.data;
+    }
+};
+
+// ==================== DISCIPLINARY API ====================
+export const disciplinaryApi = {
+    createRecord: async (data) => {
+        const response = await api.post('/performance/disciplinary', data);
+        return response.data;
+    },
+    getForEmployee: async (employeeId) => {
+        const response = await api.get(`/performance/disciplinary/${employeeId}`);
+        return response.data;
+    }
+};
+
+// ==================== IMPROVEMENT PLANS API ====================
+export const pipsApi = {
+    createPlan: async (data) => {
+        const response = await api.post('/performance/pips', data);
+        return response.data;
+    },
+    getForEmployee: async (employeeId) => {
+        const response = await api.get(`/performance/pips/${employeeId}`);
+        return response.data;
+    }
+};
+
+export default { goalsApi, reviewsApi, notesApi, disciplinaryApi, pipsApi };
