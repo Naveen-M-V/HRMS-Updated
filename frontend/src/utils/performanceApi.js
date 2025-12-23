@@ -11,6 +11,35 @@ const api = axios.create({
     },
 });
 
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            config.headers = config.headers || {};
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            const isFileUpload = error.config?.url?.includes('/documents') ||
+                error.config?.headers?.['Content-Type']?.includes('multipart');
+
+            if (!isFileUpload && window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_session');
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 // ==================== GOALS API ====================
 
 export const goalsApi = {
