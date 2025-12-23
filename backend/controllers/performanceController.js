@@ -331,6 +331,7 @@ exports.createNote = async (req, res) => {
         const { employeeId, content, visibility } = req.body;
 
         if (!employeeId || !content) return res.status(400).json({ message: 'employeeId and content are required' });
+        if (content.length > 5000) return res.status(400).json({ message: 'Content too long (max 5000 chars)' });
 
         // Check permissions: admin/super-admin or manager of the employee or hr
         const userRole = req.user.role;
@@ -422,6 +423,9 @@ exports.createDisciplinary = async (req, res) => {
     try {
         const { employeeId, type, reason, outcome, attachments } = req.body;
         if (!employeeId || !type || !reason) return res.status(400).json({ message: 'employeeId, type and reason are required' });
+        const allowedTypes = ['verbal','written','final'];
+        if (!allowedTypes.includes(type)) return res.status(400).json({ message: 'Invalid disciplinary type' });
+        if (reason.length > 2000) return res.status(400).json({ message: 'Reason too long (max 2000 chars)' });
 
         // Only admin/super-admin or hr can create disciplinary records
         const userRole = req.user.role;
@@ -479,6 +483,16 @@ exports.createImprovementPlan = async (req, res) => {
     try {
         const { employeeId, startDate, endDate, goals } = req.body;
         if (!employeeId || !startDate) return res.status(400).json({ message: 'employeeId and startDate are required' });
+        // Validate dates
+        const start = new Date(startDate);
+        if (isNaN(start.getTime())) return res.status(400).json({ message: 'Invalid startDate' });
+        let end = null;
+        if (endDate) {
+            end = new Date(endDate);
+            if (isNaN(end.getTime())) return res.status(400).json({ message: 'Invalid endDate' });
+        }
+        // Validate goals structure
+        if (goals && !Array.isArray(goals)) return res.status(400).json({ message: 'goals must be an array' });
 
         const userRole = req.user.role;
         if (userRole !== 'admin' && userRole !== 'super-admin') {
