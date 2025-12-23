@@ -78,6 +78,7 @@ const ModernDatePicker = ({
           format="DD/MM/YYYY"
           slotProps={{
             textField: {
+              id: name,
               placeholder: placeholder,
               required: required,
               name: name,
