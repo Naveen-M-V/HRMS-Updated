@@ -418,7 +418,7 @@ exports.approveExpense = async (req, res) => {
     const sessionUser = req.session?.user;
     const userId = sessionUser?._id;
 
-    const user = userId ? await User.findById(userId).select('role email') : null;
+    const user = userId ? await User.findById(userId).select('role email firstName lastName') : null;
     const role = (user?.role || sessionUser?.role || '').toString();
     const email = (user?.email || sessionUser?.email || '').toString();
 
@@ -450,6 +450,11 @@ exports.approveExpense = async (req, res) => {
       return res.status(403).json({ message: 'You do not have permission to approve this expense' });
     }
 
+    const approverName = approverEmp
+      ? `${approverEmp.firstName || ''} ${approverEmp.lastName || ''}`.trim()
+      : `${user?.firstName || sessionUser?.firstName || ''} ${user?.lastName || sessionUser?.lastName || ''}`.trim();
+    expense.approvedByName = (approverName || email || '').toString().trim();
+
     await expense.approve(approverId);
 
     const updatedExpense = await Expense.findById(expense._id)
@@ -473,7 +478,7 @@ exports.declineExpense = async (req, res) => {
     const { reason } = req.body;
     const sessionUser = req.session?.user;
     const userId = sessionUser?._id;
-    const user = userId ? await User.findById(userId).select('role email') : null;
+    const user = userId ? await User.findById(userId).select('role email firstName lastName') : null;
     const role = (user?.role || sessionUser?.role || '').toString();
     const email = (user?.email || sessionUser?.email || '').toString();
 
@@ -504,6 +509,11 @@ exports.declineExpense = async (req, res) => {
       return res.status(400).json({ message: 'Only pending expenses can be declined' });
     }
 
+    const approverName = approverEmp
+      ? `${approverEmp.firstName || ''} ${approverEmp.lastName || ''}`.trim()
+      : `${user?.firstName || sessionUser?.firstName || ''} ${user?.lastName || sessionUser?.lastName || ''}`.trim();
+    expense.declinedByName = (approverName || email || '').toString().trim();
+
     await expense.decline(approverId, reason);
 
     const updatedExpense = await Expense.findById(expense._id)
@@ -526,7 +536,7 @@ exports.markAsPaid = async (req, res) => {
     const { id } = req.params;
     const sessionUser = req.session?.user;
     const userId = sessionUser?._id;
-    const user = userId ? await User.findById(userId).select('role email') : null;
+    const user = userId ? await User.findById(userId).select('role email firstName lastName') : null;
     const role = (user?.role || sessionUser?.role || '').toString();
     const email = (user?.email || sessionUser?.email || '').toString();
 
@@ -553,6 +563,11 @@ exports.markAsPaid = async (req, res) => {
     if (expense.status !== 'approved') {
       return res.status(400).json({ message: 'Only approved expenses can be marked as paid' });
     }
+
+    const approverName = approverEmp
+      ? `${approverEmp.firstName || ''} ${approverEmp.lastName || ''}`.trim()
+      : `${user?.firstName || sessionUser?.firstName || ''} ${user?.lastName || sessionUser?.lastName || ''}`.trim();
+    expense.paidByName = (approverName || email || '').toString().trim();
 
     await expense.markAsPaid(approverId);
 
@@ -601,11 +616,14 @@ exports.revertToPending = async (req, res) => {
 
     expense.status = 'pending';
     expense.approvedBy = null;
+    expense.approvedByName = '';
     expense.approvedAt = null;
     expense.declinedBy = null;
+    expense.declinedByName = '';
     expense.declinedAt = null;
     expense.declineReason = null;
     expense.paidBy = null;
+    expense.paidByName = '';
     expense.paidAt = null;
 
     await expense.save();

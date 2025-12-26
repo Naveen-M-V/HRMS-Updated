@@ -117,6 +117,10 @@ const expenseSchema = new mongoose.Schema({
     ref: 'EmployeeHub',  // Changed: Only employees can approve, not profiles
     default: null
   },
+  approvedByName: {
+    type: String,
+    default: ''
+  },
   approvedAt: {
     type: Date,
     default: null
@@ -125,6 +129,10 @@ const expenseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'EmployeeHub',  // Changed: Only employees can decline, not profiles
     default: null
+  },
+  declinedByName: {
+    type: String,
+    default: ''
   },
   declinedAt: {
     type: Date,
@@ -142,6 +150,10 @@ const expenseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'EmployeeHub',  // Changed: Only employees can mark as paid, not profiles
     default: null
+  },
+  paidByName: {
+    type: String,
+    default: ''
   },
   
   // Submitted by (for manager submission on behalf of employee)
