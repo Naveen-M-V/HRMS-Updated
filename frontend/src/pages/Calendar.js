@@ -55,6 +55,8 @@ const Calendar = () => {
   const [activeTab, setActiveTab] = useState('calendar'); // 'calendar', 'pending-requests'
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [approvedRequests, setApprovedRequests] = useState([]);
+  const [loadingApprovedRequests, setLoadingApprovedRequests] = useState(false);
 
   // NEW: Fetch calendar events when month changes
   useEffect(() => {
@@ -63,6 +65,12 @@ const Calendar = () => {
       fetchPendingRequests();
     }
   }, [currentDate]);
+
+  useEffect(() => {
+    if (activeTab === 'approved-requests' && (user?.role === 'admin' || user?.role === 'super-admin')) {
+      fetchApprovedRequests();
+    }
+  }, [activeTab, user?.role]);
 
   const fetchCalendarEvents = async () => {
     setLoading(true);
@@ -106,6 +114,21 @@ const Calendar = () => {
       setShiftAssignments([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchApprovedRequests = async () => {
+    if (!['admin', 'super-admin'].includes(user?.role)) return;
+
+    setLoadingApprovedRequests(true);
+    try {
+      const response = await axios.get('/api/leave/approved-requests');
+      setApprovedRequests(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching approved requests:', error);
+      toast.error('Failed to load approved requests');
+    } finally {
+      setLoadingApprovedRequests(false);
     }
   };
 
@@ -655,6 +678,23 @@ const Calendar = () => {
                 </span>
               )}
             </button>
+            {(user?.role === 'admin' || user?.role === 'super-admin') && (
+              <button
+                onClick={() => setActiveTab('approved-requests')}
+                className={`px-4 py-2 border-b-2 font-medium transition-colors flex items-center gap-2 ${
+                  activeTab === 'approved-requests'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Approved requests
+                {approvedRequests.length > 0 && (
+                  <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">
+                    {approvedRequests.length}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1208,6 +1248,82 @@ const Calendar = () => {
                       >
                         Decline
                       </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Approved Requests View - Admin Only */}
+      {activeTab === 'approved-requests' && (user?.role === 'admin' || user?.role === 'super-admin') && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Approved Leave Requests</h2>
+
+          {loadingApprovedRequests ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <p className="mt-2 text-gray-600">Loading requests...</p>
+            </div>
+          ) : approvedRequests.length === 0 ? (
+            <div className="text-center py-12">
+              <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Approved Requests</h3>
+              <p className="text-gray-600">You haven't approved any leave requests yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {approvedRequests.map((request) => (
+                <div key={request._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-green-700">
+                            {request.employeeId?.firstName?.[0]}{request.employeeId?.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">
+                            {request.employeeId?.firstName} {request.employeeId?.lastName}
+                          </h3>
+                          <p className="text-sm text-gray-500">{request.employeeId?.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <p className="text-xs text-gray-500">Leave Type</p>
+                          <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            {request.leaveType}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Date Range</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {new Date(request.startDate).toLocaleDateString('en-GB')} - {new Date(request.endDate).toLocaleDateString('en-GB')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Duration</p>
+                          <p className="text-sm font-medium text-gray-900">{request.numberOfDays} day(s)</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Approved</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {request.approvedAt ? new Date(request.approvedAt).toLocaleDateString('en-GB') : '-'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {request.reason && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-500 mb-1">Reason</p>
+                          <p className="text-sm text-gray-900">{request.reason}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

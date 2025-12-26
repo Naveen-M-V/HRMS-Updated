@@ -184,6 +184,46 @@ exports.getPendingLeaveRequests = async (req, res) => {
   }
 };
 
+exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    const approverId = req.user.id || req.user._id;
+    const { leaveType, startDate, endDate } = req.query;
+
+    if (userRole !== 'admin' && userRole !== 'super-admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    let query = { status: 'Approved', approverId };
+    if (leaveType) query.leaveType = leaveType;
+    if (startDate || endDate) {
+      query.startDate = {};
+      if (startDate) query.startDate.$gte = new Date(startDate);
+      if (endDate) query.startDate.$lte = new Date(endDate);
+    }
+
+    const leaveRequests = await LeaveRequest.find(query)
+      .populate('employeeId', 'firstName lastName email vtid department jobTitle')
+      .sort({ approvedAt: -1, createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: leaveRequests.length,
+      data: leaveRequests
+    });
+  } catch (error) {
+    console.error('Get approved leave requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching approved leave requests',
+      error: error.message
+    });
+  }
+};
+
 /**
  * Approve leave request
  * @route PATCH /api/leave/approve/:id

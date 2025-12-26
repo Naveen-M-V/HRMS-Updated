@@ -387,8 +387,6 @@ const EmployeeCalendarView = ({ userProfile }) => {
               <span className="text-gray-700">Leave</span>
             </div>
           </div>
-
-          {renderRequestsSection()}
         </>
       )}
 

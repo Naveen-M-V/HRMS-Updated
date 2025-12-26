@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import axios from '../utils/axiosConfig';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -180,6 +180,30 @@ const Expenses = () => {
         {config.label}
       </span>
     );
+  };
+
+  const formatSubmittedDate = (expense) => {
+    const v = expense?.submittedOn || expense?.createdAt || expense?.date;
+    if (!v) return '';
+    try {
+      return format(new Date(v), 'EEE dd LLL yyyy');
+    } catch {
+      return '';
+    }
+  };
+
+  const formatClaimType = (expense) => {
+    const v = (expense?.claimType || expense?.type || '').toString();
+    if (!v) return '';
+    return v.charAt(0).toUpperCase() + v.slice(1);
+  };
+
+  const getApprovedByName = (expense) => {
+    const approver = expense?.approvedBy;
+    if (!approver) return '';
+    const first = approver?.firstName || '';
+    const last = approver?.lastName || '';
+    return `${first} ${last}`.trim();
   };
 
   return (
@@ -381,10 +405,13 @@ const Expenses = () => {
             <table className="w-full">
               <thead className="bg-blue-50 border-b border-blue-100">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SI No</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Submitted</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted On</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approved by</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Options</th>
                 </tr>
               </thead>
@@ -396,20 +423,28 @@ const Expenses = () => {
                     animate={{ opacity: 1 }}
                     className={`transition ${idx % 2 === 0 ? 'bg-blue-50' : ''} hover:bg-blue-100`}
                   >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {idx + 1}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatSubmittedDate(expense)}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-700">
                       <button onClick={() => setViewingId(expense._id)} className="text-left font-medium text-blue-700 hover:underline">
-                        {expense.type || expense.category || 'Expense'}
+                        {expense.category || ''}
                       </button>
-                      <div className="text-xs text-gray-600 mt-1">{expense.category || expense.subCategory || ''}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatClaimType(expense)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {expense.currency ? `${expense.currency} ` : ''}{expense.totalAmount != null ? Number(expense.totalAmount).toFixed(2) : ''}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center justify-center">{getStatusBadge(expense.status)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                      {expense.submittedOn ? format(new Date(expense.submittedOn), 'EEE dd LLL yyyy') : (expense.date ? format(new Date(expense.date), 'EEE dd LLL yyyy') : '')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {expense.currency ? `${expense.currency} ` : ''}{expense.totalAmount != null ? Number(expense.totalAmount).toFixed(2) : ''}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {getApprovedByName(expense) || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {/* Options 3-dots menu */}
@@ -418,7 +453,7 @@ const Expenses = () => {
                           const menu = e.currentTarget.nextElementSibling;
                           if (menu) menu.classList.toggle('hidden');
                         }} className="p-1 rounded hover:bg-gray-100">
-                          ⋯
+                             
                         </button>
                         <div className="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
                           <button onClick={() => setViewingId(expense._id)} className="w-full text-left px-4 py-2 hover:bg-gray-50">View</button>

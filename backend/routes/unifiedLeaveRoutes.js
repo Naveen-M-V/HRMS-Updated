@@ -20,6 +20,9 @@ router.get('/my-requests', unifiedLeaveController.getMyLeaveRequests);
 // Get all pending leave requests for admin dashboard
 router.get('/pending-requests', unifiedLeaveController.getPendingLeaveRequests);
 
+// Get leave requests approved by the logged-in admin
+router.get('/approved-requests', unifiedLeaveController.getApprovedLeaveRequestsByApprover);
+
 // Approve leave request
 router.patch('/approve/:id', unifiedLeaveController.approveLeaveRequest);
 
