@@ -19,6 +19,27 @@ async function findEmployeeByUserIdentifier(id) {
   return null;
 }
 
+async function findEmployeeByEmail(email, userIdToLink) {
+  if (!email) return null;
+
+  const normalizedEmail = email.toString().trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  const emp = await Employee.findOne({ email: normalizedEmail });
+  if (!emp) return null;
+
+  if (!emp.userId && userIdToLink && mongoose.Types.ObjectId.isValid(userIdToLink)) {
+    try {
+      emp.userId = userIdToLink;
+      await emp.save();
+    } catch (e) {
+      // non-fatal
+    }
+  }
+
+  return emp;
+}
+
 function haversineMeters(a, b) {
   const toRad = (v) => (v * Math.PI) / 180;
   const R = 6371000; // Earth radius meters
@@ -394,10 +415,18 @@ exports.deleteExpense = async (req, res) => {
 exports.approveExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.session.user._id;
+    const sessionUser = req.session?.user;
+    const userId = sessionUser?._id;
 
-    // Resolve approver as EmployeeHub record (userId may be a profile id or employee id)
-    const approverEmp = await findEmployeeByUserIdentifier(userId);
+    const user = userId ? await User.findById(userId).select('role email') : null;
+    const role = (user?.role || sessionUser?.role || '').toString();
+    const email = (user?.email || sessionUser?.email || '').toString();
+
+    // Resolve approver as EmployeeHub record (prefer by userId; fallback by email)
+    let approverEmp = await findEmployeeByUserIdentifier(userId);
+    if (!approverEmp) {
+      approverEmp = await findEmployeeByEmail(email, userId);
+    }
     const approverId = approverEmp ? approverEmp._id : null;
 
     const expense = await Expense.findById(id).populate('employee', '_id');
@@ -412,8 +441,10 @@ exports.approveExpense = async (req, res) => {
     // Debug log: show resolved approver and target employee
     console.log('Approve request - approverEmp:', approverEmp ? { id: approverEmp._id, role: approverEmp.role } : null, 'expense.employee:', expense.employee ? expense.employee._id : null);
 
-    // Check hierarchy permission (employees only, not profiles)
-    const canApprove = await hierarchyHelper.canApproveExpense(approverId, expense.employee._id);
+    // Admin / super-admin can approve regardless of hierarchy; others must pass hierarchy check
+    const canApprove = ['admin', 'super-admin'].includes(role)
+      ? true
+      : await hierarchyHelper.canApproveExpense(approverId, expense.employee._id);
     if (!canApprove) {
       console.warn('Approve denied - approverId:', approverId, 'employeeId:', expense.employee._id);
       return res.status(403).json({ message: 'You do not have permission to approve this expense' });
@@ -440,8 +471,16 @@ exports.declineExpense = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    const userId = req.session.user._id;
-    const approverEmp = await findEmployeeByUserIdentifier(userId);
+    const sessionUser = req.session?.user;
+    const userId = sessionUser?._id;
+    const user = userId ? await User.findById(userId).select('role email') : null;
+    const role = (user?.role || sessionUser?.role || '').toString();
+    const email = (user?.email || sessionUser?.email || '').toString();
+
+    let approverEmp = await findEmployeeByUserIdentifier(userId);
+    if (!approverEmp) {
+      approverEmp = await findEmployeeByEmail(email, userId);
+    }
     const approverId = approverEmp ? approverEmp._id : null;
 
     if (!reason || reason.trim().length === 0) {
@@ -453,8 +492,10 @@ exports.declineExpense = async (req, res) => {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
-    // Check hierarchy permission (employees only, not profiles)
-    const canApprove = await hierarchyHelper.canApproveExpense(approverId, expense.employee._id);
+    // Admin / super-admin can decline regardless of hierarchy; others must pass hierarchy check
+    const canApprove = ['admin', 'super-admin'].includes(role)
+      ? true
+      : await hierarchyHelper.canApproveExpense(approverId, expense.employee._id);
     if (!canApprove) {
       return res.status(403).json({ message: 'You do not have permission to decline this expense' });
     }
@@ -483,14 +524,23 @@ exports.declineExpense = async (req, res) => {
 exports.markAsPaid = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.session.user._id;
+    const sessionUser = req.session?.user;
+    const userId = sessionUser?._id;
+    const user = userId ? await User.findById(userId).select('role email') : null;
+    const role = (user?.role || sessionUser?.role || '').toString();
+    const email = (user?.email || sessionUser?.email || '').toString();
 
     // Resolve approver EmployeeHub id
-    const approverEmp = await findEmployeeByUserIdentifier(userId);
+    let approverEmp = await findEmployeeByUserIdentifier(userId);
+    if (!approverEmp) {
+      approverEmp = await findEmployeeByEmail(email, userId);
+    }
     const approverId = approverEmp ? approverEmp._id : null;
 
     // Check if user has permission to mark as paid (admin/super-admin only)
-    const canMarkPaid = await hierarchyHelper.canMarkExpenseAsPaid(approverId);
+    const canMarkPaid = ['admin', 'super-admin'].includes(role)
+      ? true
+      : await hierarchyHelper.canMarkExpenseAsPaid(approverId);
     if (!canMarkPaid) {
       return res.status(403).json({ message: 'Access denied. Admin role required.' });
     }

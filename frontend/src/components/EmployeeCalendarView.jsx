@@ -265,7 +265,7 @@ const EmployeeCalendarView = ({ userProfile }) => {
           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <PlusIcon className="h-4 w-4" />
-          <span>+ Time off</span>
+          <span> Time off</span>
         </button>
       </div>
 
