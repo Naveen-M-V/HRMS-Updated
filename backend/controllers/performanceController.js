@@ -4,6 +4,7 @@ const EmployeesHub = require('../models/EmployeesHub');
 const PerformanceNote = require('../models/PerformanceNote');
 const DisciplinaryRecord = require('../models/DisciplinaryRecord');
 const ImprovementPlan = require('../models/ImprovementPlan');
+const mongoose = require('mongoose');
 
 // ==================== GOAL CONTROLLERS ====================
 
@@ -96,6 +97,10 @@ exports.createGoal = async (req, res) => {
         // Ensure description is always set (Goal model expects a value)
         const safeDescription = description || '';
 
+        if (!mongoose.Types.ObjectId.isValid(assignee)) {
+            return res.status(400).json({ message: 'Invalid assignee' });
+        }
+
         // Validate assignee exists
         const assigneeEmployee = await EmployeesHub.findById(assignee);
         if (!assigneeEmployee) return res.status(400).json({ message: 'Assignee employee not found' });
@@ -115,6 +120,10 @@ exports.createGoal = async (req, res) => {
         // Determine createdBy value from session
         const createdBy = (req.user && (req.user.id || req.user._id)) || null;
         if (!createdBy) return res.status(400).json({ message: 'Authenticated user required' });
+
+        if (!mongoose.Types.ObjectId.isValid(createdBy)) {
+            return res.status(400).json({ message: 'Invalid authenticated user id' });
+        }
 
         // Create goal
         const goal = new Goal({
@@ -160,6 +169,9 @@ exports.createGoal = async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating goal:', error);
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'Invalid input', error: error.message });
+        }
         // If validation error from Mongoose, return 400 with details
         if (error.name === 'ValidationError') {
             const details = Object.keys(error.errors).reduce((acc, key) => {
