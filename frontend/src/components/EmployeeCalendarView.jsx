@@ -32,6 +32,12 @@ const EmployeeCalendarView = ({ userProfile }) => {
   }, [currentDate]);
 
   useEffect(() => {
+    if (userProfile?._id) {
+      fetchMyLeaveRequests();
+    }
+  }, [userProfile?._id]);
+
+  useEffect(() => {
     if (activeTab === 'requests') {
       fetchMyLeaveRequests();
     }
@@ -198,6 +204,57 @@ const EmployeeCalendarView = ({ userProfile }) => {
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
+  const renderRequestsSection = () => (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="text-lg font-semibold text-gray-900">Leave Requests</div>
+      </div>
+
+      <div className="p-4">
+        {loadingRequests ? (
+          <div className="text-sm text-gray-600">Loading...</div>
+        ) : leaveRequests.length === 0 ? (
+          <div className="text-sm text-gray-600">No leave requests found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">SI No</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Leave Requested Date</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Leave Wanted Dates</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Total Days</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Reason</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaveRequests.map((req, idx) => (
+                  <tr key={req._id || idx} className="border-b last:border-b-0">
+                    <td className="px-4 py-3 text-gray-900">{idx + 1}</td>
+                    <td className="px-4 py-3 text-gray-700">{formatDate(req.createdAt)}</td>
+                    <td className="px-4 py-3 text-gray-700">{getWantedDates(req)}</td>
+                    <td className="px-4 py-3 text-gray-700">{req.numberOfDays ?? '-'}</td>
+                    <td className="px-4 py-3 text-gray-700 max-w-[420px]">
+                      <div className="truncate" title={req.reason || ''}>
+                        {req.reason || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusBadgeClass(req.status)}`}>
+                        {req.status || '-'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -330,58 +387,13 @@ const EmployeeCalendarView = ({ userProfile }) => {
               <span className="text-gray-700">Leave</span>
             </div>
           </div>
+
+          {renderRequestsSection()}
         </>
       )}
 
       {activeTab === 'requests' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <div className="text-lg font-semibold text-gray-900">Leave Requests</div>
-          </div>
-
-          <div className="p-4">
-            {loadingRequests ? (
-              <div className="text-sm text-gray-600">Loading...</div>
-            ) : leaveRequests.length === 0 ? (
-              <div className="text-sm text-gray-600">No leave requests found.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">SI No</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Leave Requested Date</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Leave Wanted Dates</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Total Days</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Reason</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leaveRequests.map((req, idx) => (
-                      <tr key={req._id || idx} className="border-b last:border-b-0">
-                        <td className="px-4 py-3 text-gray-900">{idx + 1}</td>
-                        <td className="px-4 py-3 text-gray-700">{formatDate(req.createdAt)}</td>
-                        <td className="px-4 py-3 text-gray-700">{getWantedDates(req)}</td>
-                        <td className="px-4 py-3 text-gray-700">{req.numberOfDays ?? '-'}</td>
-                        <td className="px-4 py-3 text-gray-700 max-w-[420px]">
-                          <div className="truncate" title={req.reason || ''}>
-                            {req.reason || '-'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusBadgeClass(req.status)}`}>
-                            {req.status || '-'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        renderRequestsSection()
       )}
 
       {/* Day Details Modal */}
