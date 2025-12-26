@@ -200,17 +200,10 @@ const Expenses = () => {
 
   const getApprovedByName = (expense) => {
     const approver = expense?.approvedBy || expense?.declinedBy || expense?.paidBy;
-    if (approver && typeof approver === 'object') {
-      const first = approver?.firstName || '';
-      const last = approver?.lastName || '';
-      return `${first} ${last}`.trim();
-    }
-
-    const status = (expense?.status || '').toString().toLowerCase();
-    if (status === 'approved') return (expense?.approvedByName || '').toString().trim();
-    if (status === 'declined') return (expense?.declinedByName || '').toString().trim();
-    if (status === 'paid') return (expense?.paidByName || expense?.approvedByName || '').toString().trim();
-    return '';
+    if (!approver) return '';
+    const first = approver?.firstName || '';
+    const last = approver?.lastName || '';
+    return `${first} ${last}`.trim();
   };
 
   return (

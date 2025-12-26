@@ -146,16 +146,16 @@ const ExpenseDetailsModal = ({ id, onClose, onUpdated }) => {
   if (!id) return null;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-3 sm:p-6">
-      <div className="w-full max-w-3xl bg-white rounded-lg shadow max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b flex-none">
+    <div className="fixed inset-0 z-60 flex items-start justify-center p-6 bg-black bg-opacity-40">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-auto bg-white rounded-lg shadow">
+        <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold">Expense details</h3>
           <button onClick={() => onClose && onClose()} className="p-2 text-gray-600 hover:text-gray-800">
             <X />
           </button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto">
+        <div className="p-4 space-y-4">
           {loading ? (
             <div>Loading...</div>
           ) : error ? (

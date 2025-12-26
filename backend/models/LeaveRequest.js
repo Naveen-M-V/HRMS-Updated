@@ -11,12 +11,7 @@ const leaveRequestSchema = new mongoose.Schema(
     approverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'EmployeeHub',
-      required: false,
-      default: null
-    },
-    approverName: {
-      type: String,
-      default: ''
+      required: true
     },
     leaveType: {
       type: String,

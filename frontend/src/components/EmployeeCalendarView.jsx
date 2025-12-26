@@ -204,22 +204,6 @@ const EmployeeCalendarView = ({ userProfile }) => {
     return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const getApproverName = (request) => {
-    const s = (request?.status || '').toString().toLowerCase();
-    if (s !== 'approved' && s !== 'rejected') return '-';
-
-    const approver = request?.approverId;
-    if (approver && typeof approver === 'object') {
-      const first = approver?.firstName || '';
-      const last = approver?.lastName || '';
-      const name = `${first} ${last}`.trim();
-      if (name) return name;
-    }
-
-    const fallback = (request?.approverName || '').toString().trim();
-    return fallback || '-';
-  };
-
   const renderRequestsSection = () => (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -242,7 +226,6 @@ const EmployeeCalendarView = ({ userProfile }) => {
                   <th className="px-4 py-3 text-left font-semibold text-gray-700">Total Days</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-700">Reason</th>
                   <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Approved by</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,7 +245,6 @@ const EmployeeCalendarView = ({ userProfile }) => {
                         {req.status || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{getApproverName(req)}</td>
                   </tr>
                 ))}
               </tbody>

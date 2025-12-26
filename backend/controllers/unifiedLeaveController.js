@@ -76,8 +76,7 @@ exports.createLeaveRequest = async (req, res) => {
     // Create leave request - no approverId needed, goes to all admins
     const leaveRequest = new LeaveRequest({
       employeeId,
-      approverId: null,
-      approverName: '',
+      approverId: employeeId, // Placeholder, will be updated on approval
       leaveType,
       startDate: start,
       endDate: end,
@@ -188,7 +187,7 @@ exports.getPendingLeaveRequests = async (req, res) => {
 exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
   try {
     const userRole = req.user.role;
-    const adminUserId = req.user.id || req.user._id;
+    const approverId = req.user.id || req.user._id;
     const { leaveType, startDate, endDate } = req.query;
 
     if (userRole !== 'admin' && userRole !== 'super-admin') {
@@ -198,26 +197,7 @@ exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
       });
     }
 
-    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
-    if (!approverEmp && req.user?.email) {
-      approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
-    }
-    const approverId = approverEmp ? approverEmp._id : null;
-
-    const approverName = approverEmp
-      ? `${approverEmp.firstName || ''} ${approverEmp.lastName || ''}`.trim()
-      : `${req.user?.firstName || ''} ${req.user?.lastName || ''}`.trim();
-
-    const approverName = approverEmp
-      ? `${approverEmp.firstName || ''} ${approverEmp.lastName || ''}`.trim()
-      : `${req.user?.firstName || ''} ${req.user?.lastName || ''}`.trim();
-
-    let query = { status: 'Approved' };
-    if (approverId) {
-      query.approverId = approverId;
-    } else if (approverName) {
-      query.approverName = approverName;
-    }
+    let query = { status: 'Approved', approverId };
     if (leaveType) query.leaveType = leaveType;
     if (startDate || endDate) {
       query.startDate = {};
@@ -227,7 +207,6 @@ exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
 
     const leaveRequests = await LeaveRequest.find(query)
       .populate('employeeId', 'firstName lastName email vtid department jobTitle')
-      .populate('approverId', 'firstName lastName email')
       .sort({ approvedAt: -1, createdAt: -1 });
 
     res.json({
@@ -280,7 +259,6 @@ exports.approveLeaveRequest = async (req, res) => {
     // Update leave request
     leaveRequest.status = 'Approved';
     leaveRequest.approverId = approverId;
-    leaveRequest.approverName = (approverName || '').toString().trim();
     leaveRequest.adminComment = adminComment || '';
     leaveRequest.approvedAt = new Date();
     await leaveRequest.save();
@@ -383,7 +361,6 @@ exports.rejectLeaveRequest = async (req, res) => {
 
     leaveRequest.status = 'Rejected';
     leaveRequest.approverId = approverId;
-    leaveRequest.approverName = (approverName || '').toString().trim();
     leaveRequest.rejectionReason = rejectionReason;
     leaveRequest.rejectedAt = new Date();
     await leaveRequest.save();
@@ -392,7 +369,6 @@ exports.rejectLeaveRequest = async (req, res) => {
     await notifyEmployeeOfRejection(leaveRequest, rejectionReason);
 
     await leaveRequest.populate('employeeId', 'firstName lastName email');
-    await leaveRequest.populate('approverId', 'firstName lastName email');
 
     res.json({
       success: true,
@@ -427,15 +403,7 @@ exports.createTimeOff = async (req, res) => {
       });
     }
     
-    const adminUserId = req.user.id || req.user._id;
-    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
-    if (!approverEmp && req.user?.email) {
-      approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
-    }
-    const approverId = approverEmp ? approverEmp._id : null;
-    const approverName = approverEmp
-      ? `${approverEmp.firstName || ''} ${approverEmp.lastName || ''}`.trim()
-      : `${req.user?.firstName || ''} ${req.user?.lastName || ''}`.trim();
+    const adminId = req.user.id || req.user._id;
 
     if (!employeeId || !leaveType || !startDate || !endDate || !reason) {
       return res.status(400).json({
@@ -453,8 +421,7 @@ exports.createTimeOff = async (req, res) => {
     // Create pre-approved leave request
     const leaveRequest = new LeaveRequest({
       employeeId,
-      approverId,
-      approverName,
+      approverId: adminId,
       leaveType,
       startDate: start,
       endDate: end,
@@ -487,9 +454,9 @@ exports.createTimeOff = async (req, res) => {
       endDate: end,
       days: numberOfDays,
       reason,
-      approvedBy: approverId,
+      approvedBy: adminId,
       approvedAt: new Date(),
-      createdBy: approverId
+      createdBy: adminId
     });
 
     // Update balance
@@ -527,15 +494,7 @@ exports.createTimeOff = async (req, res) => {
 exports.addAnnualLeave = async (req, res) => {
   try {
     const { employeeId, startDate, endDate, reason } = req.body;
-    const adminUserId = req.user.id || req.user._id;
-    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
-    if (!approverEmp && req.user?.email) {
-      approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
-    }
-    const approverId = approverEmp ? approverEmp._id : null;
-    const approverName = approverEmp
-      ? `${approverEmp.firstName || ''} ${approverEmp.lastName || ''}`.trim()
-      : `${req.user?.firstName || ''} ${req.user?.lastName || ''}`.trim();
+    const adminId = req.user.id || req.user._id;
 
     if (!employeeId || !startDate || !endDate) {
       return res.status(400).json({
@@ -552,8 +511,7 @@ exports.addAnnualLeave = async (req, res) => {
 
     const leaveRequest = new LeaveRequest({
       employeeId,
-      approverId,
-      approverName,
+      approverId: adminId,
       leaveType: 'Paid',
       startDate: start,
       endDate: end,
@@ -574,9 +532,9 @@ exports.addAnnualLeave = async (req, res) => {
       endDate: end,
       days: numberOfDays,
       reason: reason || 'Annual leave',
-      approvedBy: approverId,
+      approvedBy: adminId,
       approvedAt: new Date(),
-      createdBy: approverId
+      createdBy: adminId
     });
 
     await updateLeaveBalance(employeeId, numberOfDays);
