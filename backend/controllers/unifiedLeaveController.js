@@ -187,7 +187,7 @@ exports.getPendingLeaveRequests = async (req, res) => {
 exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
   try {
     const userRole = req.user.role;
-    const approverId = req.user.id || req.user._id;
+    const adminUserId = req.user.id || req.user._id;
     const { leaveType, startDate, endDate } = req.query;
 
     if (userRole !== 'admin' && userRole !== 'super-admin') {
@@ -197,7 +197,21 @@ exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
       });
     }
 
-    let query = { status: 'Approved', approverId };
+    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    if (!approverEmp && req.user?.email) {
+      approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
+    }
+    const approverEmployeeId = approverEmp ? approverEmp._id : null;
+
+    if (!approverEmployeeId) {
+      return res.json({
+        success: true,
+        count: 0,
+        data: []
+      });
+    }
+
+    let query = { status: 'Approved', approverId: approverEmployeeId };
     if (leaveType) query.leaveType = leaveType;
     if (startDate || endDate) {
       query.startDate = {};

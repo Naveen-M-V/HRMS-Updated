@@ -149,17 +149,32 @@ exports.getPendingApprovals = async (req, res) => {
     }
 
     // Query parameters
-    const { 
-      category, 
-      tags, 
-      fromDate, 
-      toDate, 
-      page = 1, 
-      limit = 25 
+    const {
+      employeeId,
+      status,
+      category,
+      tags,
+      fromDate,
+      toDate,
+      page = 1,
+      limit = 25
     } = req.query;
 
-    // Build filter - only pending expenses
-    const filter = { status: 'pending' };
+    // Build filter
+    // - Managers default to pending only.
+    // - Admins / super-admins default to all statuses (so they can see approved/declined/paid too).
+    const filter = {};
+    if (status) {
+      filter.status = status;
+    } else if (user && (user.role === 'admin' || user.role === 'super-admin')) {
+      // no status filter (all statuses)
+    } else {
+      filter.status = 'pending';
+    }
+
+    if (employeeId) {
+      filter.employee = employeeId;
+    }
     
     if (category) {
       filter.category = category;

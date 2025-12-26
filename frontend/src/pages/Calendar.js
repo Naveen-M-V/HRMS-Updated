@@ -57,6 +57,8 @@ const Calendar = () => {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [approvedRequests, setApprovedRequests] = useState([]);
   const [loadingApprovedRequests, setLoadingApprovedRequests] = useState(false);
+  const [approvedFromDate, setApprovedFromDate] = useState('');
+  const [approvedToDate, setApprovedToDate] = useState('');
 
   // NEW: Fetch calendar events when month changes
   useEffect(() => {
@@ -122,7 +124,10 @@ const Calendar = () => {
 
     setLoadingApprovedRequests(true);
     try {
-      const response = await axios.get('/api/leave/approved-requests');
+      const params = {};
+      if (approvedFromDate) params.startDate = approvedFromDate;
+      if (approvedToDate) params.endDate = approvedToDate;
+      const response = await axios.get('/api/leave/approved-requests', { params });
       setApprovedRequests(response.data.data || []);
     } catch (error) {
       console.error('Error fetching approved requests:', error);
@@ -1261,6 +1266,52 @@ const Calendar = () => {
       {activeTab === 'approved-requests' && (user?.role === 'admin' || user?.role === 'super-admin') && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Approved Leave Requests</h2>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From date</label>
+                <input
+                  type="date"
+                  value={approvedFromDate}
+                  onChange={(e) => setApprovedFromDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To date</label>
+                <input
+                  type="date"
+                  value={approvedToDate}
+                  onChange={(e) => setApprovedToDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <button
+                  onClick={() => fetchApprovedRequests()}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Apply filter
+                </button>
+              </div>
+
+              <div>
+                <button
+                  onClick={() => {
+                    setApprovedFromDate('');
+                    setApprovedToDate('');
+                    fetchApprovedRequests();
+                  }}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
 
           {loadingApprovedRequests ? (
             <div className="text-center py-8">
