@@ -45,10 +45,26 @@ exports.getAllGoals = async (req, res) => {
 // Get goals by user (for "My goals" view)
 exports.getMyGoals = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const authId = req.user?.userId || req.user?.id || req.user?._id;
 
-        // Find employee record for this user
-        const employee = await EmployeesHub.findOne({ userId });
+        if (!authId) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        let employee = null;
+
+        // Try as EmployeesHub _id first (employee login tokens are issued from EmployeesHub)
+        employee = await EmployeesHub.findById(authId);
+
+        // Try as User _id link next (profile/admin tokens are issued from User model)
+        if (!employee) {
+            employee = await EmployeesHub.findOne({ userId: authId });
+        }
+
+        // Fallback: some records may not have userId linked; try email match
+        if (!employee && req.user?.email) {
+            employee = await EmployeesHub.findOne({ email: String(req.user.email).toLowerCase() });
+        }
 
         if (!employee) {
             return res.status(404).json({ message: 'Employee record not found' });
@@ -278,10 +294,23 @@ exports.getAllReviews = async (req, res) => {
 // Get reviews assigned to me
 exports.getMyReviews = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const authId = req.user?.userId || req.user?.id || req.user?._id;
 
-        // Find employee record for this user
-        const employee = await EmployeesHub.findOne({ userId });
+        if (!authId) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        let employee = null;
+
+        employee = await EmployeesHub.findById(authId);
+
+        if (!employee) {
+            employee = await EmployeesHub.findOne({ userId: authId });
+        }
+
+        if (!employee && req.user?.email) {
+            employee = await EmployeesHub.findOne({ email: String(req.user.email).toLowerCase() });
+        }
 
         if (!employee) {
             return res.status(404).json({ message: 'Employee record not found' });

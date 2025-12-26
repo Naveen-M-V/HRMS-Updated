@@ -15,7 +15,7 @@ const generateToken = (user) => {
     id: user._id,
     email: user.email,
     role: user.role,
-    userType: user.userType || user.role === 'profile' ? 'profile' : 'employee'
+    userType: user.userType || (user.role === 'profile' ? 'profile' : 'employee')
   };
   
   return jwt.sign(payload, process.env.JWT_SECRET || 'fallback_secret_key', {
