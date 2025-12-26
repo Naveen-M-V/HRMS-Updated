@@ -232,7 +232,14 @@ exports.approveLeaveRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { adminComment } = req.body;
-    const adminId = req.user.id || req.user._id;
+    const adminUserId = req.user.id || req.user._id;
+
+    // Resolve approver as EmployeeHub record (prefer by userId; fallback by email)
+    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    if (!approverEmp && req.user?.email) {
+      approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
+    }
+    const approverId = approverEmp ? approverEmp._id : null;
 
     const leaveRequest = await LeaveRequest.findById(id);
     if (!leaveRequest) {
@@ -251,7 +258,7 @@ exports.approveLeaveRequest = async (req, res) => {
 
     // Update leave request
     leaveRequest.status = 'Approved';
-    leaveRequest.approverId = adminId;
+    leaveRequest.approverId = approverId;
     leaveRequest.adminComment = adminComment || '';
     leaveRequest.approvedAt = new Date();
     await leaveRequest.save();
@@ -276,9 +283,9 @@ exports.approveLeaveRequest = async (req, res) => {
       endDate: leaveRequest.endDate,
       days: leaveRequest.numberOfDays,
       reason: leaveRequest.reason,
-      approvedBy: adminId,
+      approvedBy: approverId,
       approvedAt: new Date(),
-      createdBy: adminId
+      createdBy: approverId
     });
 
     // Update leave balance if applicable
@@ -296,6 +303,7 @@ exports.approveLeaveRequest = async (req, res) => {
     await notifyTeamOfLeave(leaveRequest);
 
     await leaveRequest.populate('employeeId', 'firstName lastName email');
+    await leaveRequest.populate('approverId', 'firstName lastName email');
 
     res.json({
       success: true,
@@ -320,7 +328,14 @@ exports.rejectLeaveRequest = async (req, res) => {
   try {
     const { id } = req.params;
     const { rejectionReason } = req.body;
-    const adminId = req.user.id || req.user._id;
+    const adminUserId = req.user.id || req.user._id;
+
+    // Resolve approver as EmployeeHub record (prefer by userId; fallback by email)
+    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    if (!approverEmp && req.user?.email) {
+      approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
+    }
+    const approverId = approverEmp ? approverEmp._id : null;
 
     if (!rejectionReason || rejectionReason.trim().length === 0) {
       return res.status(400).json({
@@ -345,7 +360,7 @@ exports.rejectLeaveRequest = async (req, res) => {
     }
 
     leaveRequest.status = 'Rejected';
-    leaveRequest.approverId = adminId;
+    leaveRequest.approverId = approverId;
     leaveRequest.rejectionReason = rejectionReason;
     leaveRequest.rejectedAt = new Date();
     await leaveRequest.save();

@@ -199,7 +199,7 @@ const Expenses = () => {
   };
 
   const getApprovedByName = (expense) => {
-    const approver = expense?.approvedBy;
+    const approver = expense?.approvedBy || expense?.declinedBy || expense?.paidBy;
     if (!approver) return '';
     const first = approver?.firstName || '';
     const last = approver?.lastName || '';
@@ -447,23 +447,36 @@ const Expenses = () => {
                       {getApprovedByName(expense) || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {/* Options 3-dots menu */}
-                      <div className="relative inline-block text-left">
-                        <button onClick={(e) => {
-                          const menu = e.currentTarget.nextElementSibling;
-                          if (menu) menu.classList.toggle('hidden');
-                        }} className="p-1 rounded hover:bg-gray-100">
-                             
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setViewingId(expense._id)}
+                          className="p-2 rounded hover:bg-gray-100 text-gray-700"
+                          title="View"
+                        >
+                          <Eye size={16} />
                         </button>
-                        <div className="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg z-50">
-                          <button onClick={() => setViewingId(expense._id)} className="w-full text-left px-4 py-2 hover:bg-gray-50">View</button>
-                          {expense.status === 'pending' && (
-                            <>
-                              <button onClick={() => navigate(`/user-dashboard?tab=expenses&action=edit&id=${expense._id}`)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Edit</button>
-                              <button onClick={() => handleDelete(expense._id)} className="w-full text-left px-4 py-2 hover:bg-gray-50">Delete</button>
-                            </>
-                          )}
-                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/user-dashboard?tab=expenses&action=edit&id=${expense._id}`)}
+                          className={`p-2 rounded hover:bg-gray-100 ${expense.status === 'pending' ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                          title={expense.status === 'pending' ? 'Edit' : 'Only pending expenses can be edited'}
+                          disabled={expense.status !== 'pending'}
+                        >
+                          <Edit size={16} />
+                        </button>
+
+                        {expense.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(expense._id)}
+                            className="p-2 rounded hover:bg-red-50 text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </motion.tr>
