@@ -196,7 +196,7 @@ const ClockIns = () => {
 
       // Fetch EmployeeHub data, clock status, and stats in parallel
       const [employeesRes, clockStatusRes, statsRes] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_BASE_URL}/employees`, {
+        fetch(`${process.env.REACT_APP_API_BASE_URL}/employees?includeAdmins=true`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
@@ -1048,6 +1048,14 @@ const ClockIns = () => {
   // Calculate absent count
   const absentCount = employees.filter(e => e.status === 'absent').length;
 
+  const clockedInEmployeeNames = employees
+    .filter(e => e.status === 'clocked_in')
+    .map(e => (e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.email || 'Unknown'));
+
+  const clockedOutEmployeeNames = employees
+    .filter(e => e.status === 'clocked_out')
+    .map(e => (e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.email || 'Unknown'));
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -1351,6 +1359,12 @@ const ClockIns = () => {
               {statsLoading ? '...' : (stats?.clockedIn ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked In</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', color: '#065f46', lineHeight: '1.4' }}>
+              {clockedInEmployeeNames.length === 0
+                ? '-'
+                : clockedInEmployeeNames.slice(0, 3).join(', ')}
+              {clockedInEmployeeNames.length > 3 ? ` +${clockedInEmployeeNames.length - 3} more` : ''}
+            </div>
           </div>
           <div
             onClick={() => setStatusFilter(statusFilter === 'clocked_out' ? null : 'clocked_out')}
@@ -1370,6 +1384,12 @@ const ClockIns = () => {
               {statsLoading ? '...' : (stats?.clockedOut ?? 0)}
             </div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>Clocked Out</div>
+            <div style={{ marginTop: '8px', fontSize: '11px', color: '#1e40af', lineHeight: '1.4' }}>
+              {clockedOutEmployeeNames.length === 0
+                ? '-'
+                : clockedOutEmployeeNames.slice(0, 3).join(', ')}
+              {clockedOutEmployeeNames.length > 3 ? ` +${clockedOutEmployeeNames.length - 3} more` : ''}
+            </div>
           </div>
           <div
             onClick={() => setStatusFilter(statusFilter === 'on_break' ? null : 'on_break')}

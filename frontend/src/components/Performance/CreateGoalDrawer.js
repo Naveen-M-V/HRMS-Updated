@@ -42,6 +42,7 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
         if (!formData.assignee) newErrors.assignee = 'Please select an assignee';
         if (!formData.startDate) newErrors.startDate = 'Start date is required';
         if (!formData.dueDate) newErrors.dueDate = 'Due date is required';
+        if (!formData.measurementType) newErrors.measurementType = 'Measurement type is required';
         if (formData.startDate && formData.dueDate && new Date(formData.dueDate) <= new Date(formData.startDate)) {
             newErrors.dueDate = 'Due date must be after start date';
         }
@@ -59,7 +60,15 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
 
         try {
             setLoading(true);
-            await goalsApi.createGoal(formData);
+            const payload = {
+                goalName: formData.goalName.trim(),
+                description: (formData.description || '').trim(),
+                assignee: formData.assignee,
+                startDate: formData.startDate,
+                dueDate: formData.dueDate,
+                measurementType: formData.measurementType,
+            };
+            await goalsApi.createGoal(payload);
             toast.success('Goal created successfully');
             // Reset form
             setFormData({
@@ -73,8 +82,18 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
             setErrors({});
             onSuccess();
         } catch (error) {
-            console.error('Error creating goal:', error);
-            toast.error(error.response?.data?.message || 'Failed to create goal');
+            const responseData = error?.response?.data;
+            console.error('Error creating goal:', { error, responseData });
+
+            let message = responseData?.message || 'Failed to create goal';
+            if (responseData?.details && typeof responseData.details === 'object') {
+                const detailText = Object.entries(responseData.details)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(', ');
+                message = `${message} (${detailText})`;
+            }
+
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -182,7 +201,7 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
                         >
                             <option value="">Select employee</option>
                             {Array.isArray(employees) && employees.map((emp) => (
-                                <option key={emp._id} value={emp._id}>
+                                <option key={emp._id || emp.id} value={emp._id || emp.id}>
                                     {emp.firstName} {emp.lastName}
                                 </option>
                             ))}

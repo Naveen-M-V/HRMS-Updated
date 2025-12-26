@@ -42,7 +42,7 @@ export default function EmployeeHub() {
   const fetchAllEmployees = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees`);
+      const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/employees?includeAdmins=true`);
       if (response.data.success) {
         const employees = response.data.data;
         setAllEmployees(employees);

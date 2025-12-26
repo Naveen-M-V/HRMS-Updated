@@ -3,12 +3,16 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import ModernDatePicker from '../components/ModernDatePicker';
 import ExpenseDetailsModal from '../components/ExpenseDetailsModal';
-import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import AddExpense from './AddExpense';
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover';
+import { Search, Filter, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const AdminExpenses = () => {
   const [tab, setTab] = useState('approvals'); // default to approvals for admin
   const [expenses, setExpenses] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addType, setAddType] = useState('receipt');
   const [filters, setFilters] = useState({
     employeeId: '',
     category: '',
@@ -100,8 +104,31 @@ const AdminExpenses = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-semibold">Expenses (Admin)</h1>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+              <Plus size={18} />
+              Add new claim
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-40 right-0">
+            <button
+              onClick={() => { setAddType('receipt'); setShowAddForm(true); }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-50"
+            >
+              Receipt
+            </button>
+            <button
+              onClick={() => { setAddType('mileage'); setShowAddForm(true); }}
+              className="w-full text-left px-4 py-2 hover:bg-gray-50"
+            >
+              Mileage
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="flex gap-2 mb-6 border-b border-gray-200">
@@ -206,6 +233,26 @@ const AdminExpenses = () => {
 
       {viewingId && (
         <ExpenseDetailsModal id={viewingId} onClose={() => { setViewingId(null); fetchExpenses(); }} onUpdated={() => { setViewingId(null); fetchExpenses(); }} />
+      )}
+
+      {/* Embedded Add Expense Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-6 bg-black bg-opacity-40">
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-lg">
+            <div className="p-4">
+              <AddExpense
+                embed
+                initialType={addType}
+                onClose={(opts) => {
+                  setShowAddForm(false);
+                  if (opts && opts.created) {
+                    fetchExpenses();
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

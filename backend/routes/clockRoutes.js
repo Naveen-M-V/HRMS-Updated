@@ -447,6 +447,7 @@ router.get('/dashboard', async (req, res) => {
 // @access  Private (Admin)
 router.get('/status', asyncHandler(async (req, res) => {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const includeAdmins = req.query.includeAdmins === 'true';
 
   // Step 1: Fetch only valid, active employees from EmployeesHub
   const validEmployees = await EmployeesHub.find({
@@ -459,10 +460,33 @@ router.get('/status', asyncHandler(async (req, res) => {
 
   console.log(`📊 Found ${validEmployees.length} active employees`);
 
-  // Step 2: Get today's time entries for these employees
   const employeeIds = validEmployees.map(emp => emp._id);
+
+  let adminUsers = [];
+  if (includeAdmins) {
+    const employeeEmails = new Set(
+      validEmployees
+        .map(e => e.email)
+        .filter(Boolean)
+        .map(e => e.toLowerCase())
+    );
+
+    adminUsers = await User.find({
+      role: { $in: ['admin', 'super-admin'] },
+      isActive: { $ne: false },
+      deleted: { $ne: true }
+    })
+      .select('firstName lastName email role department jobTitle')
+      .lean();
+
+    adminUsers = adminUsers.filter(u => !u.email || !employeeEmails.has(u.email.toLowerCase()));
+  }
+
+  const adminUserIds = adminUsers.map(u => u._id);
+
+  // Step 2: Get today's time entries for employees (and optionally admins)
   const timeEntries = await TimeEntry.find({
-    employee: { $in: employeeIds },
+    employee: { $in: [...employeeIds, ...adminUserIds] },
     date: today
   }).lean();
 
@@ -559,6 +583,80 @@ router.get('/status', asyncHandler(async (req, res) => {
       clockedOut.push(employeeWithStatus);
     }
   });
+
+  if (adminUsers.length > 0) {
+    adminUsers.forEach(adminUser => {
+      const adminId = adminUser._id.toString();
+      const timeEntry = timeEntryMap.get(adminId);
+
+      let status = 'clocked_out';
+      let clockIn = null;
+      let clockOut = null;
+      let breakIn = null;
+      let breakOut = null;
+
+      if (timeEntry) {
+        if (timeEntry.status) {
+          const normalizedStatus = timeEntry.status.replace(/-/g, '_');
+          status = normalizedStatus;
+          clockIn = timeEntry.clockIn;
+          clockOut = timeEntry.clockOut;
+          breakIn = timeEntry.onBreakStart || null;
+          breakOut = null;
+        } else if (timeEntry.sessions && timeEntry.sessions.length > 0) {
+          const lastSession = timeEntry.sessions[timeEntry.sessions.length - 1];
+
+          clockIn = lastSession.clockIn;
+          clockOut = lastSession.clockOut;
+          breakIn = lastSession.breakIn;
+          breakOut = lastSession.breakOut;
+
+          if (!clockIn) {
+            status = 'clocked_out';
+          } else if (clockIn && !clockOut) {
+            if (breakIn && !breakOut) {
+              status = 'on_break';
+            } else {
+              status = 'clocked_in';
+            }
+          } else {
+            status = 'clocked_out';
+          }
+        }
+      }
+
+      const adminWithStatus = {
+        _id: adminUser._id,
+        id: adminUser._id,
+        firstName: adminUser.firstName || '',
+        lastName: adminUser.lastName || '',
+        email: adminUser.email,
+        department: adminUser.department || '-',
+        jobTitle: adminUser.jobTitle || '-',
+        employeeId: null,
+        team: '-',
+        office: '-',
+        role: adminUser.role || 'admin',
+        status: status,
+        clockIn: clockIn,
+        clockOut: clockOut,
+        breakIn: breakIn,
+        breakOut: breakOut,
+        timeEntryId: timeEntry?._id || null,
+        isAdmin: true
+      };
+
+      allEmployees.push(adminWithStatus);
+
+      if (status === 'clocked_in') {
+        clockedIn.push(adminWithStatus);
+      } else if (status === 'on_break') {
+        onBreak.push(adminWithStatus);
+      } else {
+        clockedOut.push(adminWithStatus);
+      }
+    });
+  }
 
   console.log(`📊 Status summary: ${clockedIn.length} clocked in, ${onBreak.length} on break, ${clockedOut.length} clocked out`);
 

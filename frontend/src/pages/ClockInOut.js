@@ -36,7 +36,7 @@ const ClockInOut = () => {
       const [statusRes, statsRes, employeesRes] = await Promise.all([
         getClockStatus({ includeAdmins: true }),
         getDashboardStats(),
-        fetch(`${process.env.REACT_APP_API_BASE_URL}/employees`, {
+        fetch(`${process.env.REACT_APP_API_BASE_URL}/employees?includeAdmins=true`, {
           credentials: 'include',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
@@ -280,6 +280,14 @@ const ClockInOut = () => {
     }
   };
 
+  const clockedInEmployeeNames = clockData
+    .filter(e => e.status === 'clocked_in')
+    .map(e => (e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.email || 'Unknown'));
+
+  const clockedOutEmployeeNames = clockData
+    .filter(e => e.status === 'clocked_out')
+    .map(e => (e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.email || 'Unknown'));
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -411,6 +419,12 @@ const ClockInOut = () => {
             }}>
               {stats.clockedIn}
             </div>
+            <div style={{ marginTop: '10px', fontSize: '12px', color: '#065f46', lineHeight: '1.4' }}>
+              {clockedInEmployeeNames.length === 0
+                ? '-'
+                : clockedInEmployeeNames.slice(0, 3).join(', ')}
+              {clockedInEmployeeNames.length > 3 ? ` +${clockedInEmployeeNames.length - 3} more` : ''}
+            </div>
           </div>
 
           <div 
@@ -453,6 +467,12 @@ const ClockInOut = () => {
               color: '#111827'
             }}>
               {stats.clockedOut}
+            </div>
+            <div style={{ marginTop: '10px', fontSize: '12px', color: '#1e40af', lineHeight: '1.4' }}>
+              {clockedOutEmployeeNames.length === 0
+                ? '-'
+                : clockedOutEmployeeNames.slice(0, 3).join(', ')}
+              {clockedOutEmployeeNames.length > 3 ? ` +${clockedOutEmployeeNames.length - 3} more` : ''}
             </div>
           </div>
 

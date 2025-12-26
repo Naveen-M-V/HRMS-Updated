@@ -310,7 +310,7 @@ exports.getEmployeeByEmail = async (req, res) => {
  */
 exports.getAllEmployees = async (req, res) => {
   try {
-    const { team, department, status, search, approvers, role } = req.query;
+    const { team, department, status, search, approvers, role, includeAdmins } = req.query;
 
     // Build query - default to active employees only
     let query = { isActive: true, status: { $ne: 'Terminated' } };
@@ -360,6 +360,43 @@ exports.getAllEmployees = async (req, res) => {
     const filteredEmployees = employees.filter(emp => 
       !profileEmails.includes(emp.email.toLowerCase())
     );
+
+    const shouldIncludeAdmins = includeAdmins === 'true';
+    if (shouldIncludeAdmins) {
+      const existingEmails = new Set(
+        filteredEmployees
+          .map(e => e.email)
+          .filter(Boolean)
+          .map(e => e.toLowerCase())
+      );
+
+      const adminUsers = await User.find({
+        role: { $in: ['admin', 'super-admin'] },
+        isActive: { $ne: false },
+        deleted: { $ne: true }
+      })
+        .select('firstName lastName email role department jobTitle')
+        .lean();
+
+      const mappedAdmins = adminUsers
+        .filter(u => u.email && !existingEmails.has(u.email.toLowerCase()))
+        .map(u => ({
+          _id: u._id,
+          firstName: u.firstName || '',
+          lastName: u.lastName || '',
+          email: u.email,
+          role: u.role,
+          department: u.department || '-',
+          jobTitle: u.jobTitle || '-',
+          team: '-',
+          office: '-',
+          status: 'Active',
+          isActive: true,
+          isAdmin: true
+        }));
+
+      filteredEmployees.push(...mappedAdmins);
+    }
 
     res.status(200).json({
       success: true,

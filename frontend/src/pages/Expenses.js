@@ -196,7 +196,7 @@ const Expenses = () => {
         <div className="flex items-center gap-3">
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
                 <Plus size={18} />
                 Add new claim
               </button>
