@@ -8,6 +8,7 @@ export default function ArchiveEmployees() {
   const [loading, setLoading] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   // Fetch archived employees
   const fetchArchivedEmployees = async () => {
@@ -43,6 +44,8 @@ export default function ArchiveEmployees() {
       return '-';
     }
   };
+
+  const closeEmployeeModal = () => setSelectedEmployee(null);
 
   // Handle bulk delete of archived employees
   const handleBulkDelete = async () => {
@@ -94,6 +97,54 @@ export default function ArchiveEmployees() {
           Permanently deleted employees - Read Only View
         </p>
       </div>
+
+      {selectedEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-6" onClick={closeEmployeeModal}>
+          <div className="w-full max-w-xl bg-white rounded-lg shadow max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b flex-none">
+              <div className="text-lg font-semibold text-gray-900">Archived Employee Details</div>
+              <button onClick={closeEmployeeModal} className="p-2 text-gray-600 hover:text-gray-800">
+                <span className="text-xl leading-none">×</span>
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-500">Name</div>
+                  <div className="font-medium text-gray-900">{selectedEmployee.firstName} {selectedEmployee.lastName}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">Job title</div>
+                  <div className="font-medium text-gray-900">{selectedEmployee.jobTitle || '-'}</div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <div className="text-sm text-gray-500">Termination reason</div>
+                  <div className="font-medium text-gray-900">{selectedEmployee.terminationReason || selectedEmployee.terminationNote || '-'}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">Start date</div>
+                  <div className="font-medium text-gray-900">{formatDate(selectedEmployee.startDate)}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">End date</div>
+                  <div className="font-medium text-gray-900">{formatDate(selectedEmployee.exitDate || selectedEmployee.terminatedDate)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t flex justify-end flex-none">
+              <button onClick={closeEmployeeModal} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -239,7 +290,8 @@ export default function ArchiveEmployees() {
                 {archivedEmployees.map((employee, index) => (
                   <tr 
                     key={employee._id} 
-                    className="hover:bg-gray-50"
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setSelectedEmployee(employee)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
@@ -247,6 +299,7 @@ export default function ArchiveEmployees() {
                         className="rounded border-gray-300"
                         checked={selectedEmployees.includes(employee._id)}
                         onChange={(e) => {
+                          e.stopPropagation();
                           if (e.target.checked) {
                             setSelectedEmployees([...selectedEmployees, employee._id]);
                           } else {

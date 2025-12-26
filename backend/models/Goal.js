@@ -13,7 +13,7 @@ const goalSchema = new mongoose.Schema({
   },
   assignee: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'EmployeesHub',
+    ref: 'EmployeeHub',
     required: true
   },
   startDate: {

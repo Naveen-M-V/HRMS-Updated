@@ -116,8 +116,6 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
 
     if (!isOpen) return null;
 
-    console.log('CreateGoalDrawer - employees:', employees);
-
     return (
         <>
             {/* Backdrop */}
