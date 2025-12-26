@@ -1,45 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon, 
-  CalendarDaysIcon,
   ClockIcon,
   PlusIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import dayjs from 'dayjs';
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isBetween from 'dayjs/plugin/isBetween';
 import axios from '../utils/axiosConfig';
 import { toast } from 'react-toastify';
 
-dayjs.extend(isSameOrBefore);
-dayjs.extend(isSameOrAfter);
 dayjs.extend(isBetween);
 
 const EmployeeCalendarView = ({ userProfile }) => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(dayjs());
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [showDayDetailsModal, setShowDayDetailsModal] = useState(false);
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
+  const [activeTab, setActiveTab] = useState('calendar');
   
   const [leaveRecords, setLeaveRecords] = useState([]);
   const [shiftAssignments, setShiftAssignments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   useEffect(() => {
     fetchMyCalendarData();
   }, [currentDate]);
 
+  useEffect(() => {
+    if (activeTab === 'requests') {
+      fetchMyLeaveRequests();
+    }
+  }, [activeTab, userProfile?._id]);
+
   const fetchMyCalendarData = async () => {
     if (!userProfile?._id) return;
-    
-    setLoading(true);
     
     try {
       const startOfMonth = currentDate.startOf('month').format('YYYY-MM-DD');
@@ -73,8 +72,23 @@ const EmployeeCalendarView = ({ userProfile }) => {
       toast.error('Failed to load calendar data');
       setLeaveRecords([]);
       setShiftAssignments([]);
+    }
+  };
+
+  const fetchMyLeaveRequests = async () => {
+    if (!userProfile?._id) return;
+
+    setLoadingRequests(true);
+
+    try {
+      const response = await axios.get('/api/leave/my-requests');
+      setLeaveRequests(response.data?.data || []);
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+      toast.error('Failed to load leave requests');
+      setLeaveRequests([]);
     } finally {
-      setLoading(false);
+      setLoadingRequests(false);
     }
   };
 
@@ -109,7 +123,6 @@ const EmployeeCalendarView = ({ userProfile }) => {
 
   const getEventsForDate = (date) => {
     const events = [];
-    const dateStr = date.format('YYYY-MM-DD');
 
     // Add leave events
     leaveRecords.forEach(leave => {
@@ -161,6 +174,30 @@ const EmployeeCalendarView = ({ userProfile }) => {
     );
   };
 
+  const formatDate = (dateValue) => {
+    if (!dateValue) return '-';
+    const d = dayjs(dateValue);
+    if (!d.isValid()) return '-';
+    return d.format('DD/MM/YYYY');
+  };
+
+  const getWantedDates = (request) => {
+    const start = request?.startDate ? dayjs(request.startDate) : null;
+    const end = request?.endDate ? dayjs(request.endDate) : null;
+    if (!start || !end || !start.isValid() || !end.isValid()) return '-';
+    if (start.isSame(end, 'day')) return start.format('DD/MM/YYYY');
+    return `${start.format('DD/MM/YYYY')} - ${end.format('DD/MM/YYYY')}`;
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const s = (status || '').toString().toLowerCase();
+    if (s === 'approved') return 'bg-green-100 text-green-800 border-green-200';
+    if (s === 'rejected') return 'bg-red-100 text-red-800 border-red-200';
+    if (s === 'pending') return 'bg-amber-100 text-amber-800 border-amber-200';
+    if (s === 'draft') return 'bg-gray-100 text-gray-800 border-gray-200';
+    return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -168,109 +205,187 @@ const EmployeeCalendarView = ({ userProfile }) => {
         <h2 className="text-2xl font-bold text-gray-900">My Calendar</h2>
         <button
           onClick={handleRequestTimeOff}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <PlusIcon className="h-4 w-4" />
-          <span>Request time off</span>
+          <span>+ Time off</span>
         </button>
       </div>
 
       <p className="text-sm text-gray-600">View your shifts and approved leave days</p>
 
-      {/* Calendar */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {/* Calendar Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-          <button
-            onClick={() => navigateMonth('prev')}
-            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            <ChevronLeftIcon className="h-5 w-5" />
-          </button>
-          
-          <div className="text-lg font-semibold text-gray-900">
-            {currentDate.format('MMMM YYYY')}
-          </div>
-          
-          <button
-            onClick={() => navigateMonth('next')}
-            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            <ChevronRightIcon className="h-5 w-5" />
-          </button>
-        </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setActiveTab('calendar')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+            activeTab === 'calendar'
+              ? 'bg-blue-50 text-blue-700 border-blue-200'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Calendar
+        </button>
+        <button
+          onClick={() => setActiveTab('requests')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+            activeTab === 'requests'
+              ? 'bg-blue-50 text-blue-700 border-blue-200'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Request
+        </button>
+      </div>
 
-        {/* Week Days Header */}
-        <div className="grid grid-cols-7 border-b">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="p-2 text-center text-sm font-medium text-gray-500 bg-gray-50">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar Days */}
-        <div className="grid grid-cols-7">
-          {getDaysInMonth(currentDate).map((date, index) => {
-            const isCurrentMonth = date.isSame(currentDate, 'month');
-            const isToday = date.isSame(dayjs(), 'day');
-            const isSelected = date.isSame(selectedDate, 'day');
-            const events = getEventsForDate(date);
-            
-            return (
-              <div
-                key={index}
-                className={`min-h-[80px] p-2 border-r border-b cursor-pointer transition-colors ${
-                  !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
-                } ${isToday ? 'bg-blue-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:bg-gray-50`}
-                onClick={() => handleDayClick(date)}
+      {activeTab === 'calendar' && (
+        <>
+          {/* Calendar */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Calendar Header */}
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+              <button
+                onClick={() => navigateMonth('prev')}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
               >
-                <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {date.format('D')}
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
+              
+              <div className="text-lg font-semibold text-gray-900">
+                {currentDate.format('MMMM YYYY')}
+              </div>
+              
+              <button
+                onClick={() => navigateMonth('next')}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Week Days Header */}
+            <div className="grid grid-cols-7 border-b">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="p-2 text-center text-sm font-medium text-gray-500 bg-gray-50">
+                  {day}
                 </div>
+              ))}
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7">
+              {getDaysInMonth(currentDate).map((date, index) => {
+                const isCurrentMonth = date.isSame(currentDate, 'month');
+                const isToday = date.isSame(dayjs(), 'day');
+                const isSelected = date.isSame(selectedDate, 'day');
+                const events = getEventsForDate(date);
                 
-                {/* Events */}
-                <div className="mt-1 space-y-1">
-                  {events.slice(0, 2).map((event, eventIndex) => (
-                    <div
-                      key={eventIndex}
-                      className={`text-xs p-1 rounded border ${event.color}`}
-                      title={`${event.title}${event.time ? ` (${event.time})` : ''}`}
-                    >
-                      <div className="font-semibold truncate">
-                        {event.title}
-                      </div>
-                      {event.time && event.type === 'shift' && (
-                        <div className="text-[10px] opacity-75 truncate">
-                          {event.time}
+                return (
+                  <div
+                    key={index}
+                    className={`min-h-[80px] p-2 border-r border-b cursor-pointer transition-colors ${
+                      !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
+                    } ${isToday ? 'bg-blue-50' : ''} ${isSelected ? 'ring-2 ring-blue-500' : ''} hover:bg-gray-50`}
+                    onClick={() => handleDayClick(date)}
+                  >
+                    <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : isCurrentMonth ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {date.format('D')}
+                    </div>
+                    
+                    {/* Events */}
+                    <div className="mt-1 space-y-1">
+                      {events.slice(0, 2).map((event, eventIndex) => (
+                        <div
+                          key={eventIndex}
+                          className={`text-xs p-1 rounded border ${event.color}`}
+                          title={`${event.title}${event.time ? ` (${event.time})` : ''}`}
+                        >
+                          <div className="font-semibold truncate">
+                            {event.title}
+                          </div>
+                          {event.time && event.type === 'shift' && (
+                            <div className="text-[10px] opacity-75 truncate">
+                              {event.time}
+                            </div>
+                          )}
                         </div>
+                      ))}
+                      {events.length > 2 && (
+                        <div className="text-xs text-gray-500">+{events.length - 2} more</div>
                       )}
                     </div>
-                  ))}
-                  {events.length > 2 && (
-                    <div className="text-xs text-gray-500">+{events.length - 2} more</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* Legend */}
-      <div className="flex gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
-          <span className="text-gray-700">Shift</span>
+          {/* Legend */}
+          <div className="flex gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
+              <span className="text-gray-700">Shift</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded"></div>
+              <span className="text-gray-700">Leave</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'requests' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 bg-gray-50">
+            <div className="text-lg font-semibold text-gray-900">Leave Requests</div>
+          </div>
+
+          <div className="p-4">
+            {loadingRequests ? (
+              <div className="text-sm text-gray-600">Loading...</div>
+            ) : leaveRequests.length === 0 ? (
+              <div className="text-sm text-gray-600">No leave requests found.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700">SI No</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Leave Requested Date</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Leave Wanted Dates</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Total Days</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Reason</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaveRequests.map((req, idx) => (
+                      <tr key={req._id || idx} className="border-b last:border-b-0">
+                        <td className="px-4 py-3 text-gray-900">{idx + 1}</td>
+                        <td className="px-4 py-3 text-gray-700">{formatDate(req.createdAt)}</td>
+                        <td className="px-4 py-3 text-gray-700">{getWantedDates(req)}</td>
+                        <td className="px-4 py-3 text-gray-700">{req.numberOfDays ?? '-'}</td>
+                        <td className="px-4 py-3 text-gray-700 max-w-[420px]">
+                          <div className="truncate" title={req.reason || ''}>
+                            {req.reason || '-'}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-semibold ${getStatusBadgeClass(req.status)}`}>
+                            {req.status || '-'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded"></div>
-          <span className="text-gray-700">Leave</span>
-        </div>
-      </div>
+      )}
 
       {/* Day Details Modal */}
-      {showDayDetailsModal && (
+      {activeTab === 'calendar' && showDayDetailsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col">
             {/* Modal Header */}
