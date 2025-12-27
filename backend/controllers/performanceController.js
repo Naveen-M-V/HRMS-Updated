@@ -53,12 +53,19 @@ exports.getMyGoals = async (req, res) => {
 
         let employee = null;
 
+        const authIdStr = String(authId).trim();
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(authIdStr);
+
         // Try as EmployeesHub _id first (employee login tokens are issued from EmployeesHub)
-        employee = await EmployeesHub.findById(authId);
+        if (isValidObjectId) {
+            employee = await EmployeesHub.findById(authIdStr);
+        }
 
         // Try as User _id link next (profile/admin tokens are issued from User model)
         if (!employee) {
-            employee = await EmployeesHub.findOne({ userId: authId });
+            if (isValidObjectId) {
+                employee = await EmployeesHub.findOne({ userId: authIdStr });
+            }
         }
 
         // Fallback: some records may not have userId linked; try email match
@@ -302,10 +309,17 @@ exports.getMyReviews = async (req, res) => {
 
         let employee = null;
 
-        employee = await EmployeesHub.findById(authId);
+        const authIdStr = String(authId).trim();
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(authIdStr);
+
+        if (isValidObjectId) {
+            employee = await EmployeesHub.findById(authIdStr);
+        }
 
         if (!employee) {
-            employee = await EmployeesHub.findOne({ userId: authId });
+            if (isValidObjectId) {
+                employee = await EmployeesHub.findOne({ userId: authIdStr });
+            }
         }
 
         if (!employee && req.user?.email) {

@@ -16,12 +16,9 @@ import {
   CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 
-const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user }) => {
+const UserNavigation = ({ activeTab, setActiveTab, notifications, onLogout, user, isEmployeeUser }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-
-  // Check if user is an employee (has full features) or profile (certificate-only)
-  const isEmployeeUser = user?.userType === 'employee';
 
   const navigationItems = [
     { id: 'overview', name: 'Overview', icon: HomeIcon, showForProfile: false },

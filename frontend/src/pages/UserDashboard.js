@@ -42,7 +42,7 @@ const UserDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Check if user is an employee (full features) or profile (certificate-only)
-  const isEmployeeUser = user?.userType === 'employee';
+  const [isEmployeeUser, setIsEmployeeUser] = useState(user?.userType === 'employee');
 
   // DEBUG: Log user type and role
   console.log('DEBUG: UserDashboard - User type:', user?.userType);
@@ -93,26 +93,41 @@ const UserDashboard = () => {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!isEmployeeUser && activeTab !== 'notifications') {
+      setActiveTab('notifications');
+      setSearchParams({ tab: 'notifications' });
+    }
+  }, [isEmployeeUser]);
+
   const fetchUserData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) {
         setLoading(true);
       }
 
-      // Determine which endpoint to use based on userType
-      const endpoint = isEmployeeUser
-        ? `${API_BASE_URL}/api/employees/by-email/${user.email}`
-        : `${API_BASE_URL}/api/profiles/by-email/${user.email}`;
+      const employeeEndpoint = `${API_BASE_URL}/api/employees/by-email/${user.email}`;
+      const profileEndpoint = `${API_BASE_URL}/api/profiles/by-email/${user.email}`;
 
-      console.log('Fetching user data from:', endpoint, 'userType:', user.userType);
+      let resolvedIsEmployeeUser = isEmployeeUser;
 
-      // Fetch user profile/employee by email
-      const userDataResponse = await fetch(endpoint, {
+      let userDataResponse = await fetch(employeeEndpoint, {
         credentials: 'include'
       });
 
+      if (!userDataResponse.ok) {
+        // Only treat as a profile user when employee record truly doesn't exist
+        if (userDataResponse.status === 404) {
+          resolvedIsEmployeeUser = false;
+          userDataResponse = await fetch(profileEndpoint, {
+            credentials: 'include'
+          });
+        }
+      }
+
       if (userDataResponse.ok) {
         const userData = await userDataResponse.json();
+        setIsEmployeeUser(resolvedIsEmployeeUser);
         setUserProfile(userData);
         setEditedProfile(userData);
 
@@ -120,7 +135,7 @@ const UserDashboard = () => {
         if (userData._id) {
           let certificatesResponse;
           
-          if (isEmployeeUser) {
+          if (resolvedIsEmployeeUser) {
             // For employees, use employeeRef endpoint
             certificatesResponse = await fetch(`${API_BASE_URL}/api/certificates/employee/${userData._id}`, {
               credentials: 'include'
@@ -781,6 +796,7 @@ const UserDashboard = () => {
         notifications={notifications}
         onLogout={handleLogout}
         user={user}
+        isEmployeeUser={isEmployeeUser}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
