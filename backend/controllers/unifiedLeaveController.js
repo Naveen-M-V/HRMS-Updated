@@ -203,15 +203,9 @@ exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
     }
     const approverEmployeeId = approverEmp ? approverEmp._id : null;
 
-    if (!approverEmployeeId) {
-      return res.json({
-        success: true,
-        count: 0,
-        data: []
-      });
-    }
-
-    let query = { status: 'Approved', approverId: approverEmployeeId };
+    // Admin dashboard "Approved Requests" should show all approved requests.
+    // Keep approverId data for display/audit, but don't filter by it.
+    let query = { status: 'Approved' };
     if (leaveType) query.leaveType = leaveType;
     if (startDate || endDate) {
       query.startDate = {};

@@ -16,23 +16,12 @@ const PerformanceTab = ({ user, userProfile }) => {
     const load = async () => {
       try {
         setLoading(true);
-        // Reviews (employee view uses my-reviews endpoint)
-        if (user?.userType === 'employee') {
-          const myReviews = await reviewsApi.getMyReviews();
-          setReviews(Array.isArray(myReviews) ? myReviews : (myReviews && myReviews.reviews) || []);
-        } else {
-          const allReviews = await reviewsApi.getAllReviews();
-          setReviews(Array.isArray(allReviews) ? allReviews : (allReviews && allReviews.reviews) || []);
-        }
+        // Employee dashboard Performance tab: always load "my" endpoints
+        const myReviews = await reviewsApi.getMyReviews();
+        setReviews(Array.isArray(myReviews) ? myReviews : (myReviews && myReviews.reviews) || []);
 
-        // Goals
-        if (user?.userType === 'employee') {
-          const myGoals = await goalsApi.getMyGoals();
-          setGoals(Array.isArray(myGoals) ? myGoals : (myGoals && myGoals.goals) || []);
-        } else {
-          const allGoals = await goalsApi.getAllGoals();
-          setGoals(Array.isArray(allGoals) ? allGoals : (allGoals && allGoals.goals) || []);
-        }
+        const myGoals = await goalsApi.getMyGoals();
+        setGoals(Array.isArray(myGoals) ? myGoals : (myGoals && myGoals.goals) || []);
 
         // Notes (only visible to admin/hr/managers)
         if (employeeId) {
