@@ -8,12 +8,12 @@ const reviewSchema = new mongoose.Schema({
     },
     manager: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'EmployeesHub',
+        ref: 'EmployeeHub',
         required: false
     },
     assignedTo: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'EmployeesHub',
+        ref: 'EmployeeHub',
         required: true
     },
     startDate: {

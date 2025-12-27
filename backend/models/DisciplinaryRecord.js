@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const disciplinarySchema = new mongoose.Schema({
-  employee: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeesHub', required: true, index: true },
+  employee: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeHub', required: true, index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   type: { type: String, enum: ['verbal','written','final'], required: true },
   reason: { type: String, required: true },

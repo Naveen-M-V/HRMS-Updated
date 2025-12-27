@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const improvementPlanSchema = new mongoose.Schema({
-  employee: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeesHub', required: true, index: true },
+  employee: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeHub', required: true, index: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   startDate: { type: Date, required: true },
   endDate: { type: Date },
