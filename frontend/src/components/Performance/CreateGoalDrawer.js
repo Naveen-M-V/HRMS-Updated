@@ -3,6 +3,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { goalsApi } from '../../utils/performanceApi';
 import { toast } from 'react-toastify';
 import ModernDatePicker from '../ModernDatePicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees }) {
     const [formData, setFormData] = useState({
@@ -190,20 +191,21 @@ export default function CreateGoalDrawer({ isOpen, onClose, onSuccess, employees
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Assign to <span className="text-red-500">*</span>
                         </label>
-                        <select
-                            name="assignee"
-                            value={formData.assignee}
-                            onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors.assignee ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                        >
-                            <option value="">Select employee</option>
-                            {Array.isArray(employees) && employees.map((emp) => (
-                                <option key={emp._id || emp.id} value={emp._id || emp.id}>
-                                    {emp.firstName} {emp.lastName}
-                                </option>
-                            ))}
-                        </select>
+                        <Select value={formData.assignee || 'select'} onValueChange={(v) => handleChange({ target: { name: 'assignee', value: v === 'select' ? '' : v } })}>
+                            <SelectTrigger
+                                className={`${errors.assignee ? 'border-red-500' : 'border-gray-300'} focus:ring-green-500 focus:ring-offset-0`}
+                            >
+                                <SelectValue placeholder="Select employee" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="select">Select employee</SelectItem>
+                                {Array.isArray(employees) && employees.map((emp) => (
+                                    <SelectItem key={emp._id || emp.id} value={String(emp._id || emp.id)}>
+                                        {emp.firstName} {emp.lastName}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         {errors.assignee && (
                             <p className="mt-1 text-sm text-red-500">{errors.assignee}</p>
                         )}

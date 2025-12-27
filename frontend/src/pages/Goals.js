@@ -4,6 +4,7 @@ import { goalsApi } from '../utils/performanceApi';
 import { toast } from 'react-toastify';
 import CreateGoalDrawer from '../components/Performance/CreateGoalDrawer';
 import axios from 'axios';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const API_BASE_URL = '/api';
 
@@ -162,32 +163,34 @@ export default function Goals() {
                     </div>
 
                     {/* Status Filter */}
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    >
-                        <option value="all">All statuses</option>
-                        <option value="Not started">Not started</option>
-                        <option value="In progress">In progress</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Overdue">Overdue</option>
-                    </select>
+                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+                        <SelectTrigger className="w-[200px] focus:ring-green-500 focus:ring-offset-0">
+                            <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All statuses</SelectItem>
+                            <SelectItem value="Not started">Not started</SelectItem>
+                            <SelectItem value="In progress">In progress</SelectItem>
+                            <SelectItem value="Completed">Completed</SelectItem>
+                            <SelectItem value="Overdue">Overdue</SelectItem>
+                        </SelectContent>
+                    </Select>
 
                     {/* Assignee Filter */}
                     {activeTab === 'all' && Array.isArray(employees) && employees.length > 0 && (
-                        <select
-                            value={assigneeFilter}
-                            onChange={(e) => setAssigneeFilter(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        >
-                            <option value="all">All assignees</option>
-                            {employees.map((emp) => (
-                                <option key={emp._id} value={emp._id}>
-                                    {emp.firstName} {emp.lastName}
-                                </option>
-                            ))}
-                        </select>
+                        <Select value={assigneeFilter} onValueChange={(v) => setAssigneeFilter(v)}>
+                            <SelectTrigger className="w-[220px] focus:ring-green-500 focus:ring-offset-0">
+                                <SelectValue placeholder="All assignees" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All assignees</SelectItem>
+                                {employees.map((emp) => (
+                                    <SelectItem key={emp._id} value={String(emp._id)}>
+                                        {emp.firstName} {emp.lastName}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
 
                     {/* Create Goal Button */}

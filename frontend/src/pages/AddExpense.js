@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import ModernDatePicker from '../components/ModernDatePicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) => {
   const navigate = useNavigate();
@@ -371,20 +372,23 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category <span className="text-red-500">*</span>
               </label>
-              <select
-                value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
+              <Select
+                value={String(formData.category || 'Travel')}
+                onValueChange={(v) => handleInputChange('category', v)}
               >
-                <option value="Travel">Travel</option>
-                <option value="Meals">Meals</option>
-                <option value="Accommodation">Accommodation</option>
-                <option value="Equipment">Equipment</option>
-                <option value="Training">Training</option>
-                <option value="Mileage">Mileage</option>
-                <option value="Other">Other</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Travel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Travel">Travel</SelectItem>
+                  <SelectItem value="Meals">Meals</SelectItem>
+                  <SelectItem value="Accommodation">Accommodation</SelectItem>
+                  <SelectItem value="Equipment">Equipment</SelectItem>
+                  <SelectItem value="Training">Training</SelectItem>
+                  <SelectItem value="Mileage">Mileage</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Receipt-specific fields */}
@@ -408,15 +412,19 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Currency
                   </label>
-                  <select
-                    value={formData.currency}
-                    onChange={(e) => handleInputChange('currency', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  <Select
+                    value={String(formData.currency || 'GBP')}
+                    onValueChange={(v) => handleInputChange('currency', v)}
                   >
-                    <option value="GBP">GBP (£)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="GBP (£)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -474,14 +482,20 @@ const AddExpense = ({ embed = false, initialType = 'receipt', onClose = null }) 
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     />
-                    <select
-                      value={formData.mileage.unit}
-                      onChange={(e) => handleMileageChange('unit', e.target.value)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="miles">Miles</option>
-                      <option value="km">KM</option>
-                    </select>
+                    <div className="w-[140px]">
+                      <Select
+                        value={String(formData.mileage.unit || 'miles')}
+                        onValueChange={(v) => handleMileageChange('unit', v)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Miles" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="miles">Miles</SelectItem>
+                          <SelectItem value="km">KM</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 

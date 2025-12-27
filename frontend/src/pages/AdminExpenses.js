@@ -5,6 +5,7 @@ import ModernDatePicker from '../components/ModernDatePicker';
 import ExpenseDetailsModal from '../components/ExpenseDetailsModal';
 import AddExpense from './AddExpense';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Search, Filter, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const AdminExpenses = () => {
@@ -140,12 +141,22 @@ const AdminExpenses = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
-            <select value={filters.employeeId} onChange={(e) => handleFilterChange('employeeId', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="">All employees</option>
-              {employees.map(emp => (
-                <option key={emp._id} value={emp._id}>{emp.firstName} {emp.lastName} ({emp.employeeId || ''})</option>
-              ))}
-            </select>
+            <Select
+              value={filters.employeeId || 'all'}
+              onValueChange={(v) => handleFilterChange('employeeId', v === 'all' ? '' : v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All employees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All employees</SelectItem>
+                {employees.map(emp => (
+                  <SelectItem key={emp._id} value={String(emp._id)}>
+                    {emp.firstName} {emp.lastName} ({emp.employeeId || ''})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -155,13 +166,21 @@ const AdminExpenses = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="">Any</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="declined">Declined</option>
-              <option value="paid">Paid</option>
-            </select>
+            <Select
+              value={filters.status || 'any'}
+              onValueChange={(v) => handleFilterChange('status', v === 'any' ? '' : v)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="declined">Declined</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>

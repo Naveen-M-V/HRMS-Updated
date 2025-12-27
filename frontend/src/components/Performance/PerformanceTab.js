@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { reviewsApi, notesApi, pipsApi, goalsApi } from '../../utils/performanceApi';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const PerformanceTab = ({ user, userProfile }) => {
   const [reviews, setReviews] = useState([]);
@@ -178,17 +179,20 @@ const PerformanceTab = ({ user, userProfile }) => {
               </div>
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            >
-              <option value="all">All statuses</option>
-              <option value="Not started">Not started</option>
-              <option value="In progress">In progress</option>
-              <option value="Completed">Completed</option>
-              <option value="Overdue">Overdue</option>
-            </select>
+            <div className="w-full sm:w-[200px]">
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+                <SelectTrigger className="w-full focus:ring-green-500 focus:ring-offset-0">
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="Not started">Not started</SelectItem>
+                  <SelectItem value="In progress">In progress</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Overdue">Overdue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 

@@ -11,7 +11,6 @@ import {
   Trash2, 
   CheckCircle, 
   XCircle,
-  DollarSign,
   Calendar,
   Tag,
   Search,
@@ -25,6 +24,7 @@ import AddExpense from './AddExpense';
 import ExpenseDetailsModal from '../components/ExpenseDetailsModal';
 import ModernDatePicker from '../components/ModernDatePicker';
 import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const Expenses = () => {
   const navigate = useNavigate();
@@ -209,37 +209,34 @@ const Expenses = () => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white">
-            <DollarSign size={20} />
-          </div>
-          <h1 className="text-2xl font-semibold text-gray-800">Expenses</h1>
-        </div>
+      <div className="mb-6">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 rounded-lg">
+          <div className="text-lg font-semibold text-gray-900">Expenses</div>
 
-        <div className="flex items-center gap-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-                <Plus size={18} />
-                Add new claim
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-40 right-0">
-              <button
-                onClick={() => { setAddType('receipt'); setShowAddForm(true); }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50"
-              >
-                Receipt
-              </button>
-              <button
-                onClick={() => { setAddType('mileage'); setShowAddForm(true); }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50"
-              >
-                Mileage
-              </button>
-            </PopoverContent>
-          </Popover>
+          <div className="flex items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                  <Plus size={18} />
+                  Add new claim
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-40 right-0">
+                <button
+                  onClick={() => { setAddType('receipt'); setShowAddForm(true); }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
+                >
+                  Receipt
+                </button>
+                <button
+                  onClick={() => { setAddType('mileage'); setShowAddForm(true); }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
+                >
+                  Mileage
+                </button>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </div>
 
@@ -313,32 +310,40 @@ const Expenses = () => {
               <Filter size={16} className="inline mr-1" />
               Status
             </label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            <Select
+              value={filters.status || 'all'}
+              onValueChange={(v) => handleFilterChange('status', v === 'all' ? '' : v)}
             >
-              <option value="">All</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="declined">Declined</option>
-              <option value="paid">Paid</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="All" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="declined">Declined</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* View Selector */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">View</label>
-            <select
-              value={filters.limit}
-              onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            <Select
+              value={String(filters.limit)}
+              onValueChange={(v) => handleFilterChange('limit', parseInt(v))}
             >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="25" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -355,16 +360,22 @@ const Expenses = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">View</span>
-            <select
-              value={filters.limit}
-              onChange={(e) => handleFilterChange('limit', parseInt(e.target.value))}
-              className="px-2 py-1 border border-gray-300 rounded"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+            <div className="w-[110px]">
+              <Select
+                value={String(filters.limit)}
+                onValueChange={(v) => handleFilterChange('limit', parseInt(v))}
+              >
+                <SelectTrigger className="h-8 px-2">
+                  <SelectValue placeholder="25" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <span className="text-sm text-gray-600">per page</span>
           </div>
 

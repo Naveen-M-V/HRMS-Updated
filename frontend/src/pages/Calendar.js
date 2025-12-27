@@ -19,6 +19,16 @@ import isBetween from 'dayjs/plugin/isBetween';
 import axios from '../utils/axiosConfig';
 import { DatePicker } from '../components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { toast } from 'react-toastify';
 
 dayjs.extend(isSameOrBefore);
@@ -59,6 +69,11 @@ const Calendar = () => {
   const [loadingApprovedRequests, setLoadingApprovedRequests] = useState(false);
   const [approvedFromDate, setApprovedFromDate] = useState('');
   const [approvedToDate, setApprovedToDate] = useState('');
+
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [actionRequestId, setActionRequestId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // NEW: Fetch calendar events when month changes
   useEffect(() => {
@@ -1239,15 +1254,19 @@ const Calendar = () => {
                     
                     <div className="flex gap-2 ml-4">
                       <button
-                        onClick={() => handleApproveRequest(request._id)}
+                        onClick={() => {
+                          setActionRequestId(request._id);
+                          setApproveDialogOpen(true);
+                        }}
                         className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => {
-                          const reason = prompt('Please provide a reason for rejection:');
-                          if (reason) handleRejectRequest(request._id, reason);
+                          setActionRequestId(request._id);
+                          setRejectionReason('');
+                          setRejectDialogOpen(true);
                         }}
                         className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
                       >
@@ -1383,6 +1402,92 @@ const Calendar = () => {
           )}
         </div>
       )}
+
+      <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve leave request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the request as approved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setApproveDialogOpen(false);
+                setActionRequestId(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!actionRequestId) return;
+                await handleApproveRequest(actionRequestId);
+                setApproveDialogOpen(false);
+                setActionRequestId(null);
+              }}
+              className="bg-green-600 hover:bg-green-700 focus-visible:ring-green-600"
+            >
+              Approve
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline leave request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please provide a reason for rejection.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="my-4">
+            <label htmlFor="leave-rejection-reason" className="block text-sm font-medium text-gray-700 mb-2">
+              Rejection reason
+            </label>
+            <textarea
+              id="leave-rejection-reason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Enter reason..."
+              className="w-full min-h-[100px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {(rejectionReason || '').length}/500 characters
+            </p>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setRejectDialogOpen(false);
+                setActionRequestId(null);
+                setRejectionReason('');
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const r = (rejectionReason || '').trim();
+                if (!actionRequestId || !r) return;
+                await handleRejectRequest(actionRequestId, r);
+                setRejectDialogOpen(false);
+                setActionRequestId(null);
+                setRejectionReason('');
+              }}
+              disabled={!actionRequestId || (rejectionReason || '').trim().length === 0}
+              className="bg-red-600 hover:bg-red-700 focus-visible:ring-red-600"
+            >
+              Decline
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
