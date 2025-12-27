@@ -9,6 +9,7 @@ export default function ArchiveEmployees() {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   // Fetch archived employees
   const fetchArchivedEmployees = async () => {
@@ -45,7 +46,149 @@ export default function ArchiveEmployees() {
     }
   };
 
-  const closeEmployeeModal = () => setSelectedEmployee(null);
+  const closeEmployeeModal = () => {
+    setSelectedEmployee(null);
+    setIsExportMenuOpen(false);
+  };
+
+  const getOrganisationName = (employee) => {
+    if (!employee) return '-';
+    return employee.organisationName || employee.OrganisationName || employee.office || '-';
+  };
+
+  const csvEscape = (value) => {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+    return str;
+  };
+
+  const downloadBlob = (content, mimeType, filename) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportEmployeeCsv = (employee) => {
+    if (!employee) return;
+
+    const headers = [
+      'Name',
+      'Date of Birth',
+      'Gender',
+      'Email',
+      'Mobile Number',
+      'Team',
+      'Organisation Name',
+      'Job Title',
+      'Department',
+      'Start Date',
+      'End Date',
+      'Termination Reason',
+      'Status'
+    ];
+
+    const values = [
+      `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
+      formatDate(employee.dateOfBirth),
+      employee.gender || '-',
+      employee.email || '-',
+      employee.phone || '-',
+      employee.team || '-',
+      getOrganisationName(employee),
+      employee.jobTitle || '-',
+      employee.department || '-',
+      formatDate(employee.startDate),
+      formatDate(employee.exitDate || employee.terminatedDate),
+      employee.terminationReason || employee.terminationNote || '-',
+      employee.status || '-'
+    ];
+
+    const csv = [headers, values]
+      .map((row) => row.map(csvEscape).join(','))
+      .join('\n');
+
+    const safeName = (`${employee.firstName || 'employee'}_${employee.lastName || ''}`)
+      .trim()
+      .replace(/\s+/g, '_');
+    downloadBlob(csv, 'text/csv;charset=utf-8;', `archived_employee_${safeName}.csv`);
+  };
+
+  const exportEmployeePdf = (employee) => {
+    if (!employee) return;
+
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      toast.error('Unable to open export window. Please allow popups and try again.');
+      return;
+    }
+
+    const name = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee';
+    const rows = [
+      ['Name', name],
+      ['Date of Birth', formatDate(employee.dateOfBirth)],
+      ['Gender', employee.gender || '-'],
+      ['Email', employee.email || '-'],
+      ['Mobile Number', employee.phone || '-'],
+      ['Team', employee.team || '-'],
+      ['Organisation Name', getOrganisationName(employee)],
+      ['Job Title', employee.jobTitle || '-'],
+      ['Department', employee.department || '-'],
+      ['Start Date', formatDate(employee.startDate)],
+      ['End Date', formatDate(employee.exitDate || employee.terminatedDate)],
+      ['Termination Reason', employee.terminationReason || employee.terminationNote || '-'],
+      ['Status', employee.status || '-']
+    ];
+
+    const tableRowsHtml = rows
+      .map(
+        ([label, value]) => `
+          <tr>
+            <td class="label">${String(label)}</td>
+            <td class="value">${String(value ?? '-')}</td>
+          </tr>
+        `
+      )
+      .join('');
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${name} - Archived Employee</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #111827; }
+            h1 { font-size: 18px; margin: 0 0 16px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            td { padding: 10px 12px; border: 1px solid #e5e7eb; font-size: 12px; vertical-align: top; }
+            td.label { width: 240px; background: #f9fafb; color: #374151; font-weight: 600; }
+            td.value { color: #111827; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>Archived Employee Details</h1>
+          <table>
+            <tbody>
+              ${tableRowsHtml}
+            </tbody>
+          </table>
+          <script>
+            window.onload = function () { window.print(); };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   // Handle bulk delete of archived employees
   const handleBulkDelete = async () => {
@@ -103,9 +246,45 @@ export default function ArchiveEmployees() {
           <div className="w-full max-w-xl bg-white rounded-lg shadow max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b flex-none">
               <div className="text-lg font-semibold text-gray-900">Archived Employee Details</div>
-              <button onClick={closeEmployeeModal} className="p-2 text-gray-600 hover:text-gray-800">
-                <span className="text-xl leading-none">×</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                    className="px-3 py-2 text-sm font-medium bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Export
+                  </button>
+                  {isExportMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsExportMenuOpen(false);
+                          exportEmployeePdf(selectedEmployee);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                      >
+                        PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsExportMenuOpen(false);
+                          exportEmployeeCsv(selectedEmployee);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                      >
+                        CSV
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <button onClick={closeEmployeeModal} className="p-2 text-gray-600 hover:text-gray-800">
+                  <span className="text-xl leading-none">×</span>
+                </button>
+              </div>
             </div>
 
             <div className="p-4 overflow-y-auto">
@@ -113,6 +292,36 @@ export default function ArchiveEmployees() {
                 <div>
                   <div className="text-sm text-gray-500">Name</div>
                   <div className="font-medium text-gray-900">{selectedEmployee.firstName} {selectedEmployee.lastName}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">Date of Birth</div>
+                  <div className="font-medium text-gray-900">{formatDate(selectedEmployee.dateOfBirth)}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">Gender</div>
+                  <div className="font-medium text-gray-900">{selectedEmployee.gender || '-'}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">Email</div>
+                  <div className="font-medium text-gray-900">{selectedEmployee.email || '-'}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">Mobile number</div>
+                  <div className="font-medium text-gray-900">{selectedEmployee.phone || '-'}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-gray-500">Team</div>
+                  <div className="font-medium text-gray-900">{selectedEmployee.team || '-'}</div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <div className="text-sm text-gray-500">Organisation name</div>
+                  <div className="font-medium text-gray-900">{getOrganisationName(selectedEmployee)}</div>
                 </div>
 
                 <div>

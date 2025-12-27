@@ -1111,6 +1111,11 @@ exports.getArchivedEmployees = async (req, res) => {
       lastName: emp.lastName,
       fullName: `${emp.firstName} ${emp.lastName}`,
       email: emp.email,
+      dateOfBirth: emp.dateOfBirth || null,
+      gender: emp.gender || null,
+      phone: emp.phone || null,
+      team: emp.team || null,
+      organisationName: emp.OrganisationName || emp.office || null,
       department: emp.department,
       jobTitle: emp.jobTitle,
       startDate: emp.startDate,
@@ -1132,22 +1137,30 @@ exports.getArchivedEmployees = async (req, res) => {
 
       console.log(`✅ Found ${deletedEmployees.length} permanently deleted employees in ArchiveEmployee`);
 
-      deletedMapped = deletedEmployees.map(emp => ({
-        _id: emp._id,
-        employeeId: emp.employeeId,
-        firstName: emp.firstName,
-        lastName: emp.lastName,
-        fullName: emp.fullName || `${emp.firstName} ${emp.lastName}`,
-        email: emp.email,
-        department: emp.department,
-        jobTitle: emp.jobTitle,
-        startDate: emp.startDate,
-        terminationReason: emp.terminationReason || 'Permanently Deleted',
-        exitDate: emp.exitDate || emp.terminatedDate || emp.deletedDate,
-        terminatedDate: emp.terminatedDate || emp.deletedDate,
-        status: 'Deleted',
-        isDeleted: true
-      }));
+      deletedMapped = deletedEmployees.map(emp => {
+        const snapshot = emp.snapshot || {};
+        return ({
+          _id: emp._id,
+          employeeId: emp.employeeId,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          fullName: emp.fullName || `${emp.firstName} ${emp.lastName}`,
+          email: emp.email,
+          dateOfBirth: snapshot.dateOfBirth || null,
+          gender: snapshot.gender || null,
+          phone: snapshot.phone || null,
+          team: snapshot.team || null,
+          organisationName: snapshot.OrganisationName || snapshot.office || null,
+          department: emp.department,
+          jobTitle: emp.jobTitle,
+          startDate: emp.startDate,
+          terminationReason: emp.terminationReason || 'Permanently Deleted',
+          exitDate: emp.exitDate || emp.terminatedDate || emp.deletedDate,
+          terminatedDate: emp.terminatedDate || emp.deletedDate,
+          status: 'Deleted',
+          isDeleted: true
+        });
+      });
     } catch (modelError) {
       console.log('⚠️ ArchiveEmployee model not available or error fetching deleted employees:', modelError.message);
     }
