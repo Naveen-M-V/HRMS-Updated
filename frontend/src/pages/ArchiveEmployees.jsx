@@ -123,12 +123,6 @@ export default function ArchiveEmployees() {
   const exportEmployeePdf = (employee) => {
     if (!employee) return;
 
-    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-    if (!printWindow) {
-      toast.error('Unable to open export window. Please allow popups and try again.');
-      return;
-    }
-
     const name = `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Employee';
     const rows = [
       ['Name', name],
@@ -157,8 +151,7 @@ export default function ArchiveEmployees() {
       )
       .join('');
 
-    printWindow.document.open();
-    printWindow.document.write(`
+    const html = `
       <!doctype html>
       <html>
         <head>
@@ -181,13 +174,39 @@ export default function ArchiveEmployees() {
               ${tableRowsHtml}
             </tbody>
           </table>
-          <script>
-            window.onload = function () { window.print(); };
-          </script>
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc || !iframe.contentWindow) {
+      iframe.remove();
+      toast.error('Unable to export PDF. Please try again.');
+      return;
+    }
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } finally {
+        setTimeout(() => iframe.remove(), 1000);
+      }
+    }, 250);
   };
 
   // Handle bulk delete of archived employees
@@ -246,45 +265,9 @@ export default function ArchiveEmployees() {
           <div className="w-full max-w-xl bg-white rounded-lg shadow max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b flex-none">
               <div className="text-lg font-semibold text-gray-900">Archived Employee Details</div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsExportMenuOpen((prev) => !prev)}
-                    className="px-3 py-2 text-sm font-medium bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Export
-                  </button>
-                  {isExportMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-10">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsExportMenuOpen(false);
-                          exportEmployeePdf(selectedEmployee);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50"
-                      >
-                        PDF
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsExportMenuOpen(false);
-                          exportEmployeeCsv(selectedEmployee);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50"
-                      >
-                        CSV
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <button onClick={closeEmployeeModal} className="p-2 text-gray-600 hover:text-gray-800">
-                  <span className="text-xl leading-none">×</span>
-                </button>
-              </div>
+              <button onClick={closeEmployeeModal} className="p-2 text-gray-600 hover:text-gray-800">
+                <span className="text-xl leading-none">×</span>
+              </button>
             </div>
 
             <div className="p-4 overflow-y-auto">
@@ -346,7 +329,41 @@ export default function ArchiveEmployees() {
               </div>
             </div>
 
-            <div className="p-4 border-t flex justify-end flex-none">
+            <div className="p-4 border-t flex items-center justify-end gap-2 flex-none">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsExportMenuOpen((prev) => !prev)}
+                  className="px-4 py-2 bg-gray-100 text-gray-900 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Export
+                </button>
+                {isExportMenuOpen && (
+                  <div className="absolute right-0 bottom-full mb-2 w-36 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExportMenuOpen(false);
+                        exportEmployeePdf(selectedEmployee);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                    >
+                      PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExportMenuOpen(false);
+                        exportEmployeeCsv(selectedEmployee);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-900 hover:bg-gray-50"
+                    >
+                      CSV
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <button onClick={closeEmployeeModal} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
                 Close
               </button>

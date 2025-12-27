@@ -232,6 +232,55 @@ exports.getApprovedLeaveRequestsByApprover = async (req, res) => {
   }
 };
 
+exports.getDeniedLeaveRequestsByApprover = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    const adminUserId = req.user.id || req.user._id;
+    const { leaveType, startDate, endDate } = req.query;
+
+    if (userRole !== 'admin' && userRole !== 'super-admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    // Resolve approver as EmployeeHub record (prefer by userId; fallback by email)
+    // NOTE: We currently do not filter by approverId (same behavior as Approved Requests).
+    // We resolve it anyway for forward-compatibility/audit.
+    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    if (!approverEmp && req.user?.email) {
+      approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
+    }
+    const approverEmployeeId = approverEmp ? approverEmp._id : null;
+
+    let query = { status: 'Rejected' };
+    if (leaveType) query.leaveType = leaveType;
+    if (startDate || endDate) {
+      query.startDate = {};
+      if (startDate) query.startDate.$gte = new Date(startDate);
+      if (endDate) query.startDate.$lte = new Date(endDate);
+    }
+
+    const leaveRequests = await LeaveRequest.find(query)
+      .populate('employeeId', 'firstName lastName email vtid department jobTitle')
+      .sort({ rejectedAt: -1, createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: leaveRequests.length,
+      data: leaveRequests
+    });
+  } catch (error) {
+    console.error('Get denied leave requests error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching denied leave requests',
+      error: error.message
+    });
+  }
+};
+
 /**
  * Approve leave request
  * @route PATCH /api/leave/approve/:id

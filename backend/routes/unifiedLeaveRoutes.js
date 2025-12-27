@@ -23,6 +23,9 @@ router.get('/pending-requests', unifiedLeaveController.getPendingLeaveRequests);
 // Get leave requests approved by the logged-in admin
 router.get('/approved-requests', unifiedLeaveController.getApprovedLeaveRequestsByApprover);
 
+// Get leave requests rejected/denied by admins (for admin dashboard)
+router.get('/denied-requests', unifiedLeaveController.getDeniedLeaveRequestsByApprover);
+
 // Approve leave request
 router.patch('/approve/:id', unifiedLeaveController.approveLeaveRequest);
 
