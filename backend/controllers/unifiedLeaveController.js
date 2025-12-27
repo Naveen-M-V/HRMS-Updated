@@ -243,17 +243,33 @@ exports.approveLeaveRequest = async (req, res) => {
     const adminUserId = req.user.id || req.user._id;
 
     // Resolve approver as EmployeeHub record (prefer by userId; fallback by email)
-    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    let approverEmp = null;
+
+    if (adminUserId && mongoose.Types.ObjectId.isValid(String(adminUserId))) {
+      approverEmp = await EmployeeHub.findById(adminUserId);
+    }
+
+    if (!approverEmp) {
+      approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    }
     if (!approverEmp && req.user?.email) {
       approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
     }
-    const approverId = approverEmp ? approverEmp._id : null;
 
     const leaveRequest = await LeaveRequest.findById(id);
     if (!leaveRequest) {
       return res.status(404).json({
         success: false,
         message: 'Leave request not found'
+      });
+    }
+
+    const approverId = approverEmp?._id || leaveRequest.approverId || null;
+
+    if (!approverId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Approver employee record not found. Please link the admin user to an EmployeeHub record.'
       });
     }
 
@@ -339,17 +355,17 @@ exports.rejectLeaveRequest = async (req, res) => {
     const adminUserId = req.user.id || req.user._id;
 
     // Resolve approver as EmployeeHub record (prefer by userId; fallback by email)
-    let approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    let approverEmp = null;
+
+    if (adminUserId && mongoose.Types.ObjectId.isValid(String(adminUserId))) {
+      approverEmp = await EmployeeHub.findById(adminUserId);
+    }
+
+    if (!approverEmp) {
+      approverEmp = await EmployeeHub.findOne({ userId: adminUserId });
+    }
     if (!approverEmp && req.user?.email) {
       approverEmp = await EmployeeHub.findOne({ email: req.user.email.toString().trim().toLowerCase() });
-    }
-    const approverId = approverEmp ? approverEmp._id : null;
-
-    if (!rejectionReason || rejectionReason.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Rejection reason is required'
-      });
     }
 
     const leaveRequest = await LeaveRequest.findById(id);
@@ -357,6 +373,22 @@ exports.rejectLeaveRequest = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Leave request not found'
+      });
+    }
+
+    const approverId = approverEmp?._id || leaveRequest.approverId || null;
+
+    if (!approverId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Approver employee record not found. Please link the admin user to an EmployeeHub record.'
+      });
+    }
+
+    if (!rejectionReason || rejectionReason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required'
       });
     }
 
