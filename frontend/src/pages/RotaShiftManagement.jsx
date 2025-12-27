@@ -90,10 +90,12 @@ const RotaShiftManagement = () => {
   const [teamFilter, setTeamFilter] = useState('all');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all'); // 'all', 'last7', 'last30'
+  const [shiftNameFilter, setShiftNameFilter] = useState([]);
   const [formData, setFormData] = useState({
     employeeIds: [], // Array for multiple employee selection
     teamIds: [], // Array for multiple team selection
     dateRange: [], // Array for date range [start, end]
+    shiftName: '',
     startTime: '09:00',
     endTime: '17:00',
     location: 'Office',
@@ -194,6 +196,15 @@ const RotaShiftManagement = () => {
           ? (shift.employeeId._id || shift.employeeId.id)
           : shift.employeeId;
         return shiftEmployeeId?.toString() === employeeFilter;
+      });
+    }
+
+    // Filter by shift name (multi-select)
+    if (Array.isArray(shiftNameFilter) && shiftNameFilter.length > 0) {
+      const selected = new Set(shiftNameFilter.map(v => (v || '').toString()));
+      filtered = filtered.filter(shift => {
+        const name = (shift.shiftName || '').toString();
+        return selected.has(name);
       });
     }
     
@@ -338,6 +349,7 @@ const RotaShiftManagement = () => {
         for (const date of dates) {
           const shiftData = {
             employeeId,
+            shiftName: formData.shiftName,
             date: date,
             startTime: formData.startTime,
             endTime: formData.endTime,
@@ -432,6 +444,7 @@ const RotaShiftManagement = () => {
             for (const date of dates) {
               const shiftData = {
                 employeeId: member._id || member.id,
+                shiftName: formData.shiftName,
                 date: date,
                 startTime: formData.startTime,
                 endTime: formData.endTime,
@@ -474,6 +487,7 @@ const RotaShiftManagement = () => {
       employeeIds: [],
       teamIds: [],
       dateRange: [],
+      shiftName: '',
       startTime: '09:00',
       endTime: '17:00',
       location: 'Office',
@@ -616,7 +630,7 @@ const RotaShiftManagement = () => {
       }
 
       return [
-        employeeName || '',
+        shift.shiftName || '',
         shift.date ? formatDateDDMMYY(shift.date) : '',
         shift.startTime || '',
         shift.endTime || '',
@@ -627,7 +641,7 @@ const RotaShiftManagement = () => {
       ];
     });
 
-    const headers = ['Employee', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
+    const headers = ['Shift Name', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
     const rows = [headers, ...csvData];
 
     // Generate CSV content
@@ -882,12 +896,30 @@ const RotaShiftManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div style={{ flex: '1', minWidth: '220px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                Shift Name
+              </label>
+              <MultiSelectDropdown
+                options={Array.from(new Set((shifts || []).map(s => (s.shiftName || '').toString().trim()).filter(Boolean))).sort().map(name => ({
+                  value: name,
+                  label: name
+                }))}
+                selectedValues={shiftNameFilter}
+                onChange={(values) => {
+                  setShiftNameFilter(values);
+                  setCurrentPage(1);
+                }}
+                placeholder="Select shift name(s)..."
+              />
+            </div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <button
                 onClick={() => {
                   setTeamFilter('all');
                   setEmployeeFilter('all');
                   setDateRangeFilter('all');
+                  setShiftNameFilter([]);
                   setCurrentPage(1);
                 }}
                 style={{
@@ -944,7 +976,7 @@ const RotaShiftManagement = () => {
               <thead style={{ background: '#f9fafb' }}>
                 <tr>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151', width: '60px' }}>SI No.</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Employee</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Shift Name</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Date</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Scheduled Time</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actual Time</th>
@@ -1051,7 +1083,7 @@ const RotaShiftManagement = () => {
                           {(currentPage - 1) * pageSize + index + 1}
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                          {employeeName}
+                          {shift.shiftName || '-'}
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
                           {formatUKDate(shift.date)}
@@ -1340,6 +1372,25 @@ const RotaShiftManagement = () => {
                   )}
                 </div>
               )}
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                  Shift Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.shiftName}
+                  onChange={(e) => setFormData({ ...formData, shiftName: e.target.value })}
+                  placeholder="Enter shift name..."
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
 
               {/* Date Range Selection */}
               <div style={{ marginBottom: '20px' }}>

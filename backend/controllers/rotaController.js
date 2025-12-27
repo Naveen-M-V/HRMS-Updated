@@ -201,7 +201,7 @@ exports.assignShiftToEmployee = async (req, res) => {
     console.log('User from session:', req.user);
     console.log('Session ID:', req.session?.id);
     
-    const { employeeId, date, startTime, endTime, location, workType, breakDuration, notes } = req.body;
+    const { employeeId, shiftName, date, startTime, endTime, location, workType, breakDuration, notes } = req.body;
 
     if (!employeeId || !date || !startTime || !endTime || !location || !workType) {
       return res.status(400).json({
@@ -304,6 +304,7 @@ exports.assignShiftToEmployee = async (req, res) => {
 
     const shiftAssignment = new ShiftAssignment({
       employeeId: actualEmployeeId,
+      shiftName: shiftName || '',
       date: new Date(date),
       startTime,
       endTime,
@@ -389,7 +390,7 @@ exports.assignShiftToEmployee = async (req, res) => {
 exports.assignShiftToTeam = async (req, res) => {
   try {
     console.log('=== Assign Shift to Team Request ===');
-    const { teamId, date, startTime, endTime, location, workType, breakDuration, notes } = req.body;
+    const { teamId, shiftName, date, startTime, endTime, location, workType, breakDuration, notes } = req.body;
 
     if (!teamId || !date || !startTime || !endTime || !location || !workType) {
       return res.status(400).json({
@@ -471,6 +472,7 @@ exports.assignShiftToTeam = async (req, res) => {
         // Create shift assignment
         const shiftAssignment = new ShiftAssignment({
           employeeId,
+          shiftName: shiftName || '',
           date: new Date(date),
           startTime,
           endTime,
@@ -875,7 +877,7 @@ exports.getEmployeeShifts = async (req, res) => {
 exports.updateShiftAssignment = async (req, res) => {
   try {
     const { shiftId } = req.params;
-    const { date, startTime, endTime, location, workType, breakDuration, status, notes } = req.body;
+    const { shiftName, date, startTime, endTime, location, workType, breakDuration, status, notes } = req.body;
 
     const shift = await ShiftAssignment.findById(shiftId);
     if (!shift) {
@@ -903,6 +905,7 @@ exports.updateShiftAssignment = async (req, res) => {
     }
 
     if (date) shift.date = new Date(date);
+    if (shiftName !== undefined) shift.shiftName = shiftName || '';
     if (startTime) shift.startTime = startTime;
     if (endTime) shift.endTime = endTime;
     if (location) shift.location = location;

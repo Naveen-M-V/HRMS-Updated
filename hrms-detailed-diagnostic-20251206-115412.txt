@@ -340,7 +340,7 @@ app.use(session({
 }));
 
 // CORS configuration
-console.log('🔧 CORS Configuration:', {
+console.log(' CORS Configuration:', {
   NODE_ENV: process.env.NODE_ENV,
   CORS_ORIGIN: process.env.CORS_ORIGIN,
   'All environment vars': {

@@ -18,6 +18,10 @@ const shiftAssignmentSchema = new mongoose.Schema({
     ref: 'Rota',
     default: null
   },
+  shiftName: {
+    type: String,
+    default: ''
+  },
   date: {
     type: Date,
     required: [true, 'Date is required']
