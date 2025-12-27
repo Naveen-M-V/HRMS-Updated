@@ -1289,22 +1289,20 @@ const Calendar = () => {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">From date</label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="From date"
                   value={approvedFromDate}
-                  onChange={(e) => setApprovedFromDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  onChange={(d) => setApprovedFromDate(d ? d.format('YYYY-MM-DD') : '')}
+                  className="w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">To date</label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="To date"
                   value={approvedToDate}
-                  onChange={(e) => setApprovedToDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  onChange={(d) => setApprovedToDate(d ? d.format('YYYY-MM-DD') : '')}
+                  className="w-full"
                 />
               </div>
 
