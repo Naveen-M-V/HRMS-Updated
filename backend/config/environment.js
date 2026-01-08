@@ -26,7 +26,13 @@ if (fs.existsSync(envPath)) {
   require('dotenv').config({ path: envPath });
   console.log(`✅ Loaded environment: ${this.environment} from ${envFile}`);
 } else {
-  console.warn(`⚠️ Environment file not found: ${envFile}. No environment variables loaded.`);
+  const fallbackPath = path.resolve(process.cwd(), '.env');
+  if (envFile !== '.env' && fs.existsSync(fallbackPath)) {
+    require('dotenv').config({ path: fallbackPath });
+    console.log(`✅ Loaded environment: ${this.environment} from .env`);
+  } else {
+    console.warn(`⚠️ Environment file not found: ${envFile}. No environment variables loaded.`);
+  }
 }
 
     // Validate required environment variables
