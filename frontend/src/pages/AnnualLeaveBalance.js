@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { Calendar, Users, TrendingUp, Clock, AlertCircle, CheckCircle, XCircle, Edit, X } from 'lucide-react';
 import { getLeaveBalances } from '../utils/leaveApi';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const AnnualLeaveBalance = () => {
+  const { user } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,20 +16,11 @@ const AnnualLeaveBalance = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [userRole, setUserRole] = useState('user');
 
-  // Fetch user role
   useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const response = await axios.get('/api/auth/check-session');
-        if (response.data.role) {
-          setUserRole(response.data.role);
-        }
-      } catch (err) {
-        console.error('Error fetching user role:', err);
-      }
-    };
-    fetchUserRole();
-  }, []);
+    if (user?.role) {
+      setUserRole(user.role);
+    }
+  }, [user]);
 
   // Fetch real leave balance data from API
   useEffect(() => {
@@ -91,6 +84,8 @@ const AnnualLeaveBalance = () => {
   });
 
   const departments = ['all', ...new Set(employees.map(emp => emp.department))];
+
+  const isAdminUser = ['admin', 'super-admin'].includes(userRole);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -295,7 +290,7 @@ const AnnualLeaveBalance = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  {userRole === 'admin' && (
+                  {isAdminUser && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
@@ -341,7 +336,7 @@ const AnnualLeaveBalance = () => {
                           {employee.status}
                         </span>
                       </td>
-                      {userRole === 'admin' && (
+                      {isAdminUser && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => {

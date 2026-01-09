@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft, 
   FileText, 
@@ -18,6 +19,7 @@ import { format } from 'date-fns';
 const ViewExpense = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [expense, setExpense] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,19 +28,13 @@ const ViewExpense = () => {
 
   useEffect(() => {
     fetchExpense();
-    fetchUserRole();
   }, [id]);
 
-  const fetchUserRole = async () => {
-    try {
-      const response = await axios.get('/api/auth/check-session');
-      if (response.data.role) {
-        setUserRole(response.data.role);
-      }
-    } catch (err) {
-      console.error('Error fetching user role:', err);
+  useEffect(() => {
+    if (user?.role) {
+      setUserRole(user.role);
     }
-  };
+  }, [user]);
 
   const fetchExpense = async () => {
     setLoading(true);
@@ -47,9 +43,8 @@ const ViewExpense = () => {
       setExpense(response.data);
       
       // Check if current user is the owner
-      const sessionResponse = await axios.get('/api/auth/check-session');
-      const currentUserId = sessionResponse.data._id;
-      setIsOwn(response.data.submittedBy?._id === currentUserId);
+      const currentUserId = user?.id || user?._id;
+      setIsOwn(!!currentUserId && response.data.submittedBy?._id === currentUserId);
     } catch (err) {
       console.error('Error fetching expense:', err);
       setError(err.response?.data?.message || 'Failed to fetch expense');
