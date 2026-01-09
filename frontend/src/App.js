@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import ModernSidebar from "./components/ModernSidebar";
 import Topbar from "./components/Topbar";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { APP_VERSION, BUILD_TIME } from "./version";
 import { CertificateProvider } from "./context/CertificateContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -225,6 +226,10 @@ function App() {
               <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
               <div className="p-6 flex-1">
                 <Outlet />
+              </div>
+              <div className="px-6 py-3 text-xs text-gray-500 border-t border-gray-200 bg-white">
+                <span className="font-medium">TalentShield V {APP_VERSION}</span>
+                {BUILD_TIME ? <span className="ml-2">({new Date(BUILD_TIME).toLocaleString()})</span> : null}
               </div>
             </div>
           </div>
