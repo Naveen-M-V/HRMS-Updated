@@ -13,6 +13,180 @@ const nextDay = (date) => {
   return d;
 };
 
+const buildGroupedShiftAssignments = (assignments) => {
+  const groups = new Map();
+
+  const getLegacyGroupKey = (a) => {
+    const createdAt = a.createdAt ? new Date(a.createdAt) : null;
+    const createdBucket = createdAt && !Number.isNaN(createdAt.valueOf())
+      ? createdAt.toISOString().slice(0, 16)
+      : '';
+
+    const assignedById = a.assignedBy && typeof a.assignedBy === 'object'
+      ? (a.assignedBy._id || a.assignedBy.id)
+      : a.assignedBy;
+
+    return `legacy:${a.shiftName || ''}|${a.startTime || ''}|${a.endTime || ''}|${a.location || ''}|${a.workType || ''}|${(assignedById || '').toString()}|${createdBucket}`;
+  };
+
+  for (const a of assignments) {
+    const key = a.groupId ? `group:${a.groupId}` : getLegacyGroupKey(a);
+
+    if (!groups.has(key)) {
+      const derivedStart = a.startDate || a.date;
+      const derivedEnd = a.endDate || a.date;
+      groups.set(key, {
+        _id: a.groupId || a._id,
+        groupId: a.groupId || null,
+        shiftName: a.shiftName || '',
+        startDate: derivedStart,
+        endDate: derivedEnd,
+        startTime: a.startTime,
+        endTime: a.endTime,
+        location: a.location,
+        workType: a.workType,
+        assignedEmployees: [],
+        assignmentIds: []
+      });
+    }
+
+    const g = groups.get(key);
+    g.assignmentIds.push(a._id);
+
+    const employeeId = a.employeeId && typeof a.employeeId === 'object'
+      ? (a.employeeId._id || a.employeeId.id)
+      : a.employeeId;
+
+    if (employeeId) {
+      const exists = g.assignedEmployees.some(e => (e.employeeId || '').toString() === employeeId.toString());
+      if (!exists) {
+        const employeeName = a.employeeId && typeof a.employeeId === 'object' && a.employeeId.firstName
+          ? `${a.employeeId.firstName} ${a.employeeId.lastName}`
+          : '';
+        const email = a.employeeId && typeof a.employeeId === 'object'
+          ? (a.employeeId.email || '')
+          : '';
+
+        g.assignedEmployees.push({
+          employeeId,
+          employeeName,
+          email,
+          startTime: a.startTime,
+          endTime: a.endTime
+        });
+      }
+    }
+
+    // Expand derived date range based on actual per-day rows
+    const d = a.date;
+    if (d) {
+      const ds = new Date(d);
+      if (!g.startDate || ds < new Date(g.startDate)) g.startDate = ds;
+      if (!g.endDate || ds > new Date(g.endDate)) g.endDate = ds;
+    }
+  }
+
+  return Array.from(groups.values()).sort((x, y) => new Date(x.startDate) - new Date(y.startDate));
+};
+
+exports.getGroupedShiftAssignments = async (req, res) => {
+  try {
+    const { tab = 'all', startDate, endDate, employeeId, location, workType, status } = req.query;
+
+    const query = {};
+    if (employeeId) query.employeeId = employeeId;
+    if (location) query.location = location;
+    if (workType) query.workType = workType;
+    if (status) query.status = status;
+
+    const todayStartUK = getUKStartOfDay(new Date());
+    const todayEndUK = getUKEndOfDay(new Date());
+
+    if (tab === 'active') {
+      query.date = { $gte: todayStartUK, $lte: todayEndUK };
+    } else if (tab === 'old') {
+      const dateQuery = { $lt: todayStartUK };
+      const rangeStart = startDate ? getUKStartOfDay(new Date(startDate)) : null;
+      const rangeEnd = endDate ? getUKEndOfDay(new Date(endDate)) : null;
+
+      if (rangeStart && !Number.isNaN(rangeStart.valueOf())) {
+        dateQuery.$gte = rangeStart;
+      }
+      if (rangeEnd && !Number.isNaN(rangeEnd.valueOf())) {
+        const maxEnd = rangeEnd < todayStartUK ? rangeEnd : new Date(todayStartUK.getTime() - 1);
+        dateQuery.$lte = maxEnd;
+      }
+
+      query.date = dateQuery;
+    } else {
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (!isNaN(start.valueOf()) && !isNaN(end.valueOf())) {
+          query.date = { $gte: start, $lte: end };
+        }
+      }
+    }
+
+    const assignments = await ShiftAssignment.find(query)
+      .populate({
+        path: 'employeeId',
+        select: '_id firstName lastName email role',
+        options: { strictPopulate: false }
+      })
+      .sort({ date: 1, startTime: 1 })
+      .lean();
+
+    const grouped = buildGroupedShiftAssignments(assignments);
+
+    res.status(200).json({
+      success: true,
+      count: grouped.length,
+      data: grouped
+    });
+  } catch (error) {
+    console.error('Get grouped shift assignments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch grouped shift assignments',
+      error: error.message
+    });
+  }
+};
+
+exports.deleteShiftAssignmentGroup = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    if (!groupId) {
+      return res.status(400).json({
+        success: false,
+        message: 'groupId is required'
+      });
+    }
+
+    const result = await ShiftAssignment.deleteMany({ groupId });
+    if (!result.deletedCount) {
+      return res.status(404).json({
+        success: false,
+        message: 'Shift group not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Shift group deleted successfully',
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Delete shift group error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete shift group',
+      error: error.message
+    });
+  }
+};
+
 const isWeekend = (date) => {
   const day = new Date(date).getDay();
   return day === 0 || day === 6;
@@ -201,7 +375,7 @@ exports.assignShiftToEmployee = async (req, res) => {
     console.log('User from session:', req.user);
     console.log('Session ID:', req.session?.id);
     
-    const { employeeId, shiftName, date, startTime, endTime, location, workType, breakDuration, notes } = req.body;
+    const { employeeId, shiftName, date, startTime, endTime, location, workType, breakDuration, notes, groupId, startDate, endDate } = req.body;
 
     if (!employeeId || !date || !startTime || !endTime || !location || !workType) {
       return res.status(400).json({
@@ -304,6 +478,9 @@ exports.assignShiftToEmployee = async (req, res) => {
 
     const shiftAssignment = new ShiftAssignment({
       employeeId: actualEmployeeId,
+      groupId: groupId || null,
+      startDate: startDate ? new Date(startDate) : null,
+      endDate: endDate ? new Date(endDate) : null,
       shiftName: shiftName || '',
       date: new Date(date),
       startTime,

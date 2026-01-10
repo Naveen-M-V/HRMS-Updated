@@ -6,6 +6,8 @@ const User = require('../models/User');
 const EmployeesHub = require('../models/EmployeesHub');
 const LeaveRecord = require('../models/LeaveRecord');
 const AnnualLeaveBalance = require('../models/AnnualLeaveBalance');
+const Expense = require('../models/Expense');
+const LeaveRequest = require('../models/LeaveRequest');
 const {
   findMatchingShift,
   validateClockIn,
@@ -2793,6 +2795,159 @@ router.get('/dashboard-stats', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard stats',
+      error: error.message
+    });
+  }
+});
+
+router.get('/compliance-insights', async (req, res) => {
+  try {
+    const ukNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/London' }));
+    const dateString = ukNow.toISOString().slice(0, 10);
+    const today = moment().tz('Europe/London').startOf('day');
+    const now = moment().tz('Europe/London');
+
+    const employeesQuery = { isActive: true, status: { $ne: 'Terminated' } };
+    const employees = await EmployeesHub.find(employeesQuery)
+      .select('firstName lastName email employeeId department jobTitle')
+      .sort({ firstName: 1, lastName: 1 })
+      .lean();
+
+    const totalEmployees = employees.length;
+
+    const activeEntries = await TimeEntry.find({
+      date: dateString,
+      status: { $in: ['clocked_in', 'on_break', 'clocked-in', 'break'] }
+    })
+      .populate('employee', 'firstName lastName email employeeId department jobTitle')
+      .sort({ clockIn: 1 })
+      .lean();
+
+    const activeEmployees = activeEntries
+      .map(e => e.employee)
+      .filter(Boolean);
+
+    const ShiftAssignment = require('../models/ShiftAssignment');
+    const todayStart = today.toDate();
+    const todayEnd = today.clone().add(1, 'day').toDate();
+
+    const todayAssignments = await ShiftAssignment.find({
+      date: { $gte: todayStart, $lt: todayEnd }
+    })
+      .populate('employeeId', 'firstName lastName email employeeId department jobTitle')
+      .lean();
+
+    const assignmentEmployeeIds = Array.from(
+      new Set(
+        todayAssignments
+          .map(a => a.employeeId?._id)
+          .filter(Boolean)
+          .map(id => id.toString())
+      )
+    );
+
+    const leaveRecords = await LeaveRecord.find({
+      user: { $in: assignmentEmployeeIds },
+      status: 'approved',
+      startDate: { $lte: todayEnd },
+      endDate: { $gte: todayStart }
+    })
+      .select('user')
+      .lean();
+    const leaveUserSet = new Set(leaveRecords.map(r => r.user?.toString()).filter(Boolean));
+
+    const timeEntriesForAssignments = await TimeEntry.find({
+      employee: { $in: assignmentEmployeeIds },
+      date: dateString
+    })
+      .select('employee clockIn status')
+      .lean();
+
+    const timeEntryByEmployeeId = new Map();
+    for (const entry of timeEntriesForAssignments) {
+      if (!entry.employee) continue;
+      const key = entry.employee.toString();
+      if (!timeEntryByEmployeeId.has(key)) {
+        timeEntryByEmployeeId.set(key, entry);
+      }
+    }
+
+    const absentees = [];
+    for (const assignment of todayAssignments) {
+      const employee = assignment.employeeId;
+      if (!employee?._id) continue;
+      const employeeId = employee._id.toString();
+      if (leaveUserSet.has(employeeId)) continue;
+
+      if (!assignment.startTime || typeof assignment.startTime !== 'string') continue;
+      const [shiftHour, shiftMinute] = assignment.startTime.split(':').map(Number);
+      if (Number.isNaN(shiftHour) || Number.isNaN(shiftMinute)) continue;
+
+      const shiftStartTime = today.clone().hour(shiftHour).minute(shiftMinute).second(0).millisecond(0);
+      const cutoff = shiftStartTime.clone().add(2, 'hours');
+
+      if (now.isSameOrBefore(cutoff)) {
+        continue;
+      }
+
+      const timeEntry = timeEntryByEmployeeId.get(employeeId);
+      const clockInTime = timeEntry?.clockIn ? moment(timeEntry.clockIn).tz('Europe/London') : null;
+
+      if (!clockInTime || clockInTime.isAfter(cutoff)) {
+        absentees.push({
+          employee,
+          shiftName: assignment.shiftName || '',
+          startTime: assignment.startTime,
+          endTime: assignment.endTime || '',
+          location: assignment.location || '',
+          workType: assignment.workType || '',
+          clockIn: clockInTime ? clockInTime.toISOString() : null
+        });
+      }
+    }
+
+    const pendingExpenseApprovals = await Expense.find({ status: 'pending' })
+      .populate('employee', 'firstName lastName email employeeId department jobTitle')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    const pendingLeaveApprovals = await LeaveRequest.find({ status: 'Pending' })
+      .populate('employeeId', 'firstName lastName email employeeId department jobTitle')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    res.json({
+      success: true,
+      data: {
+        totalEmployees: {
+          count: totalEmployees,
+          employees
+        },
+        activeEmployees: {
+          count: activeEmployees.length,
+          employees: activeEmployees
+        },
+        absentees: {
+          count: absentees.length,
+          employees: absentees
+        },
+        expenseApprovals: {
+          count: await Expense.countDocuments({ status: 'pending' }),
+          expenses: pendingExpenseApprovals
+        },
+        leaveApprovals: {
+          count: await LeaveRequest.countDocuments({ status: 'Pending' }),
+          leaveRequests: pendingLeaveApprovals
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching compliance insights:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch compliance insights',
       error: error.message
     });
   }

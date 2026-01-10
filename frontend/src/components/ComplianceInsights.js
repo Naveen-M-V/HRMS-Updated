@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useCertificates } from '../context/CertificateContext';
 import { Link } from 'react-router-dom';
 import {
   AcademicCapIcon,
@@ -9,22 +8,18 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const ComplianceInsights = () => {
-  const {
-    certificates,
-    loading,
-    getExpiringCertificates,
-    getExpiredCertificates
-  } = useCertificates();
-
   const [insights, setInsights] = useState({
-    activeCertificates: [],
-    expiringCertificates: [],
-    expiredCertificates: [],
-    pendingCertificates: [],
-    totalCertificates: 0
+    totalEmployees: { count: 0, employees: [] },
+    activeEmployees: { count: 0, employees: [] },
+    absentees: { count: 0, employees: [] },
+    expenseApprovals: { count: 0, expenses: [] },
+    leaveApprovals: { count: 0, leaveRequests: [] }
   });
+
+  const [loading, setLoading] = useState(true);
   
   const [selectedSection, setSelectedSection] = useState(null);
 
@@ -35,35 +30,49 @@ const ComplianceInsights = () => {
   };
 
   useEffect(() => {
-    if (certificates.length > 0) {
-      const expiring = getExpiringCertificates(30);
-      const expired = getExpiredCertificates();
-      
-      // Fix: Filter active certificates properly - exclude expired ones
-      const expiredIds = new Set(expired.map(cert => cert.id || cert._id));
-      const active = certificates.filter(cert => 
-        cert.status === 'Approved' && !expiredIds.has(cert.id || cert._id)
-      );
-      
-      const pending = certificates.filter(cert => cert.status === 'Pending');
-      
-      setInsights({
-        activeCertificates: active,
-        expiringCertificates: expiring,
-        expiredCertificates: expired,
-        pendingCertificates: pending,
-        totalCertificates: certificates.length
-      });
-    } else {
-      setInsights({
-        activeCertificates: [],
-        expiringCertificates: [],
-        expiredCertificates: [],
-        pendingCertificates: [],
-        totalCertificates: 0
-      });
-    }
-  }, [certificates, getExpiringCertificates, getExpiredCertificates]);
+    let cancelled = false;
+
+    const fetchInsights = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(buildApiUrl('/clock/compliance-insights'), {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.message || `Failed to fetch compliance insights (${response.status})`);
+        }
+
+        if (!cancelled) {
+          setInsights(data.data);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setInsights({
+            totalEmployees: { count: 0, employees: [] },
+            activeEmployees: { count: 0, employees: [] },
+            absentees: { count: 0, employees: [] },
+            expenseApprovals: { count: 0, expenses: [] },
+            leaveApprovals: { count: 0, leaveRequests: [] }
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchInsights();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -110,8 +119,8 @@ const ComplianceInsights = () => {
     );
   }
 
-  const renderCertificatesTable = (certs, title) => {
-    if (!certs || certs.length === 0) {
+  const renderEmployeesTable = (employees, title) => {
+    if (!employees || employees.length === 0) {
       return (
         <div className="text-center text-gray-500 py-8">
           No {title.toLowerCase()} found
@@ -126,47 +135,200 @@ const ComplianceInsights = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {employees.map((emp) => (
+                <tr key={emp._id || emp.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <AcademicCapIcon className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                      <div className="font-medium text-gray-900">{`${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{emp.email || 'N/A'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{emp.department || 'N/A'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{emp.jobTitle || 'N/A'}</td>
+                  <td className="px-6 py-4">
+                    <Link
+                      to={`/employee/${emp._id || emp.id}`}
+                      className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                      title="View Employee"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAbsenteesTable = (rows, title) => {
+    if (!rows || rows.length === 0) {
+      return (
+        <div className="text-center text-gray-500 py-8">
+          No {title.toLowerCase()} found
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">{title}</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Start</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">End</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {rows.map((row, idx) => (
+                <tr key={row.employee?._id || idx} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {`${row.employee?.firstName || ''} ${row.employee?.lastName || ''}`.trim() || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{row.shiftName || 'N/A'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{row.startTime || 'N/A'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{row.endTime || 'N/A'}</td>
+                  <td className="px-6 py-4">
+                    <Link
+                      to={`/employee/${row.employee?._id}`}
+                      className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                      title="View Employee"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderExpensesTable = (expenses, title) => {
+    if (!expenses || expenses.length === 0) {
+      return (
+        <div className="text-center text-gray-500 py-8">
+          No {title.toLowerCase()} found
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">{title}</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
-                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {certs.map((cert) => (
-                <tr key={cert.id || cert._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <AcademicCapIcon className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                      <div className="font-medium text-gray-900">{cert.certificate}</div>
-                    </div>
+              {expenses.map((exp) => (
+                <tr key={exp._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {`${exp.employee?.firstName || ''} ${exp.employee?.lastName || ''}`.trim() || 'N/A'}
                   </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{formatDate(exp.date)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{exp.category || 'N/A'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{typeof exp.totalAmount === 'number' ? exp.totalAmount.toFixed(2) : 'N/A'}</td>
                   <td className="px-6 py-4">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{cert.profileName || 'N/A'}</div>
-                      <div className="text-xs text-gray-500">{cert.profileId?.vtid || 'N/A'}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{cert.category || 'N/A'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{cert.provider || 'N/A'}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{formatDate(cert.expiryDate)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(cert.status)}`}>
-                      {getStatusIcon(cert.status)}
-                      {cert.status}
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(exp.status)}`}>
+                      {getStatusIcon(exp.status)}
+                      {exp.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <Link
-                      to={`/viewcertificate/${cert.id || cert._id}`}
+                      to={`/expenses/${exp._id}`}
                       className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
-                      title="View Certificate"
+                      title="View Expense"
                     >
                       <EyeIcon className="h-4 w-4" />
-                      View Certificate
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLeaveApprovalsTable = (requests, title) => {
+    if (!requests || requests.length === 0) {
+      return (
+        <div className="text-center text-gray-500 py-8">
+          No {title.toLowerCase()} found
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">{title}</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Type</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Start</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">End</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {requests.map((req) => (
+                <tr key={req._id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {`${req.employeeId?.firstName || ''} ${req.employeeId?.lastName || ''}`.trim() || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{req.leaveType || 'N/A'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{formatDate(req.startDate)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{formatDate(req.endDate)}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(req.status)}`}>
+                      {getStatusIcon(req.status)}
+                      {req.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <Link
+                      to="/manager-approvals"
+                      className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                      title="Open Approvals"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                      View
                     </Link>
                   </td>
                 </tr>
@@ -190,8 +352,8 @@ const ComplianceInsights = () => {
             selectedSection === 'total' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-300'
           }`}
         >
-          <div className="text-3xl font-bold text-emerald-600">{insights.totalCertificates}</div>
-          <div className="text-sm text-gray-600 mt-1">Total Certificates</div>
+          <div className="text-3xl font-bold text-emerald-600">{insights.totalEmployees?.count ?? 0}</div>
+          <div className="text-sm text-gray-600 mt-1">Total Employees</div>
         </button>
 
         {/* Active Certificates */}
@@ -201,8 +363,8 @@ const ComplianceInsights = () => {
             selectedSection === 'active' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
           }`}
         >
-          <div className="text-3xl font-bold text-green-600">{insights.activeCertificates.length}</div>
-          <div className="text-sm text-gray-600 mt-1">Active Certificates</div>
+          <div className="text-3xl font-bold text-green-600">{insights.activeEmployees?.count ?? 0}</div>
+          <div className="text-sm text-gray-600 mt-1">Active Employees</div>
         </button>
 
         {/* Expiring Soon */}
@@ -212,8 +374,8 @@ const ComplianceInsights = () => {
             selectedSection === 'expiring' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-yellow-300'
           }`}
         >
-          <div className="text-3xl font-bold text-yellow-600">{insights.expiringCertificates.length}</div>
-          <div className="text-sm text-gray-600 mt-1">Expiring Soon</div>
+          <div className="text-3xl font-bold text-yellow-600">{insights.absentees?.count ?? 0}</div>
+          <div className="text-sm text-gray-600 mt-1">Absentees</div>
         </button>
 
         {/* Expired */}
@@ -223,8 +385,8 @@ const ComplianceInsights = () => {
             selectedSection === 'expired' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-red-300'
           }`}
         >
-          <div className="text-3xl font-bold text-red-600">{insights.expiredCertificates.length}</div>
-          <div className="text-sm text-gray-600 mt-1">Expired</div>
+          <div className="text-3xl font-bold text-red-600">{insights.expenseApprovals?.count ?? 0}</div>
+          <div className="text-sm text-gray-600 mt-1">Expense Approvals</div>
         </button>
 
         {/* Pending */}
@@ -234,17 +396,17 @@ const ComplianceInsights = () => {
             selectedSection === 'pending' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
           }`}
         >
-          <div className="text-3xl font-bold text-blue-600">{insights.pendingCertificates.length}</div>
-          <div className="text-sm text-gray-600 mt-1">Pending Approval</div>
+          <div className="text-3xl font-bold text-blue-600">{insights.leaveApprovals?.count ?? 0}</div>
+          <div className="text-sm text-gray-600 mt-1">Leave Approvals</div>
         </button>
       </div>
 
       {/* Filtered Tables */}
-      {selectedSection === 'total' && renderCertificatesTable(certificates, 'All Certificates')}
-      {selectedSection === 'active' && renderCertificatesTable(insights.activeCertificates, 'Active Certificates')}
-      {selectedSection === 'expiring' && renderCertificatesTable(insights.expiringCertificates, 'Expiring Soon')}
-      {selectedSection === 'expired' && renderCertificatesTable(insights.expiredCertificates, 'Expired Certificates')}
-      {selectedSection === 'pending' && renderCertificatesTable(insights.pendingCertificates, 'Pending Certificates')}
+      {selectedSection === 'total' && renderEmployeesTable(insights.totalEmployees?.employees, 'All Employees')}
+      {selectedSection === 'active' && renderEmployeesTable(insights.activeEmployees?.employees, 'Active Employees')}
+      {selectedSection === 'expiring' && renderAbsenteesTable(insights.absentees?.employees, 'Absentees')}
+      {selectedSection === 'expired' && renderExpensesTable(insights.expenseApprovals?.expenses, 'Expenses Pending Approval')}
+      {selectedSection === 'pending' && renderLeaveApprovalsTable(insights.leaveApprovals?.leaveRequests, 'Leave Requests Pending Approval')}
     </div>
   );
 };

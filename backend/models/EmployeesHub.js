@@ -250,6 +250,15 @@ const employeeHubSchema = new mongoose.Schema({
     trim: true
   },
 
+  leaveEntitlement: {
+    type: Number,
+    default: null
+  },
+  leaveAllowance: {
+    type: Number,
+    default: null
+  },
+
   // Salary Details
   salary: {
     type: String,

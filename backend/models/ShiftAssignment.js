@@ -13,6 +13,19 @@ const shiftAssignmentSchema = new mongoose.Schema({
     required: [true, 'Employee ID is required'],
     index: true
   },
+  groupId: {
+    type: String,
+    default: null,
+    index: true
+  },
+  startDate: {
+    type: Date,
+    default: null
+  },
+  endDate: {
+    type: Date,
+    default: null
+  },
   rotaId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Rota',
@@ -124,6 +137,7 @@ shiftAssignmentSchema.index({ date: 1 });
 shiftAssignmentSchema.index({ location: 1 });
 shiftAssignmentSchema.index({ workType: 1 });
 shiftAssignmentSchema.index({ status: 1 });
+shiftAssignmentSchema.index({ groupId: 1, date: 1 });
 // NEW: Compound indexes for common queries
 shiftAssignmentSchema.index({ date: 1, location: 1 }); // Date + location filtering
 shiftAssignmentSchema.index({ status: 1, date: 1 }); // Status + date queries

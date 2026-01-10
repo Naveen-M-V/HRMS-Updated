@@ -10,11 +10,13 @@ import {
   assignShiftToTeam,
   bulkCreateShifts,
   getAllShiftAssignments,
+  getGroupedShiftAssignments,
   getEmployeeShifts,
   getShiftsByLocation,
   getShiftStatistics,
   updateShiftAssignment,
   deleteShiftAssignment,
+  deleteShiftAssignmentGroup,
   requestShiftSwap,
   approveShiftSwap,
   getAllRotasUnfiltered,
@@ -45,6 +47,8 @@ const RotaShiftManagement = () => {
   const [viewMode, setViewMode] = useState('list');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [shiftToDelete, setShiftToDelete] = useState(null);
+  const [showShiftDetails, setShowShiftDetails] = useState(false);
+  const [selectedShift, setSelectedShift] = useState(null);
   const [rotaTab, setRotaTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -144,9 +148,6 @@ const RotaShiftManagement = () => {
   const getFilteredShifts = () => {
     let filtered = [...shifts];
     
-    // 🔥 CRITICAL: Filter out deleted rotas FIRST
-    filtered = filtered.filter(shift => !shift.deleted && shift.deleted !== true);
-    
     // Filter by date range (UK timezone)
     if (dateRangeFilter !== 'all') {
       const now = new Date();
@@ -161,13 +162,11 @@ const RotaShiftManagement = () => {
       filtered = filtered.filter(shift => {
         const shiftStartDate = shift.startDate ? new Date(shift.startDate) : null;
         const shiftEndDate = shift.endDate ? new Date(shift.endDate) : null;
-        const shiftDate = shift.date ? new Date(shift.date) : null;
         
-        // Check if startDate OR endDate OR date falls within the selected period
+        // Check if startDate OR endDate falls within the selected period
         return (
           (shiftStartDate && shiftStartDate >= startDate && shiftStartDate <= now) ||
-          (shiftEndDate && shiftEndDate >= startDate && shiftEndDate <= now) ||
-          (shiftDate && shiftDate >= startDate && shiftDate <= now)
+          (shiftEndDate && shiftEndDate >= startDate && shiftEndDate <= now)
         );
       });
     }
@@ -177,13 +176,11 @@ const RotaShiftManagement = () => {
       const selectedTeam = teams.find(t => (t._id || t.id) === teamFilter);
       if (selectedTeam && selectedTeam.members) {
         filtered = filtered.filter(shift => {
-          const shiftEmployeeId = typeof shift.employeeId === 'object' 
-            ? (shift.employeeId._id || shift.employeeId.id)
-            : shift.employeeId;
-          
+          const assigned = Array.isArray(shift.assignedEmployees) ? shift.assignedEmployees : [];
+          const assignedIds = new Set(assigned.map(a => (a.employeeId || '').toString()));
           return selectedTeam.members.some(memberId => {
             const memberIdStr = typeof memberId === 'object' ? (memberId._id || memberId.id) : memberId;
-            return memberIdStr?.toString() === shiftEmployeeId?.toString();
+            return memberIdStr && assignedIds.has(memberIdStr.toString());
           });
         });
       }
@@ -192,10 +189,8 @@ const RotaShiftManagement = () => {
     // Filter by employee
     if (employeeFilter !== 'all') {
       filtered = filtered.filter(shift => {
-        const shiftEmployeeId = typeof shift.employeeId === 'object' 
-          ? (shift.employeeId._id || shift.employeeId.id)
-          : shift.employeeId;
-        return shiftEmployeeId?.toString() === employeeFilter;
+        const assigned = Array.isArray(shift.assignedEmployees) ? shift.assignedEmployees : [];
+        return assigned.some(a => (a.employeeId || '').toString() === employeeFilter);
       });
     }
 
@@ -209,6 +204,106 @@ const RotaShiftManagement = () => {
     }
     
     return filtered;
+  };
+
+  const formatDateRangeDisplay = (startDate, endDate) => {
+    if (!startDate && !endDate) return '-';
+    const startStr = startDate ? formatDateDDMMYY(startDate) : '';
+    const endStr = endDate ? formatDateDDMMYY(endDate) : '';
+    if (startStr && endStr && startStr !== endStr) return `${startStr} → ${endStr}`;
+    return startStr || endStr;
+  };
+
+  const getEmployeeDisplay = (employee) => {
+    const id = (employee?.employeeId || '').toString();
+    const fromDirectory = id ? employees.find(e => (e.id || e._id)?.toString() === id) : null;
+    const employeeName = employee?.employeeName || (fromDirectory ? `${fromDirectory.firstName} ${fromDirectory.lastName}` : '') || 'Employee';
+    const email = employee?.email || fromDirectory?.email || '';
+    return { employeeName, email, employeeId: id };
+  };
+
+  const MiniCalendar = ({ startDate, endDate }) => {
+    const start = startDate ? dayjs(startDate) : null;
+    const end = endDate ? dayjs(endDate) : null;
+
+    const months = [];
+    if (start && end) {
+      const startMonth = start.startOf('month');
+      const endMonth = end.startOf('month');
+      months.push(startMonth);
+      if (!startMonth.isSame(endMonth, 'month')) months.push(endMonth);
+    } else if (start) {
+      months.push(start.startOf('month'));
+    } else {
+      months.push(dayjs().startOf('month'));
+    }
+
+    const isInRange = (d) => {
+      if (!start || !end) return false;
+      return (d.isAfter(start, 'day') || d.isSame(start, 'day')) && (d.isBefore(end, 'day') || d.isSame(end, 'day'));
+    };
+
+    const buildDays = (month) => {
+      const gridStart = month.startOf('month').startOf('week');
+      const gridEnd = month.endOf('month').endOf('week');
+      const days = [];
+      let cur = gridStart;
+      while (cur.isBefore(gridEnd) || cur.isSame(gridEnd, 'day')) {
+        days.push(cur);
+        cur = cur.add(1, 'day');
+      }
+      return days;
+    };
+
+    const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: months.length === 2 ? '1fr 1fr' : '1fr', gap: '12px' }}>
+        {months.map((month, mi) => {
+          const days = buildDays(month);
+          return (
+            <div key={mi} style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#111827', marginBottom: '10px', textAlign: 'center' }}>
+                {month.format('MMMM YYYY')}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', marginBottom: '6px' }}>
+                {weekDays.map(wd => (
+                  <div key={wd} style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textAlign: 'center' }}>{wd}</div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px' }}>
+                {days.map((d, i) => {
+                  const inMonth = d.isSame(month, 'month');
+                  const active = isInRange(d);
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        height: '26px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: active ? '700' : '500',
+                        color: !inMonth ? '#9ca3af' : active ? '#1d4ed8' : '#374151',
+                        background: active ? '#eff6ff' : 'transparent',
+                        position: 'relative'
+                      }}
+                    >
+                      {d.format('D')}
+                      {active && (
+                        <div style={{ position: 'absolute', bottom: '4px', width: '4px', height: '4px', borderRadius: '999px', background: '#3b82f6' }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -236,17 +331,8 @@ const RotaShiftManagement = () => {
 
       console.log('🔍 Fetching with filters:', filters);
 
-      let fetchFunction;
-      if (rotaTab === 'all') {
-        fetchFunction = getAllRotasUnfiltered;
-      } else if (rotaTab === 'old') {
-        fetchFunction = getOldRotas;
-      } else {
-        fetchFunction = getActiveRotas;
-      }
-      
       const [shiftsRes, statsRes] = await Promise.all([
-        fetchFunction(filters),
+        getGroupedShiftAssignments({ ...filters, tab: rotaTab }),
         getShiftStatistics(filters.startDate, filters.endDate)
       ]);
 
@@ -262,19 +348,7 @@ const RotaShiftManagement = () => {
       }
 
       if (shiftsRes.success) {
-        console.log('📊 First 3 shifts details:', shiftsRes.data?.slice(0, 3).map(s => ({
-          shiftId: s._id,
-          date: s.date,
-          startTime: s.startTime,
-          endTime: s.endTime,
-          location: s.location,
-          workType: s.workType,
-          employeeId: s.employeeId,
-          employeeIdType: typeof s.employeeId,
-          hasFirstName: !!s.employeeId?.firstName,
-          employeeName: s.employeeId?.firstName ? `${s.employeeId.firstName} ${s.employeeId.lastName}` : 'N/A'
-        })));
-        console.log('✅ Setting', shiftsRes.data?.length || 0, 'shifts to state');
+        console.log('✅ Setting', shiftsRes.data?.length || 0, 'grouped shifts to state');
         setShifts(shiftsRes.data || []);
         setCurrentPage(1);
       } else {
@@ -332,6 +406,9 @@ const RotaShiftManagement = () => {
       // Create individual shift assignments for each date in the range
       const start = dayjs(formData.dateRange[0]);
       const end = dayjs(formData.dateRange[1]);
+      const startDateStr = start.format('YYYY-MM-DD');
+      const endDateStr = end.format('YYYY-MM-DD');
+      const groupId = (typeof crypto !== 'undefined' && crypto?.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const dates = [];
 
       // Generate all dates in the range
@@ -351,6 +428,9 @@ const RotaShiftManagement = () => {
             employeeId,
             shiftName: formData.shiftName,
             date: date,
+            groupId,
+            startDate: startDateStr,
+            endDate: endDateStr,
             startTime: formData.startTime,
             endTime: formData.endTime,
             location: formData.location,
@@ -384,9 +464,26 @@ const RotaShiftManagement = () => {
   const handleDeleteShift = async () => {
     setLoading(true);
     try {
-      const response = await deleteShiftAssignment(shiftToDelete);
+      const shift = shiftToDelete;
+      if (!shift) {
+        toast.error('No shift selected');
+        return;
+      }
+
+      let response;
+      if (shift.groupId) {
+        response = await deleteShiftAssignmentGroup(shift.groupId);
+      } else if (Array.isArray(shift.assignmentIds) && shift.assignmentIds.length > 0) {
+        const results = await Promise.all(shift.assignmentIds.map(id => deleteShiftAssignment(id)));
+        response = { success: results.some(r => r?.success) };
+      } else {
+        response = await deleteShiftAssignment(shift._id);
+      }
+
       if (response.success) {
         toast.success('Shift deleted successfully');
+        setShowDeleteDialog(false);
+        setShiftToDelete(null);
         fetchData();
       }
     } catch (error) {
@@ -424,6 +521,9 @@ const RotaShiftManagement = () => {
       // Create individual shift assignments for each date in the range and each team
       const start = dayjs(formData.dateRange[0]);
       const end = dayjs(formData.dateRange[1]);
+      const startDateStr = start.format('YYYY-MM-DD');
+      const endDateStr = end.format('YYYY-MM-DD');
+      const groupId = (typeof crypto !== 'undefined' && crypto?.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const dates = [];
 
       // Generate all dates in the range
@@ -446,6 +546,9 @@ const RotaShiftManagement = () => {
                 employeeId: member._id || member.id,
                 shiftName: formData.shiftName,
                 date: date,
+                groupId,
+                startDate: startDateStr,
+                endDate: endDateStr,
                 startTime: formData.startTime,
                 endTime: formData.endTime,
                 location: formData.location,
@@ -605,43 +708,16 @@ const RotaShiftManagement = () => {
     }
 
     // Transform visible shifts to CSV format - matching table columns exactly
-    const csvData = visibleShifts.map((shift, index) => {
-      // Get employee name the same way the table does
-      let employeeName = 'Unassigned';
-      if (shift.employeeId) {
-        if (typeof shift.employeeId === 'object' && shift.employeeId !== null && shift.employeeId.firstName) {
-          employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
-        } else {
-          let employeeIdStr;
-          if (typeof shift.employeeId === 'object' && shift.employeeId !== null) {
-            employeeIdStr = shift.employeeId._id?.toString() || shift.employeeId.id?.toString() || shift.employeeId.toString();
-          } else {
-            employeeIdStr = shift.employeeId?.toString();
-          }
-          if (employeeIdStr) {
-            const employee = employees.find(emp =>
-              emp.id?.toString() === employeeIdStr || emp._id?.toString() === employeeIdStr
-            );
-            if (employee) {
-              employeeName = `${employee.firstName} ${employee.lastName}`;
-            }
-          }
-        }
-      }
-
+    const csvData = visibleShifts.map((shift) => {
       return [
         shift.shiftName || '',
-        shift.date ? formatDateDDMMYY(shift.date) : '',
-        shift.startTime || '',
-        shift.endTime || '',
+        formatDateRangeDisplay(shift.startDate, shift.endDate),
         shift.location || '',
-        shift.workType || '',
-        shift.status || 'Assigned',
-        shift.breakDuration?.toString() || '0'
+        shift.workType || ''
       ];
     });
 
-    const headers = ['Shift Name', 'Date', 'Start Time', 'End Time', 'Location', 'Work Type', 'Status', 'Break (min)'];
+    const headers = ['Shift Name', 'Date Range', 'Location', 'Work Type'];
     const rows = [headers, ...csvData];
 
     // Generate CSV content
@@ -680,6 +756,151 @@ const RotaShiftManagement = () => {
             Assign, manage, and track employee shift schedules
           </p>
         </div>
+
+      {showShiftDetails && selectedShift && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '900px',
+            width: '95%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            position: 'relative',
+            zIndex: 51
+          }}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowShiftDetails(false);
+                setSelectedShift(null);
+              }}
+              style={{
+                position: 'absolute',
+                top: '14px',
+                right: '14px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                border: '1px solid #e5e7eb',
+                background: '#ffffff',
+                color: '#374151',
+                fontSize: '18px',
+                fontWeight: '700',
+                cursor: 'pointer'
+              }}
+            >
+              ×
+            </button>
+
+            <div style={{ marginBottom: '18px' }}>
+              <div style={{ fontSize: '22px', fontWeight: '800', color: '#111827', marginBottom: '4px' }}>
+                {selectedShift.shiftName || 'Shift Details'}
+              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>
+                {(selectedShift.location || '-') + ' • ' + (selectedShift.workType || '-')}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: '#111827', marginBottom: '12px' }}>Shift Meta Information</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: '10px', columnGap: '12px', fontSize: '13px' }}>
+                  <div style={{ color: '#6b7280', fontWeight: '700' }}>Shift Name</div>
+                  <div style={{ color: '#111827', fontWeight: '700' }}>{selectedShift.shiftName || '-'}</div>
+
+                  <div style={{ color: '#6b7280', fontWeight: '700' }}>Date Range</div>
+                  <div style={{ color: '#111827', fontWeight: '700' }}>{formatDateRangeDisplay(selectedShift.startDate, selectedShift.endDate)}</div>
+
+                  <div style={{ color: '#6b7280', fontWeight: '700' }}>Start – End</div>
+                  <div style={{ color: '#111827', fontWeight: '700' }}>{formatUKTime(selectedShift.startTime)} – {formatUKTime(selectedShift.endTime)}</div>
+
+                  <div style={{ color: '#6b7280', fontWeight: '700' }}>Location</div>
+                  <div style={{ color: '#111827', fontWeight: '700' }}>{selectedShift.location || '-'}</div>
+
+                  <div style={{ color: '#6b7280', fontWeight: '700' }}>Work Type</div>
+                  <div style={{ color: '#111827', fontWeight: '700' }}>{selectedShift.workType || '-'}</div>
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: '#111827', marginBottom: '12px' }}>Mini Calendar</div>
+                <MiniCalendar startDate={selectedShift.startDate} endDate={selectedShift.endDate} />
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: '#111827' }}>Assigned Employees</div>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280' }}>
+                  {(Array.isArray(selectedShift.assignedEmployees) ? selectedShift.assignedEmployees.length : 0)} employees
+                </div>
+              </div>
+
+              <div style={{ maxHeight: '280px', overflowY: 'auto', paddingRight: '6px' }}>
+                {(Array.isArray(selectedShift.assignedEmployees) ? selectedShift.assignedEmployees : []).length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>No employees assigned</div>
+                ) : (
+                  (selectedShift.assignedEmployees || []).map((emp, idx) => {
+                    const { employeeName, email, employeeId } = getEmployeeDisplay(emp);
+                    const initials = employeeName.split(' ').filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase()).join('') || 'E';
+                    return (
+                      <div key={`${employeeId}-${idx}`} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: '1px solid #f3f4f6',
+                        marginBottom: '10px',
+                        background: '#ffffff'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <div style={{
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '999px',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            fontWeight: '800'
+                          }}>
+                            {initials}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '800', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {employeeName}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {email || employeeId}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: '12px', fontWeight: '800', color: '#374151' }}>
+                          {formatUKTime(emp.startTime || selectedShift.startTime)} – {formatUKTime(emp.endTime || selectedShift.endTime)}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
         {statistics && (
           <div style={{
@@ -977,19 +1198,16 @@ const RotaShiftManagement = () => {
                 <tr>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151', width: '60px' }}>SI No.</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Shift Name</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Date</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Scheduled Time</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actual Time</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Date Range</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Location</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Work Type</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Status</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {getFilteredShifts().length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                    <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                       {teamFilter !== 'all' || employeeFilter !== 'all' 
                         ? 'No shifts found for the selected filters.'
                         : (rotaTab === 'all' ? 'No rotas found.' : (rotaTab === 'active' ? 'No active rotas today.' : 'No old rotas found.'))}
@@ -997,113 +1215,30 @@ const RotaShiftManagement = () => {
                   </tr>
                 ) : (
                   getFilteredShifts().slice((currentPage - 1) * pageSize, currentPage * pageSize).map((shift, index) => {
-                    // Priority 1: Use populated employeeId from backend (includes firstName, lastName, role)
-                    // Priority 2: Try to match with employees list
-                    // Priority 3: Show 'Unassigned'
-                    let employeeName = 'Unassigned';
-
-                    // Debug logging - show details for ALL shifts showing "Unassigned"
-                    const shouldLog = index === 0 || !shift.employeeId || (typeof shift.employeeId === 'object' && !shift.employeeId?.firstName);
-
-                    if (shouldLog) {
-                      console.log(`🔍 Rendering shift #${index + 1}:`, {
-                        shiftId: shift._id,
-                        date: shift.date,
-                        employeeId: shift.employeeId,
-                        employeeIdType: typeof shift.employeeId,
-                        isObject: typeof shift.employeeId === 'object',
-                        isNull: shift.employeeId === null,
-                        hasFirstName: shift.employeeId?.firstName,
-                        firstName: shift.employeeId?.firstName,
-                        lastName: shift.employeeId?.lastName,
-                        employeeIdKeys: shift.employeeId && typeof shift.employeeId === 'object' ? Object.keys(shift.employeeId) : null,
-                        employeesListCount: employees.length,
-                        rawEmployeeId: JSON.stringify(shift.employeeId)
-                      });
-                    }
-
-                    if (shift.employeeId) {
-                      if (typeof shift.employeeId === 'object' && shift.employeeId !== null && shift.employeeId.firstName) {
-                        // Backend populated the employeeId with user data
-                        employeeName = `${shift.employeeId.firstName} ${shift.employeeId.lastName}`;
-                        if (shouldLog) console.log('✅ Using populated data:', employeeName);
-                      } else {
-                        // employeeId is just an ID string or ObjectId, OR object without firstName
-                        // Try to find in employees list
-                        let employeeIdStr;
-                        if (typeof shift.employeeId === 'object' && shift.employeeId !== null) {
-                          // It's an object - try to get the ID
-                          if (shift.employeeId._id) {
-                            employeeIdStr = typeof shift.employeeId._id === 'object' ?
-                              shift.employeeId._id.toString() : shift.employeeId._id.toString();
-                          } else if (shift.employeeId.id) {
-                            employeeIdStr = typeof shift.employeeId.id === 'object' ?
-                              shift.employeeId.id.toString() : shift.employeeId.id.toString();
-                          } else {
-                            // Try to convert the whole object to string (it might be an ObjectId)
-                            try {
-                              employeeIdStr = shift.employeeId.toString();
-                            } catch (e) {
-                              console.error('Cannot convert employeeId to string:', shift.employeeId);
-                              employeeIdStr = null;
-                            }
-                          }
-                        } else {
-                          // It's already a string
-                          employeeIdStr = shift.employeeId?.toString();
-                        }
-
-                        if (employeeIdStr) {
-                          if (shouldLog) console.log('🔍 Looking for employee ID:', employeeIdStr, 'in list of', employees.length);
-                          const employee = employees.find(emp =>
-                            emp.id?.toString() === employeeIdStr ||
-                            emp._id?.toString() === employeeIdStr
-                          );
-                          if (employee) {
-                            employeeName = `${employee.firstName} ${employee.lastName}`;
-                            if (shouldLog) console.log('✅ Found in employees list:', employeeName);
-                          } else {
-                            if (shouldLog) {
-                              console.log('❌ Not found in employees list');
-                              console.log('Searched for ID:', employeeIdStr);
-                              console.log('Available employee IDs (first 10):', employees.slice(0, 10).map(e => ({ id: e.id, name: e.name })));
-                            }
-                          }
-                        } else {
-                          if (shouldLog) console.log('⚠️ Could not extract employee ID from:', shift.employeeId);
-                        }
-                      }
-                    } else {
-                      if (shouldLog) console.log('⚠️ Shift has no employeeId at all');
-                    }
-
                     return (
-                      <tr key={shift._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <tr
+                        key={shift._id}
+                        style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
+                        onClick={() => {
+                          setSelectedShift(shift);
+                          setShowShiftDetails(true);
+                        }}
+                      >
                         <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}>
                           {(currentPage - 1) * pageSize + index + 1}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#111827' }}>
-                          {shift.shiftName || '-'}
+                        <td
+                          style={{ padding: '12px 16px', fontSize: '14px', color: '#111827', fontWeight: '600' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedShift(shift);
+                            setShowShiftDetails(true);
+                          }}
+                        >
+                          <span style={{ color: '#1d4ed8' }}>{shift.shiftName || '-'}</span>
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                          {formatUKDate(shift.date)}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#6b7280' }}>
-                          {formatUKTime(shift.startTime)} - {formatUKTime(shift.endTime)}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                          {shift.actualStartTime || shift.actualEndTime ? (
-                            <div>
-                              <div>{shift.actualStartTime || '--:--'} - {shift.actualEndTime || '--:--'}</div>
-                              {shift.status === 'In Progress' && (
-                                <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px' }}>
-                                  ⏳ In progress
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span style={{ color: '#d1d5db' }}>Not started</span>
-                          )}
+                          {formatDateRangeDisplay(shift.startDate, shift.endDate)}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{
@@ -1121,24 +1256,46 @@ const RotaShiftManagement = () => {
                           {shift.workType}
                         </td>
                         <td style={{ padding: '12px 16px' }}>
-                          {getStatusBadge(shift.status)}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <button
-                            onClick={() => { setShiftToDelete(shift._id); setShowDeleteDialog(true); }}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: '6px',
-                              border: '1px solid #fca5a5',
-                              background: '#ffffff',
-                              color: '#dc2626',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Delete
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedShift(shift);
+                                setShowShiftDetails(true);
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                border: '1px solid #d1d5db',
+                                background: '#ffffff',
+                                color: '#374151',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShiftToDelete(shift);
+                                setShowDeleteDialog(true);
+                              }}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                border: '1px solid #fca5a5',
+                                background: '#ffffff',
+                                color: '#dc2626',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

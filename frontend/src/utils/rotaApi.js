@@ -16,6 +16,30 @@ export const generateRota = async (startDate, endDate) => {
   }
 };
 
+export const getGroupedShiftAssignments = async (filters = {}) => {
+  try {
+    let url = buildApiUrl(`${ROTA_BASE}/shift-assignments/grouped`);
+
+    const params = new URLSearchParams();
+    if (filters.tab) params.append('tab', filters.tab);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.employeeId) params.append('employeeId', filters.employeeId);
+    if (filters.location && filters.location !== 'all') params.append('location', filters.location);
+    if (filters.workType && filters.workType !== 'all') params.append('workType', filters.workType);
+    if (filters.status) params.append('status', filters.status);
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await axios.get(url, { withCredentials: true });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to fetch grouped shift assignments' };
+  }
+};
+
 export const getAllRota = async (startDate = null, endDate = null) => {
   try {
     let url = buildApiUrl(ROTA_BASE);
@@ -245,6 +269,18 @@ export const deleteShiftAssignment = async (shiftId) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to delete shift' };
+  }
+};
+
+export const deleteShiftAssignmentGroup = async (groupId) => {
+  try {
+    const response = await axios.delete(
+      buildApiUrl(`${ROTA_BASE}/shift-assignments/group/${groupId}`),
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to delete shift group' };
   }
 };
 

@@ -34,7 +34,7 @@ export default function AddEmployee() {
 
   // Step management
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   // Employees list for manager dropdown
   const [employees, setEmployees] = useState([]);
@@ -73,11 +73,12 @@ export default function AddEmployee() {
     townCity: "",
     county: "",
     postcode: "",
-    // Emergency contact
     emergencyContactName: "",
     emergencyContactRelation: "",
     emergencyContactPhone: "",
     emergencyContactEmail: "",
+    leaveEntitlement: "",
+    leaveAllowance: "",
     // Salary details
     salary: "0",
     rate: "",
@@ -125,8 +126,9 @@ export default function AddEmployee() {
     { id: 1, name: "Basic Details", description: "Personal information" },
     { id: 2, name: "Address Details", description: "Home address" },
     { id: 3, name: "Emergency Contact", description: "Emergency contact info" },
-    { id: 4, name: "Account & Pay Details", description: "Salary and bank info" },
-    { id: 5, name: "Sensitive Details", description: "Tax and document info" }
+    { id: 4, name: "Leave Entitlement", description: "Optional leave settings" },
+    { id: 5, name: "Account & Pay Details", description: "Salary and bank info" },
+    { id: 6, name: "Sensitive Details", description: "Tax and document info" }
   ];
 
   const fieldId = (field) => `add-employee-field-${field}`;
@@ -258,6 +260,8 @@ export default function AddEmployee() {
           emergencyContactRelation: employee.emergencyContactRelation || "",
           emergencyContactPhone: employee.emergencyContactPhone || "",
           emergencyContactEmail: employee.emergencyContactEmail || "",
+          leaveEntitlement: employee.leaveEntitlement !== undefined && employee.leaveEntitlement !== null ? employee.leaveEntitlement.toString() : "",
+          leaveAllowance: employee.leaveAllowance !== undefined && employee.leaveAllowance !== null ? employee.leaveAllowance.toString() : "",
           salary: employee.salary || "0",
           rate: employee.rate || "",
           paymentFrequency: employee.paymentFrequency || "",
@@ -408,7 +412,7 @@ export default function AddEmployee() {
         }
       }
     }
-    // Steps 2, 3, 4, 5 have no required fields, so they can be skipped
+    // Steps 2, 3, 4, 5, 6 have no required fields, so they can be skipped
 
     const characterErrors = collectCharacterErrors(formData);
     Object.entries(characterErrors).forEach(([field, message]) => {
@@ -509,6 +513,8 @@ export default function AddEmployee() {
         emergencyContactRelation: formData.emergencyContactRelation,
         emergencyContactPhone: formData.emergencyContactPhone,
         emergencyContactEmail: formData.emergencyContactEmail,
+        leaveEntitlement: formData.leaveEntitlement !== '' ? Number(formData.leaveEntitlement) : null,
+        leaveAllowance: formData.leaveAllowance !== '' ? Number(formData.leaveAllowance) : null,
         salary: formData.salary,
         rate: formData.rate,
         paymentFrequency: formData.paymentFrequency,
@@ -794,8 +800,10 @@ export default function AddEmployee() {
         case 3:
           return renderEmergencyContact();
         case 4:
-          return renderAccountPayDetails();
+          return renderLeaveEntitlement();
         case 5:
+          return renderAccountPayDetails();
+        case 6:
           return renderSensitiveDetails();
         default:
           return renderBasicDetails();
@@ -1372,6 +1380,62 @@ export default function AddEmployee() {
       );
     };
 
+    const renderLeaveEntitlement = () => {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">
+              Leave Entitlement
+            </h3>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">i</span>
+                </div>
+                <p className="text-sm text-gray-700">
+                  This step is optional. You can skip it and update leave values later.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Leave entitlement
+                </label>
+                <input
+                  id={fieldId('leaveEntitlement')}
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 28"
+                  value={formData.leaveEntitlement}
+                  onChange={(e) => handleInputChange('leaveEntitlement', e.target.value)}
+                  className={getInputClass('leaveEntitlement')}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Leave allowance
+                </label>
+                <input
+                  id={fieldId('leaveAllowance')}
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 10"
+                  value={formData.leaveAllowance}
+                  onChange={(e) => handleInputChange('leaveAllowance', e.target.value)}
+                  className={getInputClass('leaveAllowance')}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     const renderAccountPayDetails = () => {
       return (
         <div className="space-y-6">
@@ -1742,8 +1806,8 @@ export default function AddEmployee() {
           </h1>
           <p className="text-gray-600">
             {isEditMode
-              ? 'Update employee information using the 5-step form below'
-              : 'Follow the simple 5 steps to complete your employee creation'
+              ? `Update employee information using the ${totalSteps}-step form below`
+              : `Follow the simple ${totalSteps} steps to complete your employee creation`
             }
           </p>
         </div>
