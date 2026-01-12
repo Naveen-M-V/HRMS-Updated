@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
+import { APP_VERSION } from "../version";
 import {
   ClipboardDocumentIcon,
   ClipboardDocumentCheckIcon,
@@ -649,7 +650,7 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
               {/* Version Display */}
               <div className="px-3 py-2 text-center mt-2">
                 <div className="text-xs text-sidebar-foreground/50 font-medium">
-                  TalentShield V 1.14
+                  TalentShield V {APP_VERSION}
                 </div>
               </div>
             </div>

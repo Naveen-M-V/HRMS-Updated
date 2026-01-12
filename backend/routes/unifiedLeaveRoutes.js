@@ -305,6 +305,47 @@ router.get('/user/current', async (req, res) => {
   }
 });
 
+// Get current user's next upcoming approved leave
+router.get('/user/next-leave', async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id || req.session?.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const now = new Date();
+    const nextLeave = await LeaveRecord.findOne({
+      user: userId,
+      status: 'approved',
+      startDate: { $gte: now }
+    }).sort({ startDate: 1 });
+
+    if (!nextLeave) {
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No upcoming leave found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: nextLeave
+    });
+
+  } catch (error) {
+    console.error('Get next leave error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching next leave'
+    });
+  }
+});
+
 // Update leave balance by ID (for carryover, adjustments, etc.)
 router.put('/balances/:id', async (req, res) => {
   try {

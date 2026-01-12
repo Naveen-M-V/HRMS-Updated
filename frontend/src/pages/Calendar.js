@@ -1431,6 +1431,12 @@ const Calendar = () => {
                             {request.approvedAt ? new Date(request.approvedAt).toLocaleDateString('en-GB') : '-'}
                           </p>
                         </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Approved By</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {request.approvedBy ? `${request.approvedBy.firstName} ${request.approvedBy.lastName}` : '-'}
+                          </p>
+                        </div>
                       </div>
 
                       {request.reason && (

@@ -49,8 +49,16 @@ const leaveRequestSchema = new mongoose.Schema(
       type: String,
       maxlength: 300
     },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EmployeeHub'
+    },
     approvedAt: {
       type: Date
+    },
+    rejectedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'EmployeeHub'
     },
     rejectedAt: {
       type: Date

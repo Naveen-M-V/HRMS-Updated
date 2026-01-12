@@ -537,33 +537,75 @@ export default function AddEmployee() {
         licenceClass: formData.licenceClass,
         licenceExpiryDate: formData.licenceExpiryDate ? formatDateField(formData.licenceExpiryDate) : null,
         visaNumber: formData.visaNumber,
-        visaExpiryDate: formData.visaExpiryDate ? formatDateField(formData.visaExpiryDate) : null,
-        documents: formData.documents || []
+        visaExpiryDate: formData.visaExpiryDate ? formatDateField(formData.visaExpiryDate) : null
+        // NOTE: Do NOT send documents here - they need separate uploads via DocumentManagement API
       };
 
       // Log the data being sent for debugging
       console.log('📤 Sending employee data:', JSON.stringify(employeeData, null, 2));
       
       let response;
+      let createdEmployeeId;
+      
       if (isEditMode) {
         response = await axios.put(
           `${process.env.REACT_APP_API_BASE_URL}/employees/${editEmployeeId}`,
           employeeData
         );
+        createdEmployeeId = editEmployeeId;
       } else {
         response = await axios.post(
           `${process.env.REACT_APP_API_BASE_URL}/employees`,
           employeeData
         );
+        createdEmployeeId = response?.data?.data?.id;
       }
 
       const succeeded = response?.data?.success ?? (response?.status >= 200 && response?.status < 300);
-      if (succeeded) {
-        showSuccess(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
-        navigate("/employee-hub?refresh=" + Date.now());
-      } else {
+      if (!succeeded) {
         throw new Error(response?.data?.message || 'Employee creation was rejected by the server.');
       }
+
+      // 📂 NEW: Upload documents AFTER employee is created
+      if (formData.documents && formData.documents.length > 0 && createdEmployeeId) {
+        try {
+          console.log('📂 Uploading documents for employee:', createdEmployeeId);
+          console.log('📂 Number of documents to upload:', formData.documents.length);
+
+          // Upload each document
+          for (const docFile of formData.documents) {
+            // Only upload if it's an actual File object (not just metadata from previous load)
+            if (docFile instanceof File) {
+              const formDataObj = new FormData();
+              formDataObj.append('file', docFile);
+              formDataObj.append('category', 'employee-document');
+              formDataObj.append('ownerId', createdEmployeeId);
+              
+              try {
+                const uploadResponse = await axios.post(
+                  `${process.env.REACT_APP_API_BASE_URL}/document-management/documents`,
+                  formDataObj,
+                  {
+                    headers: {
+                      'Content-Type': 'multipart/form-data'
+                    }
+                  }
+                );
+                console.log('✅ Document uploaded successfully:', docFile.name);
+              } catch (docUploadError) {
+                console.warn('⚠️ Document upload failed (non-blocking):', docFile.name, docUploadError);
+                // Don't fail the entire operation if one document fails
+              }
+            }
+          }
+        } catch (docError) {
+          console.warn('⚠️ Document upload process failed (non-blocking):', docError);
+          // Don't fail the entire operation if document upload fails
+        }
+      }
+
+      showSuccess(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
+      navigate("/employee-hub?refresh=" + Date.now());
     } catch (error) {
       // Enhanced error logging
       console.error('❌ Employee save failed:', error);
@@ -765,21 +807,16 @@ export default function AddEmployee() {
           return;
         }
 
-        // Add document to form data
-        const newDocument = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          lastModified: file.lastModified
-        };
-
+        // 📂 FIXED: Store the actual File object (not just metadata)
+        // This way when we save, we have the real file to upload
         setFormData(prev => ({
           ...prev,
-          documents: [...(prev.documents || []), newDocument]
+          documents: [...(prev.documents || []), file]
         }));
 
         // Clear the file input
         e.target.value = '';
+        showSuccess(`File "${file.name}" added successfully`);
       }
     };
 

@@ -122,6 +122,8 @@ exports.getMyLeaveRequests = async (req, res) => {
 
     const leaveRequests = await LeaveRequest.find(query)
       .populate('approverId', 'firstName lastName email')
+      .populate('approvedBy', 'firstName lastName')
+      .populate('rejectedBy', 'firstName lastName')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -332,6 +334,7 @@ exports.approveLeaveRequest = async (req, res) => {
     // Update leave request
     leaveRequest.status = 'Approved';
     leaveRequest.approverId = approverId;
+    leaveRequest.approvedBy = approverId; // Track who approved
     leaveRequest.adminComment = adminComment || '';
     leaveRequest.approvedAt = new Date();
     await leaveRequest.save();
@@ -450,6 +453,7 @@ exports.rejectLeaveRequest = async (req, res) => {
 
     leaveRequest.status = 'Rejected';
     leaveRequest.approverId = approverId;
+    leaveRequest.rejectedBy = approverId; // Track who rejected
     leaveRequest.rejectionReason = rejectionReason;
     leaveRequest.rejectedAt = new Date();
     await leaveRequest.save();

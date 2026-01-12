@@ -227,10 +227,6 @@ function App() {
               <div className="p-6 flex-1">
                 <Outlet />
               </div>
-              <div className="px-6 py-3 text-xs text-gray-500 border-t border-gray-200 bg-white">
-                <span className="font-medium">TalentShield V {APP_VERSION}</span>
-                {BUILD_TIME ? <span className="ml-2">({new Date(BUILD_TIME).toLocaleString()})</span> : null}
-              </div>
             </div>
           </div>
         </CertificateProvider>

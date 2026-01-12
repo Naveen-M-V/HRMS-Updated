@@ -207,6 +207,7 @@ const AdminExpenses = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted By</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted On</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Approved By</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Options</th>
               </tr>
             </thead>
@@ -218,6 +219,11 @@ const AdminExpenses = () => {
                   <td className="px-6 py-4 text-sm">{exp.submittedBy ? `${exp.submittedBy.firstName} ${exp.submittedBy.lastName}` : ''}</td>
                   <td className="px-6 py-4 text-sm">{exp.submittedOn ? format(new Date(exp.submittedOn), 'dd/MM/yyyy') : (exp.date ? format(new Date(exp.date), 'dd/MM/yyyy') : '')}</td>
                   <td className="px-6 py-4 text-sm">{exp.currency || ''} {exp.totalAmount != null ? Number(exp.totalAmount).toFixed(2) : ''}</td>
+                  <td className="px-6 py-4 text-sm">
+                    {exp.status === 'approved' || exp.status === 'paid' ? (
+                      exp.approvedBy ? `${exp.approvedBy.firstName} ${exp.approvedBy.lastName}` : '-'
+                    ) : '-'}
+                  </td>
                   <td className="px-6 py-4 text-sm">
                     <div className="flex gap-2">
                       <button onClick={() => setViewingId(exp._id)} className="px-3 py-1 border rounded">View</button>

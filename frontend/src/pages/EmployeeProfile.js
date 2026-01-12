@@ -761,6 +761,9 @@ const DocumentsTab = ({ employee }) => {
   const folders = employee?.folders || employee?.documents || employee?.documentFolders || [];
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [documents, setDocuments] = useState([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   console.log("DocumentsTab - folders:", folders);
 
@@ -781,20 +784,91 @@ const DocumentsTab = ({ employee }) => {
     }
   };
 
+  const handleUpload = () => {
+    setShowUploadModal(true);
+  };
+
+  const handleDeleteDocument = (doc) => {
+    setDocumentToDelete(doc);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!documentToDelete) return;
+    
+    try {
+      // Call delete API
+      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/document-management/documents/${documentToDelete.id}`);
+      
+      // Refresh documents
+      setDocuments(documents.filter(d => d.id !== documentToDelete.id));
+      setShowDeleteModal(false);
+      setDocumentToDelete(null);
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document');
+    }
+  };
+
   if (!folders || folders.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
-        <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found.</h3>
-        <p className="text-sm text-gray-500">Documents will appear here once they are uploaded.</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
+          <button
+            onClick={handleUpload}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Upload</span>
+          </button>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+          <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No documents found.</h3>
+          <p className="text-sm text-gray-500">Documents will appear here once they are uploaded.</p>
+        </div>
       </div>
     );
   }
+
+  const handleDeleteDocument = (doc) => {
+    setDocumentToDelete(doc);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!documentToDelete) return;
+    
+    try {
+      // Call delete API
+      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/document-management/documents/${documentToDelete.id}`);
+      
+      // Refresh documents
+      setDocuments(documents.filter(d => d.id !== documentToDelete.id));
+      setShowDeleteModal(false);
+      setDocumentToDelete(null);
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document');
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
+        {selectedFolder && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleUpload}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload</span>
+            </button>
+          </div>
+        )}
       </div>
       {!selectedFolder ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -876,8 +950,12 @@ const DocumentsTab = ({ employee }) => {
                     >
                       <Download className="w-4 h-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                      <AlertCircle className="w-4 h-4" />
+                    <button 
+                      onClick={() => handleDeleteDocument(doc)}
+                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete document"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -885,6 +963,35 @@ const DocumentsTab = ({ employee }) => {
             )) : (
               <div className="p-4 text-center text-gray-500">No documents in this folder.</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Document</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete "{documentToDelete?.name}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDocumentToDelete(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

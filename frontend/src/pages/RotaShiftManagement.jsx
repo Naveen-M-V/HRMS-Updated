@@ -829,6 +829,14 @@ const RotaShiftManagement = () => {
 
                   <div style={{ color: '#6b7280', fontWeight: '700' }}>Work Type</div>
                   <div style={{ color: '#111827', fontWeight: '700' }}>{selectedShift.workType || '-'}</div>
+
+                  <div style={{ color: '#6b7280', fontWeight: '700' }}>Assigned By</div>
+                  <div style={{ color: '#111827', fontWeight: '700' }}>
+                    {selectedShift.assignedBy 
+                      ? `${selectedShift.assignedBy.firstName} ${selectedShift.assignedBy.lastName}`
+                      : '-'
+                    }
+                  </div>
                 </div>
               </div>
 

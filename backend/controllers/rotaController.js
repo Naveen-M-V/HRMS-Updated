@@ -45,6 +45,7 @@ const buildGroupedShiftAssignments = (assignments) => {
         endTime: a.endTime,
         location: a.location,
         workType: a.workType,
+        assignedBy: a.assignedBy, // Include who assigned the shift
         assignedEmployees: [],
         assignmentIds: []
       });
@@ -132,6 +133,11 @@ exports.getGroupedShiftAssignments = async (req, res) => {
       .populate({
         path: 'employeeId',
         select: '_id firstName lastName email role',
+        options: { strictPopulate: false }
+      })
+      .populate({
+        path: 'assignedBy',
+        select: '_id firstName lastName',
         options: { strictPopulate: false }
       })
       .sort({ date: 1, startTime: 1 })
@@ -729,11 +735,12 @@ exports.requestShiftSwap = async (req, res) => {
       });
     }
 
-    const targetEmployee = await User.findById(swapWithEmployeeId);
+    // Check if target employee exists in EmployeesHub (excludes profile users)
+    const targetEmployee = await EmployeesHub.findById(swapWithEmployeeId);
     if (!targetEmployee) {
       return res.status(404).json({
         success: false,
-        message: 'Target employee not found'
+        message: 'Target employee not found or is not eligible for shift swaps'
       });
     }
 
@@ -970,31 +977,36 @@ exports.getAllShiftAssignments = async (req, res) => {
     // Handle cases where populate failed (employeeId is still an ObjectId)
     for (let shift of shifts) {
       if (shift.employeeId && typeof shift.employeeId === 'object') {
-        // Check if it's a populated user object (has firstName) or just an ObjectId
+        // Check if it's a populated employee object (has firstName) or just an ObjectId
         if (!shift.employeeId.firstName) {
-          // Populate failed or incomplete, try to find the user manually
+          // Populate failed or incomplete, try to find the employee manually from EmployeesHub
           console.log(`⚠️ Populate failed for shift ${shift._id}, manually looking up employeeId:`, shift.employeeId);
-          const user = await User.findById(shift.employeeId).select('_id firstName lastName email role').lean();
-          if (user) {
-            console.log(`✅ Found user:`, user.firstName, user.lastName, `(role: ${user.role}, _id: ${user._id})`);
-            shift.employeeId = user;
+          const employee = await EmployeesHub.findById(shift.employeeId).select('_id firstName lastName email').lean();
+          if (employee) {
+            console.log(`✅ Found employee:`, employee.firstName, employee.lastName, `(_id: ${employee._id})`);
+            shift.employeeId = employee;
           } else {
-            // User not found, set to null to indicate missing reference
-            console.warn(`❌ User not found for shift ${shift._id}, employeeId: ${shift.employeeId}`);
+            // Employee not found, set to null to indicate missing reference
+            console.warn(`❌ Employee not found for shift ${shift._id}, employeeId: ${shift.employeeId}`);
             shift.employeeId = null;
           }
         } else {
           // Successfully populated
-          console.log(`✅ Shift ${shift._id} has populated employeeId:`, shift.employeeId.firstName, shift.employeeId.lastName, `(role: ${shift.employeeId.role || 'N/A'}, _id: ${shift.employeeId._id})`);
+          console.log(`✅ Shift ${shift._id} has populated employeeId:`, shift.employeeId.firstName, shift.employeeId.lastName, `(_id: ${shift.employeeId._id})`);
         }
       } else if (!shift.employeeId) {
         console.warn(`⚠️ Shift ${shift._id} has no employeeId`);
       }
       
+      // For assignedBy, check both User and EmployeesHub (admins can be in either collection)
       if (shift.assignedBy && typeof shift.assignedBy === 'object' && !shift.assignedBy.firstName) {
-        const user = await User.findById(shift.assignedBy).select('firstName lastName').lean();
-        if (user) {
-          shift.assignedBy = user;
+        let assignedByUser = await EmployeesHub.findById(shift.assignedBy).select('firstName lastName').lean();
+        if (!assignedByUser) {
+          // If not in EmployeesHub, check User collection (for admin/super-admin)
+          assignedByUser = await User.findById(shift.assignedBy).select('firstName lastName').lean();
+        }
+        if (assignedByUser) {
+          shift.assignedBy = assignedByUser;
         } else {
           shift.assignedBy = null;
         }
@@ -1161,7 +1173,12 @@ exports.generateRota = async (req, res) => {
       });
     }
 
-    const employees = await User.find({ isActive: true });
+    // Fetch only actual employees from EmployeesHub (excludes profile users)
+    const employees = await EmployeesHub.find({ 
+      isActive: true, 
+      status: 'Active',
+      deleted: { $ne: true }
+    });
     const shifts = await Shift.find().sort({ name: 1 });
 
     if (employees.length === 0) {
