@@ -3457,6 +3457,10 @@ app.use('/api/expenses', authenticateSession, expenseRoutes);
 // Performance management
 app.use('/api/performance', authenticateSession, performanceRoutes);
 
+// Review management (formal performance reviews)
+const reviewRoutes = require('./routes/reviewRoutes');
+app.use('/api/reviews', authenticateSession, reviewRoutes);
+
 // Global Error Handler Middleware (must be after all routes)
 
 app.use((err, req, res, next) => {
