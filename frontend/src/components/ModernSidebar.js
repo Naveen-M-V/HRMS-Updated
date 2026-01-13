@@ -4,7 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { APP_VERSION } from "../version";
 import {
-  ClipboardDocumentIcon,
   ClipboardDocumentCheckIcon,
   AcademicCapIcon,
   ChevronDownIcon,
@@ -36,7 +35,6 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
     initializeNotifications,
   } = useNotifications();
 
-  const [openReporting, setOpenReporting] = useState(false);
   const [openClockInOut, setOpenClockInOut] = useState(false);
   const [openTraining, setOpenTraining] = useState(false);
   const [openRotaShift, setOpenRotaShift] = useState(false);
@@ -141,38 +139,18 @@ export default function ModernSidebar({ isOpen, toggleSidebar }) {
           <button
             onClick={() => {
               handleMenuClick();
-              setOpenReporting(!openReporting);
+              handleNavigation("/dashboard");
             }}
-            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${openReporting ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/50"
+            className={`w-full group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive("/dashboard") ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium" : "hover:bg-sidebar-accent/50"
               }`}
           >
             <HomeIcon className="h-5 w-5 flex-shrink-0" />
             {isOpen && (
               <>
                 <span className="text-sm font-medium flex-1 text-left">Home</span>
-                {openReporting ? (
-                  <ChevronDownIcon className="h-4 w-4" />
-                ) : (
-                  <ChevronRightIcon className="h-4 w-4" />
-                )}
               </>
             )}
           </button>
-
-          {openReporting && isOpen && (
-            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-3">
-              <button
-                onClick={() => handleNavigation("/dashboard")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${isActive("/dashboard")
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <ClipboardDocumentIcon className="h-4 w-4" />
-                <span>Compliance Dashboard</span>
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Training Compliance Section */}
