@@ -14,7 +14,8 @@ const Tabs = ({ tabs, activeTab, onTabChange }) => {
       'all-courses': BookOpenIcon,
       'assignment': DocumentTextIcon,
       'reporting': ChartBarIcon,
-      'permissions': ShieldCheckIcon
+      'permissions': ShieldCheckIcon,
+      'documents': DocumentTextIcon
     };
     return icons[tabId] || BookOpenIcon;
   };

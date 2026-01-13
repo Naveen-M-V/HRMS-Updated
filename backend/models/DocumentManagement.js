@@ -28,7 +28,7 @@ const documentManagementSchema = new mongoose.Schema({
   },
 
   // Categorization
-  category: { type: String, enum: ['passport', 'visa', 'contract', 'certificate', 'id_proof', 'resume', 'other'], default: 'other' },
+  category: { type: String, enum: ['passport', 'visa', 'contract', 'certificate', 'id_proof', 'resume', 'e_learning', 'other'], default: 'other' },
   tags: [{ type: String, trim: true, maxlength: 50 }],
 
   // Version Control
