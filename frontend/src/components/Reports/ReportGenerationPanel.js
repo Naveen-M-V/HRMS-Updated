@@ -12,6 +12,7 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
   const [exportFormat, setExportFormat] = useState('json');
   const [generating, setGenerating] = useState(false);
   const [reportData, setReportData] = useState(null);
+  const [reportReady, setReportReady] = useState(false);
   const [error, setError] = useState(null);
   const [additionalOptions, setAdditionalOptions] = useState({});
 
@@ -81,6 +82,12 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
     setGenerating(true);
     setError(null);
     setReportData(null);
+    setReportReady(false);
+
+    console.log('[Report Generation] Starting report generation');
+    console.log('[Report Generation] Report type:', report.id);
+    console.log('[Report Generation] Date range:', startDate, 'to', endDate);
+    console.log('[Report Generation] Selected employees:', selectedEmployees.length);
 
     try {
       const endpoint = getEndpointForReport(report.id);
@@ -89,15 +96,61 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
       }
 
       const payload = buildRequestPayload();
+      console.log('[Report Generation] Request payload:', JSON.stringify(payload, null, 2));
+
       const response = await axios.post(endpoint, payload);
 
+      console.log('[Report Generation] Response received');
+      console.log('[Report Generation] Response success:', response.data.success);
+      console.log('[Report Generation] Response data keys:', Object.keys(response.data));
+
       if (response.data.success) {
-        setReportData(response.data.data);
+        const data = response.data.data;
+        
+        // Validate the response data structure
+        if (!data) {
+          throw new Error('Server returned success but no data');
+        }
+        
+        if (!data.reportType) {
+          console.warn('[Report Generation] WARNING: Missing reportType in response');
+          data.reportType = report.id; // Fallback to the requested report type
+        }
+        
+        if (!data.records) {
+          console.warn('[Report Generation] WARNING: Missing records array in response');
+          data.records = [];
+        }
+        
+        if (!Array.isArray(data.records)) {
+          console.error('[Report Generation] ERROR: records is not an array:', typeof data.records);
+          throw new Error('Invalid data structure: records must be an array');
+        }
+        
+        console.log('[Report Generation] Valid data structure confirmed');
+        console.log('[Report Generation] Report type:', data.reportType);
+        console.log('[Report Generation] Total records:', data.records.length);
+        
+        if (data.records.length > 0) {
+          console.log('[Report Generation] Sample record:', JSON.stringify(data.records[0], null, 2));
+        }
+        
+        setReportData(data);
+        
+        // BLOCKING FIX #1: Only enable export after data is validated
+        // Reports with 0 records are still "ready" - they'll show "No records" in PDF
+        setReportReady(true);
+        console.log('[Report Generation] Report ready for export');
       } else {
         setError(response.data.error || 'Failed to generate report');
       }
     } catch (err) {
-      console.error('Error generating report:', err);
+      console.error('[Report Generation] Error:', err);
+      console.error('[Report Generation] Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
       setError(err.response?.data?.error || err.message || 'Failed to generate report');
     } finally {
       setGenerating(false);
@@ -105,10 +158,40 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
   };
 
   const handleExport = async () => {
-    if (!reportData) return;
+    // BLOCKING FIX #1: Check reportReady state to prevent race condition
+    if (!reportReady) {
+      console.error('[Export] Report not ready - generation still in progress or failed');
+      setError('Report is not ready. Please wait for generation to complete.');
+      return;
+    }
+
+    if (!reportData) {
+      console.error('[Export] No report data available');
+      setError('No report data available. Please generate a report first.');
+      return;
+    }
 
     const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
     const filename = `${report.id}_${timestamp}`;
+
+    // Validate reportData structure
+    console.log('[Export] Starting export process');
+    console.log('[Export] Export format:', exportFormat);
+    console.log('[Export] Report data keys:', Object.keys(reportData));
+    console.log('[Export] Report type:', reportData.reportType);
+    console.log('[Export] Records:', Array.isArray(reportData.records) ? `array with ${reportData.records.length} items` : typeof reportData.records);
+
+    if (!reportData.reportType) {
+      console.error('[Export] Missing reportType in reportData');
+      setError('Invalid report data: missing report type');
+      return;
+    }
+
+    if (!reportData.records || !Array.isArray(reportData.records)) {
+      console.error('[Export] Invalid records structure:', reportData.records);
+      setError('Invalid report data: records must be an array');
+      return;
+    }
 
     try {
       if (exportFormat === 'json') {
@@ -120,7 +203,9 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
         link.download = `${filename}.json`;
         link.click();
         URL.revokeObjectURL(url);
+        console.log('[Export] JSON export completed');
       } else if (exportFormat === 'csv') {
+        console.log('[Export] Sending CSV export request...');
         const response = await axios.post('/api/report-library/export/csv', 
           { reportData },
           { responseType: 'blob' }
@@ -132,11 +217,32 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
         link.download = `${filename}.csv`;
         link.click();
         URL.revokeObjectURL(url);
+        console.log('[Export] CSV export completed');
       } else if (exportFormat === 'pdf') {
+        console.log('[Export] Sending PDF export request...');
+        console.log('[Export] Payload:', JSON.stringify({ reportData }, null, 2));
+        
         const response = await axios.post('/api/report-library/export/pdf', 
           { reportData },
-          { responseType: 'blob' }
+          { 
+            responseType: 'blob',
+            validateStatus: (status) => status < 500 // Don't reject on 4xx errors
+          }
         );
+
+        console.log('[Export] PDF response received');
+        console.log('[Export] Response type:', response.headers['content-type']);
+        console.log('[Export] Response size:', response.data.size, 'bytes');
+
+        // Check if response is actually a PDF
+        if (response.headers['content-type'] !== 'application/pdf') {
+          // It might be an error JSON
+          const text = await response.data.text();
+          console.error('[Export] Expected PDF but got:', response.headers['content-type']);
+          console.error('[Export] Response:', text);
+          throw new Error('Server returned error instead of PDF: ' + text);
+        }
+
         const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         const link = window.document.createElement('a');
@@ -144,10 +250,26 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
         link.download = `${filename}.pdf`;
         link.click();
         URL.revokeObjectURL(url);
+        console.log('[Export] PDF export completed successfully');
       }
     } catch (error) {
-      console.error('Export error:', error);
-      setError('Failed to export report: ' + (error.response?.data?.error || error.message));
+      console.error('[Export] Export error:', error);
+      console.error('[Export] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = 'Failed to export report: ';
+      if (error.response?.data?.error) {
+        errorMessage += error.response.data.error;
+      } else if (error.message) {
+        errorMessage += error.message;
+      } else {
+        errorMessage += 'Unknown error occurred';
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -380,7 +502,8 @@ const ReportGenerationPanel = ({ report, icon: Icon, onClose }) => {
               {reportData && (
                 <button
                   onClick={handleExport}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  disabled={!reportReady || generating}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Download size={18} />
                   Export {exportFormat.toUpperCase()}

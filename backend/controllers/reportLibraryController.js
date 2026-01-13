@@ -243,8 +243,10 @@ exports.generateAbsenceReport = async (req, res) => {
         unrecordedAbsences: absencesWithoutClockIn
       }
     });
+    
+    console.log(`[Absence Report] Generated successfully: ${absenceData.length} records, ${absencesWithoutClockIn.length} unrecorded`);
   } catch (error) {
-    console.error('Error generating absence report:', error);
+    console.error('[Absence Report] Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -336,8 +338,10 @@ exports.generateAnnualLeaveReport = async (req, res) => {
         records: reportData
       }
     });
+    
+    console.log(`[Annual Leave Report] Generated successfully: ${reportData.length} records for year ${year}`);
   } catch (error) {
-    console.error('Error generating annual leave report:', error);
+    console.error('[Annual Leave Report] Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -857,8 +861,10 @@ exports.generateEmployeeDetailsReport = async (req, res) => {
         records: employees
       }
     });
+    
+    console.log(`[Employee Details Report] Generated successfully: ${employees.length} employee records`);
   } catch (error) {
-    console.error('Error generating employee details report:', error);
+    console.error('[Employee Details Report] Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1153,11 +1159,14 @@ exports.generateWorkingStatusReport = async (req, res) => {
       data: {
         reportType: 'working-status',
         totalEmployees: total,
+        totalRecords: statusData.length,
         records: statusData
       }
     });
+    
+    console.log(`[Working Status Report] Generated successfully: ${statusData.length} status groups, ${total} total employees`);
   } catch (error) {
-    console.error('Error generating working status report:', error);
+    console.error('[Working Status Report] Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1251,12 +1260,40 @@ exports.exportReportCSV = async (req, res) => {
   try {
     const { reportData } = req.body;
 
-    if (!reportData || !reportData.records) {
+    console.log('[CSV Export] Request received');
+    console.log('[CSV Export] reportData exists:', !!reportData);
+    
+    if (!reportData) {
+      console.error('[CSV Export] ERROR: No reportData in request body');
       return res.status(400).json({ 
         success: false, 
-        error: 'Report data is required' 
+        error: 'Report data is missing from request' 
       });
     }
+
+    if (!reportData.records || !Array.isArray(reportData.records)) {
+      console.error('[CSV Export] ERROR: Records missing or not an array');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Report data must contain a records array' 
+      });
+    }
+
+    // BLOCKING FIX #2: Enforce records.length as single source of truth
+    const actualRecordCount = reportData.records.length;
+    const declaredRecordCount = reportData.totalRecords;
+    
+    if (declaredRecordCount !== undefined && declaredRecordCount !== actualRecordCount) {
+      console.error('[CSV Export] ⚠️  CRITICAL: totalRecords MISMATCH DETECTED');
+      console.error('[CSV Export] Declared totalRecords:', declaredRecordCount);
+      console.error('[CSV Export] Actual records.length:', actualRecordCount);
+      console.error('[CSV Export] Overriding totalRecords with actual count to prevent data integrity issue');
+      
+      // Override with actual count
+      reportData.totalRecords = actualRecordCount;
+    }
+    
+    console.log('[CSV Export] Generating CSV for', reportData.reportType, 'with', actualRecordCount, 'records');
 
     // Generate CSV
     const csv = exportReportToCSV(reportData);
@@ -1266,9 +1303,10 @@ exports.exportReportCSV = async (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     
+    console.log('[CSV Export] CSV generated successfully, sending to client');
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting CSV:', error);
+    console.error('[CSV Export] Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1280,15 +1318,74 @@ exports.exportReportPDF = async (req, res) => {
   try {
     const { reportData } = req.body;
 
-    if (!reportData || !reportData.records) {
+    // Comprehensive validation with detailed logging
+    console.log('[PDF Export] === REQUEST RECEIVED ===');
+    console.log('[PDF Export] Request body keys:', Object.keys(req.body));
+    console.log('[PDF Export] reportData exists:', !!reportData);
+    
+    if (!reportData) {
+      console.error('[PDF Export] ERROR: No reportData in request body');
       return res.status(400).json({ 
         success: false, 
-        error: 'Report data is required' 
+        error: 'Report data is missing from request' 
       });
     }
 
+    console.log('[PDF Export] reportData.reportType:', reportData.reportType);
+    console.log('[PDF Export] reportData.records type:', Array.isArray(reportData.records) ? 'array' : typeof reportData.records);
+    console.log('[PDF Export] reportData.records length:', reportData.records?.length);
+    
+    // BLOCKING FIX #2: Enforce records.length as single source of truth
+    const actualRecordCount = reportData.records.length;
+    const declaredRecordCount = reportData.totalRecords;
+    
+    if (declaredRecordCount !== undefined && declaredRecordCount !== actualRecordCount) {
+      console.error('[PDF Export] ⚠️  CRITICAL: totalRecords MISMATCH DETECTED');
+      console.error('[PDF Export] Declared totalRecords:', declaredRecordCount);
+      console.error('[PDF Export] Actual records.length:', actualRecordCount);
+      console.error('[PDF Export] Overriding totalRecords with actual count to prevent data integrity issue');
+      
+      // Override with actual count
+      reportData.totalRecords = actualRecordCount;
+    } else {
+      console.log('[PDF Export] totalRecords validated:', actualRecordCount);
+    }
+    
+    if (!reportData.reportType) {
+      console.error('[PDF Export] ERROR: Missing reportType');
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Report type is missing' 
+      });
+    }
+
+    if (!reportData.records || !Array.isArray(reportData.records)) {
+      console.error('[PDF Export] ERROR: Records missing or not an array');
+      console.error('[PDF Export] reportData structure:', JSON.stringify(reportData, null, 2));
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Report data must contain a records array' 
+      });
+    }
+
+    if (reportData.records.length === 0) {
+      console.warn('[PDF Export] WARNING: Records array is empty');
+      // Continue anyway - PDF will show "No records" message
+    } else {
+      console.log('[PDF Export] First record sample:', JSON.stringify(reportData.records[0], null, 2));
+    }
+
+    console.log('[PDF Export] Calling PDF generator...');
+
     // Generate PDF buffer
     const pdfBuffer = await exportReportToPDF(reportData);
+
+    console.log('[PDF Export] PDF generated successfully, buffer size:', pdfBuffer.length, 'bytes');
+
+    // Validate PDF buffer
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      throw new Error('PDF generation produced empty buffer');
+    }
 
     // Set headers for file download
     const filename = `${reportData.reportType}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -1296,9 +1393,14 @@ exports.exportReportPDF = async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     
+    console.log('[PDF Export] Sending PDF to client...');
     res.send(pdfBuffer);
+    console.log('[PDF Export] === EXPORT COMPLETE ===');
+    
   } catch (error) {
-    console.error('Error exporting PDF:', error);
+    console.error('[PDF Export] === CRITICAL ERROR ===');
+    console.error('[PDF Export] Error message:', error.message);
+    console.error('[PDF Export] Error stack:', error.stack);
     res.status(500).json({ success: false, error: error.message });
   }
 };

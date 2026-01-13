@@ -9,6 +9,21 @@ const path = require('path');
  * @returns {PDFDocument} PDF document stream
  */
 const generatePDFReport = (reportData) => {
+  // Validate input
+  if (!reportData) {
+    throw new Error('reportData is required for PDF generation');
+  }
+  if (!reportData.reportType) {
+    throw new Error('reportData.reportType is required');
+  }
+  if (!reportData.records || !Array.isArray(reportData.records)) {
+    console.warn('[PDF Generator] No records array found, creating empty report');
+    reportData.records = [];
+  }
+
+  console.log('[PDF Generator] Starting PDF generation for:', reportData.reportType);
+  console.log('[PDF Generator] Total records:', reportData.records.length);
+
   const doc = new PDFDocument({ 
     size: 'A4',
     margin: 50,
@@ -72,9 +87,12 @@ const generatePDFReport = (reportData) => {
      .text('Summary', { underline: true })
      .moveDown(0.5);
 
+  // BLOCKING FIX #2: Always use actual records.length as source of truth
+  const actualRecordCount = reportData.records?.length || 0;
+  
   doc.fontSize(10)
      .font('Helvetica')
-     .text(`Total Records: ${reportData.totalRecords || reportData.records?.length || 0}`)
+     .text(`Total Records: ${actualRecordCount}`)
      .moveDown(0.5);
 
   // Report-specific summaries
