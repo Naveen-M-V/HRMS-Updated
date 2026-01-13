@@ -454,6 +454,11 @@ router.post('/folders/:folderId/documents',
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
+      if (req.body.category === 'e_learning' && req.file.mimetype !== 'application/pdf') {
+        try { await fs.unlink(req.file.path); } catch {}
+        return res.status(400).json({ message: 'Invalid file type. Only PDF files are allowed for E-Learning documents.' });
+      }
+
       // Folder is optional, but if provided, check existence
       let folderId = req.params.folderId || null;
       if (folderId) {
@@ -669,6 +674,11 @@ router.post('/documents',
       }
       if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      if (req.body.category === 'e_learning' && req.file.mimetype !== 'application/pdf') {
+        try { await fs.unlink(req.file.path); } catch {}
+        return res.status(400).json({ message: 'Invalid file type. Only PDF files are allowed for E-Learning documents.' });
       }
 
       // No folder provided

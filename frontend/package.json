@@ -36,6 +36,7 @@
     "moment-timezone": "^0.6.0",
     "pmtiles": "^4.3.0",
     "protomaps-leaflet": "^5.1.0",
+    "pdfjs-dist": "^4.10.38",
     "react": "^18.2.0",
     "react-day-picker": "^9.11.1",
     "react-dom": "^18.2.0",

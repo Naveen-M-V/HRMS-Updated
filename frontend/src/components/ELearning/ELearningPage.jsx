@@ -6,6 +6,7 @@ import AllCoursesPage from './AllCoursesPage';
 import AssignmentPage from './AssignmentPage';
 import ReportingPage from './ReportingPage';
 import PermissionsPage from './PermissionsPage';
+import ELearningDocumentsPage from './ELearningDocumentsPage';
 
 const ELearningPage = () => {
   const navigate = useNavigate();
@@ -16,7 +17,8 @@ const ELearningPage = () => {
     { id: 'all-courses', label: 'All courses', path: '/e-learning/all-courses' },
     { id: 'assignment', label: 'Assignment', path: '/e-learning/assignment' },
     { id: 'reporting', label: 'Reporting', path: '/e-learning/reporting' },
-    { id: 'permissions', label: 'Permissions', path: '/e-learning/permissions' }
+    { id: 'permissions', label: 'Permissions', path: '/e-learning/permissions' },
+    { id: 'documents', label: 'Documents', path: '/e-learning/documents' }
   ];
 
   const activeTab = tabs.find(tab => location.pathname === tab.path)?.id || 'assigned';
@@ -50,6 +52,7 @@ const ELearningPage = () => {
           <Route path="/assignment" element={<AssignmentPage />} />
           <Route path="/reporting" element={<ReportingPage />} />
           <Route path="/permissions" element={<PermissionsPage />} />
+          <Route path="/documents" element={<ELearningDocumentsPage />} />
           <Route path="/" element={<AssignedPage />} />
         </Routes>
       </div>
