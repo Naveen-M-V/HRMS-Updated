@@ -832,11 +832,6 @@ const DocumentsTab = ({ employee }) => {
     );
   }
 
-  const handleDeleteDocument = (doc) => {
-    setDocumentToDelete(doc);
-    setShowDeleteModal(true);
-  };
-
   const confirmDelete = async () => {
     if (!documentToDelete) return;
     

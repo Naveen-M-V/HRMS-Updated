@@ -17,11 +17,8 @@ const {
 } = require('../utils/shiftTimeLinker');
 const crypto = require('crypto');
 
-// Import asyncHandler from server.js
-const { asyncHandler } = require('../middleware/auth');
-
-// Import authentication middleware
-const { authenticateSession } = require('../middleware/auth');
+// Import asyncHandler and authentication middleware from server.js
+const { asyncHandler, authenticateSession } = require('../server');
 
 /**
  * Clock Routes
