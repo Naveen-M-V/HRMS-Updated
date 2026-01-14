@@ -2810,7 +2810,6 @@ const bulkJobRolesRoutes = require('./routes/bulkJobRoles');
 const jobRolesRoutes = require('./routes/jobRoles');
 const jobLevelsRoutes = require('./routes/jobLevels');
 const rotaRoutes = require('./routes/rotaRoutes');
-const clockRoutes = require('./routes/clockRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
 const leaveRequestRoutes = require('./routes/leaveRequestRoutes');
 const unifiedLeaveRoutes = require('./routes/unifiedLeaveRoutes');
@@ -2894,6 +2893,9 @@ const authenticateToken = authenticateSession;
 
 // Export authenticateSession for use in routes
 module.exports.authenticateSession = authenticateSession;
+
+// Import clockRoutes after authenticateSession is defined
+const clockRoutes = require('./routes/clockRoutes');
 
 // Use notification routes (now that authenticateSession is defined)
 app.use('/api/notifications', authenticateSession, notificationRoutes);

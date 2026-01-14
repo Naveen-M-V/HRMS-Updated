@@ -832,23 +832,6 @@ const DocumentsTab = ({ employee }) => {
     );
   }
 
-  const confirmDelete = async () => {
-    if (!documentToDelete) return;
-    
-    try {
-      // Call delete API
-      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/document-management/documents/${documentToDelete.id}`);
-      
-      // Refresh documents
-      setDocuments(documents.filter(d => d.id !== documentToDelete.id));
-      setShowDeleteModal(false);
-      setDocumentToDelete(null);
-    } catch (error) {
-      console.error('Error deleting document:', error);
-      alert('Failed to delete document');
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
