@@ -1200,10 +1200,13 @@ const ClockIns = () => {
 
         {/* Statistics Cards */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '16px',
-          marginBottom: '24px'
+          display: 'flex',
+          gap: '12px',
+          marginBottom: '24px',
+          overflowX: 'auto',
+          paddingBottom: '4px',
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cbd5e1 #f1f5f9'
         }}>
           {/* All Profiles Card */}
           <div
@@ -1218,7 +1221,9 @@ const ClockIns = () => {
               textAlign: 'center',
               border: statusFilter === null ? '2px solid #6b7280' : '1px solid #e5e7eb',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              minWidth: '140px',
+              flex: '0 0 auto'
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -1237,7 +1242,9 @@ const ClockIns = () => {
               textAlign: 'center',
               border: statusFilter === 'clocked_in' ? '2px solid #10b981' : '1px solid #e5e7eb',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              minWidth: '140px',
+              flex: '0 0 auto'
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -1256,7 +1263,9 @@ const ClockIns = () => {
               textAlign: 'center',
               border: statusFilter === 'clocked_out' ? '2px solid #3b82f6' : '1px solid #e5e7eb',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              minWidth: '140px',
+              flex: '0 0 auto'
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -1275,7 +1284,9 @@ const ClockIns = () => {
               textAlign: 'center',
               border: statusFilter === 'on_break' ? '2px solid #f59e0b' : '1px solid #e5e7eb',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              minWidth: '140px',
+              flex: '0 0 auto'
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -1294,7 +1305,9 @@ const ClockIns = () => {
               textAlign: 'center',
               border: statusFilter === 'absent' ? '2px solid #ef4444' : '1px solid #e5e7eb',
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              minWidth: '140px',
+              flex: '0 0 auto'
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
