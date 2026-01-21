@@ -5,7 +5,7 @@ import CreateReviewModal from '../components/Reviews/CreateReviewModal';
 import ViewReviewModal from '../components/Reviews/ViewReviewModal';
 import CommentReviewModal from '../components/Reviews/CommentReviewModal';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003';
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003/api';
 
 export default function Reviews() {
     // State
@@ -32,7 +32,7 @@ export default function Reviews() {
     useEffect(() => {
         const fetchCurrentUser = async () => {
             try {
-                const response = await axios.get(`${API_BASE}/api/auth/me`, {
+                const response = await axios.get(`${API_BASE}/auth/me`, {
                     withCredentials: true
                 });
                 setUserRole(response.data.role?.toUpperCase());
@@ -98,7 +98,7 @@ export default function Reviews() {
     // Handle view review
     const handleViewReview = async (review) => {
         try {
-            const response = await axios.get(`${API_BASE}/api/reviews/${review._id}`, {
+            const response = await axios.get(`${API_BASE}/reviews/${review._id}`, {
                 withCredentials: true
             });
             setSelectedReview(response.data.review);
@@ -116,7 +116,7 @@ export default function Reviews() {
         }
         
         try {
-            await axios.post(`${API_BASE}/api/reviews/${reviewId}/submit`, {}, {
+            await axios.post(`${API_BASE}/reviews/${reviewId}/submit`, {}, {
                 withCredentials: true
             });
             toast.success('Review submitted successfully');
@@ -134,7 +134,7 @@ export default function Reviews() {
         }
         
         try {
-            await axios.post(`${API_BASE}/api/reviews/${reviewId}/complete`, {}, {
+            await axios.post(`${API_BASE}/reviews/${reviewId}/complete`, {}, {
                 withCredentials: true
             });
             toast.success('Review completed successfully');
@@ -152,7 +152,7 @@ export default function Reviews() {
         }
         
         try {
-            await axios.delete(`${API_BASE}/api/reviews/${reviewId}`, {
+            await axios.delete(`${API_BASE}/reviews/${reviewId}`, {
                 withCredentials: true
             });
             toast.success('Review deleted successfully');

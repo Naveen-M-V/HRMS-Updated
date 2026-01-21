@@ -16,6 +16,7 @@ const {
   updateShiftStatus
 } = require('../utils/shiftTimeLinker');
 const crypto = require('crypto');
+const employeeService = require('../services/employeeService');
 
 // Import asyncHandler and authentication middleware from server.js
 const { asyncHandler, authenticateSession } = require('../server');
@@ -2804,13 +2805,17 @@ router.get('/compliance-insights', async (req, res) => {
     const today = moment().tz('Europe/London').startOf('day');
     const now = moment().tz('Europe/London');
 
-    const employeesQuery = { isActive: true, status: { $ne: 'Terminated' } };
-    const employees = await EmployeesHub.find(employeesQuery)
-      .select('firstName lastName email employeeId department jobTitle')
-      .sort({ firstName: 1, lastName: 1 })
-      .lean();
+    // Use unified employee service for consistent counting
+    const totalEmployeesCount = await employeeService.getActiveEmployeeCount({
+      includeProfiles: false,
+      includeAdmins: true
+    });
 
-    const totalEmployees = employees.length;
+    // Get employee details for display (using same service logic)
+    const employees = await employeeService.getActiveEmployees({
+      includeProfiles: false,
+      includeAdmins: true
+    });
 
     const activeEntries = await TimeEntry.find({
       date: dateString,
@@ -2919,7 +2924,7 @@ router.get('/compliance-insights', async (req, res) => {
       success: true,
       data: {
         totalEmployees: {
-          count: totalEmployees,
+          count: totalEmployeesCount,
           employees
         },
         activeEmployees: {

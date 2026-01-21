@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003';
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003/api';
 
 export default function CreateReviewModal({ isOpen, onClose, onSuccess, editingReview }) {
     const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ export default function CreateReviewModal({ isOpen, onClose, onSuccess, editingR
 
     const fetchEmployees = async () => {
         try {
-            const response = await axios.get(`${API_BASE}/api/employee-hub`, {
+            const response = await axios.get(`${API_BASE}/employee-hub`, {
                 withCredentials: true
             });
             setEmployees(response.data.employees || []);
@@ -106,13 +106,13 @@ export default function CreateReviewModal({ isOpen, onClose, onSuccess, editingR
 
             if (editingReview) {
                 // Update existing review
-                await axios.put(`${API_BASE}/api/reviews/${editingReview._id}`, payload, {
+                await axios.put(`${API_BASE}/reviews/${editingReview._id}`, payload, {
                     withCredentials: true
                 });
                 toast.success('Review updated successfully');
             } else {
                 // Create new review
-                await axios.post(`${API_BASE}/api/reviews`, payload, {
+                await axios.post(`${API_BASE}/reviews`, payload, {
                     withCredentials: true
                 });
                 toast.success('Review created successfully');

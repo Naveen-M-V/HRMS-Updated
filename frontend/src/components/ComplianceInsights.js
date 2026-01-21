@@ -356,17 +356,6 @@ const ComplianceInsights = () => {
           <div className="text-sm text-gray-600 mt-1">Total Employees</div>
         </button>
 
-        {/* Active Certificates */}
-        <button
-          onClick={() => setSelectedSection(selectedSection === 'active' ? null : 'active')}
-          className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${
-            selectedSection === 'active' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
-          }`}
-        >
-          <div className="text-3xl font-bold text-green-600">{insights.activeEmployees?.count ?? 0}</div>
-          <div className="text-sm text-gray-600 mt-1">Active Employees</div>
-        </button>
-
         {/* Expiring Soon */}
         <button
           onClick={() => setSelectedSection(selectedSection === 'expiring' ? null : 'expiring')}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003';
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5003/api';
 
 export default function CommentReviewModal({ isOpen, onClose, onSuccess, review }) {
     const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function CommentReviewModal({ isOpen, onClose, onSuccess, review 
         try {
             setLoading(true);
             
-            await axios.post(`${API_BASE}/api/reviews/${review._id}/comment`, {
+            await axios.post(`${API_BASE}/reviews/${review._id}/comment`, {
                 comment: comment.trim(),
                 acknowledged
             }, {
