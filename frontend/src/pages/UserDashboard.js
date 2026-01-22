@@ -28,7 +28,8 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ClockIcon,
-  CalendarIcon
+  CalendarIcon,
+  ArrowUpTrayIcon as Upload
 } from '@heroicons/react/24/outline';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -1192,6 +1193,7 @@ const UserDashboard = () => {
         {activeTab === 'leave' && isEmployeeUser && (
           <div className="space-y-6">
             <LeaveRequestCard />
+            <LeaveStatusSection userId={user?._id || user?.id} />
           </div>
         )}
 
@@ -1466,6 +1468,9 @@ const UserDashboard = () => {
 const MyDocumentsWidget = ({ userId }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
 
   useEffect(() => {
@@ -1495,6 +1500,46 @@ const MyDocumentsWidget = ({ userId }) => {
     }
   };
 
+  const handleUpload = async () => {
+    if (!uploadFile) {
+      alert('Please select a file to upload');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('ownerId', userId);
+      formData.append('visibility', 'employee');
+      formData.append('category', 'other');
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/document-management/upload`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        }
+      );
+
+      if (response.ok) {
+        alert('Document uploaded successfully!');
+        setShowUploadModal(false);
+        setUploadFile(null);
+        fetchMyDocuments();
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Failed to upload document');
+      }
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      alert('Failed to upload document. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleDownload = (doc) => {
     if (doc.fileUrl) {
       window.open(`${API_BASE_URL}${doc.fileUrl}`, '_blank');
@@ -1520,17 +1565,71 @@ const MyDocumentsWidget = ({ userId }) => {
 
   if (documents.length === 0) {
     return (
-      <div className="text-center py-12">
-        <DocumentTextIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents uploaded yet</h3>
-        <p className="text-gray-600">Documents uploaded by your administrator will appear here</p>
+      <div>
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Document
+          </button>
+        </div>
+        <div className="text-center py-12">
+          <DocumentTextIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents uploaded yet</h3>
+          <p className="text-gray-600">Upload your documents or view documents shared by your administrator</p>
+        </div>
+        
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Upload Document</h3>
+              <input
+                type="file"
+                onChange={(e) => setUploadFile(e.target.files[0])}
+                className="w-full mb-4 p-2 border rounded"
+              />
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadFile(null);
+                  }}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  disabled={uploading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpload}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  disabled={uploading || !uploadFile}
+                >
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {documents.map((doc) => (
+    <div>
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Upload className="w-4 h-4" />
+          Upload Document
+        </button>
+      </div>
+      
+      <div className="space-y-3">{documents.map((doc) => (
         <div
           key={doc._id}
           className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -1567,6 +1666,40 @@ const MyDocumentsWidget = ({ userId }) => {
           </button>
         </div>
       ))}
+      </div>
+      
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Upload Document</h3>
+            <input
+              type="file"
+              onChange={(e) => setUploadFile(e.target.files[0])}
+              className="w-full mb-4 p-2 border rounded"
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadFile(null);
+                }}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                disabled={uploading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                disabled={uploading || !uploadFile}
+              >
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1688,6 +1821,236 @@ const ELearningWidget = () => {
           </button>
         </div>
       ))}
+    </div>
+  );
+};
+
+// Leave Status Section Component
+const LeaveStatusSection = ({ userId }) => {
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
+  useEffect(() => {
+    if (userId) {
+      fetchLeaveRequests();
+    }
+  }, [userId]);
+
+  const fetchLeaveRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `${API_BASE_URL}/api/leave-requests/my-requests`,
+        { credentials: 'include' }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLeaveRequests(data.data || data || []);
+      } else {
+        console.error('Failed to fetch leave requests:', response.status);
+        setLeaveRequests([]);
+      }
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+      setLeaveRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return <ClockIcon className="w-5 h-5" />;
+      case 'approved':
+        return <CheckCircleIcon className="w-5 h-5" />;
+      case 'rejected':
+        return <ExclamationTriangleIcon className="w-5 h-5" />;
+      default:
+        return <DocumentTextIcon className="w-5 h-5" />;
+    }
+  };
+
+  const groupedRequests = {
+    pending: leaveRequests.filter(r => r.status?.toLowerCase() === 'pending'),
+    approved: leaveRequests.filter(r => r.status?.toLowerCase() === 'approved'),
+    rejected: leaveRequests.filter(r => r.status?.toLowerCase() === 'rejected')
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="text-center py-8">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-sm text-gray-600 mt-2">Loading leave requests...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (leaveRequests.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">My Leave Requests</h3>
+        <div className="text-center py-12">
+          <CalendarIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No leave requests yet</h3>
+          <p className="text-gray-600">Your submitted leave requests will appear here</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-6">My Leave Requests</h3>
+      
+      <div className="space-y-6">
+        {/* Pending Requests */}
+        {groupedRequests.pending.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <ClockIcon className="w-5 h-5 text-yellow-600" />
+              <h4 className="font-medium text-gray-900">
+                Pending ({groupedRequests.pending.length})
+              </h4>
+            </div>
+            <div className="space-y-3">
+              {groupedRequests.pending.map((request) => (
+                <div
+                  key={request._id}
+                  className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="font-medium text-gray-900">{request.leaveType}</span>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>
+                          <strong>Dates:</strong> {formatDateDDMMYY(request.startDate)} - {formatDateDDMMYY(request.endDate)}
+                        </p>
+                        <p>
+                          <strong>Duration:</strong> {request.numberOfDays} {request.numberOfDays === 1 ? 'day' : 'days'}
+                        </p>
+                        <p>
+                          <strong>Reason:</strong> {request.reason}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Approved Requests */}
+        {groupedRequests.approved.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <CheckCircleIcon className="w-5 h-5 text-green-600" />
+              <h4 className="font-medium text-gray-900">
+                Approved ({groupedRequests.approved.length})
+              </h4>
+            </div>
+            <div className="space-y-3">
+              {groupedRequests.approved.map((request) => (
+                <div
+                  key={request._id}
+                  className="p-4 border border-green-200 bg-green-50 rounded-lg"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="font-medium text-gray-900">{request.leaveType}</span>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>
+                          <strong>Dates:</strong> {formatDateDDMMYY(request.startDate)} - {formatDateDDMMYY(request.endDate)}
+                        </p>
+                        <p>
+                          <strong>Duration:</strong> {request.numberOfDays} {request.numberOfDays === 1 ? 'day' : 'days'}
+                        </p>
+                        {request.approvedBy && (
+                          <p className="text-green-700">
+                            <strong>Approved by:</strong> {request.approvedBy.firstName} {request.approvedBy.lastName}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Rejected Requests */}
+        {groupedRequests.rejected.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
+              <h4 className="font-medium text-gray-900">
+                Rejected ({groupedRequests.rejected.length})
+              </h4>
+            </div>
+            <div className="space-y-3">
+              {groupedRequests.rejected.map((request) => (
+                <div
+                  key={request._id}
+                  className="p-4 border border-red-200 bg-red-50 rounded-lg"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="font-medium text-gray-900">{request.leaveType}</span>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(request.status)}`}>
+                          {request.status}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>
+                          <strong>Dates:</strong> {formatDateDDMMYY(request.startDate)} - {formatDateDDMMYY(request.endDate)}
+                        </p>
+                        <p>
+                          <strong>Duration:</strong> {request.numberOfDays} {request.numberOfDays === 1 ? 'day' : 'days'}
+                        </p>
+                        {request.rejectionReason && (
+                          <p className="text-red-700">
+                            <strong>Rejection reason:</strong> {request.rejectionReason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

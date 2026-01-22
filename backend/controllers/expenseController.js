@@ -60,12 +60,26 @@ function haversineMeters(a, b) {
 exports.getMyExpenses = async (req, res) => {
   try {
     const userId = req.session.user._id;
+    const userEmail = req.session.user.email;
 
     // Find employee record (supports Employee.userId or Employee._id identifiers)
-    const employee = await findEmployeeByUserIdentifier(userId);
-    if (!employee) {
-      return res.status(404).json({ message: 'Employee record not found' });
+    let employee = await findEmployeeByUserIdentifier(userId);
+    
+    // If not found by ID, try by email (for admins without EmployeeHub records)
+    if (!employee && userEmail) {
+      employee = await findEmployeeByEmail(userEmail, userId);
     }
+    
+    if (!employee) {
+      console.log('No employee record found for user:', { userId, userEmail });
+      return res.status(404).json({ 
+        message: 'Employee record not found. Please contact administrator to link your account.',
+        expenses: [],
+        pagination: { total: 0, page: 1, pages: 0, limit: 25 }
+      });
+    }
+
+    console.log('Found employee record for expenses:', { employeeId: employee._id, email: employee.email });
 
     // Query parameters for filtering
     const { 

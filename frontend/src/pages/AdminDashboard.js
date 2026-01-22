@@ -25,14 +25,16 @@ const AdminDashboard = () => {
     onBreakEmployees: 0,
     offlineEmployees: 0,
     totalCertificates: 0,
-    expiringCertificates: 0
+    expiringCertificates: 0,
+    absentEmployees: 0,
+    absentList: []
   });
 
   // Fetch dashboard statistics
   const fetchStats = async () => {
     try {
-      // Fetch from clock dashboard-stats endpoint
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/clock/dashboard-stats`, {
+      // Fetch from compliance-insights endpoint which includes absent employee list
+      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/clock/compliance-insights`, {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -40,8 +42,19 @@ const AdminDashboard = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setStats(data);
+        const result = await response.json();
+        if (result.success && result.data) {
+          setStats({
+            totalEmployees: result.data.totalEmployees?.count || 0,
+            activeEmployees: result.data.activeEmployees?.count || 0,
+            onBreakEmployees: 0, // Not provided by compliance-insights
+            offlineEmployees: 0, // Calculate if needed
+            totalCertificates: 0, // Keep for backward compatibility
+            expiringCertificates: 0, // Keep for backward compatibility
+            absentEmployees: result.data.absentees?.count || 0,
+            absentList: result.data.absentees?.employees || []
+          });
+        }
       } else {
         setStats({
           totalEmployees: 0,
@@ -50,7 +63,8 @@ const AdminDashboard = () => {
           offlineEmployees: 0,
           totalCertificates: 0,
           expiringCertificates: 0,
-          error: 'Failed to load dashboard statistics'
+          absentEmployees: 0,
+          absentList: []
         });
       }
     } catch (error) {
@@ -62,6 +76,8 @@ const AdminDashboard = () => {
         offlineEmployees: 0,
         totalCertificates: 0,
         expiringCertificates: 0,
+        absentEmployees: 0,
+        absentList: [],
         error: 'Failed to load dashboard statistics. Please try again.'
       });
     }

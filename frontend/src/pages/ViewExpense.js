@@ -186,6 +186,49 @@ const ViewExpense = () => {
           </div>
           <div>{getStatusBadge(expense.status)}</div>
         </div>
+
+        {/* Approved By Information */}
+        {expense.status === 'approved' && expense.approvedBy && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-green-900">
+                  Approved by {expense.approvedBy.firstName} {expense.approvedBy.lastName}
+                </p>
+                {expense.approvedAt && (
+                  <p className="text-sm text-green-700 mt-1">
+                    on {format(new Date(expense.approvedAt), 'dd/MM/yyyy HH:mm')}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Declined By Information */}
+        {expense.status === 'declined' && expense.declinedBy && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-900">
+                  Declined by {expense.declinedBy.firstName} {expense.declinedBy.lastName}
+                </p>
+                {expense.declinedAt && (
+                  <p className="text-sm text-red-700 mt-1">
+                    on {format(new Date(expense.declinedAt), 'dd/MM/yyyy HH:mm')}
+                  </p>
+                )}
+                {expense.declineReason && (
+                  <p className="text-sm text-red-700 mt-2">
+                    <strong>Reason:</strong> {expense.declineReason}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}

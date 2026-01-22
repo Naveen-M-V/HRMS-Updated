@@ -115,9 +115,9 @@ const LeaveRequestForm = ({ onSuccess }) => {
       const response = await axios.post('/api/leave-requests', payload);
 
       if (response.data.success) {
-        toast.success(response.data.message, {
-          position: "top-right",
-          autoClose: 5000,
+        toast.success('Leave request sent successfully!', {
+          position: "top-center",
+          autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
@@ -125,8 +125,11 @@ const LeaveRequestForm = ({ onSuccess }) => {
           style: {
             backgroundColor: '#10b981',
             color: '#ffffff',
-            fontWeight: '600',
-            borderRadius: '8px'
+            fontWeight: '700',
+            fontSize: '16px',
+            borderRadius: '12px',
+            padding: '16px 24px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
           }
         });
         setFormData({
