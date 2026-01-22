@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const goalsController = require('../controllers/goalsController');
-const { authenticateSession } = require('../middleware/authenticateSession');
+const { authenticateSession } = require('../server');
 const {
   canAccessGoal,
   canModifyGoal,
