@@ -1,53 +1,47 @@
 const express = require('express');
 const router = express.Router();
-const reviewController = require('../controllers/reviewController');
+const reviewsController = require('../controllers/reviewsController');
+const { authenticateSession } = require('../middleware/authenticateSession');
+const {
+  canAccessReview,
+  canEditSelfAssessment,
+  canSubmitManagerFeedback,
+  preventAdminFieldsEdit
+} = require('../middleware/goalsReviewsRBAC');
+
+// All routes require authentication
+router.use(authenticateSession);
 
 /**
- * Review Routes
- * 
- * Role-Based Access:
- * - Admin/Super-Admin: Can create, edit (DRAFT only), submit, complete, and delete reviews
- * - Employee: Can view (SUBMITTED/COMPLETED only) and add comments
- * 
- * Note: Authentication is handled by authenticateSession middleware in server.js
- * Role checking is done in controller methods
+ * User review endpoints
  */
 
-// ==================== ADMIN ROUTES ====================
+// Get user's reviews (history)
+router.get('/my', reviewsController.getUserReviews);
+
+// Get specific review
+router.get('/:id', canAccessReview, reviewsController.getReview);
+
+// Submit self-assessment
+router.post('/:id/self', canEditSelfAssessment, reviewsController.submitSelfAssessment);
 
 /**
- * POST /api/reviews
- * Create a new review (Admin only)
- * Body: { employeeId, reviewType, reviewPeriodStart?, reviewPeriodEnd?, performanceSummary?, strengths?, improvements?, rating? }
+ * Admin-only endpoints
  */
-router.post('/', reviewController.createReview);
 
-/**
- * PUT /api/reviews/:id
- * Update a review (Admin only, DRAFT only)
- * Body: { performanceSummary?, strengths?, improvements?, rating?, reviewPeriodStart?, reviewPeriodEnd? }
- */
-router.put('/:id', reviewController.updateReview);
+// Initiate review for employee (admin only)
+router.post('/initiate', reviewsController.initiateReview);
 
-/**
- * POST /api/reviews/:id/submit
- * Submit a review (Admin only)
- * Transitions: DRAFT -> SUBMITTED
- * Makes review visible to employee
- */
-router.post('/:id/submit', reviewController.submitReview);
+// Submit manager feedback (admin only)
+router.post('/:id/manager', canSubmitManagerFeedback, reviewsController.submitManagerFeedback);
 
-/**
- * POST /api/reviews/:id/complete
- * Complete a review (Admin only)
- * Transitions: SUBMITTED -> COMPLETED
- * Makes review immutable
- */
-router.post('/:id/complete', reviewController.completeReview);
+// Advance review status (admin only)
+router.post('/:id/status', reviewsController.advanceReviewStatus);
 
-/**
- * GET /api/reviews
- * Get all reviews (Admin only)
+// Get all reviews with filters (admin only)
+router.get('/', reviewsController.getAllReviews);
+
+module.exports = router;
  * Query params: status?, reviewType?, employeeId?
  */
 router.get('/', reviewController.getAllReviews);

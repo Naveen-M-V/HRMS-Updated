@@ -2823,6 +2823,7 @@ const reportLibraryRoutes = require('./routes/reportLibraryRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
 const certificatesRoutes = require('./routes/certificates');
+const goalsRoutes = require('./routes/goalsRoutes');
 
 // Session-based authentication middleware
 const authenticateSession = async (req, res, next) => {
@@ -3458,6 +3459,9 @@ app.use('/api/expenses', authenticateSession, expenseRoutes);
 
 // Performance management
 app.use('/api/performance', authenticateSession, performanceRoutes);
+
+// Goals management (employee goals with admin approval)
+app.use('/api/goals', authenticateSession, goalsRoutes);
 
 // Review management (formal performance reviews)
 const reviewRoutes = require('./routes/reviewRoutes');

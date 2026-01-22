@@ -1,72 +1,122 @@
+/**
+ * Goal Model
+ * 
+ * Tracks employee goals with admin approval workflow
+ * - Users can create and manage personal goals
+ * - Admins can approve, comment, and view all goals
+ * - Goals have progress tracking and status management
+ */
+
 const mongoose = require('mongoose');
 
 const goalSchema = new mongoose.Schema({
-  goalName: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  description: {
-    type: String,
-    required: true,
-    maxlength: 500
-  },
-  assignee: {
+  // References
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'EmployeeHub',
-    required: true
+    required: [true, 'User ID is required'],
+    index: true
   },
-  startDate: {
-    type: Date,
-    required: true
-  },
-  dueDate: {
-    type: Date,
-    required: true
-  },
-  measurementType: {
+
+  // Goal Details
+  title: {
     type: String,
-    enum: ['Yes/No', 'Progress (%)', 'Numeric Target', 'Milestones'],
-    required: true
+    required: [true, 'Goal title is required'],
+    trim: true,
+    maxlength: [200, 'Title cannot exceed 200 characters']
   },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  status: {
+
+  description: {
     type: String,
-    enum: ['Not started', 'In progress', 'Completed', 'Overdue'],
-    default: 'Not started'
+    required: [true, 'Goal description is required'],
+    trim: true,
+    maxlength: [2000, 'Description cannot exceed 2000 characters']
   },
+
+  category: {
+    type: String,
+    enum: ['Technical', 'Leadership', 'Communication', 'Project', 'Personal Development', 'Other'],
+    default: 'Other',
+    required: true
+  },
+
+  // Timing
+  deadline: {
+    type: Date,
+    required: [true, 'Deadline is required']
+  },
+
+  // Progress & Status
   progress: {
     type: Number,
-    default: 0,
-    min: 0,
-    max: 100
-  },
-  targetValue: {
-    type: Number,
-    default: null
-  },
-  currentValue: {
-    type: Number,
+    min: [0, 'Progress cannot be less than 0'],
+    max: [100, 'Progress cannot exceed 100'],
     default: 0
   },
-  milestones: [{
-    name: String,
-    completed: {
-      type: Boolean,
-      default: false
-    },
-    completedDate: Date
-  }]
-}, {
-  timestamps: true
-});
 
-// Index for faster queries
-goalSchema.index({ assignee: 1, status: 1 });
-goalSchema.index({ createdBy: 1 });
+  status: {
+    type: String,
+    enum: ['TO_DO', 'IN_PROGRESS', 'ACHIEVED', 'OVERDUE'],
+    default: 'TO_DO',
+    required: true,
+    index: true
+  },
+
+  // Employee Info (denormalized for quick access)
+  employeeName: {
+    type: String,
+    required: true
+  },
+
+  department: {
+    type: String,
+    required: true
+  },
+
+  // Admin Approval Workflow
+  adminApproved: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+
+  adminComments: [{
+    comment: {
+      type: String,
+      required: true
+    },
+    addedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
+  // Metadata
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    index: true
+  },
+
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  },
+
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
+
+}, { timestamps: true });
+
+// Index for common queries
+goalSchema.index({ userId: 1, status: 1 });
+goalSchema.index({ department: 1, status: 1 });
+goalSchema.index({ adminApproved: 1, status: 1 });
 
 module.exports = mongoose.model('Goal', goalSchema);
