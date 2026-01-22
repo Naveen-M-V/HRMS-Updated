@@ -49,7 +49,7 @@ export default function Reviews() {
         try {
             setLoading(true);
             
-            let endpoint = isAdmin ? '/api/reviews' : '/api/reviews/my/list';
+            let endpoint = isAdmin ? '/reviews' : '/reviews/my/list';
             const params = new URLSearchParams();
             
             if (isAdmin) {

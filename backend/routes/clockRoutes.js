@@ -2656,11 +2656,18 @@ router.get('/timesheet/:employeeId', async (req, res) => {
 
 /**
  * GET /api/employees/count
- * Get total count of employees in the system
+ * Get total count of active employees in the system
+ * Uses employeeService.getActiveEmployeeCount for consistency with Home and Clock pages
  */
 router.get('/employees/count', async (req, res) => {
   try {
-    const totalCount = await User.countDocuments({ role: 'employee' });
+    const includeProfiles = req.query.includeProfiles === 'true';
+    const includeAdmins = req.query.includeAdmins !== 'false'; // Default to true
+    
+    const totalCount = await employeeService.getActiveEmployeeCount({
+      includeProfiles,
+      includeAdmins
+    });
 
     res.json({
       success: true,
@@ -2687,8 +2694,11 @@ router.get('/dashboard-stats', async (req, res) => {
     const dateString = ukNow.toISOString().slice(0, 10); // YYYY-MM-DD format
     const today = moment().tz('Europe/London').startOf('day');
 
-    // Get all employees count
-    const totalEmployees = await EmployeesHub.countDocuments();
+    // Get all employees count using employeeService for consistency
+    const totalEmployees = await employeeService.getActiveEmployeeCount({
+      includeProfiles: false,
+      includeAdmins: true
+    });
 
     // Get today's time entries
     const timeEntries = await TimeEntry.find({

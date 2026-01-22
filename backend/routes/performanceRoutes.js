@@ -10,12 +10,16 @@ router.post('/goals', performanceController.createGoal);
 router.put('/goals/:id', performanceController.updateGoal);
 router.delete('/goals/:id', performanceController.deleteGoal);
 
-// Review routes
+// ⚠️ DEPRECATED: Review routes moved to /api/reviews endpoint
+// DO NOT USE /api/performance/reviews* - Use /api/reviews* instead
+// Routes kept commented for reference only
+/*
 router.get('/reviews', performanceController.getAllReviews);
 router.get('/reviews/my-reviews', performanceController.getMyReviews);
 router.get('/reviews/:id', performanceController.getReviewById);
 router.put('/reviews/:id', performanceController.updateReview);
 router.delete('/reviews/:id', performanceController.deleteReview);
+*/
 
 // Performance Notes
 router.post('/notes', performanceController.createNote);
