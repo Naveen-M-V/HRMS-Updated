@@ -72,7 +72,7 @@ import ViewExpense from './pages/ViewExpense';
 import AdminExpenses from './pages/AdminExpenses';
 import Goals from './pages/Goals';
 import Reviews from './pages/Reviews';
-import ELearningPage from './pages/ELearningPage';
+import ELearning from './pages/ELearning';
 // Admin performance management
 // Admin performance pages removed
 
@@ -403,7 +403,7 @@ function App() {
                     <Route path="/performance/goals" element={<Goals />} />
                     <Route path="/performance/reviews" element={<Reviews />} />
                     {/* Admin performance routes removed */}
-                    <Route path="/e-learning/*" element={<ELearningPage />} />
+                    <Route path="/e-learning" element={<ELearning />} />
                   </Route>
                 </Routes>
               </Router>

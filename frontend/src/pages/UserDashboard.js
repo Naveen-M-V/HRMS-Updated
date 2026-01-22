@@ -956,6 +956,15 @@ const UserDashboard = () => {
               <MyDocumentsWidget userId={user._id} />
             </div>
 
+            {/* E-Learning Widget */}
+            <div className="bg-white shadow-md rounded-lg p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <DocumentTextIcon className="h-6 w-6 mr-3 text-green-600" />
+                E-Learning Materials
+              </h2>
+              <ELearningWidget />
+            </div>
+
             {/* Quick Stats - Clickable Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
               {/* Total Certificates Card */}
@@ -1551,6 +1560,127 @@ const MyDocumentsWidget = ({ userId }) => {
             onClick={() => handleDownload(doc)}
             className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0"
             title="Download document"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// E-Learning Widget Component
+const ELearningWidget = () => {
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `${API_BASE_URL}/api/elearning`,
+        { credentials: 'include' }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMaterials(data.data || []);
+      } else {
+        console.error('Failed to fetch E-Learning materials:', response.status);
+        setMaterials([]);
+      }
+    } catch (error) {
+      console.error('Error fetching E-Learning materials:', error);
+      setMaterials([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = (material) => {
+    window.open(`${API_BASE_URL}${material.fileUrl}`, '_blank');
+  };
+
+  const getFileIcon = (mimeType) => {
+    if (mimeType?.includes('pdf')) return '📄';
+    if (mimeType?.includes('presentation') || mimeType?.includes('powerpoint')) return '📊';
+    if (mimeType?.includes('word') || mimeType?.includes('document')) return '📝';
+    return '📁';
+  };
+
+  const getFileType = (mimeType) => {
+    if (mimeType?.includes('pdf')) return 'PDF';
+    if (mimeType?.includes('presentation')) return 'PPTX';
+    if (mimeType?.includes('powerpoint')) return 'PPT';
+    if (mimeType?.includes('wordprocessingml')) return 'DOCX';
+    if (mimeType?.includes('msword')) return 'DOC';
+    return 'FILE';
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'Unknown';
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    const mb = kb / 1024;
+    return `${mb.toFixed(1)} MB`;
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="text-sm text-gray-600 mt-2">Loading materials...</p>
+      </div>
+    );
+  }
+
+  if (materials.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <DocumentTextIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No materials available</h3>
+        <p className="text-gray-600">Check back later for new learning resources</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {materials.map((material) => (
+        <div
+          key={material._id}
+          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="text-3xl flex-shrink-0">{getFileIcon(material.mimeType)}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-medium text-gray-900 truncate">{material.name}</h4>
+                <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-semibold rounded flex-shrink-0">
+                  {getFileType(material.mimeType)}
+                </span>
+              </div>
+              {material.description && (
+                <p className="text-sm text-gray-600 mb-1 line-clamp-1">{material.description}</p>
+              )}
+              <div className="flex items-center space-x-3 text-xs text-gray-500">
+                <span>{formatFileSize(material.fileSize)}</span>
+                <span>•</span>
+                <span>{formatDateDDMMYY(material.createdAt)}</span>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => handleDownload(material)}
+            className="ml-4 p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0"
+            title="Download material"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
