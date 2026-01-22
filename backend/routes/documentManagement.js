@@ -1048,4 +1048,142 @@ router.get('/documents/:documentId/versions', checkPermission('view'), async (re
   }
 });
 
+// ==================== MY DOCUMENTS FEATURE ====================
+
+/**
+ * Helper function: Ensure "My Documents" folder exists for employee
+ * Creates folder if not exists, returns existing if found
+ */
+async function ensureMyDocumentsFolder(employeeId) {
+  try {
+    // Check if folder already exists
+    let folder = await Folder.findOne({
+      name: 'My Documents',
+      createdBy: employeeId,
+      isActive: true
+    });
+
+    if (folder) {
+      return folder;
+    }
+
+    // Create new "My Documents" folder
+    folder = await Folder.create({
+      name: 'My Documents',
+      description: 'Personal documents folder',
+      createdBy: employeeId,
+      permissions: {
+        view: ['admin', 'employee'],
+        edit: ['admin'],
+        upload: ['admin'],
+        download: ['admin', 'employee'],
+        delete: ['admin']
+      },
+      isActive: true
+    });
+
+    console.log('Created My Documents folder for employee:', employeeId);
+    return folder;
+  } catch (error) {
+    console.error('Error ensuring My Documents folder:', error);
+    throw error;
+  }
+}
+
+/**
+ * POST /api/document-management/employees/:employeeId/upload
+ * Upload document to employee's "My Documents" folder (admin only)
+ */
+router.post('/employees/:employeeId/upload',
+  checkPermission('upload'),
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const { employeeId } = req.params;
+      const { category } = req.body;
+
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      // Ensure My Documents folder exists
+      const folder = await ensureMyDocumentsFolder(employeeId);
+
+      // Create document record
+      const document = await DocumentManagement.create({
+        name: req.file.originalname,
+        fileUrl: `/uploads/documents/${req.file.filename}`,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedBy: req.user._id || req.user.userId || req.user.id,
+        uploadedByRole: 'admin',
+        ownerId: employeeId,
+        folderId: folder._id,
+        category: category || 'other',
+        accessControl: {
+          visibility: 'employee',
+          allowedUserIds: [employeeId]
+        },
+        isActive: true,
+        isArchived: false
+      });
+
+      console.log('Document uploaded to My Documents:', document._id);
+
+      res.status(201).json({
+        message: 'Document uploaded successfully',
+        document
+      });
+    } catch (error) {
+      console.error('Upload to My Documents error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+/**
+ * GET /api/document-management/employees/:employeeId/my-documents
+ * Get all documents in employee's "My Documents" folder
+ * Auth: Employee can only access their own, admins can access any
+ */
+router.get('/employees/:employeeId/my-documents', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const userRole = req.user?.role;
+    const userId = req.user?._id || req.user?.userId || req.user?.id;
+
+    // Authorization check: if not admin, must be accessing own documents
+    if (userRole !== 'admin' && userRole !== 'super-admin') {
+      if (String(userId) !== String(employeeId)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
+    // Find My Documents folder
+    const folder = await Folder.findOne({
+      name: 'My Documents',
+      createdBy: employeeId,
+      isActive: true
+    });
+
+    if (!folder) {
+      return res.json({ folder: null, documents: [] });
+    }
+
+    // Get documents in folder
+    const documents = await DocumentManagement.find({
+      folderId: folder._id,
+      isActive: true,
+      isArchived: false
+    })
+      .populate('uploadedBy', 'firstName lastName')
+      .sort({ createdAt: -1 });
+
+    res.json({ folder, documents });
+  } catch (error) {
+    console.error('Get My Documents error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;

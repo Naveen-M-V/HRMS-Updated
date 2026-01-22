@@ -30,37 +30,37 @@ const folderSchema = new mongoose.Schema({
     view: {
       type: [{
         type: String,
-        enum: ['admin', 'hr', 'manager', 'employee']
+        enum: ['admin', 'employee']
       }],
-      default: ['admin', 'hr']
+      default: ['admin']
     },
     edit: {
       type: [{
         type: String,
-        enum: ['admin', 'hr', 'manager', 'employee']
+        enum: ['admin', 'employee']
       }],
-      default: ['admin', 'hr']
+      default: ['admin']
     },
     upload: {
       type: [{
         type: String,
-        enum: ['admin', 'hr', 'manager', 'employee']
+        enum: ['admin', 'employee']
       }],
-      default: ['admin', 'hr']
+      default: ['admin']
     },
     download: {
       type: [{
         type: String,
-        enum: ['admin', 'hr', 'manager', 'employee']
+        enum: ['admin', 'employee']
       }],
-      default: ['admin', 'hr']
+      default: ['admin']
     },
     delete: {
       type: [{
         type: String,
-        enum: ['admin', 'hr', 'manager', 'employee']
+        enum: ['admin', 'employee']
       }],
-      default: ['admin', 'hr']
+      default: ['admin']
     }
   },
   

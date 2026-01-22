@@ -947,6 +947,15 @@ const UserDashboard = () => {
               )}
             </div>
 
+            {/* My Documents Widget */}
+            <div className="bg-white shadow-md rounded-lg p-8">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <DocumentTextIcon className="h-6 w-6 mr-3 text-blue-600" />
+                My Documents
+              </h2>
+              <MyDocumentsWidget userId={user._id} />
+            </div>
+
             {/* Quick Stats - Clickable Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
               {/* Total Certificates Card */}
@@ -1440,6 +1449,115 @@ const UserDashboard = () => {
         cancelText="Cancel"
         variant="destructive"
       />
+    </div>
+  );
+};
+
+// My Documents Widget Component
+const MyDocumentsWidget = ({ userId }) => {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+
+  useEffect(() => {
+    fetchMyDocuments();
+  }, [userId]);
+
+  const fetchMyDocuments = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `${API_BASE_URL}/api/document-management/employees/${userId}/my-documents`,
+        { credentials: 'include' }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDocuments(data.documents || []);
+      } else {
+        console.error('Failed to fetch documents:', response.status);
+        setDocuments([]);
+      }
+    } catch (error) {
+      console.error('Error fetching My Documents:', error);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = (doc) => {
+    if (doc.fileUrl) {
+      window.open(`${API_BASE_URL}${doc.fileUrl}`, '_blank');
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'Unknown size';
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    const mb = kb / 1024;
+    return `${mb.toFixed(1)} MB`;
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="text-sm text-gray-600 mt-2">Loading documents...</p>
+      </div>
+    );
+  }
+
+  if (documents.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <DocumentTextIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents uploaded yet</h3>
+        <p className="text-gray-600">Documents uploaded by your administrator will appear here</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {documents.map((doc) => (
+        <div
+          key={doc._id}
+          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-gray-900 truncate">{doc.name}</h4>
+              <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
+                <span>{formatFileSize(doc.fileSize)}</span>
+                <span>•</span>
+                <span>{formatDateDDMMYY(doc.createdAt)}</span>
+                {doc.category && doc.category !== 'other' && (
+                  <>
+                    <span>•</span>
+                    <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs capitalize">
+                      {doc.category.replace('_', ' ')}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => handleDownload(doc)}
+            className="ml-4 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0"
+            title="Download document"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          </button>
+        </div>
+      ))}
     </div>
   );
 };

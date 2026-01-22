@@ -193,8 +193,7 @@ const LeaveRequestForm = ({ onSuccess }) => {
               </SelectTrigger>
               <SelectContent>
                 {managers.map(manager => {
-                  const roleDisplay = manager.role === 'hr' ? 'HR' : 
-                                    manager.role === 'super-admin' ? 'Super Admin' :
+                  const roleDisplay = manager.role === 'super-admin' ? 'Super Admin' :
                                     manager.role.charAt(0).toUpperCase() + manager.role.slice(1);
                   return (
                     <SelectItem key={manager._id} value={manager._id}>

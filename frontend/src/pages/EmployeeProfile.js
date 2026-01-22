@@ -22,7 +22,9 @@ import {
   Home,
   Users,
   Download,
-  UserMinus
+  UserMinus,
+  Trash2,
+  X
 } from 'lucide-react';
 import axios from '../utils/axiosConfig';
 import AddLeaveModal from '../components/AddLeaveModal';
@@ -204,8 +206,8 @@ const EmployeeProfile = () => {
           </svg>
           Edit Profile
         </button>
-        {/* Terminate Button - only visible to HR/Admin */}
-        {user && (user.role === 'hr' || user.role === 'admin' || user.role === 'super-admin') && employee && employee.status !== 'Terminated' && (
+        {/* Terminate Button - only visible to Admin */}
+        {user && (user.role === 'admin' || user.role === 'super-admin') && employee && employee.status !== 'Terminated' && (
           <button
             onClick={() => setShowTerminationModal(true)}
             className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
@@ -757,6 +759,7 @@ const EmergenciesTab = ({ employee }) => {
 
 // Documents Tab with Document Manager
 const DocumentsTab = ({ employee }) => {
+  const { user } = useAuth();
   // Check multiple possible data structures
   const folders = employee?.folders || employee?.documents || employee?.documentFolders || [];
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -764,8 +767,16 @@ const DocumentsTab = ({ employee }) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    file: null,
+    category: 'other',
+    description: ''
+  });
+  const [uploading, setUploading] = useState(false);
 
   console.log("DocumentsTab - folders:", folders);
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
 
   const handleFolderClick = (folder) => {
     setSelectedFolder(folder);
@@ -785,7 +796,50 @@ const DocumentsTab = ({ employee }) => {
   };
 
   const handleUpload = () => {
+    if (!isAdmin) {
+      alert('Only administrators can upload documents');
+      return;
+    }
     setShowUploadModal(true);
+  };
+
+  const handleUploadSubmit = async () => {
+    if (!uploadForm.file) {
+      alert('Please select a file');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', uploadForm.file);
+      formData.append('category', uploadForm.category);
+      if (uploadForm.description) {
+        formData.append('description', uploadForm.description);
+      }
+
+      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
+      await axios.post(
+        `${API_BASE_URL}/api/document-management/employees/${employee._id}/upload`,
+        formData,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          withCredentials: true
+        }
+      );
+
+      alert('Document uploaded successfully');
+      setShowUploadModal(false);
+      setUploadForm({ file: null, category: 'other', description: '' });
+      
+      // Refresh employee data
+      window.location.reload();
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(error.response?.data?.message || 'Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDeleteDocument = (doc) => {
@@ -815,13 +869,15 @@ const DocumentsTab = ({ employee }) => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
-          <button
-            onClick={handleUpload}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            <span>Upload</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={handleUpload}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload</span>
+            </button>
+          )}
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
           <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -836,7 +892,7 @@ const DocumentsTab = ({ employee }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">Documents</h3>
-        {selectedFolder && (
+        {selectedFolder && isAdmin && (
           <div className="flex items-center gap-2">
             <button
               onClick={handleUpload}
@@ -941,6 +997,92 @@ const DocumentsTab = ({ employee }) => {
             )) : (
               <div className="p-4 text-center text-gray-500">No documents in this folder.</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Upload Document</h3>
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadForm({ file: null, category: 'other', description: '' });
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  File *
+                </label>
+                <input
+                  type="file"
+                  onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files[0] })}
+                  className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.txt"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <select
+                  value={uploadForm.category}
+                  onChange={(e) => setUploadForm({ ...uploadForm, category: e.target.value })}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="other">Other</option>
+                  <option value="passport">Passport</option>
+                  <option value="visa">Visa</option>
+                  <option value="contract">Contract</option>
+                  <option value="certificate">Certificate</option>
+                  <option value="id_proof">ID Proof</option>
+                  <option value="resume">Resume</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={uploadForm.description}
+                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                  rows={3}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Add notes about this document..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadForm({ file: null, category: 'other', description: '' });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={uploading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUploadSubmit}
+                disabled={uploading || !uploadForm.file}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
           </div>
         </div>
       )}

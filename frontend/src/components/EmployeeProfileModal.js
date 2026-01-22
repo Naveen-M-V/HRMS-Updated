@@ -97,11 +97,11 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
     return { status: 'valid', color: '#10b981', label: 'Valid' };
   };
 
-  // Check if current user has HR or Admin role
+  // Check if current user has Admin role
   const canTerminateEmployee = () => {
     if (!user) return false;
     const userRole = user.role?.toLowerCase();
-    return userRole === 'hr' || userRole === 'admin' || userRole === 'super-admin';
+    return userRole === 'admin' || userRole === 'super-admin';
   };
 
   // Handle successful termination
@@ -152,7 +152,7 @@ const EmployeeProfileModal = ({ employee, onClose }) => {
         }}>
           <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', gap: '10px', zIndex: 1000 }}>
             {/* Termination Button */}
-            {user && (user.role === 'hr' || user.role === 'admin' || user.role === 'super-admin') && employee && employee.status !== 'Terminated' && (
+            {user && (user.role === 'admin' || user.role === 'super-admin') && employee && employee.status !== 'Terminated' && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();

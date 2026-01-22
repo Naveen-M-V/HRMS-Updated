@@ -142,7 +142,7 @@ export default function Login() {
           redirectPath = location.state?.from?.pathname || "/dashboard";
         }
         // Employees (from EmployeeHub) → User Dashboard with clock in/out, shifts, documents
-        else if (['employee', 'manager', 'senior-manager', 'hr'].includes(userRole)) {
+        else if (userRole === 'employee') {
           console.log('✅ Routing to: /user-dashboard (Employee)');
           redirectPath = "/user-dashboard";
         }

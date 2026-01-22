@@ -137,7 +137,7 @@ function EmployeeProtectedRoute({ children }) {
   }
 
   // Allow employees and admins (admins can view as employees)
-  const allowedRoles = ['employee', 'manager', 'senior-manager', 'hr', 'admin', 'super-admin'];
+  const allowedRoles = ['employee', 'admin', 'super-admin'];
   if (!allowedRoles.includes(user?.role)) {
     return <Navigate to="/user-dashboard" replace />;
   }

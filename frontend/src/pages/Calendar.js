@@ -182,7 +182,7 @@ const Calendar = () => {
   };
 
   const fetchPendingRequests = async () => {
-    if (!['admin', 'super-admin', 'hr', 'manager'].includes(user?.role)) return;
+    if (!['admin', 'super-admin'].includes(user?.role)) return;
     
     setLoadingRequests(true);
     try {
@@ -699,7 +699,7 @@ const Calendar = () => {
       </div>
 
       {/* Tabs for Admin */}
-      {(user?.role === 'admin' || user?.role === 'super-admin' || user?.role === 'hr' || user?.role === 'manager') && (
+      {(user?.role === 'admin' || user?.role === 'super-admin') && (
         <div className="mb-4 border-b border-gray-200">
           <div className="flex gap-4">
             <button
@@ -1227,7 +1227,7 @@ const Calendar = () => {
       )}
 
       {/* Pending Requests View - Admin Only */}
-      {activeTab === 'pending-requests' && (user?.role === 'admin' || user?.role === 'super-admin' || user?.role === 'hr' || user?.role === 'manager') && (
+      {activeTab === 'pending-requests' && (user?.role === 'admin' || user?.role === 'super-admin') && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Leave Requests</h2>
           

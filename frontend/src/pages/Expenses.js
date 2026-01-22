@@ -252,7 +252,7 @@ const Expenses = () => {
         >
           My expenses
         </button>
-        {['manager', 'admin'].includes(userRole) && (
+        {['admin', 'super-admin'].includes(userRole) && (
           <button
             onClick={() => setActiveTab('approvals')}
             className={`px-4 py-2 font-medium transition ${

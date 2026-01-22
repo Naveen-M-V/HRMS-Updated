@@ -162,7 +162,7 @@ const ViewExpense = () => {
     );
   }
 
-  const canApprove = ['admin', 'manager'].includes(userRole) && expense.status === 'pending';
+  const canApprove = ['admin', 'super-admin'].includes(userRole) && expense.status === 'pending';
   const canMarkAsPaid = userRole === 'admin' && expense.status === 'approved';
   const canRevert = userRole === 'admin' && ['approved', 'declined'].includes(expense.status);
 
