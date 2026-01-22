@@ -41,8 +41,10 @@ export const getApiBaseUrl = () => {
     return 'https://hrms.talentshield.co.uk';
   }
   
-  // Default fallback to localhost for development
-  return 'http://localhost:5004';
+  // If no environment matches, throw error to alert developer
+  console.error('⚠️ WARNING: Could not determine API base URL. Ensure REACT_APP_API_BASE_URL is set.');
+  console.error('Current hostname:', hostname);
+  return process.env.REACT_APP_API_BASE_URL || '';
 };
 
 /**

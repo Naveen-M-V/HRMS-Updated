@@ -156,8 +156,7 @@ export const ProfileProvider = ({ children }) => {
   const deleteProfile = async (profileId) => {
     setDeleting(true);
     const possibleUrls = [
-      SERVER_BASE_URL,
-      'http://localhost:5003'
+      SERVER_BASE_URL
     ];
 
     const token = localStorage.getItem('auth_token');
