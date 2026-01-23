@@ -3,6 +3,7 @@ import { Upload, Download, Trash2, FileText, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { buildApiUrl, buildDirectUrl } from '../utils/apiConfig';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
 import { isAdmin } from '../utils/authUtils';
 
@@ -29,7 +30,7 @@ const ELearning = () => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/api/elearning`, {
+      const response = await axios.get(buildApiUrl('/elearning'), {
         withCredentials: true
       });
       setMaterials(response.data.data || []);
@@ -57,7 +58,7 @@ const ELearning = () => {
         formData.append('description', uploadForm.description);
       }
 
-      await axios.post(`${API_BASE_URL}/api/elearning/upload`, formData, {
+      await axios.post(buildApiUrl('/elearning/upload'), formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });
@@ -80,7 +81,7 @@ const ELearning = () => {
     }
 
     try {
-      await axios.delete(`${API_BASE_URL}/api/elearning/${materialId}`, {
+      await axios.delete(buildApiUrl(`/elearning/${materialId}`), {
         withCredentials: true
       });
       toast.success('Material deleted successfully');
@@ -92,7 +93,7 @@ const ELearning = () => {
   };
 
   const handleDownload = (material) => {
-    window.open(`${API_BASE_URL}${material.fileUrl}`, '_blank');
+    window.open(buildDirectUrl(material.fileUrl), '_blank');
   };
 
   const getFileIcon = (mimeType) => {

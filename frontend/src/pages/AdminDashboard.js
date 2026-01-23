@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { buildApiUrl } from '../utils/apiConfig';
 import { useAuth } from '../context/AuthContext';
 import { useClockStatus } from '../context/ClockStatusContext';
 import ComplianceDashboard from '../components/ComplianceDashboard';
@@ -34,7 +35,7 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       // Fetch from compliance-insights endpoint which includes absent employee list
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/clock/compliance-insights`, {
+      const response = await fetch(buildApiUrl('/clock/compliance-insights'), {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
@@ -318,7 +319,7 @@ const AttendanceCalendar = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/employees`, {
+      const response = await fetch(buildApiUrl('/employees'), {
         credentials: 'include'
       });
       if (response.ok) {
@@ -337,8 +338,8 @@ const AttendanceCalendar = () => {
       const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
       const url = selectedEmployee === 'all'
-        ? `${process.env.REACT_APP_API_BASE_URL}/api/clock/time-entries?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`
-        : `${process.env.REACT_APP_API_BASE_URL}/api/clock/time-entries/${selectedEmployee}?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`;
+        ? buildApiUrl(`/clock/time-entries?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`)
+        : buildApiUrl(`/clock/time-entries/${selectedEmployee}?startDate=${startOfMonth.toISOString().split('T')[0]}&endDate=${endOfMonth.toISOString().split('T')[0]}`);
 
       const response = await fetch(url, {
         credentials: 'include'

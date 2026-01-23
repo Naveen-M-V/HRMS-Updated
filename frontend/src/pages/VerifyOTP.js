@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { buildApiUrl } from '../utils/apiConfig';
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
@@ -81,7 +82,7 @@ export default function VerifyOTP() {
     setError("");
 
     try {
-      const response = await fetch('http://hrms.talentshield.co.uk/api/auth/verify-otp', {
+      const response = await fetch(buildApiUrl('/auth/verify-otp'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ export default function VerifyOTP() {
     setError("");
 
     try {
-      const response = await fetch('http://hrms.talentshield.co.uk/api/auth/forgot-password', {
+      const response = await fetch(buildApiUrl('/auth/forgot-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

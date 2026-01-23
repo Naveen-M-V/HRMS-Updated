@@ -101,7 +101,7 @@ export const reviewsApi = {
     // Get my reviews
     getMyReviews: async () => {
         try {
-            const response = await api.get('/reviews/my-reviews');
+            const response = await api.get('/reviews/my');
             return response.data;
         } catch (err) {
             // If endpoint is not available (404) or other client error, return empty array

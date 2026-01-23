@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || '/api';
 const ADMIN_ROLES = ['admin', 'super-admin', 'hr'];

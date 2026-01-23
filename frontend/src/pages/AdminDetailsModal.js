@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { DatePicker } from '../components/ui/date-picker';
 import { useAlert } from "../components/AlertNotification";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { buildApiUrl } from '../utils/apiConfig';
 
 export default function AdminDetailsModal() {
   const navigate = useNavigate();
@@ -38,9 +39,7 @@ export default function AdminDetailsModal() {
           setLoading(false);
           return;
         }
-        const apiUrl = process.env.REACT_APP_API_URL || '';
-        const base = apiUrl ? apiUrl : '';
-        const resp = await fetch(`${base}/api/my-profile`, {
+        const resp = await fetch(buildApiUrl('/my-profile'), {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -107,9 +106,7 @@ export default function AdminDetailsModal() {
     if (!token) return;
     try {
       setSaving(true);
-      const apiUrl = process.env.REACT_APP_API_URL || '';
-      const base = apiUrl ? apiUrl : '';
-      const resp = await fetch(`${base}/api/admin/update-profile`, {
+      const resp = await fetch(buildApiUrl('/admin/update-profile'), {
         method: 'PUT',
         credentials: 'include',
         headers: {

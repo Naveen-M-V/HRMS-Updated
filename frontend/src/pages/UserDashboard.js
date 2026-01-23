@@ -34,6 +34,7 @@ import {
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { formatDateDDMMYY } from '../utils/dateFormatter';
+import { buildApiUrl, buildDirectUrl } from '../utils/apiConfig';
 
 const UserDashboard = () => {
   const { user, logout } = useAuth();
@@ -107,8 +108,8 @@ const UserDashboard = () => {
         setLoading(true);
       }
 
-      const employeeEndpoint = `${API_BASE_URL}/api/employees/by-email/${user.email}`;
-      const profileEndpoint = `${API_BASE_URL}/api/profiles/by-email/${user.email}`;
+      const employeeEndpoint = buildApiUrl(`/employees/by-email/${user.email}`);
+      const profileEndpoint = buildApiUrl(`/profiles/by-email/${user.email}`);
 
       let resolvedIsEmployeeUser = isEmployeeUser;
 
@@ -138,12 +139,12 @@ const UserDashboard = () => {
           
           if (resolvedIsEmployeeUser) {
             // For employees, use employeeRef endpoint
-            certificatesResponse = await fetch(`${API_BASE_URL}/api/certificates/employee/${userData._id}`, {
+            certificatesResponse = await fetch(buildApiUrl(`/certificates/employee/${userData._id}`), {
               credentials: 'include'
             });
           } else {
             // For profiles, use profileRef endpoint  
-            certificatesResponse = await fetch(`${API_BASE_URL}/api/profiles/${userData._id}/certificates`, {
+            certificatesResponse = await fetch(buildApiUrl(`/profiles/${userData._id}/certificates`), {
               credentials: 'include'
             });
           }
@@ -162,7 +163,7 @@ const UserDashboard = () => {
         // Fetch user notifications from session-based endpoint
         try {
           const token = localStorage.getItem('auth_token');
-          const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications?limit=10`, {
+          const notificationsResponse = await fetch(buildApiUrl('/notifications?limit=10'), {
             credentials: 'include',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -683,8 +684,8 @@ const UserDashboard = () => {
     try {
       // Determine which endpoint to use based on userType
       const endpoint = isEmployeeUser
-        ? `${API_BASE_URL}/api/employees/${userProfile._id}`
-        : `${API_BASE_URL}/api/profiles/${userProfile._id}`;
+        ? buildApiUrl(`/employees/${userProfile._id}`)
+        : buildApiUrl(`/profiles/${userProfile._id}`);
 
       console.log('Updating user data at:', endpoint, 'userType:', user.userType);
 
@@ -1481,7 +1482,7 @@ const MyDocumentsWidget = ({ userId }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/document-management/employees/${userId}/my-documents`,
+        buildApiUrl(`/documentManagement/employees/${userId}/my-documents`),
         { credentials: 'include' }
       );
       
@@ -1515,7 +1516,7 @@ const MyDocumentsWidget = ({ userId }) => {
       formData.append('category', 'other');
 
       const response = await fetch(
-        `${API_BASE_URL}/api/document-management/upload`,
+        buildApiUrl('/documentManagement/upload'),
         {
           method: 'POST',
           credentials: 'include',
@@ -1542,7 +1543,7 @@ const MyDocumentsWidget = ({ userId }) => {
 
   const handleDownload = (doc) => {
     if (doc.fileUrl) {
-      window.open(`${API_BASE_URL}${doc.fileUrl}`, '_blank');
+      window.open(buildDirectUrl(doc.fileUrl), '_blank');
     }
   };
 
@@ -1718,7 +1719,7 @@ const ELearningWidget = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/elearning`,
+        buildApiUrl('/elearning'),
         { credentials: 'include' }
       );
       
@@ -1738,7 +1739,7 @@ const ELearningWidget = () => {
   };
 
   const handleDownload = (material) => {
-    window.open(`${API_BASE_URL}${material.fileUrl}`, '_blank');
+    window.open(buildDirectUrl(material.fileUrl), '_blank');
   };
 
   const getFileIcon = (mimeType) => {
@@ -1841,7 +1842,7 @@ const LeaveStatusSection = ({ userId }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/leave-requests/my-requests`,
+        buildApiUrl('/leave-requests/my-requests'),
         { credentials: 'include' }
       );
       

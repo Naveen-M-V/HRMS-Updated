@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const UserCertificateCreate = () => {
   const { user } = useAuth();
@@ -45,13 +46,15 @@ const UserCertificateCreate = () => {
   const [providers, setProviders] = useState([]);
   const [certificateNames, setCertificateNames] = useState([]);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
   useEffect(() => {
     if (user?.email) {
       fetchUserProfile();
     }
   }, [user]);
+
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
   // Load providers and certificate names on component mount
   useEffect(() => {
@@ -61,7 +64,7 @@ const UserCertificateCreate = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/by-email/${user.email}`, {
+      const response = await fetch(buildApiUrl(`/profiles/by-email/${user.email}`), {
         credentials: 'include'
       });
       
@@ -92,7 +95,7 @@ const UserCertificateCreate = () => {
 
   const fetchProviders = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/suppliers`, {
+      const response = await fetch(buildApiUrl('/suppliers'), {
         credentials: 'include'
       });
       if (response.ok) {
@@ -102,11 +105,11 @@ const UserCertificateCreate = () => {
     } catch (error) {
       console.error('Error fetching providers:', error);
     }
-  };
+    const handleProviderSearch = async (searchTerm) => {
 
-  const fetchCertificateNames = async () => {
+        const response = await fetch(buildApiUrl(`/suppliers/search?q=${encodeURIComponent(searchTerm)}`), {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/certificate-names`, {
+      const response = await fetch(buildApiUrl('/certificate-names'), {
         credentials: 'include'
       });
       if (response.ok) {
@@ -195,9 +198,9 @@ const UserCertificateCreate = () => {
     
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+  const handleAddProvider = async (providerName) => {
         ...prev,
-        [name]: ''
+      const response = await fetch(buildApiUrl('/suppliers'), {
       }));
     }
   };
@@ -211,9 +214,9 @@ const UserCertificateCreate = () => {
     
     if (errors.certificateFile) {
       setErrors(prev => ({
-        ...prev,
+  const handleCertificateNameSearch = async (searchTerm) => {
         certificateFile: ''
-      }));
+      const response = await fetch(buildApiUrl(`/certificate-names/search?q=${encodeURIComponent(searchTerm)}`), {
     }
   };
 
@@ -292,7 +295,7 @@ const UserCertificateCreate = () => {
         formDataToSend.append('certificateFile', formData.certificateFile);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/certificates`, {
+      const response = await fetch(buildApiUrl('/certificates'), {
         method: 'POST',
         credentials: 'include',
         body: formDataToSend
@@ -419,9 +422,9 @@ const UserCertificateCreate = () => {
                 </div>
               )}
 
-              {/* Certificate Name */}
+                const handleAddCertificateName = async (certName) => {
               <div>
-                <label htmlFor="certificate" className="block text-sm font-medium text-gray-700">
+                    const response = await fetch(buildApiUrl('/certificate-names'), {
                   Certificate Name *
                 </label>
                 <SearchableDropdown
@@ -447,7 +450,7 @@ const UserCertificateCreate = () => {
                 <Select
                   value={formData.category}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                >
+              const handleSubmit = async (e) => {
                   <SelectTrigger className="w-full mt-1">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>

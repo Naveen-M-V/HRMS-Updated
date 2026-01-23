@@ -583,7 +583,7 @@ export default function AddEmployee() {
               
               try {
                 const uploadResponse = await axios.post(
-                  `${process.env.REACT_APP_API_BASE_URL}/document-management/documents`,
+                  `${process.env.REACT_APP_API_BASE_URL}/documentManagement/documents`,
                   formDataObj,
                   {
                     headers: {

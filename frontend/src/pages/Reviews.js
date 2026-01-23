@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { buildApiUrl } from '../utils/apiConfig';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || '/api';
 const ADMIN_ROLES = ['admin', 'super-admin', 'hr'];
@@ -111,7 +112,7 @@ export default function Reviews() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/employees`, { withCredentials: true });
+      const res = await axios.get(buildApiUrl('/employees'), { withCredentials: true });
       const payload = Array.isArray(res.data) ? res.data : res.data.employees || res.data.data || [];
       setEmployees(payload);
     } catch (err) {
@@ -132,7 +133,7 @@ export default function Reviews() {
           }
         : undefined;
 
-      const res = await axios.get(`${API_BASE}${url}`, { params, withCredentials: true });
+      const res = await axios.get(buildApiUrl(url), { params, withCredentials: true });
       const payload = res.data?.data ?? res.data?.reviews ?? [];
       setReviews(Array.isArray(payload) ? payload : []);
     } catch (err) {
@@ -146,7 +147,7 @@ export default function Reviews() {
 
   const openDetail = async (review) => {
     try {
-      const res = await axios.get(`${API_BASE}/reviews/${review._id}`, { withCredentials: true });
+      const res = await axios.get(buildApiUrl(`/reviews/${review._id}`), { withCredentials: true });
       setSelectedReview(res.data?.data || review);
       setShowDetail(true);
     } catch (err) {
@@ -169,7 +170,7 @@ export default function Reviews() {
     }
     try {
       await axios.post(
-        `${API_BASE}/reviews/${selectedReview._id}/self`,
+        buildApiUrl(`/reviews/${selectedReview._id}/self`),
         { selfAssessment: cleaned.map((c) => ({ ...c, rating: Number(c.rating) })) },
         { withCredentials: true }
       );
@@ -185,7 +186,7 @@ export default function Reviews() {
 
   const advanceToManager = async (review) => {
     try {
-      await axios.post(`${API_BASE}/reviews/${review._id}/status`, {}, { withCredentials: true });
+      await axios.post(buildApiUrl(`/reviews/${review._id}/status`), {}, { withCredentials: true });
       toast.success('Moved to manager review');
       fetchReviews();
     } catch (err) {
@@ -203,7 +204,7 @@ export default function Reviews() {
   const submitManagerFeedback = async () => {
     try {
       await axios.post(
-        `${API_BASE}/reviews/${selectedReview._id}/manager`,
+        buildApiUrl(`/reviews/${selectedReview._id}/manager`),
         {
           rating: Number(managerForm.rating),
           feedback: managerForm.feedback.trim(),
@@ -228,7 +229,7 @@ export default function Reviews() {
     }
     try {
       await axios.post(
-        `${API_BASE}/reviews/initiate`,
+        buildApiUrl('/reviews/initiate'),
         { employeeId: initiateForm.employeeId, cycleId: initiateForm.cycleId || undefined },
         { withCredentials: true }
       );

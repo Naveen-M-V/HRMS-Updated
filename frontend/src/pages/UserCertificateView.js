@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getImageUrl as getImageUrlFromConfig } from '../utils/config';
+import { buildApiUrl } from '../utils/apiConfig';
 import { 
   ArrowLeftIcon, 
   DocumentIcon,
@@ -27,7 +28,7 @@ const UserCertificateView = () => {
   const [error, setError] = useState(null);
   const [showDeleteRequestDialog, setShowDeleteRequestDialog] = useState(false);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5003';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
   useEffect(() => {
     fetchCertificate();
@@ -36,7 +37,7 @@ const UserCertificateView = () => {
   const fetchCertificate = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/certificates/${id}`, {
+      const response = await fetch(buildApiUrl(`/certificates/${id}`), {
         credentials: 'include'
       });
 
@@ -56,7 +57,7 @@ const UserCertificateView = () => {
 
   const handleDeleteRequest = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/certificates/delete-request`, {
+      const response = await fetch(buildApiUrl('/certificates/delete-request'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

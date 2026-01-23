@@ -32,6 +32,7 @@ import AddTimeOffModal from '../components/AddTimeOffModal';
 import { SicknessModal, LatenessModal, CarryoverModal } from '../components/AbsenceModals';
 import TerminationFlowModal from '../components/TerminationFlowModal';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl, buildDirectUrl } from '../utils/apiConfig';
 
 const EmployeeProfile = () => {
   const [showLeaveModal, setShowLeaveModal] = React.useState(false);
@@ -791,7 +792,7 @@ const DocumentsTab = ({ employee }) => {
   const handleDownload = (doc) => {
     if (doc.fileUrl) {
       // Open document URL in new tab
-      window.open(`${process.env.REACT_APP_API_BASE_URL}${doc.fileUrl}`, '_blank');
+      window.open(buildDirectUrl(doc.fileUrl), '_blank');
     }
   };
 
@@ -818,9 +819,8 @@ const DocumentsTab = ({ employee }) => {
         formData.append('description', uploadForm.description);
       }
 
-      const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '';
       await axios.post(
-        `${API_BASE_URL}/api/document-management/employees/${employee._id}/upload`,
+        buildApiUrl(`/documentManagement/employees/${employee._id}/upload`),
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -852,7 +852,7 @@ const DocumentsTab = ({ employee }) => {
     
     try {
       // Call delete API
-      await axios.delete(`${process.env.REACT_APP_API_BASE_URL}/document-management/documents/${documentToDelete.id}`);
+      await axios.delete(buildApiUrl(`/documentManagement/documents/${documentToDelete.id}`));
       
       // Refresh documents
       setDocuments(documents.filter(d => d.id !== documentToDelete.id));

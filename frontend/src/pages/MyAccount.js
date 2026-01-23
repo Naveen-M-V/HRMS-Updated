@@ -6,6 +6,7 @@ import { getImageUrl } from "../utils/config";
 import { useAlert } from "../components/AlertNotification";
 import ProfilePictureUpload from "../components/ProfilePictureUpload";
 import { formatDateDDMMYY } from '../utils/dateFormatter';
+import { buildApiUrl } from '../utils/apiConfig';
 
 export default function MyAccount() {
   const { success, error: showError } = useAlert();
@@ -33,8 +34,7 @@ export default function MyAccount() {
         if (!token) {
           throw new Error('Authentication required');
         }
-        const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
-        const response = await fetch(`${apiUrl}/api/my-profile?t=${Date.now()}`, {
+        const response = await fetch(buildApiUrl(`/my-profile?t=${Date.now()}`), {
           credentials: 'include',
           headers: {
             'Accept': 'application/json',
@@ -129,10 +129,9 @@ export default function MyAccount() {
       setSavingImage(true);
 
       const token = localStorage.getItem('auth_token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://hrms.talentshield.co.uk';
 
       // Fetch fresh profile data with cache busting
-      const response = await fetch(`${apiUrl}/api/my-profile?t=${Date.now()}`, {
+      const response = await fetch(buildApiUrl(`/my-profile?t=${Date.now()}`), {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -182,7 +181,7 @@ export default function MyAccount() {
           showError('Profile not found. Attempting to fix...');
           
           try {
-            const fixResponse = await fetch(`${apiUrl}/api/fix-my-profile`, {
+            const fixResponse = await fetch(buildApiUrl('/fix-my-profile'), {
               method: 'POST',
               credentials: 'include',
               headers: {
