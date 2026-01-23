@@ -423,8 +423,20 @@ exports.getEmployeesWithClockStatus = async (req, res) => {
     const employees = await EmployeeHub.find({}).lean();
     console.log(`🔍 Found ${employees.length} employees in EmployeeHub`);
 
+    // Filter out profile users (those with User.role='profile')
+    // Get all profile user emails from User collection
+    const profileUsers = await User.find({ role: 'profile' }).select('email');
+    const profileEmails = profileUsers.map(u => u.email.toLowerCase());
+    
+    // Filter out employees whose emails match profile users
+    const filteredEmployees = employees.filter(emp => 
+      !profileEmails.includes(emp.email.toLowerCase())
+    );
+
+    console.log(`🔍 After filtering profiles: ${filteredEmployees.length} employees (removed ${employees.length - filteredEmployees.length} profile users)`);
+
     // Map employees to expected format
-    const result = employees.map(emp => {
+    const result = filteredEmployees.map(emp => {
       return {
         id: emp._id,
         _id: emp._id,
